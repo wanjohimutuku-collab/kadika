@@ -526,9 +526,11 @@ app/
 - Layout top→bottom: ornament/pattern, couple names (display serif), line "Wanawaalika {guest name}" (personalised), date/time/venue, dress code, RSVP/contact phone, then bottom band with **QR (≥ 25 mm, black on white, quiet zone ≥ 4 modules)** and the short code at ≥ 12 pt beside it.
 - Batch PDF: one card per page for print shops, plus a **cut-and-collate sheet** (4× A6 per A4) and a test sheet (§6.4). File name: `{event}-{guest-code}.pdf`.
 
-### 17.8 Web admin (minimal, `apps/web/admin`)
+### 17.8 Web organizer console (`apps/web`, `/app`)
 
-Responsive table views for owners on laptop: guests (sortable, bulk actions), delivery log, pledges and exports, scan log. Same tokens; left nav ≥ 768 px, bottom tabs below. No feature may exist only in the web admin that the mobile app needs.
+Decided in ADR 005 (answers open decision 6): v1 ships a full responsive organizer console at `/app` — events, create wizard, Muhtasari, Wageni (table/list, import, detail, reissue), Tuma, Kadi (print preview with §6.4 enforcement), Michango, Lango (monitor + manual check-in; camera scanning stays in the Android app), Timu, Ripoti, Mipangilio, Akaunti. Same tokens and microcopy; left nav ≥ 768 px, five bottom tabs below plus a header "Zaidi" sheet (ADR 010). Gate agents have no console access. No feature may exist only in the web console that the mobile app needs.
+
+Guest-facing web routes: `/c/[token]` (+ `/pay`), `/s/[code]` (SMS short link), `/k` (enter card number). Public: `/`, `/privacy`, `/terms`, `/login`. Dev only: `/dev/states`. Plan, status and handoff: `docs/ui/PLAN.md`, `docs/ui/HANDOFF.md`; related ADRs 005–011.
 
 ### 17.9 Component inventory (build once, reuse)
 

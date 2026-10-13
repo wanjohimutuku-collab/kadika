@@ -11,7 +11,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
@@ -25,5 +25,28 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm --filter @harusi/web build-storybook
       - run: pnpm audit --prod --audit-level=high
         continue-on-error: true # advisory until Phase 7 hardening
+
+  web-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @harusi/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @harusi/web e2e:build
+      - run: pnpm --filter @harusi/web e2e
+      - run: pnpm --filter @harusi/web lhci
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results

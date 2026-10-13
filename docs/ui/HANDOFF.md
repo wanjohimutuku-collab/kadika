@@ -1,0 +1,52 @@
+# Web MVP — handoff
+
+The web app (`apps/web`) runs end to end on mock data: public site, guest card + pay flow, and the organizer console. This note covers what to change when the API exists, what is known to be missing, and how to review the Swahili.
+
+## Run it
+
+```bash
+pnpm i
+pnpm --filter @harusi/web dev            # http://localhost:3000
+```
+
+- Sign in at `/login` with **0712 000 001** and the code **123456** (mock). Any other number creates a new, empty organizer.
+- The wrench button (bottom-left on phones, bottom-right on desktop) opens the **dev panel**: role (owner/committee/gate), language, network (online/slow/offline), injected failures (0/10/30 %), payment outcome (success/declined/timeout/duplicate webhook), reset data, sample card links.
+- `/dev/states` shows every screen in every §17.10 state.
+- Storybook: `pnpm --filter @harusi/web storybook` (port 6006).
+
+## Swap `MockRepository` for the real API
+
+1. Implement `HttpRepository` in `packages/api-client/src/http-repository.ts` against `/v1` (§8). Every method is typed by `Repository` in `src/repository.ts`; return the same view types (`WeddingEvent`, `Guest`, `CardView`, …) and throw `RepositoryError` with the §8 error codes (`offline`, `not_found`, `invalid_token`, `reissued`, `rate_limited`, `validation`, `unauthorized`, `forbidden`, `conflict`, `locked`, `server`).
+2. Set `NEXT_PUBLIC_USE_MOCKS=0` and `NEXT_PUBLIC_API_URL`. `apps/web/src/lib/repo.ts` is the only place that picks the implementation.
+3. Server rendering of the guest card: `app/c/[token]/page.tsx` currently calls `peekCardOnServer` (mock seed). Replace it with a server-side `GET /v1/c/:token` (and do the same in `opengraph-image.tsx`, `manifest.webmanifest/route.ts` and `/s/[code]`).
+4. Auth: the mock keeps the session in localStorage. The real app should use the Better Auth session cookie (§3); `useSession()` in `src/lib/queries.ts` is the single read point. Role comes from `event_members`, not the dev panel.
+5. Things the mock does that the API must also do:
+   - RSVP idempotency by key; the card replays a stored answer (`harusi.card.outbox.<token>`) after a reload or reconnect.
+   - Payment webhook idempotency by provider reference (duplicate notices counted once).
+   - Send jobs: `sendInvitations` returns a job; the UI polls `getSendJob` every 700 ms until `status === 'done'`, then offers `retryFailed`.
+   - `getGuestCardLink` exists only so the console can open a guest's card in mocks. The real API never exposes raw tokens; replace it with a "resend link" action.
+6. Delete `packages/api-client/src/mock`, `apps/web/src/lib/server-mock.ts`, the dev panel and `/dev/states` from production builds (they are gated by `NEXT_PUBLIC_USE_MOCKS`).
+
+## Known gaps
+
+- **Guest card "< 100 KB initial load"** (§7.3) is not achievable with Next.js App Router: the framework runtime alone is 103 KB gz. The card meets the 120 KB gz JS budget (§10) at 116 KB. See ADR 009 for options.
+- **Mock-mode bundle**: in mock mode the repository chunk (seed generator + zod) loads after first paint on the guest card. The real `HttpRepository` will be much smaller.
+- **Cover photos** are mocked with gradients; real uploads need S3 (§3) and image optimisation (AVIF/WebP, ≤ 40 KB).
+- **PDF export** returns a one-line mock PDF. The real batch PDF (A6/A5, A4 4-up, test sheet) is Phase 3 and must keep the §6.4 assertions; the console already blocks layouts with a QR below 25 mm or modules below 0.8 mm.
+- **Contacts picker** uses the Contact Picker API on Android Chrome; elsewhere it shows sample contacts.
+- **Reminder scheduler** (T-14/T-7/T-1) is configuration only; the BullMQ scheduler is Phase 3.
+- **Gate scanner** is not on the web (by design, ADR 005/010); the web Lango page is a monitor with manual check-in.
+- **Storybook** covers the framework-agnostic `src/components/ui` set. `ConsoleShell`, headers and `LanguageChip` depend on next-intl/router and are covered by Playwright screenshots and `/dev/states` (ADR 011).
+- **Token contrast**: §17.2 gate fills and the gold accent don't reach the ratios the spec claims (ADR 006). The web uses the accent decoratively only; the Android gate overlay (Phase 5) must darken the fills.
+
+## Swahili review checklist (before launch)
+
+All strings live in `packages/i18n/src/sw.json`, which is marked `"_meta": { "reviewed": false }`. A native speaker should check, and then set `reviewed` to `true`:
+
+- [ ] Tone: warm and respectful, formal for elders ("Karibu", "Tafadhali", "Mpendwa"), no slang (§17.11).
+- [ ] Every key in §17.11 matches the spec wording (tabs, RSVP, trust line, gate results, offline banner, sync, permissions, brightness hint).
+- [ ] Plurals read naturally: `mtu 1 / watu 2`, `mgeni 1 / wageni 2`, `Siku 1 imebaki / Siku 52 zimebaki`, `Ujumbe 3 haukufika`.
+- [ ] Swahili time on the card: "Saa 10:00 jioni (16:00)" — confirm elders read it as intended (ADR 008).
+- [ ] Payment copy never asks for a PIN; "Thibitisha kwenye simu yako" flow is clear for M-Pesa, Mixx by Yas, Airtel Money, HaloPesa users.
+- [ ] Legal pages (`legal.*`) are placeholders marked "Rasimu"; they need a lawyer as well as a language review.
+- [ ] SMS templates (`packages/api-client/src/domain/sms.ts`) stay ≤ 160 GSM-7 characters with real names.

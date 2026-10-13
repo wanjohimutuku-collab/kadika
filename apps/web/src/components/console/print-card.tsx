@@ -1,0 +1,114 @@
+'use client';
+
+import { useLocale, useTranslations } from 'next-intl';
+import type { Locale } from '@harusi/i18n';
+import { QrBlock } from '@/components/ui/qr-block';
+import { qrMatrix, QR_QUIET_ZONE } from '@/lib/qr';
+import { OrnamentBand, OrnamentDiamond } from '@/components/card/ornament';
+import {
+  formatClock,
+  formatDate,
+  formatPhone,
+  formatTime,
+  formatWeekday,
+  swahiliTime,
+} from '@/lib/format';
+import { themeStyle } from '@/lib/theme';
+import type { CardPreviewData } from './card-preview';
+
+export const FORMATS = { A6: { w: 105, h: 148 }, A5: { w: 148, h: 210 } } as const;
+export type PrintFormat = keyof typeof FORMATS;
+const PX_PER_MM = 96 / 25.4;
+
+/**
+ * Print card (§17.7) drawn at true millimetre size, then scaled to fit the preview. Top → bottom:
+ * ornament, couple names, personalised line, date/time/venue, dress code, contact, then the QR band.
+ * The QR is black on white with its quiet zone; the short code sits beside it at ≥ 12 pt.
+ */
+export function PrintCard({
+  data,
+  format,
+  qrMm,
+  payload,
+  previewWidthPx,
+}: {
+  data: CardPreviewData;
+  format: PrintFormat;
+  qrMm: number;
+  payload: string;
+  previewWidthPx: number;
+}) {
+  const t = useTranslations('cards');
+  const tc = useTranslations('card');
+  const locale = useLocale() as Locale;
+  const f = FORMATS[format];
+  const scale = previewWidthPx / (f.w * PX_PER_MM);
+  const valid = !Number.isNaN(Date.parse(data.dateStart));
+  // Quiet zone is part of the rendered SVG: the symbol is qrMm, the SVG adds 4 modules each side.
+  const modules = qrMatrix(payload).size;
+  const qrPx = (qrMm * PX_PER_MM * (modules + QR_QUIET_ZONE * 2)) / modules;
+  return (
+    <div
+      style={{ width: previewWidthPx, height: f.h * PX_PER_MM * scale }}
+      className="overflow-hidden rounded-md shadow-lg ring-1 ring-border"
+    >
+      <div
+        style={{
+          ...themeStyle(data.themeId),
+          width: `${f.w}mm`,
+          height: `${f.h}mm`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+        className="relative flex flex-col bg-white px-[8mm] pt-[6mm] pb-[6mm] text-center text-[#1B1B1F]"
+        data-testid="print-card"
+      >
+        <OrnamentBand id={`print-band-${format}`} className="block" />
+        <OrnamentDiamond className="mx-auto mt-[3mm]" />
+        <p className="mt-[2mm] text-[9pt] tracking-[0.25em] uppercase">{tc('weddingOf')}</p>
+        <p
+          className="font-display text-[26pt] leading-tight font-semibold"
+          style={{ color: 'var(--hp-primary)' }}
+        >
+          {data.partnerA} &amp; {data.partnerB}
+        </p>
+        {data.greeting ? <p className="mt-[2mm] text-[9pt] leading-snug">{data.greeting}</p> : null}
+        <p className="mt-[1.5mm] text-[10pt] font-semibold">
+          {t('invitesLine', { guest: data.guestName ?? t('sampleGuest') })}
+        </p>
+        {valid ? (
+          <p className="mt-[2mm] text-[10pt]">
+            {formatWeekday(data.dateStart, locale)} {formatDate(data.dateStart, locale)} ·{' '}
+            {locale === 'sw'
+              ? `Saa ${swahiliTime(data.dateStart)} (${formatClock(data.dateStart)})`
+              : formatTime(data.dateStart, locale)}
+          </p>
+        ) : null}
+        <p className="text-[10pt]">{data.venueName}</p>
+        {data.dressCode ? (
+          <p className="mt-[1mm] text-[9pt]">{tc('dressCode', { dressCode: data.dressCode })}</p>
+        ) : null}
+        {data.committeePhone ? (
+          <p className="mt-[1mm] text-[9pt]">
+            {t('rsvpLine', { phone: formatPhone(data.committeePhone) })}
+          </p>
+        ) : null}
+        <div className="mt-auto flex items-center justify-center gap-[4mm] border-t border-[#E6DFD3] pt-[3mm]">
+          {/* QR band: never themed, never tinted (§6.4). */}
+          <div style={{ background: '#fff' }}>
+            <QrBlock payload={payload} alt={`QR ${data.shortCode ?? ''}`} size={qrPx} />
+          </div>
+          <div className="text-left">
+            <p className="text-[9pt]">{tc('codeLabel')}</p>
+            <p
+              className="font-mono text-[16pt] font-bold tracking-[0.12em]"
+              style={{ color: '#000' }}
+            >
+              {data.shortCode ?? 'KH-4826'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

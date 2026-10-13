@@ -1,0 +1,10 @@
+# Placeholder (Phase 4): EAS preview on PR label, production on tag.
+name: Mobile EAS
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Not implemented in Phase 0. See CLAUDE.md section 11."

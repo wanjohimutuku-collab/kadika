@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Harusi Pass",
+    "slug": "harusi-pass",
+    "version": "0.0.0",
+    "scheme": "harusipass",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": { "package": "app.harusipass.mobile" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}

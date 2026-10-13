@@ -1,0 +1,42 @@
+name: harusi
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: harusi
+      POSTGRES_PASSWORD: harusi
+      POSTGRES_DB: harusi
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U harusi -d harusi']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  # S3-compatible dev storage. MinIO's official images are no longer published (ADR 004).
+  s3:
+    image: chrislusf/seaweedfs:latest
+    command: server -s3 -dir=/data -master.volumeSizeLimitMB=64
+    ports: ['8333:8333', '9333:9333']
+    volumes: [s3data:/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:9333/cluster/status >/dev/null || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ['1025:1025', '8025:8025']
+volumes:
+  pgdata:
+  redisdata:
+  s3data:

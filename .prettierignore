@@ -1,0 +1,9 @@
+node_modules
+.tooling
+.next
+dist
+.turbo
+pnpm-lock.yaml
+packages/db/drizzle
+apps/mobile/.expo
+CLAUDE.md

@@ -1,0 +1,10 @@
+# Placeholder (Phase 7): build images -> GHCR -> Coolify deploy webhook.
+name: Build and push images
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Not implemented in Phase 0. See CLAUDE.md section 11."

@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.expo
+.tooling
+.git
+.env
+.env.*
+!.env.example

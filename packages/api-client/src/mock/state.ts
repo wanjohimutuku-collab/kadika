@@ -1,0 +1,639 @@
+import {
+  generateShortCode,
+  type InvitationStatus,
+  type MemberRole,
+  type MessageChannel,
+  type PaymentMethod,
+} from '@harusi/schemas';
+import type {
+  AuditEntry,
+  Member,
+  MessageLogEntry,
+  Payment,
+  ScanEntry,
+  SendJob,
+  User,
+  WeddingEvent,
+} from '../types';
+import { STATUS_RANK } from '../domain/funnel';
+import { mulberry32, Rng } from './prng';
+import {
+  ELDER_PREFIX_F,
+  ELDER_PREFIX_M,
+  FEMALE,
+  GROUPS,
+  MALE,
+  PREFIXES,
+  SURNAMES,
+  TITLES,
+} from './names';
+
+export const DAY = 86_400_000;
+export const HOUR = 3_600_000;
+const EAT_OFFSET = 3 * HOUR; // Africa/Dar_es_Salaam is UTC+3 all year
+
+export type EventRecord = Omit<WeddingEvent, 'stats'> & { deletedAt: string | null };
+
+export interface GuestRecord {
+  id: string;
+  eventId: string;
+  displayName: string;
+  phoneE164: string | null;
+  hasSmartphone: boolean;
+  groupLabel: string;
+  partySizeAllowed: number;
+  shortCode: string;
+  tokenVersion: number;
+  token: string;
+  language: 'sw' | 'en';
+  inviteChannelPref: 'whatsapp' | 'sms' | 'print' | 'mixed';
+  notes: string;
+  status: InvitationStatus;
+  timeline: Partial<Record<InvitationStatus, string>>;
+  rsvpPartySize: number | null;
+  channelLast: MessageChannel | null;
+  checkedInAt: string | null;
+  partyAdmitted: number;
+  pledgeAmountTzs: number | null;
+  pledgeWaived: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface PendingPayment {
+  reference: string;
+  guestId: string;
+  eventId: string;
+  amountTzs: number;
+  phoneE164: string;
+  method: PaymentMethod;
+  outcome: 'success' | 'declined' | 'timeout' | 'duplicate_webhook';
+  startedAt: number;
+  applied: boolean;
+}
+
+export interface JobRecipient {
+  guestId: string;
+  channel: MessageChannel;
+  outcome: 'delivered' | 'failed';
+  error: string | null;
+  /** ms after job start when this message resolves. */
+  at: number;
+}
+
+export interface JobRecord extends Omit<SendJob, 'counts' | 'failures' | 'status'> {
+  startedAt: number;
+  recipients: JobRecipient[];
+  appliedCount: number;
+  retryOf: string | null;
+}
+
+export interface MockState {
+  version: 1;
+  seedDay: string;
+  users: User[];
+  sessionUserId: string | null;
+  events: EventRecord[];
+  guests: GuestRecord[];
+  messages: (MessageLogEntry & { eventId: string })[];
+  payments: (Payment & { eventId: string })[];
+  scans: ScanEntry[];
+  members: Record<string, (Member & { userId: string | null })[]>;
+  audit: Record<string, AuditEntry[]>;
+  jobs: JobRecord[];
+  pendingPayments: Record<string, PendingPayment>;
+  /** Retired card tokens → guest id (old links show "reissued"). */
+  retiredTokens: Record<string, string>;
+  idempotency: Record<string, string>;
+  otp: Record<string, { attempts: number; lockedUntil: number | null; lastRequestedAt: number }>;
+}
+
+/** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */
+export function startOfDayEAT(now: number): number {
+  return Math.floor((now + EAT_OFFSET) / DAY) * DAY - EAT_OFFSET;
+}
+
+const iso = (ms: number) => new Date(ms).toISOString();
+
+function phoneFor(rng: Rng): string {
+  return `+255${rng.pick(PREFIXES)}${String(rng.int(0, 9_999_999)).padStart(7, '0')}`;
+}
+
+function personName(rng: Rng): { name: string; elder: boolean } {
+  const female = rng.chance(0.52);
+  const first = female ? rng.pick(FEMALE) : rng.pick(MALE);
+  const last = rng.pick(SURNAMES);
+  const r = rng.next();
+  if (r < 0.1)
+    return {
+      name: `${female ? rng.pick(ELDER_PREFIX_F) : rng.pick(ELDER_PREFIX_M)} ${first}`,
+      elder: true,
+    };
+  if (r < 0.16)
+    return {
+      name: `${female ? rng.pick(ELDER_PREFIX_F) : rng.pick(ELDER_PREFIX_M)} ${first} ${last}`,
+      elder: true,
+    };
+  if (r < 0.2) return { name: `${rng.pick(TITLES)} ${first} ${last}`, elder: false };
+  if (r < 0.24) return { name: `Familia ya ${last}`, elder: false };
+  return { name: `${first} ${last}`, elder: false };
+}
+
+const PLEDGE_AMOUNTS = [
+  20_000, 30_000, 50_000, 50_000, 100_000, 100_000, 150_000, 200_000, 300_000, 500_000,
+] as const;
+const PAY_METHODS: readonly (readonly [PaymentMethod, number])[] = [
+  ['mpesa', 45],
+  ['mixx', 20],
+  ['airtel', 15],
+  ['halopesa', 5],
+  ['cash', 10],
+  ['bank', 5],
+];
+
+interface BuildCtx {
+  rng: Rng;
+  now: number;
+  state: MockState;
+  usedCodes: Set<string>;
+}
+
+function uniqueCode(ctx: BuildCtx, eventId: string): string {
+  for (;;) {
+    const code = generateShortCode(ctx.rng.next);
+    const key = `${eventId}:${code}`;
+    if (!ctx.usedCodes.has(key)) {
+      ctx.usedCodes.add(key);
+      return code;
+    }
+  }
+}
+
+function baseEvent(
+  partial: Partial<EventRecord> & Pick<EventRecord, 'id' | 'partnerA' | 'partnerB' | 'dateStart'>,
+): EventRecord {
+  return {
+    title: `Harusi ya ${partial.partnerA} & ${partial.partnerB}`,
+    coupleNames: `${partial.partnerA} & ${partial.partnerB}`,
+    venueName: '',
+    venueMapUrl: '',
+    dressCode: '',
+    languageDefault: 'sw',
+    timezone: 'Africa/Dar_es_Salaam',
+    status: 'active',
+    themeId: 'emerald-gold',
+    coverGradient: 'linear-gradient(135deg,#0F5C4D 0%,#1E7D6A 55%,#B8893B 100%)',
+    rsvpDeadline: null,
+    contributionTargetTzs: 0,
+    senderName: '',
+    committeePhone: '',
+    pledgesEnabled: true,
+    requirePledgeBeforeCard: false,
+    greeting: '',
+    extraNote: '',
+    reminders: { t14: true, t7: true, t1: true },
+    whatsappFallbackHours: 6,
+    plan: 'free',
+    createdAt: partial.dateStart,
+    updatedAt: partial.dateStart,
+    deletedAt: null,
+    ...partial,
+  };
+}
+
+function addGuest(
+  ctx: BuildCtx,
+  eventId: string,
+  eventCreated: number,
+  opts: { status: InvitationStatus; checkInWindow?: [number, number] },
+) {
+  const { rng } = ctx;
+  const { name, elder } = personName(rng);
+  const family = name.startsWith('Familia');
+  const noPhone = rng.chance(elder ? 0.25 : 0.03);
+  const hasSmartphone = noPhone ? false : rng.chance(elder ? 0.25 : 0.78);
+  const pref: GuestRecord['inviteChannelPref'] = noPhone
+    ? 'print'
+    : !hasSmartphone
+      ? 'sms'
+      : rng.chance(0.85)
+        ? 'whatsapp'
+        : 'mixed';
+  const group = elder
+    ? rng.weighted([
+        ['Wazee', 5],
+        [GROUPS[0], 3],
+        [GROUPS[1], 3],
+      ] as const)
+    : rng.pick(GROUPS);
+  const partySizeAllowed = family
+    ? rng.int(3, 5)
+    : rng.weighted([
+        [1, 55],
+        [2, 35],
+        [3, 7],
+        [4, 3],
+      ] as const);
+  const id = rng.uuid();
+  const created = eventCreated + rng.int(0, 5) * DAY + rng.int(0, 10) * HOUR;
+  const status =
+    noPhone &&
+    STATUS_RANK[opts.status] >= STATUS_RANK.delivered &&
+    STATUS_RANK[opts.status] < STATUS_RANK.confirmed
+      ? 'sent'
+      : opts.status;
+  const timeline: GuestRecord['timeline'] = { created: iso(created) };
+  let t = created + rng.int(2, 12) * DAY;
+  const cap = ctx.now - HOUR;
+  const stamp = (s: InvitationStatus, gap: number) => {
+    t = Math.min(cap, t + gap);
+    timeline[s] = iso(t);
+  };
+  const rank = STATUS_RANK[status];
+  if (rank >= STATUS_RANK.queued) stamp('queued', 0);
+  if (rank >= STATUS_RANK.sent) stamp('sent', rng.int(1, 30) * 60_000);
+  if (rank >= STATUS_RANK.delivered && !noPhone) stamp('delivered', rng.int(1, 40) * 60_000);
+  if (rank >= STATUS_RANK.opened && !noPhone) stamp('opened', rng.int(1, 72) * HOUR);
+  if (status === 'confirmed' || status === 'checked_in') stamp('confirmed', rng.int(1, 120) * HOUR);
+  if (status === 'declined') stamp('declined', rng.int(1, 120) * HOUR);
+  let checkedInAt: string | null = null;
+  let partyAdmitted = 0;
+  const rsvpPartySize =
+    status === 'confirmed' || status === 'checked_in'
+      ? rng.int(1, partySizeAllowed)
+      : status === 'declined'
+        ? 0
+        : null;
+  if (status === 'checked_in' && opts.checkInWindow) {
+    const [a, b] = opts.checkInWindow;
+    checkedInAt = iso(a + rng.next() * (b - a));
+    timeline.checked_in = checkedInAt;
+    partyAdmitted = rsvpPartySize ?? 1;
+  }
+  const channelLast: MessageChannel | null =
+    rank >= STATUS_RANK.sent
+      ? pref === 'print'
+        ? 'print'
+        : pref === 'sms'
+          ? 'sms'
+          : 'whatsapp'
+      : null;
+  const pledged = rng.chance(0.6);
+  const g: GuestRecord = {
+    id,
+    eventId,
+    displayName: name,
+    phoneE164: noPhone ? null : phoneFor(rng),
+    hasSmartphone,
+    groupLabel: group,
+    partySizeAllowed,
+    shortCode: uniqueCode(ctx, eventId),
+    tokenVersion: 1,
+    token: rng.token(),
+    language: rng.chance(0.93) ? 'sw' : 'en',
+    inviteChannelPref: pref,
+    notes: elder && rng.chance(0.3) ? 'Mpelekee kadi ya karatasi nyumbani' : '',
+    status,
+    timeline,
+    rsvpPartySize,
+    channelLast,
+    checkedInAt,
+    partyAdmitted,
+    pledgeAmountTzs: pledged ? rng.pick(PLEDGE_AMOUNTS) : null,
+    pledgeWaived: false,
+    createdAt: iso(created),
+    updatedAt: iso(t),
+    deletedAt: null,
+  };
+  ctx.state.guests.push(g);
+
+  // Messages consistent with the status.
+  if (rank >= STATUS_RANK.sent && channelLast && channelLast !== 'print') {
+    const sentAt = Date.parse(timeline.sent!);
+    const failedFirst = channelLast === 'whatsapp' && rng.chance(0.06);
+    if (failedFirst) {
+      ctx.state.messages.push({
+        id: rng.uuid(),
+        eventId,
+        guestId: id,
+        channel: 'whatsapp',
+        provider: 'whatsapp-cloud',
+        kind: 'invite',
+        status: 'failed',
+        error: 'not_on_whatsapp',
+        costTzs: 0,
+        createdAt: iso(sentAt),
+      });
+      ctx.state.messages.push({
+        id: rng.uuid(),
+        eventId,
+        guestId: id,
+        channel: 'sms',
+        provider: 'fake-sms',
+        kind: 'invite',
+        status: rank >= STATUS_RANK.delivered ? 'delivered' : 'sent',
+        error: null,
+        costTzs: 25,
+        createdAt: iso(sentAt + 6 * HOUR),
+      });
+      g.channelLast = 'sms';
+    } else {
+      ctx.state.messages.push({
+        id: rng.uuid(),
+        eventId,
+        guestId: id,
+        channel: channelLast,
+        provider: channelLast === 'sms' ? 'fake-sms' : 'whatsapp-cloud',
+        kind: 'invite',
+        status:
+          rank >= STATUS_RANK.opened && channelLast === 'whatsapp'
+            ? 'read'
+            : rank >= STATUS_RANK.delivered
+              ? 'delivered'
+              : 'sent',
+        error: null,
+        costTzs: channelLast === 'sms' ? 25 : 0,
+        createdAt: iso(sentAt),
+      });
+    }
+  } else if (status === 'queued' && channelLast !== 'print') {
+    // Queued guests whose last attempt failed → drive "failed messages" alerts.
+    ctx.state.messages.push({
+      id: rng.uuid(),
+      eventId,
+      guestId: id,
+      channel: hasSmartphone ? 'whatsapp' : 'sms',
+      provider: hasSmartphone ? 'whatsapp-cloud' : 'fake-sms',
+      kind: 'invite',
+      status: 'failed',
+      error: rng.pick(['invalid_number', 'provider_timeout', 'not_on_whatsapp']),
+      costTzs: 0,
+      createdAt: timeline.queued ?? iso(created),
+    });
+  }
+
+  // Payments against the pledge.
+  if (g.pledgeAmountTzs) {
+    const r = rng.next();
+    const paidShare = r < 0.4 ? 1 : r < 0.65 ? rng.pick([0.25, 0.5, 0.6]) : 0;
+    let remaining = Math.round((g.pledgeAmountTzs * paidShare) / 5000) * 5000;
+    let at = created + rng.int(3, 20) * DAY;
+    while (remaining > 0) {
+      const part =
+        remaining > 50_000 && rng.chance(0.3) ? Math.round(remaining / 2 / 5000) * 5000 : remaining;
+      const method = rng.weighted(PAY_METHODS);
+      at = Math.min(ctx.now - 2 * HOUR, at + rng.int(1, 6) * DAY);
+      ctx.state.payments.push({
+        id: rng.uuid(),
+        eventId,
+        guestId: id,
+        guestName: g.displayName,
+        amountTzs: part,
+        method,
+        status: 'success',
+        reference:
+          method === 'cash'
+            ? `CASH-${rng.hex(6).toUpperCase()}`
+            : `${method.toUpperCase().slice(0, 2)}${rng.hex(8).toUpperCase()}`,
+        phoneE164: method === 'cash' || method === 'bank' ? null : g.phoneE164,
+        paidAt: iso(at),
+        note: '',
+        recordedBy: method === 'cash' || method === 'bank' ? 'Baraka Mushi' : null,
+      });
+      remaining -= part;
+    }
+  }
+  return g;
+}
+
+export interface SeedOptions {
+  now?: number;
+  seed?: number;
+}
+
+/** Deterministic demo data relative to "today" in Dar es Salaam (same result on server and browser). */
+export function createSeedState(opts: SeedOptions = {}): MockState {
+  const now = opts.now ?? Date.now();
+  const today = startOfDayEAT(now);
+  const rng = new Rng(mulberry32(opts.seed ?? 20_261_013));
+  const state: MockState = {
+    version: 1,
+    seedDay: iso(today),
+    users: [],
+    sessionUserId: null,
+    events: [],
+    guests: [],
+    messages: [],
+    payments: [],
+    scans: [],
+    members: {},
+    audit: {},
+    jobs: [],
+    pendingPayments: {},
+    retiredTokens: {},
+    idempotency: {},
+    otp: {},
+  };
+  // Everything is anchored to midnight EAT so the seed is identical for the whole day (server ≡ browser).
+  const anchor = today;
+  const ctx: BuildCtx = { rng, now: anchor, state, usedCodes: new Set() };
+
+  const owner: User = { id: 'user-owner', name: 'Juma Mrisho', phoneE164: '+255712000001' };
+  const committee: User = {
+    id: 'user-committee',
+    name: 'Baraka Mushi',
+    phoneE164: '+255754000222',
+  };
+  const gate: User = { id: 'user-gate', name: 'Rehema Said', phoneE164: '+255683000333' };
+  state.users.push(owner, committee, gate);
+
+  // Upcoming event (52 days ahead, 16:00 EAT).
+  const upcomingDate = today + 52 * DAY + 16 * HOUR;
+  const upcomingCreated = today - 45 * DAY;
+  const upcoming = baseEvent({
+    id: '0192f1a0-7c3e-7a11-9b2c-5e8d4a6f0001',
+    partnerA: 'Asha',
+    partnerB: 'Juma',
+    dateStart: iso(upcomingDate),
+    venueName: 'Ukumbi wa Mwanga, Kibaha',
+    venueMapUrl: 'https://www.openstreetmap.org/?mlat=-6.7667&mlon=38.9167#map=16/-6.7667/38.9167',
+    dressCode: 'Kijani na dhahabu',
+    rsvpDeadline: iso(upcomingDate - 14 * DAY),
+    contributionTargetTzs: 20_000_000,
+    senderName: 'Kamati ya Harusi ya Asha & Juma',
+    committeePhone: committee.phoneE164,
+    greeting: 'Kwa furaha kubwa, familia za Mwinyi na Mrisho zinakualika',
+    extraNote: 'Chakula na burudani vitafuata baada ya sherehe.',
+    createdAt: iso(upcomingCreated),
+    updatedAt: iso(today - 2 * DAY),
+  });
+  state.events.push(upcoming);
+  const upcomingStatuses: readonly (readonly [InvitationStatus, number])[] = [
+    ['created', 8],
+    ['queued', 3],
+    ['sent', 8],
+    ['delivered', 15],
+    ['opened', 13],
+    ['confirmed', 45],
+    ['declined', 8],
+  ];
+  for (let i = 0; i < 326; i++)
+    addGuest(ctx, upcoming.id, upcomingCreated, { status: rng.weighted(upcomingStatuses) });
+
+  // Past event (30 days ago, 15:00 EAT), fully checked in.
+  const pastDate = today - 30 * DAY + 15 * HOUR;
+  const pastCreated = pastDate - 70 * DAY;
+  const past = baseEvent({
+    id: '0192f1a0-7c3e-7a11-9b2c-5e8d4a6f0002',
+    partnerA: 'Rehema',
+    partnerB: 'Daudi',
+    dateStart: iso(pastDate),
+    venueName: 'Diamond Jubilee Hall, Dar es Salaam',
+    venueMapUrl: 'https://www.openstreetmap.org/?mlat=-6.7924&mlon=39.2083#map=16/-6.7924/39.2083',
+    dressCode: 'Rangi za kitenge',
+    status: 'completed',
+    themeId: 'terracotta',
+    coverGradient: 'linear-gradient(135deg,#9A3B1F 0%,#C26A3F 60%,#E2B07A 100%)',
+    rsvpDeadline: iso(pastDate - 14 * DAY),
+    contributionTargetTzs: 8_000_000,
+    senderName: 'Kamati ya Harusi ya Rehema & Daudi',
+    committeePhone: committee.phoneE164,
+    greeting: 'Familia za Said na Kimaro zinayo furaha kukualika',
+    createdAt: iso(pastCreated),
+    updatedAt: iso(pastDate + DAY),
+  });
+  state.events.push(past);
+  const window: [number, number] = [pastDate - HOUR, pastDate + 3.5 * HOUR];
+  const pastStatuses: readonly (readonly [InvitationStatus, number])[] = [
+    ['checked_in', 72],
+    ['confirmed', 10],
+    ['declined', 10],
+    ['opened', 5],
+    ['delivered', 3],
+  ];
+  const pastGuests = Array.from({ length: 140 }, () =>
+    addGuest(ctx, past.id, pastCreated, {
+      status: rng.weighted(pastStatuses),
+      checkInWindow: window,
+    }),
+  );
+  const gates = ['Lango A', 'Lango B'];
+  const devices = ['Tecno Spark (Rehema)', 'Samsung A05 (Baraka)'];
+  for (const g of pastGuests) {
+    if (!g.checkedInAt) continue;
+    const gi = rng.int(0, 1);
+    const manual = rng.chance(0.06);
+    state.scans.push({
+      id: rng.uuid(),
+      eventId: past.id,
+      guestId: g.id,
+      guestName: g.displayName,
+      result: manual ? 'manual_ok' : 'ok',
+      partyAdmitted: g.partyAdmitted,
+      gateName: gates[gi]!,
+      deviceName: devices[gi]!,
+      scannedBy: gi ? committee.name : gate.name,
+      scannedAt: g.checkedInAt,
+      reason: manual ? 'Simu imezima' : null,
+    });
+    if (rng.chance(0.05)) {
+      state.scans.push({
+        id: rng.uuid(),
+        eventId: past.id,
+        guestId: g.id,
+        guestName: g.displayName,
+        result: 'duplicate',
+        partyAdmitted: 0,
+        gateName: gates[1 - gi]!,
+        deviceName: devices[1 - gi]!,
+        scannedBy: gi ? gate.name : committee.name,
+        scannedAt: iso(Date.parse(g.checkedInAt) + rng.int(5, 50) * 60_000),
+        reason: null,
+      });
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    state.scans.push({
+      id: rng.uuid(),
+      eventId: past.id,
+      guestId: null,
+      guestName: null,
+      result: i === 2 ? 'wrong_event' : 'invalid_sig',
+      partyAdmitted: 0,
+      gateName: gates[i % 2]!,
+      deviceName: devices[i % 2]!,
+      scannedBy: gate.name,
+      scannedAt: iso(window[0] + rng.next() * (window[1] - window[0])),
+      reason: null,
+    });
+  }
+  state.scans.sort((a, b) => a.scannedAt.localeCompare(b.scannedAt));
+
+  // Team (§2): owner + committee + gate agent (+ one pending invite on the upcoming event).
+  const team = (
+    role: MemberRole,
+    u: User,
+    lastActive: number | null,
+    status: Member['status'] = 'active',
+  ) => ({
+    id: `m-${u.id}`,
+    userId: u.id,
+    name: u.name,
+    phoneE164: u.phoneE164,
+    role,
+    status,
+    lastActiveAt: lastActive ? iso(lastActive) : null,
+  });
+  state.members[upcoming.id] = [
+    team('owner', owner, anchor - 20 * 60_000),
+    team('committee', committee, anchor - 3 * HOUR),
+    team('gate', gate, anchor - 6 * DAY),
+    {
+      id: 'm-invited-1',
+      userId: null,
+      name: 'Hassani Kombo',
+      phoneE164: '+255765000444',
+      role: 'committee',
+      status: 'invited',
+      lastActiveAt: null,
+    },
+  ];
+  state.members[past.id] = [
+    team('owner', owner, pastDate + DAY),
+    team('committee', committee, pastDate + HOUR),
+    team('gate', gate, pastDate + 4 * HOUR),
+  ];
+
+  // One reissued guest on the upcoming event, so the "imebadilishwa" state is demonstrable.
+  const reissued = state.guests.find(
+    (g) => g.eventId === upcoming.id && g.status === 'opened' && g.phoneE164,
+  );
+  if (reissued) {
+    state.retiredTokens[reissued.token] = reissued.id;
+    reissued.token = rng.token();
+    reissued.tokenVersion = 2;
+    state.audit[reissued.id] = [
+      {
+        id: rng.uuid(),
+        at: iso(anchor - 4 * DAY),
+        actorName: owner.name,
+        action: 'reissue',
+        details: 'Simu ya mgeni iliibiwa; kadi mpya imetolewa (toleo 2).',
+      },
+    ];
+  }
+  return state;
+}
+
+/** A deterministic card token that is always valid in the seed — handy for demos and e2e tests. */
+export function sampleCardToken(state: MockState, status: InvitationStatus = 'delivered'): string {
+  const g = state.guests.find(
+    (x) =>
+      x.eventId === state.events[0]!.id &&
+      x.status === status &&
+      x.phoneE164 &&
+      x.tokenVersion === 1,
+  );
+  return (g ?? state.guests[0]!).token;
+}

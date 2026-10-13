@@ -1,8 +1,4 @@
-import { z } from 'zod';
-
-export const healthResponseSchema = z.object({
-  status: z.literal('ok'),
-  service: z.string(),
-  time: z.string(),
-});
-export type HealthResponse = z.infer<typeof healthResponseSchema>;
+export * from './health';
+export * from './phone';
+export * from './short-code';
+export * from './domain';

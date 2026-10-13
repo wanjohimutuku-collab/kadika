@@ -1,0 +1,22 @@
+/* Generated from packages/ui-tokens/src — run `pnpm --filter @harusi/ui-tokens gen`. Do not edit. */
+:root {
+  --hp-bg: #FBF8F3;
+  --hp-surface: #FFFFFF;
+  --hp-ink: #1B1B1F;
+  --hp-muted: #5F6368;
+  --hp-primary: #0F5C4D;
+  --hp-on-primary: #FFFFFF;
+  --hp-accent: #B8893B;
+  --hp-border: #E6DFD3;
+  --hp-success: #1E7D3A;
+  --hp-warning: #B26A00;
+  --hp-danger: #B3261E;
+  --hp-info: #0B63B6;
+  --hp-gate-admit: #0B7A2B;
+  --hp-gate-duplicate: #B26A00;
+  --hp-gate-deny: #B3261E;
+  --hp-pattern: #B8893B;
+  --hp-radius-card: 12px;
+  --hp-radius-input: 8px;
+  --hp-radius-pill: 999px;
+}

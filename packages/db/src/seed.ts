@@ -52,7 +52,7 @@ try {
         eventId: event.id,
         displayName: 'Asha Mwinyi',
         phoneE164: '+255700000002',
-        shortCode: 'KH-4821',
+        shortCode: 'KH-4826',
       },
       {
         eventId: event.id,

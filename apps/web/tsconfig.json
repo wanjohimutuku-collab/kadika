@@ -5,9 +5,26 @@
     "jsx": "preserve",
     "allowJs": false,
     "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "types": ["node"]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["next-env.d.ts", "next.config.ts", "app", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "*.ts",
+    ".next/types/**/*.ts",
+    ".storybook",
+    "app",
+    "e2e",
+    "next-env.d.ts",
+    "next.config.ts",
+    "src",
+    ".next-prod/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", "storybook-static"]
 }

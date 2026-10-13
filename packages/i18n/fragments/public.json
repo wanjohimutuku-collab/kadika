@@ -1,0 +1,266 @@
+{
+  "sw": {
+    "auth": {
+      "title": "Ingia kwenye Harusi Pass",
+      "subtitle": "Kwa wenye harusi na kamati. Tutakutumia namba ya uthibitisho kwa SMS.",
+      "phone": "Namba ya simu",
+      "phoneHint": "Mfano 0712 345 678",
+      "sendCode": "Tuma namba ya uthibitisho",
+      "otpTitle": "Weka namba ya uthibitisho",
+      "otpSent": "Tumetuma namba ya tarakimu 6 kwa {phone}.",
+      "otpLabel": "Namba ya uthibitisho",
+      "otpCell": "Tarakimu {n} kati ya 6",
+      "verify": "Thibitisha",
+      "verifying": "Inathibitisha…",
+      "resendIn": "Tuma tena baada ya sekunde {seconds}",
+      "resend": "Tuma namba tena",
+      "resent": "Tumetuma namba mpya",
+      "changePhone": "Badilisha namba",
+      "wrongCode": "Namba si sahihi. {attempts, plural, one {Jaribio # limebaki} other {Majaribio # yamebaki}}.",
+      "locked": "Umejaribu mara nyingi mno. Kwa usalama, subiri hadi saa {time} kisha ujaribu tena.",
+      "rateLimited": "Subiri sekunde {seconds} kabla ya kuomba namba mpya.",
+      "mockHint": "Toleo la majaribio: tumia namba 123456.",
+      "nameTitle": "Karibu! Jina lako ni nani?",
+      "nameLabel": "Jina lako kamili",
+      "continue": "Endelea",
+      "trust": "Hatutakuomba nenosiri. Namba ya uthibitisho ni kwa ajili yako tu — usiitaje kwa mtu yeyote."
+    },
+    "landing": {
+      "metaTitle": "Harusi Pass — Kadi za harusi zinazofanya kazi kwa kila mgeni",
+      "heroTitle": "Kadi moja ya harusi: inafika kwa kila mgeni, inajibu, inachangia, inaingia mlangoni.",
+      "heroBody": "WhatsApp, SMS au karatasi — kila mgeni anapata kadi yake yenye QR na namba. Hata bila smartphone, hata bila mtandao.",
+      "cta": "Anza",
+      "ctaSecondary": "Nina namba ya kadi",
+      "howTitle": "Jinsi inavyofanya kazi",
+      "steps": {
+        "1": {
+          "title": "Ingiza wageni",
+          "body": "Bandika orodha, pakia CSV au chagua kutoka kwenye anwani za simu. Tunasafisha namba zote."
+        },
+        "2": {
+          "title": "Tuma kadi",
+          "body": "WhatsApp kwa wenye smartphone, SMS kwa wengine, na PDF ya kuchapisha kwa wazee."
+        },
+        "3": {
+          "title": "Wageni wajibu & walipe",
+          "body": "Mgeni anathibitisha kuhudhuria na kulipa mchango kwa simu — bila kuingia kwenye akaunti."
+        },
+        "4": {
+          "title": "Wafike langoni",
+          "body": "Kamati inaskani QR au kuandika namba. Inafanya kazi hata mtandao ukikatika."
+        }
+      },
+      "featureTitle": "Kwa wageni wasio na smartphone",
+      "featureBody": "Kila mgeni anapata namba fupi kama KH-4826 kwenye SMS au kadi ya karatasi. Mlangoni, kamati inaitafuta kwa namba, jina au tarakimu nne za mwisho za simu.",
+      "featureSms": "SMS inayosomeka kwenye simu yoyote",
+      "featurePrint": "Kadi ya karatasi yenye QR na namba",
+      "featureGate": "Mlangoni: QR, namba au jina",
+      "trustTitle": "Imani kwanza",
+      "trust": {
+        "sender": {
+          "title": "Mtumaji anaonekana",
+          "body": "Kila kadi inaonyesha jina la kamati, simu yao na kiungo rasmi."
+        },
+        "links": {
+          "title": "Hakuna viungo vya ulaghai",
+          "body": "Hatuombi nenosiri wala PIN, na hatutumi viambatisho au programu."
+        },
+        "data": {
+          "title": "Data zako ni zako",
+          "body": "Namba za wageni zinatumika kwa harusi yako tu. Unaweza kuzipakua au kuzifuta wakati wowote."
+        }
+      },
+      "faqTitle": "Maswali yanayoulizwa mara kwa mara",
+      "faq": {
+        "1": {
+          "q": "Je, kadi ya karatasi bado inawezekana?",
+          "a": "Ndiyo. Unapakua PDF ya kadi zote — kila moja ina QR na namba ya mgeni — na kuchapisha popote."
+        },
+        "2": {
+          "q": "Mgeni asiye na smartphone atapataje kadi?",
+          "a": "Atapokea SMS yenye kiungo kifupi na namba ya kadi. Mlangoni anataja namba tu."
+        },
+        "3": {
+          "q": "Itakuwaje mtandao ukikatika siku ya harusi?",
+          "a": "Programu ya mlangoni inahakiki QR bila mtandao na kusawazisha baadaye. Kadi ya mgeni pia inaonekana bila mtandao baada ya kufunguliwa mara ya kwanza."
+        },
+        "4": {
+          "q": "Michango inalipwaje?",
+          "a": "Mgeni analipa kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kutoka kwenye kadi yake. Kamati inaweza pia kurekodi malipo ya taslimu."
+        },
+        "5": {
+          "q": "Mtu akipiga picha ya QR ya mwingine?",
+          "a": "Kila QR ni ya mgeni mmoja na inaweza kuingia mara moja. Ikiskaniwa mara ya pili, kamati inaona ni nani aliingia na saa ngapi."
+        },
+        "6": {
+          "q": "Gharama ni kiasi gani?",
+          "a": "Wakati wa majaribio ni bure. Gharama za SMS zinaonyeshwa kabla ya kutuma."
+        }
+      },
+      "footerTagline": "Imetengenezwa Tanzania kwa ajili ya harusi za Kitanzania.",
+      "openCard": "Fungua kadi yako"
+    },
+    "legal": {
+      "draftBanner": "Rasimu — maandishi haya si ya mwisho na yatapitiwa na mwanasheria kabla ya kuzinduliwa.",
+      "privacyTitle": "Sera ya faragha",
+      "termsTitle": "Masharti ya matumizi",
+      "updated": "Imesasishwa: {date}",
+      "privacy": {
+        "intro": "Harusi Pass inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni mlangoni. Tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania (2022).",
+        "collectTitle": "Tunachokusanya",
+        "collect": "Jina la mgeni, namba ya simu (ikiwa ipo), jibu la mwaliko, idadi ya watu, ahadi na malipo, na kumbukumbu ya kuingia mlangoni.",
+        "useTitle": "Tunavyotumia",
+        "use": "Kwa harusi husika tu: kutuma kadi na vikumbusho, kuonyesha hali kwa kamati, na kuthibitisha kuingia. Hatuuzi wala kushiriki data na watangazaji.",
+        "rightsTitle": "Haki zako",
+        "rights": "Unaweza kuomba nakala ya taarifa zako au zifutwe kwa kuwasiliana na kamati ya harusi au sisi. Wenye harusi wanaweza kupakua au kufuta data kutoka kwenye akaunti yao.",
+        "securityTitle": "Usalama",
+        "security": "Viungo vya kadi ni vya kipekee na havitabiriki. Hatuombi nenosiri, PIN wala namba za siri kutoka kwa wageni.",
+        "contactTitle": "Mawasiliano",
+        "contact": "Kwa maswali kuhusu faragha: faragha@harusipass.co.tz"
+      },
+      "terms": {
+        "intro": "Kwa kutumia Harusi Pass unakubali masharti haya ya rasimu.",
+        "accountTitle": "Akaunti",
+        "account": "Wenye harusi na kamati wanaingia kwa namba ya simu na namba ya uthibitisho. Unawajibika kwa taarifa za wageni unazoingiza.",
+        "messagesTitle": "Ujumbe",
+        "messages": "Tuma mialiko kwa watu unaowafahamu tu. Usitumie huduma kutuma matangazo.",
+        "paymentsTitle": "Malipo",
+        "payments": "Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Harusi Pass haihifadhi PIN za malipo.",
+        "liabilityTitle": "Mipaka ya dhima",
+        "liability": "Huduma inatolewa kama ilivyo wakati wa majaribio."
+      }
+    }
+  },
+  "en": {
+    "auth": {
+      "title": "Sign in to Harusi Pass",
+      "subtitle": "For couples and committees. We will send you a confirmation code by SMS.",
+      "phone": "Phone number",
+      "phoneHint": "For example 0712 345 678",
+      "sendCode": "Send confirmation code",
+      "otpTitle": "Enter the confirmation code",
+      "otpSent": "We sent a 6-digit code to {phone}.",
+      "otpLabel": "Confirmation code",
+      "otpCell": "Digit {n} of 6",
+      "verify": "Confirm",
+      "verifying": "Confirming…",
+      "resendIn": "Resend in {seconds} seconds",
+      "resend": "Resend code",
+      "resent": "We sent a new code",
+      "changePhone": "Change number",
+      "wrongCode": "The code is not correct. {attempts, plural, one {# attempt left} other {# attempts left}}.",
+      "locked": "Too many attempts. For your security, wait until {time} and try again.",
+      "rateLimited": "Wait {seconds} seconds before requesting a new code.",
+      "mockHint": "Demo build: use the code 123456.",
+      "nameTitle": "Welcome! What is your name?",
+      "nameLabel": "Your full name",
+      "continue": "Continue",
+      "trust": "We never ask for a password. The confirmation code is for you only — never share it."
+    },
+    "landing": {
+      "metaTitle": "Harusi Pass — Wedding cards that work for every guest",
+      "heroTitle": "One wedding card that reaches every guest, collects replies and contributions, and opens the gate.",
+      "heroBody": "WhatsApp, SMS or paper — every guest gets their own card with a QR and a number. Even without a smartphone, even without a network.",
+      "cta": "Get started",
+      "ctaSecondary": "I have a card number",
+      "howTitle": "How it works",
+      "steps": {
+        "1": {
+          "title": "Add guests",
+          "body": "Paste a list, upload a CSV or pick from phone contacts. We clean up every number."
+        },
+        "2": {
+          "title": "Send cards",
+          "body": "WhatsApp for smartphones, SMS for everyone else, and a printable PDF for elders."
+        },
+        "3": {
+          "title": "Guests reply & pay",
+          "body": "Guests confirm and pay their contribution by phone — no account needed."
+        },
+        "4": {
+          "title": "Arrive at the gate",
+          "body": "The committee scans the QR or types the number. It works even when the network drops."
+        }
+      },
+      "featureTitle": "For guests without a smartphone",
+      "featureBody": "Every guest gets a short number like KH-4826 by SMS or on a paper card. At the gate, the committee finds them by number, name or the last four digits of their phone.",
+      "featureSms": "An SMS that reads on any phone",
+      "featurePrint": "A paper card with QR and number",
+      "featureGate": "At the gate: QR, number or name",
+      "trustTitle": "Trust first",
+      "trust": {
+        "sender": {
+          "title": "You can see who sent it",
+          "body": "Every card shows the committee's name, their phone and the official link."
+        },
+        "links": {
+          "title": "No scam links",
+          "body": "We never ask for passwords or PINs, and we never send attachments or apps."
+        },
+        "data": {
+          "title": "Your data stays yours",
+          "body": "Guest numbers are used for your wedding only. Download or delete them at any time."
+        }
+      },
+      "faqTitle": "Frequently asked questions",
+      "faq": {
+        "1": {
+          "q": "Can we still have paper cards?",
+          "a": "Yes. Download a PDF of all cards — each with the guest's QR and number — and print anywhere."
+        },
+        "2": {
+          "q": "How does a guest without a smartphone get a card?",
+          "a": "They receive an SMS with a short link and their card number. At the gate they just say the number."
+        },
+        "3": {
+          "q": "What if the network drops on the wedding day?",
+          "a": "The gate app checks QR codes without a network and syncs later. The guest's card also shows offline after the first open."
+        },
+        "4": {
+          "q": "How are contributions paid?",
+          "a": "Guests pay with M-Pesa, Mixx by Yas, Airtel Money or HaloPesa from their card. The committee can also record cash."
+        },
+        "5": {
+          "q": "What if someone photographs another guest's QR?",
+          "a": "Each QR belongs to one guest and admits once. A second scan shows the committee who entered and when."
+        },
+        "6": {
+          "q": "How much does it cost?",
+          "a": "It is free during the pilot. SMS costs are shown before sending."
+        }
+      },
+      "footerTagline": "Made in Tanzania for Tanzanian weddings.",
+      "openCard": "Open your card"
+    },
+    "legal": {
+      "draftBanner": "Draft — this text is not final and will be reviewed by a lawyer before launch.",
+      "privacyTitle": "Privacy notice",
+      "termsTitle": "Terms of use",
+      "updated": "Updated: {date}",
+      "privacy": {
+        "intro": "Harusi Pass collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We follow Tanzania's Personal Data Protection Act (2022).",
+        "collectTitle": "What we collect",
+        "collect": "Guest name, phone number (if any), RSVP, party size, pledges and payments, and the gate check-in record.",
+        "useTitle": "How we use it",
+        "use": "For that wedding only: sending cards and reminders, showing status to the committee, and confirming entry. We do not sell or share data with advertisers.",
+        "rightsTitle": "Your rights",
+        "rights": "You can request a copy of your data or its deletion through the wedding committee or us. Couples can download or delete data from their account.",
+        "securityTitle": "Security",
+        "security": "Card links are unique and unguessable. We never ask guests for passwords, PINs or secret codes.",
+        "contactTitle": "Contact",
+        "contact": "Privacy questions: faragha@harusipass.co.tz"
+      },
+      "terms": {
+        "intro": "By using Harusi Pass you accept these draft terms.",
+        "accountTitle": "Accounts",
+        "account": "Couples and committee members sign in with a phone number and a confirmation code. You are responsible for the guest information you enter.",
+        "messagesTitle": "Messages",
+        "messages": "Only invite people you know. Do not use the service for advertising.",
+        "paymentsTitle": "Payments",
+        "payments": "Contributions are paid through licensed payment providers. Harusi Pass never stores payment PINs.",
+        "liabilityTitle": "Limitation of liability",
+        "liability": "The service is provided as is during the pilot."
+      }
+    }
+  }
+}

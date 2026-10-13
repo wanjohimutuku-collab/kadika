@@ -14,6 +14,11 @@ export default tseslint.config(
       '.tooling/**',
       'packages/db/drizzle/**',
       '**/next-env.d.ts',
+      '**/storybook-static/**',
+      '**/.next-prod/**',
+      '**/test-results/**',
+      '**/playwright-report/**',
+      'docs/ui/lighthouse/**',
     ],
   },
   js.configs.recommended,
@@ -23,12 +28,19 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
     },
   },
   {
     files: ['**/*.{js,cjs,mjs}'],
     ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['apps/web/public/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
   },
   {
     files: ['**/*.cjs', '**/*.config.js', '**/babel.config.js'],

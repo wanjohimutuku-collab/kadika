@@ -7,3 +7,12 @@ pnpm-lock.yaml
 packages/db/drizzle
 apps/mobile/.expo
 CLAUDE.md
+.next-prod
+test-results
+playwright-report
+storybook-static
+docs/ui/lighthouse
+PROMPT-*.md
+AGENTS.md
+apps/web/.lighthouseci
+packages/ui-tokens/tokens.css

@@ -1,0 +1,115 @@
+@import 'tailwindcss';
+@import '@harusi/ui-tokens/tokens.css';
+
+@source '../src';
+
+/* Map design tokens (§17.2) to Tailwind utilities: bg-bg, text-ink, bg-primary, border-border, … */
+@theme inline {
+  --color-bg: var(--hp-bg);
+  --color-surface: var(--hp-surface);
+  --color-ink: var(--hp-ink);
+  --color-muted: var(--hp-muted);
+  --color-primary: var(--hp-primary);
+  --color-on-primary: var(--hp-on-primary);
+  --color-accent: var(--hp-accent);
+  --color-border: var(--hp-border);
+  --color-success: var(--hp-success);
+  --color-warning: var(--hp-warning);
+  --color-danger: var(--hp-danger);
+  --color-info: var(--hp-info);
+  --color-pattern: var(--hp-pattern);
+  --color-gate-admit: var(--hp-gate-admit);
+  --color-gate-duplicate: var(--hp-gate-duplicate);
+  --color-gate-deny: var(--hp-gate-deny);
+  --radius-card: var(--hp-radius-card);
+  --radius-input: var(--hp-radius-input);
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, sans-serif;
+  --font-display: var(--font-display-serif, Georgia), Georgia, 'Times New Roman', serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--hp-bg);
+    color: var(--hp-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  /* Inputs never below 16px (§17.2) — also stops iOS zoom-on-focus. */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  :focus-visible {
+    outline: 3px solid var(--hp-primary);
+    outline-offset: 2px;
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .fade-in {
+    animation: hp-fade 180ms ease-out both;
+  }
+  .sheet-in {
+    animation: hp-sheet 200ms ease-out both;
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #efe9df 0%, #f6f1ea 50%, #efe9df 100%);
+    background-size: 200% 100%;
+    animation: hp-shimmer 1.4s linear infinite;
+  }
+}
+
+@keyframes hp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hp-sheet {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes hp-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

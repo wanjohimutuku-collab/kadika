@@ -10,3 +10,11 @@ dist
 !.env.example
 coverage
 .DS_Store
+storybook-static
+.next-prod
+e2e/.auth
+test-results
+playwright-report
+docs/ui/lighthouse/*.json
+docs/ui/lighthouse
+apps/web/.lighthouseci

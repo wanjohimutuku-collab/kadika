@@ -1,0 +1,1811 @@
+import {
+  eventInputSchema,
+  guestInputSchema,
+  manualPaymentSchema,
+  normalizeTzPhone,
+  generateShortCode,
+  type EventInput,
+  type GuestInput,
+  type InvitationStatus,
+  type ManualPaymentInput,
+  type MessageChannel,
+  type PaymentMethod,
+  type RsvpInput,
+} from '@harusi/schemas';
+import { RepositoryError } from '../errors';
+import type { Repository } from '../repository';
+import type {
+  Activity,
+  AuditEntry,
+  CardView,
+  EventReport,
+  EventStats,
+  GateLink,
+  GateOverview,
+  Guest,
+  GuestQuery,
+  ImportResult,
+  ImportRowInput,
+  Member,
+  MessageLogEntry,
+  Payment,
+  PaymentStart,
+  PaymentStatusView,
+  ScanEntry,
+  SendJob,
+  SendPreview,
+  SendRequest,
+  Session,
+  WeddingEvent,
+} from '../types';
+import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
+import { applyGuestQuery } from '../domain/guest-filter';
+import { pledgeTotals, summarizePledge } from '../domain/pledge';
+import { buildInviteSms, estimateSmsCost } from '../domain/sms';
+import { toCsv } from '../domain/import';
+import { mockQrPayload } from '../domain/token';
+import { MockControls } from './controls';
+import { Rng } from './prng';
+import {
+  createSeedState,
+  DAY,
+  HOUR,
+  type EventRecord,
+  type GuestRecord,
+  type JobRecord,
+  type JobRecipient,
+  type MockState,
+} from './state';
+
+const STATE_KEY = 'harusi.mock.v1';
+export const MOCK_OTP = '123456';
+const OTP_MAX_ATTEMPTS = 5;
+const OTP_LOCK_MS = 10 * 60_000;
+const OTP_RESEND_S = 30;
+const PAY_TIMEOUT_MS = 60_000;
+
+/** `send`: needs a network but is exempt from call-level failure injection — injected failures show up as failed messages instead. */
+type CallKind = 'read' | 'write' | 'card-read' | 'online-only' | 'send' | 'local';
+
+export interface MockRepositoryOptions {
+  storage?: Storage | null;
+  controls?: MockControls;
+  /** Simulated latency 200–600 ms (×4 when the network is "slow"). Default true in browsers. */
+  latency?: boolean;
+  now?: () => number;
+  random?: () => number;
+  baseUrl?: string;
+  initialState?: MockState;
+}
+
+const iso = (ms: number) => new Date(ms).toISOString();
+
+export class MockRepository implements Repository {
+  readonly controls: MockControls;
+  private state: MockState;
+  private storage: Storage | null;
+  private latency: boolean;
+  private now: () => number;
+  private random: () => number;
+  private rng: Rng;
+  private baseUrl: string;
+  private changeListeners = new Set<() => void>();
+
+  constructor(opts: MockRepositoryOptions = {}) {
+    this.storage = opts.storage ?? null;
+    this.controls = opts.controls ?? new MockControls(this.storage);
+    this.latency = opts.latency ?? false;
+    this.now = opts.now ?? Date.now;
+    this.random = opts.random ?? Math.random;
+    this.rng = new Rng(this.random);
+    this.baseUrl = opts.baseUrl ?? 'https://harusipass.example';
+    this.state = opts.initialState ?? this.load() ?? createSeedState({ now: this.now() });
+  }
+
+  // ---------------------------------------------------------------- infrastructure
+
+  private load(): MockState | null {
+    try {
+      const raw = this.storage?.getItem(STATE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as MockState;
+      return parsed.version === 1 ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private persist(): void {
+    for (const l of this.changeListeners) l();
+    if (!this.storage) return;
+    // Synchronous on purpose: a debounced save can be lost if the guest reloads or closes the tab
+    // right after answering (seen in e2e). Serialising the whole state takes a few ms.
+    try {
+      this.storage.setItem(STATE_KEY, JSON.stringify(this.state));
+    } catch {
+      // quota exceeded or storage blocked: keep working in memory
+    }
+  }
+
+  /** Notified after every mutation (the console uses it to invalidate queries). */
+  onChange(listener: () => void): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
+  }
+
+  /** Restores the deterministic seed (dev panel "Rudisha data"). */
+  reset(): void {
+    const sessionUserId = this.state.sessionUserId;
+    this.state = createSeedState({ now: this.now() });
+    this.state.sessionUserId = sessionUserId;
+    this.controls.set({ pending: [], lastSyncAt: null });
+    this.persist();
+  }
+
+  /** Card token of a seeded guest, for the dev panel's "open sample card". */
+  sampleToken(status: InvitationStatus = 'delivered'): string {
+    const ev = this.state.events[0]!;
+    const g =
+      this.state.guests.find(
+        (x) => x.eventId === ev.id && x.status === status && x.phoneE164 && !x.deletedAt,
+      ) ?? this.state.guests[0]!;
+    return g.token;
+  }
+
+  /** Retired token of the seeded reissued guest (old link → "imebadilishwa"). */
+  sampleRetiredToken(): string | null {
+    return Object.keys(this.state.retiredTokens)[0] ?? null;
+  }
+
+  private async delay(): Promise<void> {
+    if (!this.latency) return;
+    const slow = this.controls.get().network === 'slow' ? 4 : 1;
+    const ms = (200 + this.random() * 400) * slow;
+    await new Promise((r) => setTimeout(r, ms));
+  }
+
+  private async run<T>(kind: CallKind, label: string, fn: () => T): Promise<T> {
+    await this.delay();
+    const c = this.controls.get();
+    const offline = c.network === 'offline';
+    if (offline && (kind === 'card-read' || kind === 'online-only' || kind === 'send'))
+      throw new RepositoryError('offline', 'No network');
+    if (
+      kind !== 'local' &&
+      kind !== 'send' &&
+      !offline &&
+      c.failureRate > 0 &&
+      this.random() < c.failureRate
+    ) {
+      throw new RepositoryError('server', 'Injected failure (dev panel)');
+    }
+    const result = fn();
+    if (kind === 'write') {
+      if (offline) {
+        this.controls.set({
+          pending: [...c.pending, { id: this.rng.hex(8), label, at: iso(this.now()) }],
+        });
+      }
+      this.persist();
+    }
+    return result;
+  }
+
+  /** "Sawazisha sasa": flushes the offline queue (writes were applied locally already). */
+  async syncNow(): Promise<{ synced: number }> {
+    await this.delay();
+    const c = this.controls.get();
+    if (c.network === 'offline') throw new RepositoryError('offline', 'No network');
+    const synced = c.pending.length;
+    this.controls.set({ pending: [], lastSyncAt: iso(this.now()) });
+    return { synced };
+  }
+
+  private remember<T>(key: string, compute: () => T): T {
+    const existing = this.state.idempotency[key];
+    if (existing !== undefined) return JSON.parse(existing) as T;
+    const value = compute();
+    this.state.idempotency[key] = JSON.stringify(value);
+    return value;
+  }
+
+  // ---------------------------------------------------------------- lookups and projections
+
+  private event(eventId: string): EventRecord {
+    const e = this.state.events.find((x) => x.id === eventId && !x.deletedAt);
+    if (!e) throw new RepositoryError('not_found', 'Event not found');
+    return e;
+  }
+
+  private guestRecord(guestId: string): GuestRecord {
+    const g = this.state.guests.find((x) => x.id === guestId && !x.deletedAt);
+    if (!g) throw new RepositoryError('not_found', 'Guest not found');
+    return g;
+  }
+
+  private paidByGuest(eventId: string): Map<string, number> {
+    const m = new Map<string, number>();
+    for (const p of this.state.payments) {
+      if (p.eventId === eventId && p.status === 'success')
+        m.set(p.guestId, (m.get(p.guestId) ?? 0) + p.amountTzs);
+    }
+    return m;
+  }
+
+  private lastMessageByGuest(eventId: string): Map<string, MessageLogEntry> {
+    const m = new Map<string, MessageLogEntry>();
+    for (const msg of this.state.messages) {
+      if (msg.eventId !== eventId || msg.kind === 'test') continue;
+      const prev = m.get(msg.guestId);
+      if (!prev || prev.createdAt <= msg.createdAt) m.set(msg.guestId, msg);
+    }
+    return m;
+  }
+
+  private toGuest(
+    g: GuestRecord,
+    paid: Map<string, number>,
+    last: Map<string, MessageLogEntry>,
+  ): Guest {
+    const paidTzs = paid.get(g.id) ?? 0;
+    const { token: _t, deletedAt: _d, pledgeAmountTzs, pledgeWaived, ...rest } = g;
+    return {
+      ...rest,
+      lastMessageFailed: last.get(g.id)?.status === 'failed',
+      pledge:
+        pledgeAmountTzs != null
+          ? summarizePledge(pledgeAmountTzs, paidTzs, pledgeWaived)
+          : paidTzs > 0
+            ? summarizePledge(0, paidTzs)
+            : null,
+    };
+  }
+
+  private guestsOf(eventId: string): GuestRecord[] {
+    return this.state.guests.filter((g) => g.eventId === eventId && !g.deletedAt);
+  }
+
+  private stats(eventId: string): EventStats {
+    const guests = this.guestsOf(eventId);
+    const funnel = funnelCounts(guests.map((g) => g.status));
+    const paid = this.paidByGuest(eventId);
+    const last = this.lastMessageByGuest(eventId);
+    const totals = pledgeTotals(
+      guests.map((g) =>
+        g.pledgeAmountTzs != null
+          ? summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived)
+          : null,
+      ),
+    );
+    const collectedTzs = [...paid.values()].reduce((a, b) => a + b, 0);
+    return {
+      invited: funnel.created,
+      sent: funnel.sent,
+      delivered: funnel.delivered,
+      opened: funnel.opened,
+      confirmed: funnel.confirmed,
+      declined: guests.filter((g) => g.status === 'declined').length,
+      attended: funnel.checked_in,
+      headcountConfirmed: guests.reduce(
+        (n, g) =>
+          n + (g.status === 'confirmed' || g.status === 'checked_in' ? (g.rsvpPartySize ?? 1) : 0),
+        0,
+      ),
+      headcountAttended: guests.reduce((n, g) => n + g.partyAdmitted, 0),
+      pledgedTzs: totals.pledgedTzs,
+      collectedTzs,
+      guestsWithBalance: totals.guestsPartial + totals.guestsUnpaid,
+      failedMessages: guests.filter((g) => last.get(g.id)?.status === 'failed').length,
+      featurePhoneGuests: guests.filter((g) => !g.hasSmartphone).length,
+    };
+  }
+
+  private toEvent(e: EventRecord): WeddingEvent {
+    const { deletedAt: _d, ...rest } = e;
+    return { ...rest, stats: this.stats(e.id) };
+  }
+
+  private audit(guestId: string, action: string, details: string): AuditEntry {
+    const entry: AuditEntry = {
+      id: this.rng.uuid(),
+      at: iso(this.now()),
+      actorName: this.sessionUser()?.name ?? 'Mfumo',
+      action,
+      details,
+    };
+    (this.state.audit[guestId] ??= []).unshift(entry);
+    return entry;
+  }
+
+  private sessionUser() {
+    return this.state.users.find((u) => u.id === this.state.sessionUserId) ?? null;
+  }
+
+  private requireSession() {
+    const u = this.sessionUser();
+    if (!u) throw new RepositoryError('unauthorized', 'Sign in required');
+    if (this.controls.get().role === 'gate')
+      throw new RepositoryError('forbidden', 'Gate agents have no console access');
+    return u;
+  }
+
+  private uniqueShortCode(eventId: string): string {
+    const used = new Set(this.guestsOf(eventId).map((g) => g.shortCode));
+    for (;;) {
+      const c = generateShortCode(this.random);
+      if (!used.has(c)) return c;
+    }
+  }
+
+  // ---------------------------------------------------------------- auth
+
+  requestOtp(phoneE164: string): Promise<{ resendAfterSeconds: number }> {
+    return this.run('online-only', 'otp', () => {
+      const rec = (this.state.otp[phoneE164] ??= {
+        attempts: 0,
+        lockedUntil: null,
+        lastRequestedAt: 0,
+      });
+      const now = this.now();
+      if (rec.lockedUntil && rec.lockedUntil > now)
+        throw new RepositoryError('locked', 'Too many attempts', { until: iso(rec.lockedUntil) });
+      const wait = Math.ceil((rec.lastRequestedAt + OTP_RESEND_S * 1000 - now) / 1000);
+      if (wait > 0)
+        throw new RepositoryError('rate_limited', 'Wait before requesting a new code', {
+          retryAfterSeconds: wait,
+        });
+      rec.lastRequestedAt = now;
+      this.persist();
+      return { resendAfterSeconds: OTP_RESEND_S };
+    });
+  }
+
+  verifyOtp(phoneE164: string, code: string): Promise<Session> {
+    return this.run('online-only', 'otp', () => {
+      const rec = (this.state.otp[phoneE164] ??= {
+        attempts: 0,
+        lockedUntil: null,
+        lastRequestedAt: 0,
+      });
+      const now = this.now();
+      if (rec.lockedUntil && rec.lockedUntil > now)
+        throw new RepositoryError('locked', 'Too many attempts', { until: iso(rec.lockedUntil) });
+      if (code !== MOCK_OTP) {
+        rec.attempts += 1;
+        if (rec.attempts >= OTP_MAX_ATTEMPTS) {
+          rec.lockedUntil = now + OTP_LOCK_MS;
+          rec.attempts = 0;
+          this.persist();
+          throw new RepositoryError('locked', 'Too many attempts', { until: iso(rec.lockedUntil) });
+        }
+        this.persist();
+        throw new RepositoryError('validation', 'Wrong code', {
+          attemptsLeft: OTP_MAX_ATTEMPTS - rec.attempts,
+        });
+      }
+      rec.attempts = 0;
+      let user = this.state.users.find((u) => u.phoneE164 === phoneE164);
+      if (!user) {
+        user = { id: `user-${this.rng.hex(8)}`, name: '', phoneE164 };
+        this.state.users.push(user);
+      }
+      this.state.sessionUserId = user.id;
+      this.persist();
+      return this.session()!;
+    });
+  }
+
+  private session(): Session | null {
+    const user = this.sessionUser();
+    if (!user) return null;
+    return { user, role: this.controls.get().role, expiresAt: iso(this.now() + 30 * DAY) };
+  }
+
+  async getSession(): Promise<Session | null> {
+    return this.session();
+  }
+
+  async signOut(): Promise<void> {
+    this.state.sessionUserId = null;
+    this.persist();
+  }
+
+  updateProfile(patch: { name: string }): Promise<Session> {
+    return this.run('write', 'profile', () => {
+      const u = this.requireSession();
+      u.name = patch.name.trim();
+      return this.session()!;
+    });
+  }
+
+  requestDataExport(): Promise<{ requestedAt: string }> {
+    return this.run('online-only', 'export', () => ({ requestedAt: iso(this.now()) }));
+  }
+
+  requestAccountDeletion(): Promise<{ requestedAt: string }> {
+    return this.run('online-only', 'delete-account', () => ({ requestedAt: iso(this.now()) }));
+  }
+
+  // ---------------------------------------------------------------- events
+
+  listEvents(): Promise<WeddingEvent[]> {
+    return this.run('read', 'events', () => {
+      const u = this.requireSession();
+      return this.state.events
+        .filter(
+          (e) =>
+            !e.deletedAt &&
+            (this.state.members[e.id] ?? []).some(
+              (m) => m.userId === u.id && m.status === 'active',
+            ),
+        )
+        .sort((a, b) => b.dateStart.localeCompare(a.dateStart))
+        .map((e) => this.toEvent(e));
+    });
+  }
+
+  getEvent(eventId: string): Promise<WeddingEvent> {
+    return this.run('read', 'event', () => {
+      this.requireSession();
+      return this.toEvent(this.event(eventId));
+    });
+  }
+
+  createEvent(input: EventInput): Promise<WeddingEvent> {
+    return this.run('write', 'Harusi mpya', () => {
+      const u = this.requireSession();
+      const v = eventInputSchema.parse(input);
+      const now = iso(this.now());
+      const e: EventRecord = {
+        id: this.rng.uuid(),
+        title: v.title,
+        partnerA: v.partnerA,
+        partnerB: v.partnerB,
+        coupleNames: `${v.partnerA} & ${v.partnerB}`,
+        dateStart: new Date(v.dateStart).toISOString(),
+        venueName: v.venueName,
+        venueMapUrl: v.venueMapUrl,
+        dressCode: v.dressCode,
+        languageDefault: v.languageDefault,
+        timezone: 'Africa/Dar_es_Salaam',
+        status: 'active',
+        themeId: v.themeId,
+        coverGradient: v.coverGradient,
+        rsvpDeadline: v.rsvpDeadline ? new Date(v.rsvpDeadline).toISOString() : null,
+        contributionTargetTzs: v.contributionTargetTzs,
+        senderName: `Kamati ya Harusi ya ${v.partnerA} & ${v.partnerB}`,
+        committeePhone: u.phoneE164,
+        pledgesEnabled: true,
+        requirePledgeBeforeCard: false,
+        greeting: '',
+        extraNote: '',
+        reminders: { t14: true, t7: true, t1: true },
+        whatsappFallbackHours: 6,
+        plan: 'free',
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      this.state.events.push(e);
+      this.state.members[e.id] = [
+        {
+          id: `m-${u.id}-${e.id.slice(0, 4)}`,
+          userId: u.id,
+          name: u.name,
+          phoneE164: u.phoneE164,
+          role: 'owner',
+          status: 'active',
+          lastActiveAt: now,
+        },
+      ];
+      return this.toEvent(e);
+    });
+  }
+
+  updateEvent(eventId: string, patch: Partial<WeddingEvent>): Promise<WeddingEvent> {
+    return this.run('write', 'Mipangilio', () => {
+      this.requireSession();
+      const e = this.event(eventId);
+      const { stats: _s, id: _i, timezone: _tz, createdAt: _c, ...allowed } = patch;
+      Object.assign(e, allowed, { updatedAt: iso(this.now()) });
+      if (patch.partnerA || patch.partnerB) e.coupleNames = `${e.partnerA} & ${e.partnerB}`;
+      return this.toEvent(e);
+    });
+  }
+
+  archiveEvent(eventId: string): Promise<WeddingEvent> {
+    return this.updateEvent(eventId, { status: 'archived' });
+  }
+
+  deleteEvent(eventId: string): Promise<void> {
+    return this.run('write', 'Futa harusi', () => {
+      this.requireSession();
+      if (this.controls.get().role !== 'owner')
+        throw new RepositoryError('forbidden', 'Owner only');
+      this.event(eventId).deletedAt = iso(this.now());
+    });
+  }
+
+  // ---------------------------------------------------------------- members
+
+  listMembers(eventId: string): Promise<Member[]> {
+    return this.run('read', 'members', () =>
+      (this.state.members[eventId] ?? []).map(({ userId: _u, ...m }) => m),
+    );
+  }
+
+  inviteMember(
+    eventId: string,
+    input: { name: string; phoneE164: string; role: 'committee' | 'gate' },
+  ): Promise<Member> {
+    return this.run('write', 'Mwaliko wa timu', () => {
+      this.requireSession();
+      const list = (this.state.members[eventId] ??= []);
+      if (list.some((m) => m.phoneE164 === input.phoneE164 && m.status !== 'revoked'))
+        throw new RepositoryError('conflict', 'Already a member');
+      const m = {
+        id: `m-${this.rng.hex(8)}`,
+        userId: null,
+        name: input.name,
+        phoneE164: input.phoneE164,
+        role: input.role,
+        status: 'invited' as const,
+        lastActiveAt: null,
+      };
+      list.push(m);
+      const { userId: _u, ...out } = m;
+      return out;
+    });
+  }
+
+  revokeMember(eventId: string, memberId: string): Promise<Member> {
+    return this.run('write', 'Ondoa mwanatimu', () => {
+      this.requireSession();
+      const m = (this.state.members[eventId] ?? []).find((x) => x.id === memberId);
+      if (!m) throw new RepositoryError('not_found');
+      if (m.role === 'owner') throw new RepositoryError('forbidden', 'Owner cannot be removed');
+      m.status = 'revoked';
+      const { userId: _u, ...out } = m;
+      return out;
+    });
+  }
+
+  createGateLink(eventId: string): Promise<GateLink> {
+    return this.run('online-only', 'gate-link', () => {
+      this.requireSession();
+      this.event(eventId);
+      const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      const code = Array.from(
+        { length: 8 },
+        () => alphabet[Math.floor(this.random() * alphabet.length)],
+      ).join('');
+      const pin = String(Math.floor(this.random() * 900_000) + 100_000);
+      return {
+        url: `${this.baseUrl}/gate-join/${code}`,
+        code,
+        pin,
+        expiresAt: iso(this.now() + 7 * DAY),
+      };
+    });
+  }
+
+  // ---------------------------------------------------------------- guests
+
+  listGuests(eventId: string, query: GuestQuery = {}): Promise<Guest[]> {
+    return this.run('read', 'guests', () => {
+      this.requireSession();
+      const paid = this.paidByGuest(eventId);
+      const last = this.lastMessageByGuest(eventId);
+      return applyGuestQuery(
+        this.guestsOf(eventId).map((g) => this.toGuest(g, paid, last)),
+        query,
+      );
+    });
+  }
+
+  listGroups(eventId: string): Promise<string[]> {
+    return this.run('read', 'groups', () =>
+      [
+        ...new Set(
+          this.guestsOf(eventId)
+            .map((g) => g.groupLabel)
+            .filter(Boolean),
+        ),
+      ].sort(),
+    );
+  }
+
+  getGuest(guestId: string): Promise<Guest> {
+    return this.run('read', 'guest', () => {
+      this.requireSession();
+      const g = this.guestRecord(guestId);
+      return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
+    });
+  }
+
+  private newGuestRecord(
+    eventId: string,
+    v: ReturnType<typeof guestInputSchema.parse>,
+  ): GuestRecord {
+    const now = iso(this.now());
+    return {
+      id: this.rng.uuid(),
+      eventId,
+      displayName: v.displayName,
+      phoneE164: v.phone,
+      hasSmartphone: v.hasSmartphone,
+      groupLabel: v.groupLabel,
+      partySizeAllowed: v.partySizeAllowed,
+      shortCode: this.uniqueShortCode(eventId),
+      tokenVersion: 1,
+      token: this.rng.token(),
+      language: v.language,
+      inviteChannelPref: !v.phone ? 'print' : v.inviteChannelPref,
+      notes: v.notes,
+      status: 'created',
+      timeline: { created: now },
+      rsvpPartySize: null,
+      channelLast: null,
+      checkedInAt: null,
+      partyAdmitted: 0,
+      pledgeAmountTzs: null,
+      pledgeWaived: false,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+  }
+
+  createGuest(eventId: string, input: GuestInput): Promise<Guest> {
+    return this.run('write', `Ongeza ${input.displayName}`, () => {
+      this.requireSession();
+      this.event(eventId);
+      const v = guestInputSchema.parse(input);
+      if (v.phone && this.guestsOf(eventId).some((g) => g.phoneE164 === v.phone)) {
+        throw new RepositoryError('conflict', 'Duplicate phone', { field: 'phone' });
+      }
+      const g = this.newGuestRecord(eventId, v);
+      this.state.guests.push(g);
+      this.audit(g.id, 'create', 'Mgeni ameongezwa');
+      return this.toGuest(g, new Map(), new Map());
+    });
+  }
+
+  updateGuest(guestId: string, patch: Partial<GuestInput>): Promise<Guest> {
+    return this.run('write', 'Badilisha mgeni', () => {
+      this.requireSession();
+      const g = this.guestRecord(guestId);
+      const merged = guestInputSchema.parse({
+        displayName: g.displayName,
+        phone: g.phoneE164 ?? '',
+        groupLabel: g.groupLabel,
+        partySizeAllowed: g.partySizeAllowed,
+        inviteChannelPref: g.inviteChannelPref,
+        hasSmartphone: g.hasSmartphone,
+        language: g.language,
+        notes: g.notes,
+        ...patch,
+      });
+      if (
+        merged.phone &&
+        merged.phone !== g.phoneE164 &&
+        this.guestsOf(g.eventId).some((x) => x.phoneE164 === merged.phone)
+      ) {
+        throw new RepositoryError('conflict', 'Duplicate phone', { field: 'phone' });
+      }
+      const changes = Object.keys(patch).join(', ');
+      Object.assign(g, {
+        displayName: merged.displayName,
+        phoneE164: merged.phone,
+        groupLabel: merged.groupLabel,
+        partySizeAllowed: merged.partySizeAllowed,
+        inviteChannelPref: merged.phone ? merged.inviteChannelPref : 'print',
+        hasSmartphone: merged.hasSmartphone,
+        language: merged.language,
+        notes: merged.notes,
+        updatedAt: iso(this.now()),
+      });
+      this.audit(g.id, 'update', `Imebadilishwa: ${changes}`);
+      return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
+    });
+  }
+
+  deleteGuests(guestIds: string[]): Promise<{ deleted: number }> {
+    return this.run('write', `Futa wageni ${guestIds.length}`, () => {
+      this.requireSession();
+      let deleted = 0;
+      for (const id of guestIds) {
+        const g = this.state.guests.find((x) => x.id === id && !x.deletedAt);
+        if (g) {
+          g.deletedAt = iso(this.now());
+          deleted++;
+        }
+      }
+      return { deleted };
+    });
+  }
+
+  restoreGuests(guestIds: string[]): Promise<{ restored: number }> {
+    return this.run('write', `Rudisha wageni ${guestIds.length}`, () => {
+      this.requireSession();
+      let restored = 0;
+      for (const id of guestIds) {
+        const g = this.state.guests.find((x) => x.id === id && x.deletedAt);
+        if (g) {
+          g.deletedAt = null;
+          restored++;
+        }
+      }
+      return { restored };
+    });
+  }
+
+  setGuestsGroup(guestIds: string[], group: string): Promise<{ updated: number }> {
+    return this.run('write', 'Badilisha kikundi', () => {
+      this.requireSession();
+      let updated = 0;
+      for (const id of guestIds) {
+        const g = this.state.guests.find((x) => x.id === id && !x.deletedAt);
+        if (g) {
+          g.groupLabel = group;
+          g.updatedAt = iso(this.now());
+          updated++;
+        }
+      }
+      return { updated };
+    });
+  }
+
+  importGuests(
+    eventId: string,
+    rows: ImportRowInput[],
+    idempotencyKey: string,
+  ): Promise<ImportResult> {
+    return this.run('write', `Ingiza wageni ${rows.length}`, () =>
+      this.remember(`import:${idempotencyKey}`, () => {
+        this.requireSession();
+        this.event(eventId);
+        const phones = new Set(
+          this.guestsOf(eventId)
+            .map((g) => g.phoneE164)
+            .filter(Boolean),
+        );
+        let created = 0;
+        let skipped = 0;
+        for (const r of rows) {
+          const phone = r.phoneRaw.trim() ? normalizeTzPhone(r.phoneRaw) : null;
+          if ((phone && !phone.ok) || r.displayName.trim().length < 2) {
+            skipped++;
+            continue;
+          }
+          const e164 = phone?.ok ? phone.e164 : null;
+          if (e164 && phones.has(e164)) {
+            skipped++;
+            continue;
+          }
+          if (e164) phones.add(e164);
+          const v = guestInputSchema.parse({
+            displayName: r.displayName,
+            phone: e164 ?? '',
+            groupLabel: r.groupLabel,
+            partySizeAllowed: r.partySizeAllowed,
+            inviteChannelPref: r.inviteChannelPref,
+            hasSmartphone: r.hasSmartphone,
+            language: 'sw',
+            notes: '',
+          });
+          this.state.guests.push(this.newGuestRecord(eventId, v));
+          created++;
+        }
+        return { created, skipped };
+      }),
+    );
+  }
+
+  reissueGuest(guestId: string): Promise<Guest> {
+    return this.run('write', 'Toa kadi mpya', () => {
+      this.requireSession();
+      const g = this.guestRecord(guestId);
+      this.state.retiredTokens[g.token] = g.id;
+      g.token = this.rng.token();
+      g.tokenVersion += 1;
+      g.updatedAt = iso(this.now());
+      this.audit(
+        g.id,
+        'reissue',
+        `Kadi mpya imetolewa (toleo ${g.tokenVersion}); QR ya zamani imefutwa.`,
+      );
+      return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
+    });
+  }
+
+  addGuestNote(guestId: string, note: string): Promise<AuditEntry> {
+    return this.run('write', 'Kumbukumbu', () => {
+      this.requireSession();
+      this.guestRecord(guestId);
+      return this.audit(guestId, 'note', note.trim());
+    });
+  }
+
+  listGuestMessages(guestId: string): Promise<MessageLogEntry[]> {
+    return this.run('read', 'messages', () =>
+      this.state.messages
+        .filter((m) => m.guestId === guestId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(({ eventId: _e, ...m }) => m),
+    );
+  }
+
+  listGuestAudit(guestId: string): Promise<AuditEntry[]> {
+    return this.run('read', 'audit', () => [...(this.state.audit[guestId] ?? [])]);
+  }
+
+  getGuestCardLink(guestId: string): Promise<{ url: string; shortUrl: string }> {
+    return this.run('local', 'link', () => {
+      const g = this.guestRecord(guestId);
+      return { url: `${this.baseUrl}/c/${g.token}`, shortUrl: `${this.baseUrl}/s/${g.shortCode}` };
+    });
+  }
+
+  // ---------------------------------------------------------------- sending
+
+  private audience(
+    eventId: string,
+    a: SendRequest['audience'],
+    kind: SendRequest['kind'],
+  ): GuestRecord[] {
+    const all = this.guestsOf(eventId);
+    switch (a.kind) {
+      case 'unsent':
+        return all.filter((g) =>
+          kind === 'invite' ? STATUS_RANK[g.status] <= STATUS_RANK.queued : g.status !== 'declined',
+        );
+      case 'group':
+        return all.filter((g) => g.groupLabel === a.group);
+      case 'selected': {
+        const ids = new Set(a.guestIds);
+        return all.filter((g) => ids.has(g.id));
+      }
+      default:
+        return kind === 'thank_you'
+          ? all.filter((g) => g.status === 'checked_in' || g.status === 'confirmed')
+          : all;
+    }
+  }
+
+  private channelFor(
+    g: GuestRecord,
+    req: Pick<SendRequest, 'channel' | 'whatsappFallbackToSms'>,
+  ): MessageChannel {
+    if (!g.phoneE164) return 'print';
+    if (req.channel === 'print') return 'print';
+    if (req.channel === 'sms') return 'sms';
+    if (req.channel === 'whatsapp')
+      return g.hasSmartphone || !req.whatsappFallbackToSms ? 'whatsapp' : 'sms';
+    if (g.inviteChannelPref === 'print') return 'print';
+    if (g.inviteChannelPref === 'sms' || !g.hasSmartphone) return 'sms';
+    return 'whatsapp';
+  }
+
+  private sampleSms(e: EventRecord, kind: SendRequest['kind'], body?: string): string {
+    if (kind === 'thank_you' && body) return body;
+    return buildInviteSms({
+      locale: 'sw',
+      partnerA: e.partnerA,
+      partnerB: e.partnerB,
+      dateText: '14 Des 2026',
+      shortLink: 'hrs.example/s/KH-4826',
+      code: 'KH-4826',
+    });
+  }
+
+  previewSend(
+    eventId: string,
+    req: Omit<SendRequest, 'idempotencyKey' | 'scheduleAt'>,
+  ): Promise<SendPreview> {
+    return this.run('read', 'preview', () => {
+      this.requireSession();
+      const e = this.event(eventId);
+      const list = this.audience(eventId, req.audience, req.kind);
+      const byChannel: Record<MessageChannel, number> = { whatsapp: 0, sms: 0, print: 0 };
+      for (const g of list) byChannel[this.channelFor(g, req)] += 1;
+      const cost = estimateSmsCost(this.sampleSms(e, req.kind, req.body), byChannel.sms);
+      return {
+        total: list.length,
+        byChannel,
+        smsSegments: cost.segments,
+        estimatedSmsCostTzs: cost.costTzs,
+        withoutPhone: list.filter((g) => !g.phoneE164).length,
+      };
+    });
+  }
+
+  sendInvitations(eventId: string, req: SendRequest): Promise<SendJob> {
+    return this.run('send', 'send', () => {
+      const existingId = this.state.idempotency[`send:${req.idempotencyKey}`];
+      if (existingId) return this.jobView(this.job(JSON.parse(existingId) as string));
+      this.requireSession();
+      this.event(eventId);
+      const list = this.audience(eventId, req.audience, req.kind);
+      if (!list.length) throw new RepositoryError('validation', 'No recipients');
+      const failureRate = 0.03 + this.controls.get().failureRate;
+      const spread = Math.min(12_000, 40 * list.length) + 1000;
+      const recipients: JobRecipient[] = list.map((g, i) => {
+        const channel = this.channelFor(g, req);
+        const fails = channel !== 'print' && this.random() < failureRate;
+        return {
+          guestId: g.id,
+          channel,
+          outcome: fails ? 'failed' : 'delivered',
+          error: fails
+            ? this.rng.pick([
+                'invalid_number',
+                'provider_timeout',
+                'not_on_whatsapp',
+                'rate_limited',
+              ])
+            : null,
+          at: Math.round((i / list.length) * spread + this.random() * 400),
+        };
+      });
+      const scheduled = req.scheduleAt && Date.parse(req.scheduleAt) > this.now() + 60_000;
+      const job = this.createJob(
+        eventId,
+        req.kind,
+        recipients,
+        scheduled ? req.scheduleAt : null,
+        null,
+      );
+      this.state.idempotency[`send:${req.idempotencyKey}`] = JSON.stringify(job.id);
+      if (req.kind === 'invite' && !scheduled) {
+        for (const g of list)
+          if (STATUS_RANK[g.status] < STATUS_RANK.queued) {
+            g.status = 'queued';
+            g.timeline.queued = iso(this.now());
+          }
+      }
+      this.persist();
+      return this.jobView(job);
+    });
+  }
+
+  private createJob(
+    eventId: string,
+    kind: SendRequest['kind'],
+    recipients: JobRecipient[],
+    scheduledFor: string | null,
+    retryOf: string | null,
+  ): JobRecord {
+    const byChannel: Record<MessageChannel, number> = { whatsapp: 0, sms: 0, print: 0 };
+    for (const r of recipients) byChannel[r.channel] += 1;
+    const job: JobRecord = {
+      id: this.rng.uuid(),
+      eventId,
+      kind,
+      total: recipients.length,
+      byChannel,
+      scheduledFor,
+      createdAt: iso(this.now()),
+      startedAt: this.now(),
+      recipients,
+      appliedCount: 0,
+      retryOf,
+    };
+    this.state.jobs.push(job);
+    return job;
+  }
+
+  private job(jobId: string): JobRecord {
+    const j = this.state.jobs.find((x) => x.id === jobId);
+    if (!j) throw new RepositoryError('not_found', 'Job not found');
+    return j;
+  }
+
+  /** Applies messages whose simulated time has passed, then projects counters. */
+  private jobView(job: JobRecord): SendJob {
+    if (job.scheduledFor) {
+      return {
+        ...this.jobBase(job),
+        counts: { queued: job.total, sent: 0, delivered: 0, failed: 0 },
+        failures: [],
+        status: 'scheduled',
+      };
+    }
+    const elapsed = this.now() - job.startedAt;
+    const ordered = [...job.recipients].sort((a, b) => a.at - b.at);
+    let changed = false;
+    for (let i = job.appliedCount; i < ordered.length; i++) {
+      const r = ordered[i]!;
+      if (r.at > elapsed) break;
+      this.applyRecipient(job, r);
+      job.appliedCount = i + 1;
+      changed = true;
+    }
+    if (changed) this.persist();
+    const counts = { queued: 0, sent: 0, delivered: 0, failed: 0 };
+    const failures: SendJob['failures'] = [];
+    for (const r of job.recipients) {
+      if (r.at > elapsed) counts.queued++;
+      else if (r.outcome === 'failed') {
+        counts.failed++;
+        const g = this.state.guests.find((x) => x.id === r.guestId);
+        failures.push({
+          guestId: r.guestId,
+          guestName: g?.displayName ?? '—',
+          channel: r.channel,
+          error: r.error ?? 'unknown',
+        });
+      } else if (r.at + 800 > elapsed) counts.sent++;
+      else counts.delivered++;
+    }
+    return {
+      ...this.jobBase(job),
+      counts,
+      failures,
+      status: counts.queued + counts.sent === 0 ? 'done' : 'running',
+    };
+  }
+
+  private jobBase(job: JobRecord) {
+    return {
+      id: job.id,
+      eventId: job.eventId,
+      kind: job.kind,
+      total: job.total,
+      byChannel: job.byChannel,
+      scheduledFor: job.scheduledFor,
+      createdAt: job.createdAt,
+    };
+  }
+
+  private applyRecipient(job: JobRecord, r: JobRecipient): void {
+    const g = this.state.guests.find((x) => x.id === r.guestId);
+    if (!g) return;
+    const at = iso(job.startedAt + r.at);
+    if (r.channel !== 'print') {
+      this.state.messages.push({
+        id: this.rng.uuid(),
+        eventId: job.eventId,
+        guestId: g.id,
+        channel: r.channel,
+        provider: r.channel === 'sms' ? 'fake-sms' : 'whatsapp-cloud',
+        kind: job.kind,
+        status: r.outcome === 'failed' ? 'failed' : 'delivered',
+        error: r.error,
+        costTzs: r.channel === 'sms' && r.outcome !== 'failed' ? 25 : 0,
+        createdAt: at,
+      });
+    }
+    if (job.kind === 'invite' && r.outcome === 'delivered') {
+      g.status = advanceStatus(g.status, r.channel === 'print' ? 'sent' : 'delivered');
+      g.timeline.sent ??= at;
+      if (r.channel !== 'print') g.timeline.delivered ??= at;
+      g.channelLast = r.channel;
+      g.updatedAt = at;
+    }
+  }
+
+  getSendJob(jobId: string): Promise<SendJob> {
+    return this.run('local', 'job', () => this.jobView(this.job(jobId)));
+  }
+
+  retryFailed(jobId: string): Promise<SendJob> {
+    return this.run('send', 'retry', () => {
+      const prev = this.job(jobId);
+      this.jobView(prev);
+      const failed = prev.recipients.filter(
+        (r) => r.outcome === 'failed' && r.at <= this.now() - prev.startedAt,
+      );
+      if (!failed.length) throw new RepositoryError('validation', 'Nothing to retry');
+      const recipients: JobRecipient[] = failed.map((r, i) => {
+        const g = this.state.guests.find((x) => x.id === r.guestId);
+        // Retry falls back to SMS for WhatsApp failures (§7.2 auto-fallback).
+        const channel: MessageChannel =
+          r.channel === 'whatsapp' && g?.phoneE164 ? 'sms' : r.channel;
+        const fails =
+          r.error === 'invalid_number' || this.random() < this.controls.get().failureRate / 2;
+        return {
+          guestId: r.guestId,
+          channel,
+          outcome: fails ? 'failed' : 'delivered',
+          error: fails ? (r.error ?? 'provider_timeout') : null,
+          at: 300 + i * 120,
+        };
+      });
+      const job = this.createJob(prev.eventId, prev.kind, recipients, null, prev.id);
+      this.persist();
+      return this.jobView(job);
+    });
+  }
+
+  sendTestMessage(eventId: string, channel: 'whatsapp' | 'sms'): Promise<{ to: string }> {
+    return this.run('online-only', 'test', () => {
+      const u = this.requireSession();
+      this.event(eventId);
+      return { to: `${u.phoneE164} (${channel})` };
+    });
+  }
+
+  listActivity(eventId: string, limit = 20): Promise<Activity[]> {
+    return this.run('read', 'activity', () => {
+      const items: Activity[] = [];
+      const guests = this.guestsOf(eventId);
+      const last = this.lastMessageByGuest(eventId);
+      for (const g of guests) {
+        const base = { guestId: g.id, guestName: g.displayName };
+        if (g.timeline.confirmed)
+          items.push({
+            id: `c-${g.id}`,
+            at: g.timeline.confirmed,
+            kind: 'rsvp_yes',
+            count: g.rsvpPartySize ?? 1,
+            ...base,
+          });
+        if (g.timeline.declined)
+          items.push({ id: `d-${g.id}`, at: g.timeline.declined, kind: 'rsvp_no', ...base });
+        if (g.timeline.opened && !g.timeline.confirmed && !g.timeline.declined)
+          items.push({ id: `o-${g.id}`, at: g.timeline.opened, kind: 'opened', ...base });
+        if (g.checkedInAt)
+          items.push({
+            id: `ci-${g.id}`,
+            at: g.checkedInAt,
+            kind: 'checked_in',
+            count: g.partyAdmitted,
+            ...base,
+          });
+        const m = last.get(g.id);
+        if (m?.status === 'failed')
+          items.push({ id: `f-${m.id}`, at: m.createdAt, kind: 'message_failed', ...base });
+      }
+      for (const p of this.state.payments) {
+        if (p.eventId === eventId && p.status === 'success')
+          items.push({
+            id: `p-${p.id}`,
+            at: p.paidAt,
+            kind: 'payment',
+            guestId: p.guestId,
+            guestName: p.guestName,
+            amountTzs: p.amountTzs,
+          });
+      }
+      for (const s of this.state.scans) {
+        if (s.eventId === eventId && s.result === 'duplicate')
+          items.push({
+            id: `s-${s.id}`,
+            at: s.scannedAt,
+            kind: 'duplicate_scan',
+            guestId: s.guestId,
+            guestName: s.guestName,
+          });
+      }
+      for (const j of this.state.jobs) {
+        if (j.eventId === eventId)
+          items.push({
+            id: `j-${j.id}`,
+            at: j.createdAt,
+            kind: 'send',
+            guestId: null,
+            guestName: null,
+            count: j.total,
+          });
+      }
+      return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
+    });
+  }
+
+  // ---------------------------------------------------------------- cards PDF (mock)
+
+  requestCardsPdf(
+    eventId: string,
+    opts: { format: 'A6' | 'A5'; layout: 'single' | 'a4-4up' | 'test-sheet'; guestIds?: string[] },
+  ): Promise<Blob> {
+    return this.run('online-only', 'pdf', () => {
+      const e = this.event(eventId);
+      const count = opts.guestIds?.length ?? this.guestsOf(eventId).length;
+      return new Blob(
+        [
+          minimalPdf(
+            `Harusi Pass MOCK PDF - ${e.coupleNames} - ${opts.layout} ${opts.format} - ${count} cards`,
+          ),
+        ],
+        { type: 'application/pdf' },
+      );
+    });
+  }
+
+  // ---------------------------------------------------------------- gate
+
+  getGateOverview(eventId: string): Promise<GateOverview> {
+    return this.run('read', 'gate', () => {
+      this.requireSession();
+      const guests = this.guestsOf(eventId);
+      const scans = this.state.scans.filter((s) => s.eventId === eventId);
+      const perGate = new Map<string, GateOverview['perGate'][number]>();
+      for (const s of scans) {
+        const row = perGate.get(s.gateName) ?? {
+          gateName: s.gateName,
+          ok: 0,
+          duplicate: 0,
+          invalid: 0,
+          manual: 0,
+        };
+        if (s.result === 'ok') row.ok++;
+        else if (s.result === 'duplicate') row.duplicate++;
+        else if (s.result === 'manual_ok' || s.result === 'manual_denied') row.manual++;
+        else row.invalid++;
+        perGate.set(s.gateName, row);
+      }
+      const expected = guests.filter((g) => g.status === 'confirmed' || g.status === 'checked_in');
+      return {
+        admittedGuests: guests.filter((g) => g.checkedInAt).length,
+        admittedPeople: guests.reduce((n, g) => n + g.partyAdmitted, 0),
+        expectedGuests: expected.length,
+        expectedPeople: expected.reduce((n, g) => n + (g.rsvpPartySize ?? 1), 0),
+        duplicates: scans.filter((s) => s.result === 'duplicate').length,
+        invalid: scans.filter(
+          (s) =>
+            s.result === 'invalid_sig' || s.result === 'wrong_event' || s.result === 'not_found',
+        ).length,
+        manual: scans.filter((s) => s.result === 'manual_ok').length,
+        arrivalsByHour: arrivalsByHour(scans),
+        perGate: [...perGate.values()],
+        revoked: guests
+          .filter((g) => g.tokenVersion > 1)
+          .map((g) => ({
+            guestId: g.id,
+            guestName: g.displayName,
+            shortCode: g.shortCode,
+            tokenVersion: g.tokenVersion,
+            revokedAt:
+              this.state.audit[g.id]?.find((a) => a.action === 'reissue')?.at ?? g.updatedAt,
+          })),
+      };
+    });
+  }
+
+  listScans(eventId: string): Promise<ScanEntry[]> {
+    return this.run('read', 'scans', () =>
+      this.state.scans
+        .filter((s) => s.eventId === eventId)
+        .sort((a, b) => b.scannedAt.localeCompare(a.scannedAt)),
+    );
+  }
+
+  manualCheckIn(
+    eventId: string,
+    guestId: string,
+    input: { partySize: number; reason?: string },
+  ): Promise<ScanEntry> {
+    return this.run('write', 'Ingiza mgeni', () => {
+      const u = this.requireSession();
+      const g = this.guestRecord(guestId);
+      if (g.eventId !== eventId) throw new RepositoryError('validation', 'wrong_event');
+      const now = iso(this.now());
+      const base = {
+        id: this.rng.uuid(),
+        eventId,
+        guestId: g.id,
+        guestName: g.displayName,
+        gateName: 'Dashibodi (wavuti)',
+        deviceName: 'Kivinjari',
+        scannedBy: u.name,
+        scannedAt: now,
+      };
+      if (g.checkedInAt) {
+        const entry: ScanEntry = {
+          ...base,
+          result: 'duplicate',
+          partyAdmitted: 0,
+          reason: input.reason ?? null,
+        };
+        this.state.scans.push(entry);
+        return entry;
+      }
+      const party = Math.max(1, Math.min(input.partySize, g.partySizeAllowed));
+      g.checkedInAt = now;
+      g.partyAdmitted = party;
+      g.status = 'checked_in';
+      g.timeline.checked_in = now;
+      g.updatedAt = now;
+      const entry: ScanEntry = {
+        ...base,
+        result: 'manual_ok',
+        partyAdmitted: party,
+        reason: input.reason?.trim() || null,
+      };
+      this.state.scans.push(entry);
+      this.audit(
+        g.id,
+        'manual_check_in',
+        `Ameingizwa kwa mkono (watu ${party})${entry.reason ? `: ${entry.reason}` : ''}`,
+      );
+      return entry;
+    });
+  }
+
+  // ---------------------------------------------------------------- pledges & payments
+
+  upsertPledge(guestId: string, amountTzs: number, note?: string): Promise<Guest> {
+    return this.run('write', 'Ahadi', () => {
+      this.requireSession();
+      const g = this.guestRecord(guestId);
+      g.pledgeAmountTzs = Math.max(0, Math.round(amountTzs));
+      g.updatedAt = iso(this.now());
+      this.audit(
+        g.id,
+        'pledge',
+        `Ahadi: TZS ${g.pledgeAmountTzs.toLocaleString('en-US')}${note ? ` — ${note}` : ''}`,
+      );
+      return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
+    });
+  }
+
+  recordManualPayment(
+    eventId: string,
+    input: ManualPaymentInput,
+    idempotencyKey: string,
+  ): Promise<Payment> {
+    return this.run('write', 'Rekodi malipo', () =>
+      this.remember(`manual-pay:${idempotencyKey}`, () => {
+        const u = this.requireSession();
+        const v = manualPaymentSchema.parse(input);
+        const g = this.guestRecord(v.guestId);
+        if (g.eventId !== eventId) throw new RepositoryError('validation', 'wrong_event');
+        const p = {
+          id: this.rng.uuid(),
+          eventId,
+          guestId: g.id,
+          guestName: g.displayName,
+          amountTzs: v.amountTzs,
+          method: v.method,
+          status: 'success' as const,
+          reference:
+            v.reference ||
+            `${v.method === 'cash' ? 'CASH' : 'MAN'}-${this.rng.hex(6).toUpperCase()}`,
+          phoneE164: null,
+          paidAt: iso(this.now()),
+          note: v.note,
+          recordedBy: u.name,
+        };
+        this.state.payments.push(p);
+        this.audit(
+          g.id,
+          'payment',
+          `Malipo TZS ${p.amountTzs.toLocaleString('en-US')} (${p.method}) yamerekodiwa`,
+        );
+        const { eventId: _e, ...out } = p;
+        return out;
+      }),
+    );
+  }
+
+  listPayments(eventId: string): Promise<Payment[]> {
+    return this.run('read', 'payments', () =>
+      this.state.payments
+        .filter((p) => p.eventId === eventId)
+        .sort((a, b) => b.paidAt.localeCompare(a.paidAt))
+        .map(({ eventId: _e, ...p }) => p),
+    );
+  }
+
+  sendPledgeReminders(eventId: string, guestIds: string[]): Promise<{ queued: number }> {
+    return this.run('online-only', 'reminders', () => {
+      this.requireSession();
+      let queued = 0;
+      for (const id of guestIds) {
+        const g = this.state.guests.find(
+          (x) => x.id === id && x.eventId === eventId && !x.deletedAt,
+        );
+        if (!g?.phoneE164) continue;
+        this.state.messages.push({
+          id: this.rng.uuid(),
+          eventId,
+          guestId: g.id,
+          channel: g.hasSmartphone ? 'whatsapp' : 'sms',
+          provider: g.hasSmartphone ? 'whatsapp-cloud' : 'fake-sms',
+          kind: 'reminder',
+          status: 'sent',
+          error: null,
+          costTzs: g.hasSmartphone ? 0 : 25,
+          createdAt: iso(this.now()),
+        });
+        queued++;
+      }
+      this.persist();
+      return { queued };
+    });
+  }
+
+  // ---------------------------------------------------------------- reports & exports
+
+  getReport(eventId: string): Promise<EventReport> {
+    return this.run('read', 'report', (): EventReport => {
+      this.requireSession();
+      this.event(eventId);
+      const stats = this.stats(eventId);
+      const guests = this.guestsOf(eventId);
+      const channels = (['whatsapp', 'sms', 'print'] as const).map((channel) => {
+        const list = guests.filter((g) => g.channelLast === channel);
+        return {
+          channel,
+          sent: list.length,
+          delivered: list.filter(
+            (g) =>
+              STATUS_RANK[g.status] >= STATUS_RANK.delivered ||
+              (channel === 'print' && STATUS_RANK[g.status] >= STATUS_RANK.sent),
+          ).length,
+          opened: list.filter((g) => STATUS_RANK[g.status] >= STATUS_RANK.opened).length,
+          confirmed: list.filter((g) => g.status === 'confirmed' || g.status === 'checked_in')
+            .length,
+        };
+      });
+      const paid = this.paidByGuest(eventId);
+      const totals = pledgeTotals(
+        guests.map((g) =>
+          g.pledgeAmountTzs != null
+            ? summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived)
+            : null,
+        ),
+      );
+      const weeks = new Map<string, number>();
+      for (const p of this.state.payments) {
+        if (p.eventId !== eventId || p.status !== 'success') continue;
+        const d = new Date(p.paidAt);
+        const monday = new Date(
+          Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7)),
+        );
+        const key = monday.toISOString().slice(0, 10);
+        weeks.set(key, (weeks.get(key) ?? 0) + p.amountTzs);
+      }
+      return {
+        stats,
+        channels,
+        arrivalsByHour: arrivalsByHour(this.state.scans.filter((s) => s.eventId === eventId)),
+        collectionsByWeek: [...weeks.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([week, amountTzs]) => ({ week, amountTzs })),
+        pledgeReconciliation: { ...totals, collectedTzs: stats.collectedTzs },
+        headcountForecast: stats.headcountConfirmed,
+        headcountTarget: guests.reduce((n, g) => n + g.partySizeAllowed, 0),
+      };
+    });
+  }
+
+  exportCsv(
+    eventId: string,
+    kind: 'guests' | 'pledges' | 'payments' | 'scans' | 'report',
+  ): Promise<Blob> {
+    return this.run('online-only', 'export', () => {
+      this.requireSession();
+      const paid = this.paidByGuest(eventId);
+      const guests = this.guestsOf(eventId);
+      let rows: (string | number | null)[][];
+      switch (kind) {
+        case 'pledges':
+          rows = [['Jina', 'Kikundi', 'Ahadi (TZS)', 'Imelipwa (TZS)', 'Salio (TZS)', 'Hali']];
+          for (const g of guests) {
+            if (g.pledgeAmountTzs == null) continue;
+            const s = summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived);
+            rows.push([
+              g.displayName,
+              g.groupLabel,
+              s.amountTzs,
+              s.paidTzs,
+              s.balanceTzs,
+              s.status,
+            ]);
+          }
+          break;
+        case 'payments':
+          rows = [['Tarehe', 'Mgeni', 'Kiasi (TZS)', 'Njia', 'Kumbukumbu', 'Aliyerekodi']];
+          for (const p of this.state.payments.filter((x) => x.eventId === eventId))
+            rows.push([p.paidAt, p.guestName, p.amountTzs, p.method, p.reference, p.recordedBy]);
+          break;
+        case 'scans':
+          rows = [['Muda', 'Mgeni', 'Matokeo', 'Watu', 'Lango', 'Kifaa', 'Aliyeskani']];
+          for (const s of this.state.scans.filter((x) => x.eventId === eventId))
+            rows.push([
+              s.scannedAt,
+              s.guestName,
+              s.result,
+              s.partyAdmitted,
+              s.gateName,
+              s.deviceName,
+              s.scannedBy,
+            ]);
+          break;
+        case 'report': {
+          const st = this.stats(eventId);
+          rows = [
+            ['Kipimo', 'Thamani'],
+            ...Object.entries(st).map(([k, v]) => [k, v] as [string, number]),
+          ];
+          break;
+        }
+        default:
+          rows = [['Jina', 'Simu', 'Kikundi', 'Idadi', 'Namba', 'Hali', 'Njia']];
+          for (const g of guests)
+            rows.push([
+              g.displayName,
+              g.phoneE164,
+              g.groupLabel,
+              g.partySizeAllowed,
+              g.shortCode,
+              g.status,
+              g.inviteChannelPref,
+            ]);
+      }
+      return new Blob(['\uFEFF', toCsv(rows)], { type: 'text/csv;charset=utf-8' });
+    });
+  }
+
+  // ---------------------------------------------------------------- guest card (public)
+
+  private cardView(token: string): CardView {
+    const empty = (state: CardView['state']): CardView => ({
+      token,
+      state,
+      event: null,
+      guest: null,
+      qrPayload: null,
+      rsvp: { status: 'pending', partySize: null },
+      pledge: null,
+      rsvpOpen: false,
+      eventPassed: false,
+      isMock: true,
+    });
+    const g = this.state.guests.find((x) => x.token === token && !x.deletedAt);
+    if (!g) return this.state.retiredTokens[token] ? empty('reissued') : empty('invalid');
+    const e = this.state.events.find((x) => x.id === g.eventId && !x.deletedAt);
+    if (!e) return empty('invalid');
+    const now = this.now();
+    const start = Date.parse(e.dateStart);
+    const eventPassed = now > start + 12 * HOUR;
+    const deadlinePassed = e.rsvpDeadline ? now > Date.parse(e.rsvpDeadline) + DAY : false;
+    const paid = this.paidByGuest(e.id).get(g.id) ?? 0;
+    return {
+      token,
+      state: 'ok',
+      event: {
+        id: e.id,
+        partnerA: e.partnerA,
+        partnerB: e.partnerB,
+        coupleNames: e.coupleNames,
+        dateStart: e.dateStart,
+        venueName: e.venueName,
+        venueMapUrl: e.venueMapUrl,
+        dressCode: e.dressCode,
+        themeId: e.themeId,
+        coverGradient: e.coverGradient,
+        rsvpDeadline: e.rsvpDeadline,
+        senderName: e.senderName,
+        committeePhone: e.committeePhone,
+        pledgesEnabled: e.pledgesEnabled,
+        greeting: e.greeting,
+        extraNote: e.extraNote,
+        timezone: e.timezone,
+      },
+      guest: {
+        displayName: g.displayName,
+        partySizeAllowed: g.partySizeAllowed,
+        shortCode: g.shortCode,
+        groupLabel: g.groupLabel,
+        language: g.language,
+      },
+      // The signed party size is the allowed maximum (§6.1); RSVP changes never require a new signature.
+      qrPayload: mockQrPayload(e.id, g.id, g.partySizeAllowed, g.tokenVersion),
+      rsvp: {
+        status:
+          g.status === 'confirmed' || g.status === 'checked_in'
+            ? 'confirmed'
+            : g.status === 'declined'
+              ? 'declined'
+              : 'pending',
+        partySize: g.rsvpPartySize,
+      },
+      pledge: e.pledgesEnabled
+        ? g.pledgeAmountTzs != null
+          ? summarizePledge(g.pledgeAmountTzs, paid, g.pledgeWaived)
+          : paid > 0
+            ? summarizePledge(0, paid)
+            : null
+        : null,
+      rsvpOpen:
+        !eventPassed && !deadlinePassed && g.status !== 'checked_in' && e.status !== 'archived',
+      eventPassed,
+      isMock: true,
+    };
+  }
+
+  /** Card view without side effects or latency — used for server rendering in mock mode. */
+  peekCard(token: string): CardView {
+    return this.cardView(token);
+  }
+
+  getCard(token: string): Promise<CardView> {
+    return this.run('card-read', 'card', () => {
+      const view = this.cardView(token);
+      if (view.state === 'ok') {
+        const g = this.state.guests.find((x) => x.token === token)!;
+        if (STATUS_RANK[g.status] < STATUS_RANK.opened) {
+          g.status = 'opened';
+          g.timeline.opened = iso(this.now());
+          g.updatedAt = g.timeline.opened;
+          this.persist();
+        }
+      }
+      return view;
+    });
+  }
+
+  rsvp(token: string, input: RsvpInput, idempotencyKey: string): Promise<CardView> {
+    return this.run('write', 'Jibu la mwaliko', () => {
+      const before = this.cardView(token);
+      if (before.state !== 'ok')
+        throw new RepositoryError(before.state === 'reissued' ? 'reissued' : 'invalid_token');
+      const key = `rsvp:${token}:${idempotencyKey}`;
+      if (this.state.idempotency[key]) return before;
+      if (!before.rsvpOpen) throw new RepositoryError('conflict', 'rsvp_closed');
+      const g = this.state.guests.find((x) => x.token === token)!;
+      const now = iso(this.now());
+      g.status = advanceStatus(g.status, input.attending ? 'confirmed' : 'declined');
+      g.rsvpPartySize = input.attending
+        ? Math.max(1, Math.min(input.partySize, g.partySizeAllowed))
+        : 0;
+      g.timeline[input.attending ? 'confirmed' : 'declined'] = now;
+      delete g.timeline[input.attending ? 'declined' : 'confirmed'];
+      g.updatedAt = now;
+      this.state.idempotency[key] = '1';
+      return this.cardView(token);
+    });
+  }
+
+  startPayment(
+    token: string,
+    input: { amountTzs: number; phoneE164: string; method: PaymentMethod },
+    idempotencyKey: string,
+  ): Promise<PaymentStart> {
+    return this.run('online-only', 'pay', () =>
+      this.remember(`pay:${idempotencyKey}`, () => {
+        const view = this.cardView(token);
+        if (view.state !== 'ok') throw new RepositoryError('invalid_token');
+        if (!view.event?.pledgesEnabled)
+          throw new RepositoryError('forbidden', 'payments_disabled');
+        if (!Number.isInteger(input.amountTzs) || input.amountTzs < 1000)
+          throw new RepositoryError('validation', 'amount', { min: 1000 });
+        const g = this.state.guests.find((x) => x.token === token)!;
+        const reference = `HP${this.rng.hex(10).toUpperCase()}`;
+        this.state.pendingPayments[reference] = {
+          reference,
+          guestId: g.id,
+          eventId: g.eventId,
+          amountTzs: input.amountTzs,
+          phoneE164: input.phoneE164,
+          method: input.method,
+          outcome: this.controls.get().payOutcome,
+          startedAt: this.now(),
+          applied: false,
+        };
+        this.persist();
+        return {
+          reference,
+          amountTzs: input.amountTzs,
+          phoneE164: input.phoneE164,
+          method: input.method,
+          expiresAt: iso(this.now() + PAY_TIMEOUT_MS),
+        };
+      }),
+    );
+  }
+
+  getPaymentStatus(reference: string): Promise<PaymentStatusView> {
+    return this.run('online-only', 'pay-status', () => {
+      const p = this.state.pendingPayments[reference];
+      if (!p) throw new RepositoryError('not_found');
+      const elapsed = this.now() - p.startedAt;
+      const view: PaymentStatusView = {
+        reference,
+        status: 'pending',
+        amountTzs: p.amountTzs,
+        method: p.method,
+        paidAt: null,
+        duplicateWebhook: false,
+        newBalanceTzs: null,
+        failureReason: null,
+      };
+      const resolvesAt = p.outcome === 'declined' ? 4000 : 6000;
+      if (p.outcome === 'timeout') {
+        if (elapsed > PAY_TIMEOUT_MS) view.status = 'expired';
+        return view;
+      }
+      if (elapsed < resolvesAt) return view;
+      if (p.outcome === 'declined')
+        return { ...view, status: 'failed', failureReason: 'insufficient_funds' };
+      if (!p.applied) {
+        // Webhook handling is idempotent by provider reference: a duplicate notice is ignored.
+        const deliveries = p.outcome === 'duplicate_webhook' ? 2 : 1;
+        for (let i = 0; i < deliveries; i++) {
+          if (this.state.payments.some((x) => x.reference === reference)) continue;
+          const g = this.state.guests.find((x) => x.id === p.guestId)!;
+          this.state.payments.push({
+            id: this.rng.uuid(),
+            eventId: p.eventId,
+            guestId: g.id,
+            guestName: g.displayName,
+            amountTzs: p.amountTzs,
+            method: p.method,
+            status: 'success',
+            reference,
+            phoneE164: p.phoneE164,
+            paidAt: iso(p.startedAt + resolvesAt),
+            note: '',
+            recordedBy: null,
+          });
+        }
+        p.applied = true;
+        this.persist();
+      }
+      const g = this.state.guests.find((x) => x.id === p.guestId)!;
+      const paid = this.paidByGuest(p.eventId).get(g.id) ?? 0;
+      return {
+        ...view,
+        status: 'success',
+        paidAt: iso(p.startedAt + resolvesAt),
+        duplicateWebhook: p.outcome === 'duplicate_webhook',
+        newBalanceTzs: g.pledgeAmountTzs != null ? Math.max(0, g.pledgeAmountTzs - paid) : null,
+      };
+    });
+  }
+
+  resolveShortCode(code: string): Promise<{ token: string }> {
+    return this.run('card-read', 'short', () => {
+      const g = this.state.guests.find((x) => x.shortCode === code.toUpperCase() && !x.deletedAt);
+      if (!g) throw new RepositoryError('not_found');
+      return { token: g.token };
+    });
+  }
+
+  /** Synchronous short-code lookup for server redirects in mock mode. */
+  peekShortCode(code: string): string | null {
+    return (
+      this.state.guests.find((x) => x.shortCode === code.toUpperCase() && !x.deletedAt)?.token ??
+      null
+    );
+  }
+}
+
+function arrivalsByHour(scans: ScanEntry[]): { hour: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const s of scans) {
+    if (s.result !== 'ok' && s.result !== 'manual_ok') continue;
+    const d = new Date(Date.parse(s.scannedAt) + 3 * HOUR); // EAT
+    const key = `${String(d.getUTCHours()).padStart(2, '0')}:00`;
+    m.set(key, (m.get(key) ?? 0) + s.partyAdmitted);
+  }
+  return [...m.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([hour, count]) => ({ hour, count }));
+}
+
+/** A tiny valid one-page PDF with a single line of text (mock export). */
+function minimalPdf(text: string): string {
+  const safe = text.replace(/[()\\]/g, '');
+  const stream = `BT /F1 14 Tf 40 780 Td (${safe}) Tj ET`;
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let out = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  objs.forEach((o, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${o}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
+  out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return out;
+}

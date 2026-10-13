@@ -1,6 +1,17 @@
 import { healthResponseSchema, type HealthResponse } from '@harusi/schemas';
 
-// Phase 0 stub. Later replaced by a client generated from the OpenAPI spec.
+export * from './types';
+export * from './errors';
+export type { Repository } from './repository';
+export * from './domain/pledge';
+export * from './domain/sms';
+export * from './domain/funnel';
+export * from './domain/guest-filter';
+export * from './domain/import';
+export * from './domain/token';
+export { createHttpRepository } from './http-repository';
+
+/** Minimal health client (Phase 0). */
 export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = fetch) {
   return {
     async health(): Promise<HealthResponse> {

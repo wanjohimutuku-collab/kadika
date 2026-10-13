@@ -1,0 +1,391 @@
+import type {
+  ChannelPref,
+  InvitationStatus,
+  Language,
+  MemberRole,
+  MessageChannel,
+  PaymentMethod,
+  PaymentStatus,
+  PledgeStatus,
+  ScanResult,
+} from '@harusi/schemas';
+import type { ThemeId } from '@harusi/ui-tokens/themes';
+
+export type { ThemeId };
+export type ISODate = string;
+
+export interface User {
+  id: string;
+  name: string;
+  phoneE164: string;
+}
+
+export interface Session {
+  user: User;
+  /** Role on the currently selected event (mock: switchable in the dev panel). */
+  role: MemberRole;
+  expiresAt: ISODate;
+}
+
+export interface ReminderSettings {
+  t14: boolean;
+  t7: boolean;
+  t1: boolean;
+}
+
+export interface EventStats {
+  invited: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  confirmed: number;
+  declined: number;
+  attended: number;
+  headcountConfirmed: number;
+  headcountAttended: number;
+  pledgedTzs: number;
+  collectedTzs: number;
+  /** Guests whose pledge still has a balance. */
+  guestsWithBalance: number;
+  failedMessages: number;
+  featurePhoneGuests: number;
+}
+
+export type EventStatus = 'draft' | 'active' | 'completed' | 'archived';
+
+export interface WeddingEvent {
+  id: string;
+  title: string;
+  partnerA: string;
+  partnerB: string;
+  coupleNames: string;
+  dateStart: ISODate;
+  venueName: string;
+  venueMapUrl: string;
+  dressCode: string;
+  languageDefault: Language;
+  timezone: 'Africa/Dar_es_Salaam';
+  status: EventStatus;
+  themeId: ThemeId;
+  coverGradient: string;
+  rsvpDeadline: ISODate | null;
+  contributionTargetTzs: number;
+  /** Shown on the trust strip (§7.2): who sent the invitation and how to call them. */
+  senderName: string;
+  committeePhone: string;
+  pledgesEnabled: boolean;
+  /** §7.5 policy toggle, default OFF. */
+  requirePledgeBeforeCard: boolean;
+  greeting: string;
+  extraNote: string;
+  reminders: ReminderSettings;
+  whatsappFallbackHours: number;
+  plan: 'free' | 'paid';
+  createdAt: ISODate;
+  updatedAt: ISODate;
+  stats: EventStats;
+}
+
+export interface PledgeSummary {
+  amountTzs: number;
+  paidTzs: number;
+  balanceTzs: number;
+  status: PledgeStatus;
+}
+
+export interface Guest {
+  id: string;
+  eventId: string;
+  displayName: string;
+  phoneE164: string | null;
+  hasSmartphone: boolean;
+  groupLabel: string;
+  partySizeAllowed: number;
+  shortCode: string;
+  tokenVersion: number;
+  language: Language;
+  inviteChannelPref: ChannelPref;
+  notes: string;
+  status: InvitationStatus;
+  /** Highest status reached before a terminal answer; used for timelines. */
+  timeline: Partial<Record<InvitationStatus, ISODate>>;
+  rsvpPartySize: number | null;
+  channelLast: MessageChannel | null;
+  lastMessageFailed: boolean;
+  checkedInAt: ISODate | null;
+  partyAdmitted: number;
+  pledge: PledgeSummary | null;
+  createdAt: ISODate;
+  updatedAt: ISODate;
+}
+
+export type MessageStatus = 'queued' | 'sent' | 'delivered' | 'read' | 'failed';
+
+export interface MessageLogEntry {
+  id: string;
+  guestId: string;
+  channel: MessageChannel;
+  provider: string;
+  kind: 'invite' | 'reminder' | 'thank_you' | 'test';
+  status: MessageStatus;
+  error: string | null;
+  costTzs: number;
+  createdAt: ISODate;
+}
+
+export interface Payment {
+  id: string;
+  guestId: string;
+  guestName: string;
+  amountTzs: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  reference: string;
+  phoneE164: string | null;
+  paidAt: ISODate;
+  note: string;
+  recordedBy: string | null;
+}
+
+export interface ScanEntry {
+  id: string;
+  eventId: string;
+  guestId: string | null;
+  guestName: string | null;
+  result: ScanResult;
+  partyAdmitted: number;
+  gateName: string;
+  deviceName: string;
+  scannedBy: string;
+  scannedAt: ISODate;
+  reason: string | null;
+}
+
+export type MemberStatus = 'active' | 'invited' | 'revoked';
+
+export interface Member {
+  id: string;
+  name: string;
+  phoneE164: string;
+  role: MemberRole;
+  status: MemberStatus;
+  lastActiveAt: ISODate | null;
+}
+
+export interface GateLink {
+  url: string;
+  code: string;
+  /** Shown once; only its hash is stored (§9). */
+  pin: string;
+  expiresAt: ISODate;
+}
+
+export type ActivityKind =
+  | 'rsvp_yes'
+  | 'rsvp_no'
+  | 'opened'
+  | 'payment'
+  | 'message_failed'
+  | 'checked_in'
+  | 'duplicate_scan'
+  | 'guest_added'
+  | 'import'
+  | 'send';
+
+export interface Activity {
+  id: string;
+  at: ISODate;
+  kind: ActivityKind;
+  guestId: string | null;
+  guestName: string | null;
+  amountTzs?: number;
+  count?: number;
+}
+
+export interface AuditEntry {
+  id: string;
+  at: ISODate;
+  actorName: string;
+  action: string;
+  details: string;
+}
+
+export type CardState = 'ok' | 'reissued' | 'invalid';
+
+/** Public guest-card view (`GET /v1/c/:token`). Contains no other guests' data. */
+export interface CardView {
+  token: string;
+  state: CardState;
+  event: Pick<
+    WeddingEvent,
+    | 'id'
+    | 'partnerA'
+    | 'partnerB'
+    | 'coupleNames'
+    | 'dateStart'
+    | 'venueName'
+    | 'venueMapUrl'
+    | 'dressCode'
+    | 'themeId'
+    | 'coverGradient'
+    | 'rsvpDeadline'
+    | 'senderName'
+    | 'committeePhone'
+    | 'pledgesEnabled'
+    | 'greeting'
+    | 'extraNote'
+    | 'timezone'
+  > | null;
+  guest: {
+    displayName: string;
+    partySizeAllowed: number;
+    shortCode: string;
+    groupLabel: string;
+    language: Language;
+  } | null;
+  /** Signed QR payload (§6.1). In mocks: `v1.….MOCKSIG`. */
+  qrPayload: string | null;
+  rsvp: { status: 'pending' | 'confirmed' | 'declined'; partySize: number | null };
+  pledge: PledgeSummary | null;
+  rsvpOpen: boolean;
+  eventPassed: boolean;
+  isMock: boolean;
+}
+
+export interface SendRequest {
+  audience:
+    | { kind: 'unsent' }
+    | { kind: 'group'; group: string }
+    | { kind: 'selected'; guestIds: string[] }
+    | { kind: 'all' };
+  channel: 'auto' | MessageChannel;
+  whatsappFallbackToSms: boolean;
+  scheduleAt: ISODate | null;
+  kind: 'invite' | 'reminder' | 'thank_you';
+  idempotencyKey: string;
+  /** Optional custom body for thank-you broadcasts. */
+  body?: string;
+}
+
+export interface SendJobFailure {
+  guestId: string;
+  guestName: string;
+  channel: MessageChannel;
+  error: string;
+}
+
+export interface SendJob {
+  id: string;
+  eventId: string;
+  kind: SendRequest['kind'];
+  total: number;
+  counts: { queued: number; sent: number; delivered: number; failed: number };
+  byChannel: Record<MessageChannel, number>;
+  failures: SendJobFailure[];
+  status: 'scheduled' | 'running' | 'done';
+  scheduledFor: ISODate | null;
+  createdAt: ISODate;
+}
+
+export interface SendPreview {
+  total: number;
+  byChannel: Record<MessageChannel, number>;
+  smsSegments: number;
+  estimatedSmsCostTzs: number;
+  withoutPhone: number;
+}
+
+export interface GuestQuery {
+  search?: string;
+  filter?: GuestFilter;
+  group?: string;
+  sort?: { by: 'name' | 'status' | 'group' | 'updated' | 'balance'; dir: 'asc' | 'desc' };
+}
+
+export type GuestFilter =
+  | 'all'
+  | 'unsent'
+  | 'confirmed'
+  | 'no_reply'
+  | 'declined'
+  | 'no_smartphone'
+  | 'failed'
+  | 'checked_in';
+
+export interface ImportRowInput {
+  displayName: string;
+  phoneRaw: string;
+  groupLabel: string;
+  partySizeAllowed: number;
+  hasSmartphone: boolean;
+  inviteChannelPref: ChannelPref;
+}
+
+export interface ImportResult {
+  created: number;
+  skipped: number;
+}
+
+export interface PaymentStart {
+  reference: string;
+  amountTzs: number;
+  phoneE164: string;
+  method: PaymentMethod;
+  expiresAt: ISODate;
+}
+
+export interface PaymentStatusView {
+  reference: string;
+  status: 'pending' | 'success' | 'failed' | 'expired';
+  amountTzs: number;
+  method: PaymentMethod;
+  paidAt: ISODate | null;
+  duplicateWebhook: boolean;
+  newBalanceTzs: number | null;
+  failureReason: string | null;
+}
+
+export interface ChannelPerformance {
+  channel: MessageChannel;
+  sent: number;
+  delivered: number;
+  opened: number;
+  confirmed: number;
+}
+
+export interface EventReport {
+  stats: EventStats;
+  channels: ChannelPerformance[];
+  arrivalsByHour: { hour: string; count: number }[];
+  collectionsByWeek: { week: string; amountTzs: number }[];
+  pledgeReconciliation: {
+    pledgedTzs: number;
+    collectedTzs: number;
+    outstandingTzs: number;
+    overpaidTzs: number;
+    guestsPaid: number;
+    guestsPartial: number;
+    guestsUnpaid: number;
+  };
+  headcountForecast: number;
+  headcountTarget: number;
+}
+
+export interface GateOverview {
+  admittedGuests: number;
+  admittedPeople: number;
+  expectedGuests: number;
+  expectedPeople: number;
+  duplicates: number;
+  invalid: number;
+  manual: number;
+  arrivalsByHour: { hour: string; count: number }[];
+  perGate: { gateName: string; ok: number; duplicate: number; invalid: number; manual: number }[];
+  revoked: {
+    guestId: string;
+    guestName: string;
+    shortCode: string;
+    tokenVersion: number;
+    revokedAt: ISODate;
+  }[];
+}

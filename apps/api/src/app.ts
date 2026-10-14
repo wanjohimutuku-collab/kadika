@@ -11,6 +11,7 @@ import { verifyAccessToken } from './auth/tokens';
 import { EventService } from './services/events';
 import { GuestService } from './services/guests';
 import { MemberService } from './services/members';
+import { idempotent } from './idempotency';
 
 type Env = { Variables: { userId: string } };
 
@@ -105,6 +106,11 @@ export function createApp(deps: Deps) {
   app.use('/v1/*', async (c, next) =>
     c.req.path.startsWith('/v1/auth/') ? next() : requireAuth(c, next),
   );
+  // Idempotency-Key (§8) on the endpoints where a retry would otherwise duplicate or rotate things.
+  const once = idempotent(deps);
+  app.post('/v1/events/:id/guests', once);
+  app.post('/v1/events/:id/guests/import', once);
+  app.post('/v1/guests/:id/reissue', once);
 
   app.get('/v1/me', async (c) => {
     const [u] = await deps.db
@@ -168,14 +174,36 @@ export function createApp(deps: Deps) {
   });
 
   // ---- guests
-  app.get('/v1/events/:id/guests', async (c) =>
-    c.json({
-      items: await guestsSvc.list(c.req.param('id'), c.get('userId'), {
-        search: c.req.query('q'),
-        status: c.req.query('status'),
+  app.get('/v1/events/:id/guests', async (c) => {
+    const q = parse(
+      z.object({
+        q: z.string().max(80).optional(),
+        status: z
+          .enum([
+            'created',
+            'queued',
+            'sent',
+            'delivered',
+            'opened',
+            'confirmed',
+            'declined',
+            'checked_in',
+          ])
+          .optional(),
+        limit: z.coerce.number().int().min(1).max(200).optional(),
+        cursor: z.string().max(400).optional(),
       }),
-    }),
-  );
+      c.req.query(),
+    );
+    return c.json(
+      await guestsSvc.list(c.req.param('id'), c.get('userId'), {
+        search: q.q,
+        status: q.status,
+        limit: q.limit,
+        cursor: q.cursor,
+      }),
+    );
+  });
   app.post('/v1/events/:id/guests', async (c) =>
     c.json(
       await guestsSvc.create(c.req.param('id'), c.get('userId'), parse(guestBase, await body(c))),

@@ -1,4 +1,4 @@
-import { and, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
 import { guests, invitations, newId, shortOf, signingKeys } from '@harusi/db';
 import { decryptSecret } from '../crypto-at-rest';
 import { generateGuestToken, hashGuestToken, signQrToken } from '@harusi/crypto';
@@ -134,13 +134,34 @@ export class GuestService {
     });
   }
 
-  async list(eventId: string, userId: string, q: { search?: string; status?: string } = {}) {
+  /**
+   * Cursor-paginated list ordered by (name, id). The cursor is opaque (base64url of `name\0id`), so
+   * inserts between pages never skip or repeat a guest. `limit` is clamped to 1–200.
+   */
+  async list(
+    eventId: string,
+    userId: string,
+    q: { search?: string; status?: string; limit?: number; cursor?: string } = {},
+  ) {
     await this.eventsSvc.role(eventId, userId);
+    const limit = Math.min(200, Math.max(1, Math.floor(q.limit ?? 50)));
     const where = [eq(guests.eventId, eventId), isNull(guests.deletedAt)];
     if (q.search?.trim()) {
       const s = `%${q.search.trim()}%`;
       where.push(
         or(ilike(guests.displayName, s), ilike(guests.phoneE164, s), ilike(guests.shortCode, s))!,
+      );
+    }
+    if (q.status)
+      where.push(eq(invitations.status, q.status as typeof invitations.$inferSelect.status));
+    if (q.cursor) {
+      const decoded = Buffer.from(q.cursor, 'base64url').toString('utf8');
+      const sep = decoded.lastIndexOf('\u0000');
+      if (sep < 0) throw new ApiError('validation', 'Invalid cursor', { field: 'cursor' });
+      const name = decoded.slice(0, sep);
+      const id = decoded.slice(sep + 1);
+      where.push(
+        or(gt(guests.displayName, name), and(eq(guests.displayName, name), gt(guests.id, id)))!,
       );
     }
     const rows = await this.deps.db
@@ -152,10 +173,21 @@ export class GuestService {
       .from(guests)
       .leftJoin(invitations, eq(invitations.guestId, guests.id))
       .where(and(...where))
-      .orderBy(guests.displayName);
-    return rows
-      .filter((r) => !q.status || r.status === q.status)
-      .map((r) => ({ ...r.guest, status: r.status ?? 'created', rsvpPartySize: r.rsvpPartySize }));
+      .orderBy(asc(guests.displayName), asc(guests.id))
+      .limit(limit + 1);
+    const page = rows.slice(0, limit);
+    const last = page.at(-1)?.guest;
+    return {
+      items: page.map((r) => ({
+        ...r.guest,
+        status: r.status ?? 'created',
+        rsvpPartySize: r.rsvpPartySize,
+      })),
+      nextCursor:
+        rows.length > limit && last
+          ? Buffer.from(`${last.displayName}\u0000${last.id}`).toString('base64url')
+          : null,
+    };
   }
 
   async get(guestId: string, userId: string) {

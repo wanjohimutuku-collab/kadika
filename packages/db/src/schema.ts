@@ -295,3 +295,20 @@ export const refreshTokens = pgTable(
     index('refresh_tokens_user_idx').on(t.userId),
   ],
 );
+
+/** Replay store for `Idempotency-Key` (§8): same key + same request returns the first response. */
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    requestFingerprint: text('request_fingerprint').notNull(),
+    responseStatus: integer('response_status').notNull(),
+    responseBody: jsonb('response_body'),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('idempotency_user_key_uq').on(t.userId, t.key)],
+);

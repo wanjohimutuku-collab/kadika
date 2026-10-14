@@ -32,6 +32,11 @@ Implemented now: `POST auth/otp/request|verify`, `auth/refresh`, `auth/logout`, 
 
 `users`: `staff_role`, `status`, `suspended_reason`, `last_login_at`; `guests.guest_short` (backfilled); new `refresh_tokens` and `event_invites` tables. `Db` is now a driver-agnostic Drizzle type so tests run real SQL on PGlite (in-process Postgres) without Docker; migrations were also applied to the compose Postgres.
 
+## Pagination and idempotency (§8)
+
+- `GET /v1/events/:id/guests` is cursor-paginated (`limit` 1–200, default 50, opaque `cursor`, `nextCursor`), ordered by name then id, so inserts between pages never skip or repeat a guest. Status filtering happens in SQL.
+- `Idempotency-Key` (8–128 chars, per user) on guest create, import and reissue: the first 2xx response is stored in `idempotency_keys` and replayed with `Idempotent-Replayed: true`. One-time secrets (the card token) are never stored, so a replay returns the guest without it. The same key on a different method/path is a 409.
+
 ## Not yet in Phase 1
 
-Cursor pagination and idempotency keys on list/send endpoints, OpenAPI generation (`@hono/zod-openapi`) and the generated client, Better Auth (replaced here by a small purpose-built phone-OTP flow), per-IP rate limiting, audit-log writes for admin actions, and wiring the web app's `HttpRepository` to these endpoints.
+Pagination on other list endpoints (events, members), idempotency on the send/pay/sync endpoints (built with their phases), OpenAPI generation (`@hono/zod-openapi`) and the generated client, Better Auth (replaced here by a small purpose-built phone-OTP flow), per-IP rate limiting, audit-log writes for admin actions, and wiring the web app's `HttpRepository` to these endpoints.

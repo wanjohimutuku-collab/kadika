@@ -242,7 +242,7 @@ describe('guests', () => {
       body: { csv: ['Jina,Simu', ...rows].join('\n') },
     });
     expect(run.body, JSON.stringify(run.body).slice(0, 300)).toMatchObject({ created: 150 });
-    const list = await api(ctx, 'GET', `/v1/events/${ev.id}/guests`, { token: t });
+    const list = await api(ctx, 'GET', `/v1/events/${ev.id}/guests?limit=200`, { token: t });
     const shorts = list.body!.items.map((g: { guestShort: string }) => g.guestShort);
     expect(new Set(shorts).size).toBe(150);
   });
@@ -327,5 +327,147 @@ describe('guests', () => {
     expect(r.status).toBe(400);
     expect(r.body?.error.code).toBe('validation');
     expect(r.body?.error.details.issues.length).toBeGreaterThan(0);
+  });
+});
+
+describe('pagination and idempotency (§8)', () => {
+  async function setup(phone: string) {
+    const owner = await loginAs(ctx, phone);
+    const ev = (
+      await api(ctx, 'POST', '/v1/events', { token: owner.accessToken, body: eventBody('P') })
+    ).body!;
+    return { ev, t: owner.accessToken };
+  }
+
+  it('pages through guests with an opaque cursor, without gaps or repeats, even when guests are added meanwhile', async () => {
+    const { ev, t } = await setup('0733000001');
+    const csv = [
+      'Jina,Simu',
+      ...Array.from(
+        { length: 120 },
+        (_, i) =>
+          `Mgeni ${String(i + 1).padStart(3, '0')},07${String(20_000_000 + i * 13).padStart(8, '0')}`,
+      ),
+    ].join('\n');
+    await api(ctx, 'POST', `/v1/events/${ev.id}/guests/import`, { token: t, body: { csv } });
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    let pages = 0;
+    do {
+      const r = await api(
+        ctx,
+        'GET',
+        `/v1/events/${ev.id}/guests?limit=50${cursor ? `&cursor=${cursor}` : ''}`,
+        { token: t },
+      );
+      expect(r.status).toBe(200);
+      seen.push(...r.body!.items.map((g: { displayName: string }) => g.displayName));
+      cursor = r.body!.nextCursor;
+      if (pages++ === 0)
+        await api(ctx, 'POST', `/v1/events/${ev.id}/guests`, {
+          token: t,
+          body: { displayName: 'Mgeni 000 Mpya' },
+        }); // sorts before the cursor
+    } while (cursor);
+    expect(pages).toBe(3);
+    expect(seen).toHaveLength(120);
+    expect(new Set(seen).size).toBe(120);
+    expect(seen).toEqual([...seen].sort());
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${ev.id}/guests?limit=1&cursor=garbage`, { token: t }))
+        .status,
+    ).toBe(400);
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${ev.id}/guests?limit=500`, { token: t })).status,
+    ).toBe(400);
+  });
+
+  it('filters by status in SQL', async () => {
+    const { ev, t } = await setup('0733000002');
+    await api(ctx, 'POST', `/v1/events/${ev.id}/guests`, {
+      token: t,
+      body: { displayName: 'Mgeni Mmoja' },
+    });
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${ev.id}/guests?status=created`, { token: t })).body
+        ?.items,
+    ).toHaveLength(1);
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${ev.id}/guests?status=confirmed`, { token: t })).body
+        ?.items,
+    ).toHaveLength(0);
+  });
+
+  it('replays the first response for a repeated Idempotency-Key, without secrets, and creates one guest', async () => {
+    const { ev, t } = await setup('0733000003');
+    const call = () =>
+      ctx.app.request(`/v1/events/${ev.id}/guests`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${t}`,
+          'idempotency-key': 'key-create-001',
+        },
+        body: JSON.stringify({ displayName: 'Asha Mwinyi', phone: '0712999888' }),
+      });
+    const first = await call();
+    const firstBody = (await first.json()) as { id: string; cardToken?: string };
+    expect(first.status).toBe(201);
+    expect(firstBody.cardToken).toHaveLength(22);
+    const second = await call();
+    const secondBody = (await second.json()) as {
+      id: string;
+      cardToken?: string;
+      replayed?: boolean;
+    };
+    expect(second.status).toBe(201);
+    expect(second.headers.get('idempotent-replayed')).toBe('true');
+    expect(secondBody).toMatchObject({ id: firstBody.id, replayed: true });
+    expect(secondBody.cardToken).toBeUndefined(); // one-time secrets are never stored or replayed
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${ev.id}/guests`, { token: t })).body?.items,
+    ).toHaveLength(1);
+  });
+
+  it('rejects the same key on a different request and is scoped per user', async () => {
+    const { ev, t } = await setup('0733000004');
+    const post = (path: string, token: string, body: unknown) =>
+      ctx.app.request(path, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+          'idempotency-key': 'shared-key-0001',
+        },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (await post(`/v1/events/${ev.id}/guests`, t, { displayName: 'Mgeni Mmoja' })).status,
+    ).toBe(201);
+    const other = await post(`/v1/events/${ev.id}/guests/import`, t, {
+      csv: 'Jina,Simu\nMwingine,0712000111',
+    });
+    expect(other.status).toBe(409);
+    const stranger = await loginAs(ctx, '0733000005');
+    const ev2 = (
+      await api(ctx, 'POST', '/v1/events', { token: stranger.accessToken, body: eventBody('Q') })
+    ).body!;
+    expect(
+      (
+        await post(`/v1/events/${ev2.id}/guests`, stranger.accessToken, {
+          displayName: 'Mgeni Mwingine',
+        })
+      ).status,
+    ).toBe(201);
+    const short = await ctx.app.request(`/v1/events/${ev.id}/guests`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${t}`,
+        'idempotency-key': 'abc',
+      },
+      body: '{"displayName":"Mgeni"}',
+    });
+    expect(short.status).toBe(400);
   });
 });

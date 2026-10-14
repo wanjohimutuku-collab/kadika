@@ -415,11 +415,17 @@
       "useTitle": "How we use it",
       "use": "For that wedding only: sending cards and reminders, showing status to the committee, and confirming entry. We do not sell or share data with advertisers.",
       "rightsTitle": "Your rights",
-      "rights": "You can request a copy of your data or its deletion through the wedding committee or us. Couples can download or delete data from their account.",
+      "rights": "The host can download or permanently erase a guest's data from the app. A guest can ask for a copy or for erasure by contacting the wedding committee or us.",
       "securityTitle": "Security",
       "security": "Card links are unique and unguessable. We never ask guests for passwords, PINs or secret codes.",
       "contactTitle": "Contact",
-      "contact": "Privacy questions: faragha@harusipass.co.tz"
+      "contact": "Privacy questions: faragha@harusipass.co.tz",
+      "processorsTitle": "Providers we use",
+      "processors": "To send cards and confirm payments we use WhatsApp and SMS messaging companies, a mobile-money payment provider and servers that store data. They receive only what is needed to do that job and may not use it for anything else.",
+      "retentionTitle": "How long we keep it",
+      "retention": "Wedding data stays until the host deletes it or asks for it to be deleted. When a guest is erased, their name, phone and notes are removed; the payment amount stays without any personal details, for the wedding's accounts. [The maximum retention period will be set by a lawyer.]",
+      "deviceTitle": "What is kept on your device",
+      "device": "Your card keeps a copy on your device so it shows offline, and your reply until it is sent. The gate app keeps the guest list on the gate agent's phone; the gate PIN is never stored. We do not use advertising cookies."
     },
     "terms": {
       "intro": "By using Harusi Pass you accept these draft terms.",
@@ -430,7 +436,9 @@
       "paymentsTitle": "Payments",
       "payments": "Contributions are paid through licensed payment providers. Harusi Pass never stores payment PINs.",
       "liabilityTitle": "Limitation of liability",
-      "liability": "The service is provided as is during the pilot."
+      "liability": "The service is provided as is during the pilot.",
+      "gateTitle": "Gate agents",
+      "gate": "The host gives gate agents a link and PIN. Do not share the PIN. The host can revoke gate links at any time, and every step is recorded."
     }
   },
   "status": {

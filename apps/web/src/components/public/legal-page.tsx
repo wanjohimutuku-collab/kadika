@@ -10,8 +10,17 @@ export async function LegalPage({ kind }: { kind: 'privacy' | 'terms' }) {
   const locale = (await getLocale()) as Locale;
   const sections =
     kind === 'privacy'
-      ? (['collect', 'use', 'rights', 'security', 'contact'] as const)
-      : (['account', 'messages', 'payments', 'liability'] as const);
+      ? ([
+          'collect',
+          'use',
+          'processors',
+          'retention',
+          'device',
+          'rights',
+          'security',
+          'contact',
+        ] as const)
+      : (['account', 'messages', 'payments', 'gate', 'liability'] as const);
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8">
       <Banner tone="warning" title={t('draftBanner')} />

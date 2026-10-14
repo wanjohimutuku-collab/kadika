@@ -419,11 +419,17 @@
       "useTitle": "Tunavyotumia",
       "use": "Kwa harusi husika tu: kutuma kadi na vikumbusho, kuonyesha hali kwa kamati, na kuthibitisha kuingia. Hatuuzi wala kushiriki data na watangazaji.",
       "rightsTitle": "Haki zako",
-      "rights": "Unaweza kuomba nakala ya taarifa zako au zifutwe kwa kuwasiliana na kamati ya harusi au sisi. Wenye harusi wanaweza kupakua au kufuta data kutoka kwenye akaunti yao.",
+      "rights": "Mwenye harusi anaweza kupakua au kufuta kabisa data ya mgeni kutoka kwenye programu. Mgeni anaweza kuomba nakala au kufutwa kwa kuwasiliana na kamati ya harusi au nasi.",
       "securityTitle": "Usalama",
       "security": "Viungo vya kadi ni vya kipekee na havitabiriki. Hatuombi nenosiri, PIN wala namba za siri kutoka kwa wageni.",
       "contactTitle": "Mawasiliano",
-      "contact": "Kwa maswali kuhusu faragha: faragha@harusipass.co.tz"
+      "contact": "Kwa maswali kuhusu faragha: faragha@harusipass.co.tz",
+      "processorsTitle": "Watoa huduma tunaowatumia",
+      "processors": "Ili kutuma kadi na kuthibitisha malipo tunatumia: kampuni za ujumbe wa WhatsApp na SMS, mtoa huduma wa malipo ya simu, na seva za kuhifadhi data. Wanapokea tu kinachohitajika kufanya kazi hiyo na hawaruhusiwi kukitumia kwa shughuli nyingine.",
+      "retentionTitle": "Tunahifadhi kwa muda gani",
+      "retention": "Data za harusi zinabaki hadi mwenye harusi azifute au aombe zifutwe. Mgeni akifutwa kabisa, jina, simu na maelezo yake huondolewa; kiasi cha malipo kinabaki bila taarifa za mtu, kwa ajili ya hesabu za harusi. [Muda wa juu wa kuhifadhi utaamuliwa na mwanasheria.]",
+      "deviceTitle": "Kinachohifadhiwa kwenye kifaa chako",
+      "device": "Kadi yako huhifadhi nakala kwenye kifaa ili ionekane bila mtandao, na jibu lako hadi litumwe. Programu ya mlangoni huhifadhi orodha ya wageni kwenye simu ya mlinda lango; PIN ya lango haihifadhiwi. Hatutumii vidakuzi vya matangazo."
     },
     "terms": {
       "intro": "Kwa kutumia Harusi Pass unakubali masharti haya ya rasimu.",
@@ -434,7 +440,9 @@
       "paymentsTitle": "Malipo",
       "payments": "Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Harusi Pass haihifadhi PIN za malipo.",
       "liabilityTitle": "Mipaka ya dhima",
-      "liability": "Huduma inatolewa kama ilivyo wakati wa majaribio."
+      "liability": "Huduma inatolewa kama ilivyo wakati wa majaribio.",
+      "gateTitle": "Walinda lango",
+      "gate": "Mwenye harusi huwapa walinda lango kiungo na PIN. Usishiriki PIN. Mwenye harusi anaweza kufuta viungo vya lango wakati wowote, na kila hatua inarekodiwa."
     }
   },
   "status": {

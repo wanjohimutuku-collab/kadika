@@ -23,6 +23,7 @@ export const qk = {
   scans: (id: string) => ['scans', id] as const,
   report: (id: string) => ['report', id] as const,
   job: (jobId: string) => ['job', jobId] as const,
+  ops: (name: string) => ['ops', name] as const,
 } satisfies Record<string, QueryKey | ((...a: never[]) => QueryKey)>;
 
 /** Everything that depends on guests/payments for an event. */
@@ -57,3 +58,6 @@ export function useEvent(id: string) {
 export function useEvents() {
   return useQuery({ queryKey: qk.events, queryFn: () => getRepository().listEvents() });
 }
+
+/** Every staff-panel query is keyed under `ops`, so one invalidation refreshes the panel. */
+export const OPS_ALL = ['ops'] as const;

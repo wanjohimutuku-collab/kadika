@@ -17,7 +17,7 @@ import { USE_MOCKS } from '@/lib/env';
 const PHONE_KEY = 'harusi.login.phone';
 
 function safeNext(next: string | null): string {
-  return next && next.startsWith('/app') ? next : '/app';
+  return next && (next.startsWith('/app') || next.startsWith('/ops')) ? next : '/app';
 }
 
 export function LoginPhone() {
@@ -33,7 +33,11 @@ export function LoginPhone() {
     <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
       <h1 className="text-3xl font-semibold">{t('title')}</h1>
       <p className="text-muted">{t('subtitle')}</p>
-      {USE_MOCKS ? <Banner tone="info">{t('mockPhoneHint')}</Banner> : null}
+      {USE_MOCKS ? (
+        <Banner tone="info">
+          {t('mockPhoneHint')} {t('staffHint')}
+        </Banner>
+      ) : null}
       <form
         noValidate
         className="flex flex-col gap-4"
@@ -70,7 +74,11 @@ export function LoginPhone() {
             }
           }
           sessionStorage.setItem(PHONE_KEY, r.e164);
-          router.push(`/login/otp?next=${encodeURIComponent(safeNext(params.get('next')))}`);
+          // Keep `next` only when the visitor came from a protected page; staff without one land on /ops.
+          const next = params.get('next');
+          router.push(
+            next ? `/login/otp?next=${encodeURIComponent(safeNext(next))}` : '/login/otp',
+          );
         }}
       >
         <PhoneField
@@ -134,7 +142,11 @@ export function LoginOtp() {
         setBusy(false);
         return;
       }
-      router.replace(safeNext(params.get('next')));
+      router.replace(
+        session.user.roleGlobal === 'admin' && !params.get('next')
+          ? '/ops'
+          : safeNext(params.get('next')),
+      );
     } catch (err) {
       setCode('');
       if (isRepositoryError(err) && err.code === 'locked') {
@@ -146,6 +158,8 @@ export function LoginOtp() {
         );
       } else if (isRepositoryError(err) && err.code === 'validation') {
         setError(t('wrongCode', { attempts: Number(err.details?.attemptsLeft ?? 0) }));
+      } else if (isRepositoryError(err) && err.code === 'forbidden') {
+        setError(t('suspended'));
       } else {
         setError(
           isRepositoryError(err) && err.code === 'offline' ? ts('offlineBanner') : ts('errorBody'),

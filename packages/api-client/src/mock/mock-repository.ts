@@ -37,6 +37,16 @@ import type {
   SendRequest,
   Session,
   WeddingEvent,
+  User,
+  DataRequest,
+  OpsAuditEntry,
+  OpsEvent,
+  OpsGuestHit,
+  OpsLookupResult,
+  OpsOrganizer,
+  OpsOverview,
+  OpsPayment,
+  OpsUsage,
 } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
@@ -109,7 +119,7 @@ export class MockRepository implements Repository {
       const raw = this.storage?.getItem(STATE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as MockState;
-      return parsed.version === 1 ? parsed : null;
+      return parsed.version === 2 ? parsed : null;
     } catch {
       return null;
     }
@@ -324,6 +334,7 @@ export class MockRepository implements Repository {
   private requireSession() {
     const u = this.sessionUser();
     if (!u) throw new RepositoryError('unauthorized', 'Sign in required');
+    if (u.status === 'suspended') throw new RepositoryError('forbidden', 'suspended');
     if (this.controls.get().role === 'gate')
       throw new RepositoryError('forbidden', 'Gate agents have no console access');
     return u;
@@ -385,9 +396,31 @@ export class MockRepository implements Repository {
       }
       rec.attempts = 0;
       let user = this.state.users.find((u) => u.phoneE164 === phoneE164);
+      if (user?.status === 'suspended') throw new RepositoryError('forbidden', 'suspended');
+      const nowIso = iso(now);
       if (!user) {
-        user = { id: `user-${this.rng.hex(8)}`, name: '', phoneE164 };
+        user = {
+          id: `user-${this.rng.hex(8)}`,
+          name: '',
+          phoneE164,
+          roleGlobal: 'user',
+          status: 'active',
+          suspendedReason: null,
+          createdAt: nowIso,
+          lastLoginAt: null,
+        };
         this.state.users.push(user);
+      }
+      user.lastLoginAt = nowIso;
+      // Accept pending team invitations for this phone (Timu → "Amealikwa" becomes active).
+      for (const list of Object.values(this.state.members)) {
+        for (const m of list) {
+          if (m.phoneE164 !== phoneE164 || m.status === 'revoked') continue;
+          if (m.status === 'invited') m.status = 'active';
+          m.userId = user.id;
+          m.lastActiveAt = nowIso;
+          if (!user.name && m.name) user.name = m.name;
+        }
       }
       this.state.sessionUserId = user.id;
       this.persist();
@@ -419,11 +452,30 @@ export class MockRepository implements Repository {
   }
 
   requestDataExport(): Promise<{ requestedAt: string }> {
-    return this.run('online-only', 'export', () => ({ requestedAt: iso(this.now()) }));
+    return this.run('online-only', 'export', () => this.createDataRequest('export'));
   }
 
   requestAccountDeletion(): Promise<{ requestedAt: string }> {
-    return this.run('online-only', 'delete-account', () => ({ requestedAt: iso(this.now()) }));
+    return this.run('online-only', 'delete-account', () => this.createDataRequest('deletion'));
+  }
+
+  private createDataRequest(kind: DataRequest['kind']): { requestedAt: string } {
+    const u = this.requireSession();
+    const requestedAt = iso(this.now());
+    this.state.dataRequests.unshift({
+      id: `dr-${this.rng.hex(8)}`,
+      userId: u.id,
+      userName: u.name || u.phoneE164,
+      phoneE164: u.phoneE164,
+      kind,
+      status: 'open',
+      requestedAt,
+      resolvedAt: null,
+      resolvedBy: null,
+      note: '',
+    });
+    this.persist();
+    return { requestedAt };
   }
 
   // ---------------------------------------------------------------- events
@@ -1765,6 +1817,370 @@ export class MockRepository implements Repository {
     });
   }
 
+  // ---------------------------------------------------------------- staff (ops) panel
+
+  private requireStaff() {
+    const u = this.sessionUser();
+    if (!u) throw new RepositoryError('unauthorized', 'Sign in required');
+    if (u.roleGlobal !== 'admin') throw new RepositoryError('forbidden', 'staff_only');
+    return u;
+  }
+
+  private opsLog(action: OpsAuditEntry['action'], target: string, details: string): void {
+    const u = this.requireStaff();
+    this.state.opsAudit.unshift({
+      id: this.rng.uuid(),
+      at: iso(this.now()),
+      actorName: u.name,
+      action,
+      target,
+      details,
+    });
+  }
+
+  private organizerRow(u: User): OpsOrganizer {
+    const owned = this.state.events.filter(
+      (e) =>
+        !e.deletedAt &&
+        (this.state.members[e.id] ?? []).some((m) => m.userId === u.id && m.role === 'owner'),
+    );
+    const ids = new Set(owned.map((e) => e.id));
+    return {
+      id: u.id,
+      name: u.name || '—',
+      phoneE164: u.phoneE164,
+      status: u.status ?? 'active',
+      suspendedReason: u.suspendedReason ?? null,
+      createdAt: u.createdAt ?? null,
+      lastLoginAt: u.lastLoginAt ?? null,
+      eventCount: owned.length,
+      guestCount: this.state.guests.filter((g) => ids.has(g.eventId) && !g.deletedAt).length,
+      messagesSent: this.state.messages.filter((m) => ids.has(m.eventId) && m.status !== 'failed')
+        .length,
+    };
+  }
+
+  private ownerOf(eventId: string): User | undefined {
+    const m = (this.state.members[eventId] ?? []).find((x) => x.role === 'owner');
+    return this.state.users.find((u) => u.id === m?.userId);
+  }
+
+  private customers(): User[] {
+    return this.state.users.filter((u) => u.roleGlobal !== 'admin');
+  }
+
+  private eventRow(e: EventRecord): OpsEvent {
+    const guests = this.guestsOf(e.id);
+    const msgs = this.state.messages.filter((m) => m.eventId === e.id && m.kind !== 'test');
+    const stats = this.stats(e.id);
+    return {
+      id: e.id,
+      coupleNames: e.coupleNames,
+      dateStart: e.dateStart,
+      status: e.status,
+      plan: e.plan,
+      ownerId: this.ownerOf(e.id)?.id ?? '',
+      ownerName: this.ownerOf(e.id)?.name ?? '—',
+      guests: guests.length,
+      sent: msgs.filter((m) => m.status !== 'failed').length,
+      failedMessages: msgs.filter((m) => m.status === 'failed').length,
+      confirmed: stats.confirmed,
+      collectedTzs: stats.collectedTzs,
+      smsCostTzs: msgs.reduce((n, m) => n + m.costTzs, 0),
+    };
+  }
+
+  opsOverview(): Promise<OpsOverview> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      const since = this.now() - 30 * DAY;
+      const evs = this.state.events.filter((e) => !e.deletedAt);
+      const eventCounts = { total: evs.length, draft: 0, active: 0, completed: 0, archived: 0 };
+      for (const e of evs) eventCounts[e.status] += 1;
+      const msgs = this.state.messages.filter(
+        (m) => Date.parse(m.createdAt) >= since && m.kind !== 'test',
+      );
+      const pays = this.state.payments.filter(
+        (p) => p.status === 'success' && Date.parse(p.paidAt) >= since,
+      );
+      const byDay = new Map<string, { sent: number; failed: number }>();
+      for (const m of msgs) {
+        const day = m.createdAt.slice(0, 10);
+        const row = byDay.get(day) ?? { sent: 0, failed: 0 };
+        if (m.status === 'failed') row.failed++;
+        else row.sent++;
+        byDay.set(day, row);
+      }
+      const customers = this.customers();
+      return {
+        organizers: customers.length,
+        suspendedOrganizers: customers.filter((u) => u.status === 'suspended').length,
+        newOrganizers30d: customers.filter((u) => u.createdAt && Date.parse(u.createdAt) >= since)
+          .length,
+        events: eventCounts,
+        guests: this.state.guests.filter((g) => !g.deletedAt).length,
+        messages30d: {
+          whatsapp: msgs.filter((m) => m.channel === 'whatsapp').length,
+          sms: msgs.filter((m) => m.channel === 'sms').length,
+          failed: msgs.filter((m) => m.status === 'failed').length,
+          total: msgs.length,
+        },
+        smsCostTzs30d: msgs.reduce((n, m) => n + m.costTzs, 0),
+        failureRate30d: msgs.length
+          ? msgs.filter((m) => m.status === 'failed').length / msgs.length
+          : 0,
+        contributions30d: {
+          count: pays.length,
+          amountTzs: pays.reduce((n, p) => n + p.amountTzs, 0),
+        },
+        paidPlans: evs.filter((e) => e.plan === 'paid').length,
+        messagesByDay: [...byDay.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([day, v]) => ({ day, ...v })),
+        openDataRequests: this.state.dataRequests.filter((r) => r.status === 'open').length,
+      };
+    });
+  }
+
+  opsListOrganizers(): Promise<OpsOrganizer[]> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      return this.customers()
+        .map((u) => this.organizerRow(u))
+        .sort((a, b) => (b.lastLoginAt ?? '').localeCompare(a.lastLoginAt ?? ''));
+    });
+  }
+
+  opsListEvents(): Promise<OpsEvent[]> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      return this.state.events
+        .filter((e) => !e.deletedAt)
+        .map((e) => this.eventRow(e))
+        .sort((a, b) => b.dateStart.localeCompare(a.dateStart));
+    });
+  }
+
+  opsUsage(): Promise<OpsUsage> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      const since = this.now() - 30 * DAY;
+      const msgs = this.state.messages.filter(
+        (m) => Date.parse(m.createdAt) >= since && m.kind !== 'test' && m.channel !== 'print',
+      );
+      const channel = (c: 'whatsapp' | 'sms') => {
+        const list = msgs.filter((m) => m.channel === c);
+        return {
+          channel: c,
+          sent: list.length,
+          delivered: list.filter((m) => m.status === 'delivered' || m.status === 'read').length,
+          failed: list.filter((m) => m.status === 'failed').length,
+          costTzs: list.reduce((n, m) => n + m.costTzs, 0),
+        };
+      };
+      const days = new Map<string, { whatsapp: number; sms: number; failed: number }>();
+      const perEvent = new Map<
+        string,
+        { whatsapp: number; sms: number; failed: number; costTzs: number }
+      >();
+      const reasons = new Map<string, number>();
+      for (const m of msgs) {
+        const d = days.get(m.createdAt.slice(0, 10)) ?? { whatsapp: 0, sms: 0, failed: 0 };
+        if (m.status === 'failed') d.failed++;
+        else d[m.channel as 'whatsapp' | 'sms']++;
+        days.set(m.createdAt.slice(0, 10), d);
+        const e = perEvent.get(m.eventId) ?? { whatsapp: 0, sms: 0, failed: 0, costTzs: 0 };
+        if (m.status === 'failed') e.failed++;
+        else e[m.channel as 'whatsapp' | 'sms']++;
+        e.costTzs += m.costTzs;
+        perEvent.set(m.eventId, e);
+        if (m.error) reasons.set(m.error, (reasons.get(m.error) ?? 0) + 1);
+      }
+      return {
+        byChannel: [channel('whatsapp'), channel('sms')],
+        byDay: [...days.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([day, v]) => ({ day, ...v })),
+        topEvents: [...perEvent.entries()]
+          .map(([eventId, v]) => ({
+            eventId,
+            coupleNames: this.state.events.find((e) => e.id === eventId)?.coupleNames ?? '—',
+            ...v,
+          }))
+          .sort((a, b) => b.whatsapp + b.sms + b.failed - (a.whatsapp + a.sms + a.failed))
+          .slice(0, 8),
+        failureReasons: [...reasons.entries()]
+          .map(([reason, count]) => ({ reason, count }))
+          .sort((a, b) => b.count - a.count),
+      };
+    });
+  }
+
+  opsListPayments(): Promise<OpsPayment[]> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      return this.state.payments
+        .slice()
+        .sort((a, b) => b.paidAt.localeCompare(a.paidAt))
+        .slice(0, 200)
+        .map((p) => ({
+          ...p,
+          phoneE164: p.phoneE164 ? maskPhoneLocal(p.phoneE164) : null,
+          coupleNames: this.state.events.find((e) => e.id === p.eventId)?.coupleNames ?? '—',
+        }));
+    });
+  }
+
+  /** Support lookup by phone digits, name, card code or payment reference. Phones stay masked. */
+  opsLookup(query: string): Promise<OpsLookupResult> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      const q = query.trim().toLowerCase();
+      if (q.length < 3) return { organizers: [], guests: [], payments: [] };
+      const digits = q.replace(/\D/g, '').replace(/^0/, '');
+      const code = q.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const phoneHit = (p: string | null) =>
+        !!p && digits.length >= 3 && p.replace(/\D/g, '').includes(digits);
+      const organizers = this.customers()
+        .filter((u) => u.name.toLowerCase().includes(q) || phoneHit(u.phoneE164))
+        .map((u) => this.organizerRow(u));
+      const guests: OpsGuestHit[] = this.state.guests
+        .filter(
+          (g) =>
+            !g.deletedAt &&
+            (g.displayName.toLowerCase().includes(q) ||
+              phoneHit(g.phoneE164) ||
+              (code.length >= 4 && g.shortCode.replace('-', '') === code)),
+        )
+        .slice(0, 25)
+        .map((g) => ({
+          guestId: g.id,
+          eventId: g.eventId,
+          coupleNames: this.state.events.find((e) => e.id === g.eventId)?.coupleNames ?? '—',
+          displayName: g.displayName,
+          phoneMasked: g.phoneE164 ? maskPhoneLocal(g.phoneE164) : null,
+          shortCode: g.shortCode,
+          status: g.status,
+        }));
+      const payments: OpsPayment[] = this.state.payments
+        .filter((p) => p.reference.toLowerCase() === q || p.guestName.toLowerCase().includes(q))
+        .slice(0, 25)
+        .map((p) => ({
+          ...p,
+          phoneE164: p.phoneE164 ? maskPhoneLocal(p.phoneE164) : null,
+          coupleNames: this.state.events.find((e) => e.id === p.eventId)?.coupleNames ?? '—',
+        }));
+      this.opsLog('lookup', 'support', `Utafutaji: "${q.slice(0, 40)}"`);
+      this.persist();
+      return { organizers, guests, payments };
+    });
+  }
+
+  /** Reveals a full phone number. A reason is mandatory and the view is written to the audit log. */
+  opsRevealPhone(
+    target: { kind: 'guest' | 'organizer'; id: string },
+    reason: string,
+  ): Promise<{ phoneE164: string }> {
+    return this.run('write', 'ops-reveal', () => {
+      this.requireStaff();
+      if (reason.trim().length < 5) throw new RepositoryError('validation', 'reason_required');
+      const rec =
+        target.kind === 'guest'
+          ? this.state.guests.find((g) => g.id === target.id)
+          : this.state.users.find((u) => u.id === target.id);
+      const phone = rec && 'phoneE164' in rec ? rec.phoneE164 : null;
+      if (!rec || !phone) throw new RepositoryError('not_found');
+      const label = 'displayName' in rec ? rec.displayName : rec.name;
+      this.opsLog('reveal_phone', label, reason.trim());
+      return { phoneE164: phone };
+    });
+  }
+
+  opsSetUserStatus(
+    userId: string,
+    status: 'active' | 'suspended',
+    reason: string,
+  ): Promise<OpsOrganizer> {
+    return this.run('write', 'ops-status', () => {
+      this.requireStaff();
+      const u = this.state.users.find((x) => x.id === userId && x.roleGlobal !== 'admin');
+      if (!u) throw new RepositoryError('not_found');
+      if (status === 'suspended' && reason.trim().length < 5)
+        throw new RepositoryError('validation', 'reason_required');
+      u.status = status;
+      u.suspendedReason = status === 'suspended' ? reason.trim() : null;
+      if (status === 'suspended' && this.state.sessionUserId === u.id)
+        this.state.sessionUserId = null;
+      this.opsLog(
+        status === 'suspended' ? 'suspend' : 'reactivate',
+        u.name || u.phoneE164,
+        reason.trim() || '—',
+      );
+      return this.organizerRow(u);
+    });
+  }
+
+  opsSetEventPlan(eventId: string, plan: 'free' | 'paid'): Promise<OpsEvent> {
+    return this.run('write', 'ops-plan', () => {
+      this.requireStaff();
+      const e = this.event(eventId);
+      e.plan = plan;
+      e.updatedAt = iso(this.now());
+      this.opsLog('set_plan', e.coupleNames, `Mpango: ${plan}`);
+      return this.eventRow(e);
+    });
+  }
+
+  opsListAudit(): Promise<OpsAuditEntry[]> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      return [...this.state.opsAudit];
+    });
+  }
+
+  opsListDataRequests(): Promise<DataRequest[]> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      return this.state.dataRequests
+        .map((r) => ({ ...r, phoneE164: maskPhoneLocal(r.phoneE164) }))
+        .sort(
+          (a, b) =>
+            Number(a.status !== 'open') - Number(b.status !== 'open') ||
+            b.requestedAt.localeCompare(a.requestedAt),
+        );
+    });
+  }
+
+  opsResolveDataRequest(
+    id: string,
+    status: 'done' | 'rejected',
+    note: string,
+  ): Promise<DataRequest> {
+    return this.run('write', 'ops-request', () => {
+      const staff = this.requireStaff();
+      const r = this.state.dataRequests.find((x) => x.id === id);
+      if (!r) throw new RepositoryError('not_found');
+      if (r.status !== 'open') throw new RepositoryError('conflict', 'already_resolved');
+      r.status = status;
+      r.note = note.trim();
+      r.resolvedAt = iso(this.now());
+      r.resolvedBy = staff.name;
+      if (status === 'done' && r.kind === 'deletion') {
+        // Deleting an account removes the person and soft-deletes the weddings they own.
+        for (const e of this.state.events) {
+          if (this.ownerOf(e.id)?.id === r.userId) e.deletedAt = iso(this.now());
+        }
+        this.state.users = this.state.users.filter((u) => u.id !== r.userId);
+      }
+      this.opsLog(
+        'resolve_request',
+        r.userName,
+        `${r.kind}: ${status}${note.trim() ? ` — ${note.trim()}` : ''}`,
+      );
+      return { ...r, phoneE164: maskPhoneLocal(r.phoneE164) };
+    });
+  }
+
   /** Synchronous short-code lookup for server redirects in mock mode. */
   peekShortCode(code: string): string | null {
     return (
@@ -1772,6 +2188,11 @@ export class MockRepository implements Repository {
       null
     );
   }
+}
+
+/** `+255•••••678` — same masking as `maskPhone` in @harusi/schemas (kept local to avoid a second import path). */
+function maskPhoneLocal(e164: string): string {
+  return e164.length <= 4 ? '***' : `${e164.slice(0, 4)}•••••${e164.slice(-3)}`;
 }
 
 function arrivalsByHour(scans: ScanEntry[]): { hour: string; count: number }[] {

@@ -2,6 +2,12 @@ import { createHttpRepository, type Repository } from '@harusi/api-client';
 import { MockControls, MockRepository } from '@harusi/api-client/mock';
 import { USE_MOCKS } from './env';
 
+declare global {
+  interface Window {
+    __harusiMock?: MockRepository;
+  }
+}
+
 let mock: MockRepository | null = null;
 let http: Repository | null = null;
 
@@ -24,6 +30,8 @@ export function getMock(): MockRepository | null {
       latency: true,
       baseUrl: window.location.origin,
     });
+    // Test hook: e2e flips dev-panel controls (failure rate, network) at runtime without reloading.
+    window.__harusiMock = mock;
   }
   return mock;
 }

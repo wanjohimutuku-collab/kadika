@@ -18,6 +18,12 @@ export interface User {
   id: string;
   name: string;
   phoneE164: string;
+  /** `admin` = Harusi Pass staff (ops panel). Customers are `user`. */
+  roleGlobal?: 'user' | 'admin';
+  status?: 'active' | 'suspended';
+  suspendedReason?: string | null;
+  createdAt?: ISODate;
+  lastLoginAt?: ISODate | null;
 }
 
 export interface Session {
@@ -388,4 +394,113 @@ export interface GateOverview {
     tokenVersion: number;
     revokedAt: ISODate;
   }[];
+}
+
+// ---------------------------------------------------------------- staff (ops) panel
+
+export interface OpsOverview {
+  organizers: number;
+  suspendedOrganizers: number;
+  newOrganizers30d: number;
+  events: Record<EventStatus, number> & { total: number };
+  guests: number;
+  messages30d: { whatsapp: number; sms: number; failed: number; total: number };
+  smsCostTzs30d: number;
+  failureRate30d: number;
+  contributions30d: { count: number; amountTzs: number };
+  paidPlans: number;
+  messagesByDay: { day: ISODate; sent: number; failed: number }[];
+  openDataRequests: number;
+}
+
+export interface OpsOrganizer {
+  id: string;
+  name: string;
+  phoneE164: string;
+  status: 'active' | 'suspended';
+  suspendedReason: string | null;
+  createdAt: ISODate | null;
+  lastLoginAt: ISODate | null;
+  eventCount: number;
+  guestCount: number;
+  messagesSent: number;
+}
+
+export interface OpsEvent {
+  id: string;
+  coupleNames: string;
+  dateStart: ISODate;
+  status: EventStatus;
+  plan: 'free' | 'paid';
+  ownerId: string;
+  ownerName: string;
+  guests: number;
+  sent: number;
+  failedMessages: number;
+  confirmed: number;
+  collectedTzs: number;
+  smsCostTzs: number;
+}
+
+export interface OpsUsage {
+  byChannel: {
+    channel: 'whatsapp' | 'sms';
+    sent: number;
+    delivered: number;
+    failed: number;
+    costTzs: number;
+  }[];
+  byDay: { day: ISODate; whatsapp: number; sms: number; failed: number }[];
+  topEvents: {
+    eventId: string;
+    coupleNames: string;
+    whatsapp: number;
+    sms: number;
+    failed: number;
+    costTzs: number;
+  }[];
+  failureReasons: { reason: string; count: number }[];
+}
+
+export interface OpsPayment extends Payment {
+  eventId: string;
+  coupleNames: string;
+}
+
+export interface OpsGuestHit {
+  guestId: string;
+  eventId: string;
+  coupleNames: string;
+  displayName: string;
+  phoneMasked: string | null;
+  shortCode: string;
+  status: Guest['status'];
+}
+
+export interface OpsLookupResult {
+  organizers: OpsOrganizer[];
+  guests: OpsGuestHit[];
+  payments: OpsPayment[];
+}
+
+export interface DataRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  phoneE164: string;
+  kind: 'export' | 'deletion';
+  status: 'open' | 'done' | 'rejected';
+  requestedAt: ISODate;
+  resolvedAt: ISODate | null;
+  resolvedBy: string | null;
+  note: string;
+}
+
+export interface OpsAuditEntry {
+  id: string;
+  at: ISODate;
+  actorName: string;
+  action: 'reveal_phone' | 'suspend' | 'reactivate' | 'set_plan' | 'resolve_request' | 'lookup';
+  target: string;
+  details: string;
 }

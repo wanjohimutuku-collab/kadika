@@ -293,7 +293,8 @@
     "roleCommittee": "Kamati",
     "ownerOnly": "Sehemu hii ni kwa mwenye harusi tu.",
     "gateNoConsole": "Walinda lango hutumia programu ya simu ya Harusi Pass. Dashibodi hii ni kwa wenye harusi na kamati.",
-    "gateNoConsoleTitle": "Huna ruhusa ya dashibodi"
+    "gateNoConsoleTitle": "Huna ruhusa ya dashibodi",
+    "opsLink": "Dashibodi ya wafanyakazi"
   },
   "auth": {
     "title": "Ingia kwenye Harusi Pass",
@@ -319,7 +320,9 @@
     "nameLabel": "Jina lako kamili",
     "continue": "Endelea",
     "trust": "Hatutakuomba nenosiri. Namba ya uthibitisho ni kwa ajili yako tu — usiitaje kwa mtu yeyote.",
-    "mockPhoneHint": "Toleo la majaribio: ingia kwa 0712 000 001 kuona harusi za mfano."
+    "mockPhoneHint": "Toleo la majaribio: ingia kwa 0712 000 001 kuona harusi za mfano.",
+    "suspended": "Akaunti hii imesimamishwa. Wasiliana na Harusi Pass kwa msaada.",
+    "staffHint": "Wafanyakazi wa Harusi Pass: ingia kwa 0700 000 999 kuona dashibodi ya /ops."
   },
   "landing": {
     "metaTitle": "Harusi Pass — Kadi za harusi zinazofanya kazi kwa kila mgeni",
@@ -1115,5 +1118,194 @@
     "partial": "Baadhi zimeshindwa",
     "permission": "Ruhusa imekataliwa",
     "destructive": "Kufuta"
+  },
+  "ops": {
+    "title": "Dashibodi ya Harusi Pass",
+    "staffOnly": "Sehemu hii ni kwa wafanyakazi wa Harusi Pass tu.",
+    "staffOnlyTitle": "Huna ruhusa",
+    "backToConsole": "Rudi kwenye harusi zangu",
+    "nav": {
+      "overview": "Muhtasari",
+      "organizers": "Wateja",
+      "events": "Harusi",
+      "usage": "Matumizi na gharama",
+      "payments": "Malipo",
+      "support": "Msaada",
+      "requests": "Maombi ya data",
+      "audit": "Kumbukumbu za wafanyakazi"
+    },
+    "overview": {
+      "organizers": "Wateja",
+      "newOrganizers": "Wapya (siku 30)",
+      "suspended": "Waliosimamishwa",
+      "events": "Harusi",
+      "eventsBreakdown": "{active} zinaendelea · {completed} zimekamilika · {draft} rasimu",
+      "guests": "Wageni wote",
+      "messages": "Jumbe (siku 30)",
+      "messagesBreakdown": "WhatsApp {whatsapp} · SMS {sms}",
+      "failureRate": "Kiwango cha kushindwa",
+      "smsCost": "Gharama ya SMS (siku 30)",
+      "contributions": "Michango (siku 30)",
+      "contributionsCount": "{count, plural, one {malipo #} other {malipo #}}",
+      "paidPlans": "Harusi zilizolipiwa",
+      "openRequests": "Maombi ya data yanayosubiri",
+      "messagesChart": "Jumbe zilizotumwa kwa siku",
+      "attention": "Yanayohitaji hatua",
+      "attentionRequests": "{count, plural, one {Ombi # la data linasubiri} other {Maombi # ya data yanasubiri}}",
+      "attentionFailures": "Kiwango cha kushindwa kwa jumbe ni {pct}%",
+      "attentionSuspended": "{count, plural, one {Mteja # amesimamishwa} other {Wateja # wamesimamishwa}}",
+      "allClear": "Hakuna jambo linalohitaji hatua sasa."
+    },
+    "organizers": {
+      "title": "Wateja",
+      "search": "Tafuta jina au simu",
+      "col": {
+        "name": "Jina",
+        "phone": "Simu",
+        "status": "Hali",
+        "events": "Harusi",
+        "guests": "Wageni",
+        "messages": "Jumbe",
+        "lastLogin": "Mara ya mwisho",
+        "joined": "Alijiunga"
+      },
+      "status": {
+        "active": "Hai",
+        "suspended": "Amesimamishwa"
+      },
+      "suspend": "Simamisha",
+      "reactivate": "Rudisha",
+      "suspendTitle": "Simamisha {name}?",
+      "suspendBody": "Hataweza kuingia kwenye dashibodi, lakini kadi za wageni wake zitaendelea kufunguka. Andika sababu — inahifadhiwa kwenye kumbukumbu.",
+      "reactivateTitle": "Rudisha {name}?",
+      "reason": "Sababu",
+      "reasonHint": "Angalau herufi 5",
+      "suspended_": "{name} amesimamishwa",
+      "reactivated": "{name} amerudishwa",
+      "never": "Bado",
+      "reveal": "Onyesha simu kamili"
+    },
+    "events": {
+      "title": "Harusi zote",
+      "col": {
+        "event": "Harusi",
+        "owner": "Mmiliki",
+        "date": "Tarehe",
+        "status": "Hali",
+        "plan": "Mpango",
+        "guests": "Wageni",
+        "sent": "Zimetumwa",
+        "failed": "Zimeshindwa",
+        "collected": "Michango",
+        "smsCost": "Gharama ya SMS"
+      },
+      "plan": {
+        "free": "Bure",
+        "paid": "Imelipiwa"
+      },
+      "markPaid": "Weka imelipiwa",
+      "markFree": "Rudisha kuwa bure",
+      "planChanged": "Mpango wa {name} umebadilishwa",
+      "billingNote": "Bei (kwa harusi au kwa kadi) bado haijaamuliwa — chaguo la msingi ni kuweka alama ya \"imelipiwa\" kwa mkono."
+    },
+    "usage": {
+      "title": "Matumizi na gharama (siku 30)",
+      "channels": "Njia",
+      "col": {
+        "channel": "Njia",
+        "sent": "Zimetumwa",
+        "delivered": "Zimefika",
+        "failed": "Zimeshindwa",
+        "cost": "Gharama"
+      },
+      "daily": "Jumbe kwa siku",
+      "topEvents": "Harusi zinazotumia zaidi",
+      "reasons": "Sababu za kushindwa",
+      "reason": {
+        "not_on_whatsapp": "Namba haina WhatsApp",
+        "invalid_number": "Namba si sahihi",
+        "provider_timeout": "Mtoa huduma hakujibu",
+        "rate_limited": "Ujumbe mwingi kwa wakati mmoja"
+      },
+      "assumption": "Gharama ya SMS ni makadirio: TZS 25 kwa kila ujumbe hadi mtoa huduma achaguliwe."
+    },
+    "payments": {
+      "title": "Malipo ya michango",
+      "col": {
+        "date": "Tarehe",
+        "event": "Harusi",
+        "guest": "Mgeni",
+        "amount": "Kiasi",
+        "method": "Njia",
+        "reference": "Namba ya muamala",
+        "status": "Hali"
+      },
+      "empty": "Hakuna malipo.",
+      "note": "Hii ni orodha ya kusoma tu. Marejesho na migogoro itashughulikiwa kupitia mtoa huduma wa malipo (Awamu ya 6)."
+    },
+    "support": {
+      "title": "Msaada kwa wateja",
+      "intro": "Tafuta kwa jina, simu (tarakimu 3 au zaidi), namba ya kadi (KH-4826) au namba ya muamala. Simu zinaonyeshwa kwa sehemu tu.",
+      "search": "Tafuta",
+      "searchLabel": "Jina, simu, namba ya kadi au muamala",
+      "tooShort": "Andika angalau herufi 3.",
+      "organizers": "Wateja",
+      "guests": "Wageni",
+      "payments": "Malipo",
+      "none": "Hakuna kilichopatikana.",
+      "revealTitle": "Onyesha simu kamili ya {name}?",
+      "revealBody": "Hatua hii inahifadhiwa kwenye kumbukumbu pamoja na jina lako na sababu. Tumia tu kama mteja ameomba msaada.",
+      "revealConfirm": "Onyesha",
+      "revealed": "Simu kamili: {phone}",
+      "openCard": "Fungua kadi"
+    },
+    "requests": {
+      "title": "Maombi ya data (PDPA)",
+      "col": {
+        "customer": "Mteja",
+        "kind": "Aina",
+        "requested": "Aliomba",
+        "status": "Hali",
+        "note": "Maelezo"
+      },
+      "kind": {
+        "export": "Nakala ya data",
+        "deletion": "Kufuta akaunti"
+      },
+      "status": {
+        "open": "Linasubiri",
+        "done": "Limekamilika",
+        "rejected": "Limekataliwa"
+      },
+      "resolve": "Shughulikia",
+      "resolveTitle": "Shughulikia ombi la {name}",
+      "deletionWarning": "Ukikamilisha ombi la kufuta, akaunti ya mteja na harusi anazomiliki zitafutwa kabisa.",
+      "note": "Maelezo kwa mteja",
+      "markDone": "Kamilisha",
+      "reject": "Kataa",
+      "resolved": "Ombi limeshughulikiwa",
+      "empty": "Hakuna maombi.",
+      "sla": "Sheria inataka majibu ndani ya siku 30."
+    },
+    "audit": {
+      "title": "Kumbukumbu za wafanyakazi",
+      "intro": "Kila kitendo cha mfanyakazi kinachohusu data za wateja kinaandikwa hapa, ikiwa ni pamoja na kuonyesha simu kamili.",
+      "col": {
+        "time": "Muda",
+        "actor": "Mfanyakazi",
+        "action": "Kitendo",
+        "target": "Lengo",
+        "details": "Maelezo"
+      },
+      "action": {
+        "reveal_phone": "Alionyesha simu",
+        "suspend": "Alisimamisha",
+        "reactivate": "Alirudisha",
+        "set_plan": "Alibadilisha mpango",
+        "resolve_request": "Alishughulikia ombi",
+        "lookup": "Alitafuta"
+      },
+      "empty": "Hakuna kumbukumbu."
+    }
   }
 }

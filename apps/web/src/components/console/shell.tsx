@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  ShieldCheck,
   Plus,
   RefreshCw,
   ScanLine,
@@ -310,6 +311,17 @@ function UserMenu() {
               {t('account')}
             </Link>
           </DropdownMenu.Item>
+          {session.data?.user.roleGlobal === 'admin' ? (
+            <DropdownMenu.Item asChild>
+              <Link
+                href="/ops"
+                className="flex min-h-12 items-center gap-2 rounded-input px-3 outline-none data-[highlighted]:bg-primary/8"
+              >
+                <ShieldCheck className="size-5" aria-hidden="true" />
+                {t('opsLink')}
+              </Link>
+            </DropdownMenu.Item>
+          ) : null}
           <DropdownMenu.Item
             onSelect={async () => {
               await getRepository().signOut();

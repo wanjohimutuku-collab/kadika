@@ -7,6 +7,8 @@ import {
 } from '@harusi/schemas';
 import type {
   AuditEntry,
+  DataRequest,
+  OpsAuditEntry,
   Member,
   MessageLogEntry,
   Payment,
@@ -90,7 +92,8 @@ export interface JobRecord extends Omit<SendJob, 'counts' | 'failures' | 'status
 }
 
 export interface MockState {
-  version: 1;
+  /** Bumped when the shape changes; older saved states are re-seeded. */
+  version: 2;
   seedDay: string;
   users: User[];
   sessionUserId: string | null;
@@ -107,6 +110,10 @@ export interface MockState {
   retiredTokens: Record<string, string>;
   idempotency: Record<string, string>;
   otp: Record<string, { attempts: number; lockedUntil: number | null; lastRequestedAt: number }>;
+  /** Customers' data export / deletion requests (PDPA), handled by staff in the ops panel. */
+  dataRequests: DataRequest[];
+  /** Staff actions, including every view of a full phone number. */
+  opsAudit: OpsAuditEntry[];
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */
@@ -418,7 +425,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
   const today = startOfDayEAT(now);
   const rng = new Rng(mulberry32(opts.seed ?? 20_261_013));
   const state: MockState = {
-    version: 1,
+    version: 2,
     seedDay: iso(today),
     users: [],
     sessionUserId: null,
@@ -434,19 +441,38 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
     retiredTokens: {},
     idempotency: {},
     otp: {},
+    dataRequests: [],
+    opsAudit: [],
   };
   // Everything is anchored to midnight EAT so the seed is identical for the whole day (server ≡ browser).
   const anchor = today;
   const ctx: BuildCtx = { rng, now: anchor, state, usedCodes: new Set() };
 
-  const owner: User = { id: 'user-owner', name: 'Juma Mrisho', phoneE164: '+255712000001' };
-  const committee: User = {
-    id: 'user-committee',
-    name: 'Baraka Mushi',
-    phoneE164: '+255754000222',
+  const customer = (
+    id: string,
+    name: string,
+    phoneE164: string,
+    createdDaysAgo: number,
+    lastLoginDaysAgo: number | null,
+  ): User => ({
+    id,
+    name,
+    phoneE164,
+    roleGlobal: 'user',
+    status: 'active',
+    suspendedReason: null,
+    createdAt: iso(anchor - createdDaysAgo * DAY),
+    lastLoginAt: lastLoginDaysAgo === null ? null : iso(anchor - lastLoginDaysAgo * DAY),
+  });
+  const owner = customer('user-owner', 'Juma Mrisho', '+255712000001', 120, 0);
+  const committee = customer('user-committee', 'Baraka Mushi', '+255754000222', 110, 1);
+  const gate = customer('user-gate', 'Rehema Said', '+255683000333', 100, 6);
+  // Harusi Pass staff account for the ops panel (/ops). Mock login: 0700 000 999 + 123456.
+  const staff: User = {
+    ...customer('user-staff', 'Zawadi Kimaro (Harusi Pass)', '+255700000999', 200, 0),
+    roleGlobal: 'admin',
   };
-  const gate: User = { id: 'user-gate', name: 'Rehema Said', phoneE164: '+255683000333' };
-  state.users.push(owner, committee, gate);
+  state.users.push(owner, committee, gate, staff);
 
   // Upcoming event (52 days ahead, 16:00 EAT).
   const upcomingDate = today + 52 * DAY + 16 * HOUR;
@@ -623,6 +649,179 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
       },
     ];
   }
+  // Other customers, so the ops panel has a realistic book of business. Generated after everything
+  // above, so existing seed data (and card tokens) stay identical.
+  const others: {
+    user: User;
+    partnerA: string;
+    partnerB: string;
+    days: number;
+    venue: string;
+    guests: number;
+    theme: EventRecord['themeId'];
+    plan: EventRecord['plan'];
+    status?: EventRecord['status'];
+  }[] = [
+    {
+      user: customer('user-c1', 'Neema Lyimo', '+255715330112', 60, 2),
+      partnerA: 'Neema',
+      partnerB: 'Erasto',
+      days: 20,
+      venue: 'Mlimani City Hall, Dar es Salaam',
+      guests: 48,
+      theme: 'rose-sage',
+      plan: 'paid',
+    },
+    {
+      user: customer('user-c2', 'Hassani Omari', '+255762114508', 40, 5),
+      partnerA: 'Mwanaidi',
+      partnerB: 'Hassani',
+      days: 75,
+      venue: 'Golden Tulip, Zanzibar',
+      guests: 36,
+      theme: 'navy-silver',
+      plan: 'free',
+    },
+    {
+      user: customer('user-c3', 'Grace Swai', '+255689220731', 15, 1),
+      partnerA: 'Grace',
+      partnerB: 'Frank',
+      days: 110,
+      venue: 'Kanisa la Azania Front, Dar es Salaam',
+      guests: 0,
+      theme: 'emerald-gold',
+      plan: 'free',
+      status: 'draft',
+    },
+    {
+      user: customer('user-c4', 'Selemani Bakari', '+255774009915', 90, 30),
+      partnerA: 'Zuhura',
+      partnerB: 'Selemani',
+      days: -12,
+      venue: 'Ukumbi wa Shekilango, Dar es Salaam',
+      guests: 42,
+      theme: 'terracotta',
+      plan: 'paid',
+      status: 'completed',
+    },
+  ];
+  for (const [i, o] of others.entries()) {
+    state.users.push(o.user);
+    const date = today + o.days * DAY + 15 * HOUR;
+    const created = date - Math.max(45, o.days + 30) * DAY;
+    const ev = baseEvent({
+      id: `0192f1a0-7c3e-7a11-9b2c-5e8d4a6f01${String(i + 1).padStart(2, '0')}`,
+      partnerA: o.partnerA,
+      partnerB: o.partnerB,
+      dateStart: iso(date),
+      venueName: o.venue,
+      themeId: o.theme,
+      plan: o.plan,
+      status: o.status ?? 'active',
+      contributionTargetTzs: 5_000_000,
+      senderName: `Kamati ya Harusi ya ${o.partnerA} & ${o.partnerB}`,
+      committeePhone: o.user.phoneE164,
+      createdAt: iso(created),
+      updatedAt: iso(anchor - DAY),
+    });
+    state.events.push(ev);
+    const past = o.days < 0;
+    const statuses: readonly (readonly [InvitationStatus, number])[] = past
+      ? [
+          ['checked_in', 70],
+          ['confirmed', 10],
+          ['declined', 10],
+          ['opened', 10],
+        ]
+      : [
+          ['created', 15],
+          ['sent', 15],
+          ['delivered', 20],
+          ['opened', 15],
+          ['confirmed', 30],
+          ['declined', 5],
+        ];
+    for (let n = 0; n < o.guests; n++)
+      addGuest(ctx, ev.id, created, {
+        status: rng.weighted(statuses),
+        checkInWindow: past ? [date - HOUR, date + 3 * HOUR] : undefined,
+      });
+    state.members[ev.id] = [
+      {
+        id: `m-${o.user.id}`,
+        userId: o.user.id,
+        name: o.user.name,
+        phoneE164: o.user.phoneE164,
+        role: 'owner',
+        status: 'active',
+        lastActiveAt: o.user.lastLoginAt ?? null,
+      },
+    ];
+  }
+  // One customer suspended for sending promotional SMS (§ terms: no advertising).
+  const suspended = customer('user-c5', 'Kampuni ya Matangazo XYZ', '+255656000777', 25, 9);
+  state.users.push({
+    ...suspended,
+    status: 'suspended',
+    suspendedReason: 'Alituma matangazo kwa kutumia mialiko (kinyume na masharti).',
+  });
+
+  state.dataRequests.push(
+    {
+      id: 'dr-1',
+      userId: 'user-c2',
+      userName: 'Hassani Omari',
+      phoneE164: '+255762114508',
+      kind: 'export',
+      status: 'open',
+      requestedAt: iso(anchor - 2 * DAY),
+      resolvedAt: null,
+      resolvedBy: null,
+      note: '',
+    },
+    {
+      id: 'dr-2',
+      userId: 'user-c4',
+      userName: 'Selemani Bakari',
+      phoneE164: '+255774009915',
+      kind: 'deletion',
+      status: 'open',
+      requestedAt: iso(anchor - 5 * DAY),
+      resolvedAt: null,
+      resolvedBy: null,
+      note: '',
+    },
+    {
+      id: 'dr-3',
+      userId: 'user-c1',
+      userName: 'Neema Lyimo',
+      phoneE164: '+255715330112',
+      kind: 'export',
+      status: 'done',
+      requestedAt: iso(anchor - 20 * DAY),
+      resolvedAt: iso(anchor - 19 * DAY),
+      resolvedBy: staff.name,
+      note: 'Kiungo cha kupakua kimetumwa kwa SMS.',
+    },
+  );
+  state.opsAudit.push(
+    {
+      id: 'oa-1',
+      at: iso(anchor - 9 * DAY),
+      actorName: staff.name,
+      action: 'suspend',
+      target: 'Kampuni ya Matangazo XYZ',
+      details: 'Alituma matangazo kwa kutumia mialiko (kinyume na masharti).',
+    },
+    {
+      id: 'oa-2',
+      at: iso(anchor - 19 * DAY),
+      actorName: staff.name,
+      action: 'resolve_request',
+      target: 'Neema Lyimo',
+      details: 'Ombi la nakala ya data limekamilika.',
+    },
+  );
   return state;
 }
 

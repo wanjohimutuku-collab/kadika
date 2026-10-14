@@ -78,7 +78,7 @@ export function BarChart({
   return (
     <figure className="flex flex-col gap-2">
       <figcaption className={hideCaption ? 'sr-only' : 'text-sm text-muted'}>{caption}</figcaption>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" role="region" aria-label={caption} tabIndex={0}>
         <svg
           width={width}
           height={height}

@@ -532,6 +532,8 @@ Decided in ADR 005 (answers open decision 6): v1 ships a full responsive organiz
 
 Guest-facing web routes: `/c/[token]` (+ `/pay`), `/s/[code]` (SMS short link), `/k` (enter card number). Public: `/`, `/privacy`, `/terms`, `/login`. Dev only: `/dev/states`. Plan, status and handoff: `docs/ui/PLAN.md`, `docs/ui/HANDOFF.md`; related ADRs 005–011.
 
+**Staff (ops) panel, `/ops`** (ADR 012): Harusi Pass employees only (`users.role_global = 'admin'`). Overview, customers (suspend/reactivate with reason), weddings (mark paid), usage and costs, payments, support lookup (phones masked; revealing one needs a reason and is audited), PDPA data requests, staff audit log. Every staff action touching customer data is audit-logged.
+
 ### 17.9 Component inventory (build once, reuse)
 
 Button (primary/secondary/ghost/danger, loading, disabled), IconButton, TextField (with prefix `+255`, inline error), PhoneField (normalises to E.164), OtpField (6 cells, auto-advance, SMS autofill), Stepper, SegmentedControl, Chip, StatusPill, Avatar (initials), ListRow (swipe actions), Card, KpiTile, ProgressBar, FunnelBar, Timeline, BottomSheet, ConfirmSheet, Toast/Snackbar, Banner (info/warn/offline), EmptyState, Skeleton, Tabs, Header (event switcher, language, sync), QrBlock, ResultOverlay (gate), SearchSheet, FilePicker/ContactPicker, CurrencyText (`TZS 1,200,000`), DateText (Swahili month names, `Africa/Dar_es_Salaam`).

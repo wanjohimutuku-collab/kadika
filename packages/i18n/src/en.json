@@ -289,7 +289,8 @@
     "roleCommittee": "Committee",
     "ownerOnly": "This section is for the owner only.",
     "gateNoConsole": "Gate agents use the Harusi Pass phone app. This dashboard is for owners and committee members.",
-    "gateNoConsoleTitle": "No dashboard access"
+    "gateNoConsoleTitle": "No dashboard access",
+    "opsLink": "Staff dashboard"
   },
   "auth": {
     "title": "Sign in to Harusi Pass",
@@ -315,7 +316,9 @@
     "nameLabel": "Your full name",
     "continue": "Continue",
     "trust": "We never ask for a password. The confirmation code is for you only — never share it.",
-    "mockPhoneHint": "Demo build: sign in with 0712 000 001 to see the sample weddings."
+    "mockPhoneHint": "Demo build: sign in with 0712 000 001 to see the sample weddings.",
+    "suspended": "This account is suspended. Contact Harusi Pass for help.",
+    "staffHint": "Harusi Pass staff: sign in with 0700 000 999 to see the /ops dashboard."
   },
   "landing": {
     "metaTitle": "Harusi Pass — Wedding cards that work for every guest",
@@ -1111,5 +1114,194 @@
     "partial": "Partial failure",
     "permission": "Permission denied",
     "destructive": "Destructive"
+  },
+  "ops": {
+    "title": "Harusi Pass operations",
+    "staffOnly": "This area is for Harusi Pass staff only.",
+    "staffOnlyTitle": "No access",
+    "backToConsole": "Back to my weddings",
+    "nav": {
+      "overview": "Overview",
+      "organizers": "Customers",
+      "events": "Weddings",
+      "usage": "Usage and costs",
+      "payments": "Payments",
+      "support": "Support",
+      "requests": "Data requests",
+      "audit": "Staff audit log"
+    },
+    "overview": {
+      "organizers": "Customers",
+      "newOrganizers": "New (30 days)",
+      "suspended": "Suspended",
+      "events": "Weddings",
+      "eventsBreakdown": "{active} active · {completed} completed · {draft} draft",
+      "guests": "Total guests",
+      "messages": "Messages (30 days)",
+      "messagesBreakdown": "WhatsApp {whatsapp} · SMS {sms}",
+      "failureRate": "Failure rate",
+      "smsCost": "SMS cost (30 days)",
+      "contributions": "Contributions (30 days)",
+      "contributionsCount": "{count, plural, one {# payment} other {# payments}}",
+      "paidPlans": "Paid weddings",
+      "openRequests": "Open data requests",
+      "messagesChart": "Messages sent per day",
+      "attention": "Needs attention",
+      "attentionRequests": "{count, plural, one {# data request is waiting} other {# data requests are waiting}}",
+      "attentionFailures": "Message failure rate is {pct}%",
+      "attentionSuspended": "{count, plural, one {# customer is suspended} other {# customers are suspended}}",
+      "allClear": "Nothing needs attention right now."
+    },
+    "organizers": {
+      "title": "Customers",
+      "search": "Search name or phone",
+      "col": {
+        "name": "Name",
+        "phone": "Phone",
+        "status": "Status",
+        "events": "Weddings",
+        "guests": "Guests",
+        "messages": "Messages",
+        "lastLogin": "Last login",
+        "joined": "Joined"
+      },
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended"
+      },
+      "suspend": "Suspend",
+      "reactivate": "Reactivate",
+      "suspendTitle": "Suspend {name}?",
+      "suspendBody": "They will not be able to sign in to the dashboard, but their guests' cards keep opening. Write a reason — it is saved in the audit log.",
+      "reactivateTitle": "Reactivate {name}?",
+      "reason": "Reason",
+      "reasonHint": "At least 5 characters",
+      "suspended_": "{name} suspended",
+      "reactivated": "{name} reactivated",
+      "never": "Never",
+      "reveal": "Reveal full phone"
+    },
+    "events": {
+      "title": "All weddings",
+      "col": {
+        "event": "Wedding",
+        "owner": "Owner",
+        "date": "Date",
+        "status": "Status",
+        "plan": "Plan",
+        "guests": "Guests",
+        "sent": "Sent",
+        "failed": "Failed",
+        "collected": "Contributions",
+        "smsCost": "SMS cost"
+      },
+      "plan": {
+        "free": "Free",
+        "paid": "Paid"
+      },
+      "markPaid": "Mark as paid",
+      "markFree": "Set back to free",
+      "planChanged": "Plan for {name} changed",
+      "billingNote": "Pricing (per wedding or per card) is still undecided — for now the default is marking weddings as paid by hand."
+    },
+    "usage": {
+      "title": "Usage and costs (30 days)",
+      "channels": "Channels",
+      "col": {
+        "channel": "Channel",
+        "sent": "Sent",
+        "delivered": "Delivered",
+        "failed": "Failed",
+        "cost": "Cost"
+      },
+      "daily": "Messages per day",
+      "topEvents": "Heaviest weddings",
+      "reasons": "Failure reasons",
+      "reason": {
+        "not_on_whatsapp": "Number is not on WhatsApp",
+        "invalid_number": "Invalid number",
+        "provider_timeout": "Provider did not respond",
+        "rate_limited": "Too many messages at once"
+      },
+      "assumption": "SMS cost is an estimate: TZS 25 per message until a provider is chosen."
+    },
+    "payments": {
+      "title": "Contribution payments",
+      "col": {
+        "date": "Date",
+        "event": "Wedding",
+        "guest": "Guest",
+        "amount": "Amount",
+        "method": "Method",
+        "reference": "Transaction reference",
+        "status": "Status"
+      },
+      "empty": "No payments.",
+      "note": "Read-only list. Refunds and disputes are handled through the payment provider (Phase 6)."
+    },
+    "support": {
+      "title": "Customer support",
+      "intro": "Search by name, phone (3 or more digits), card number (KH-4826) or transaction reference. Phones are shown partly masked.",
+      "search": "Search",
+      "searchLabel": "Name, phone, card number or transaction",
+      "tooShort": "Type at least 3 characters.",
+      "organizers": "Customers",
+      "guests": "Guests",
+      "payments": "Payments",
+      "none": "Nothing found.",
+      "revealTitle": "Reveal {name}'s full phone?",
+      "revealBody": "This is saved in the audit log with your name and the reason. Use it only when the customer has asked for help.",
+      "revealConfirm": "Reveal",
+      "revealed": "Full phone: {phone}",
+      "openCard": "Open card"
+    },
+    "requests": {
+      "title": "Data requests (PDPA)",
+      "col": {
+        "customer": "Customer",
+        "kind": "Type",
+        "requested": "Requested",
+        "status": "Status",
+        "note": "Note"
+      },
+      "kind": {
+        "export": "Copy of data",
+        "deletion": "Account deletion"
+      },
+      "status": {
+        "open": "Open",
+        "done": "Done",
+        "rejected": "Rejected"
+      },
+      "resolve": "Resolve",
+      "resolveTitle": "Resolve {name}'s request",
+      "deletionWarning": "Completing a deletion request permanently deletes the customer's account and the weddings they own.",
+      "note": "Note for the customer",
+      "markDone": "Complete",
+      "reject": "Reject",
+      "resolved": "Request resolved",
+      "empty": "No requests.",
+      "sla": "The law expects a response within 30 days."
+    },
+    "audit": {
+      "title": "Staff audit log",
+      "intro": "Every staff action involving customer data is recorded here, including every reveal of a full phone number.",
+      "col": {
+        "time": "Time",
+        "actor": "Staff",
+        "action": "Action",
+        "target": "Target",
+        "details": "Details"
+      },
+      "action": {
+        "reveal_phone": "Revealed phone",
+        "suspend": "Suspended",
+        "reactivate": "Reactivated",
+        "set_plan": "Changed plan",
+        "resolve_request": "Resolved request",
+        "lookup": "Searched"
+      },
+      "empty": "No entries."
+    }
   }
 }

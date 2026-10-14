@@ -27,6 +27,14 @@ import type {
   SendRequest,
   Session,
   WeddingEvent,
+  DataRequest,
+  OpsAuditEntry,
+  OpsEvent,
+  OpsLookupResult,
+  OpsOrganizer,
+  OpsOverview,
+  OpsPayment,
+  OpsUsage,
 } from './types';
 
 /**
@@ -137,4 +145,30 @@ export interface Repository {
   getPaymentStatus(reference: string): Promise<PaymentStatusView>;
   /** Short link `/s/:code` → card token. */
   resolveShortCode(code: string): Promise<{ token: string }>;
+
+  // Staff (ops) panel — Harusi Pass employees only (users.role_global = 'admin'). Every call that
+  // exposes personal data is written to the staff audit log (PDPA, §9).
+  opsOverview(): Promise<OpsOverview>;
+  opsListOrganizers(): Promise<OpsOrganizer[]>;
+  opsListEvents(): Promise<OpsEvent[]>;
+  opsUsage(): Promise<OpsUsage>;
+  opsListPayments(): Promise<OpsPayment[]>;
+  opsLookup(query: string): Promise<OpsLookupResult>;
+  opsRevealPhone(
+    target: { kind: 'guest' | 'organizer'; id: string },
+    reason: string,
+  ): Promise<{ phoneE164: string }>;
+  opsSetUserStatus(
+    userId: string,
+    status: 'active' | 'suspended',
+    reason: string,
+  ): Promise<OpsOrganizer>;
+  opsSetEventPlan(eventId: string, plan: 'free' | 'paid'): Promise<OpsEvent>;
+  opsListAudit(): Promise<OpsAuditEntry[]>;
+  opsListDataRequests(): Promise<DataRequest[]>;
+  opsResolveDataRequest(
+    id: string,
+    status: 'done' | 'rejected',
+    note: string,
+  ): Promise<DataRequest>;
 }

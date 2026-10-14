@@ -38,8 +38,8 @@ beforeEach(async () => {
 
 describe('seed', () => {
   const s = createSeedState({ now: NOW });
-  it('has 2 events (one upcoming, one past), ≥ 320 guests and 3 team members', () => {
-    expect(s.events).toHaveLength(2);
+  it('has the demo upcoming + past events, ≥ 320 guests and 3 team members', () => {
+    expect(s.events).toHaveLength(6); // the two demo weddings + four other customers' (ops panel)
     expect(Date.parse(s.events[0]!.dateStart)).toBeGreaterThan(NOW);
     expect(Date.parse(s.events[1]!.dateStart)).toBeLessThan(NOW);
     expect(s.guests.filter((g) => g.eventId === s.events[0]!.id).length).toBeGreaterThanOrEqual(
@@ -277,5 +277,96 @@ describe('MockRepository', () => {
     expect(await repo.importGuests(ev.id, rows, 'imp1')).toEqual({ created: 1, skipped: 2 });
     expect(await repo.importGuests(ev.id, rows, 'imp1')).toEqual({ created: 1, skipped: 2 });
     expect((await repo.listGuests(ev.id, { search: 'Mpya' })).length).toBe(1);
+  });
+});
+
+describe('staff (ops) panel and accounts', () => {
+  async function loginAs(phone: string) {
+    await repo.requestOtp(phone).catch(() => undefined);
+    return repo.verifyOtp(phone, '123456');
+  }
+
+  it('refuses customers and lets staff in', async () => {
+    await expect(repo.opsOverview()).rejects.toMatchObject({ code: 'forbidden' });
+    await loginAs('+255700000999');
+    const o = await repo.opsOverview();
+    expect(o.organizers).toBeGreaterThanOrEqual(6);
+    expect(o.events.total).toBe(6);
+    expect(o.suspendedOrganizers).toBe(1);
+    expect(o.openDataRequests).toBe(2);
+  });
+
+  it('masks phones in lookups and logs reveals with a reason', async () => {
+    await loginAs('+255700000999');
+    const res = await repo.opsLookup('0715330112');
+    expect(res.organizers[0]?.name).toBe('Neema Lyimo');
+    const g = (await repo.opsLookup('KH')).guests;
+    for (const hit of g) if (hit.phoneMasked) expect(hit.phoneMasked).toMatch(/•••••/);
+    await expect(
+      repo.opsRevealPhone({ kind: 'organizer', id: 'user-c1' }, 'x'),
+    ).rejects.toMatchObject({ code: 'validation' });
+    const r = await repo.opsRevealPhone(
+      { kind: 'organizer', id: 'user-c1' },
+      'Mteja alipiga simu kuomba msaada',
+    );
+    expect(r.phoneE164).toBe('+255715330112');
+    const audit = await repo.opsListAudit();
+    expect(audit[0]).toMatchObject({ action: 'reveal_phone', target: 'Neema Lyimo' });
+  });
+
+  it('suspension blocks login; reactivation restores it', async () => {
+    await loginAs('+255700000999');
+    await expect(repo.opsSetUserStatus('user-c2', 'suspended', 'no')).rejects.toMatchObject({
+      code: 'validation',
+    });
+    await repo.opsSetUserStatus('user-c2', 'suspended', 'Matumizi mabaya ya ujumbe');
+    await repo.signOut();
+    await expect(loginAs('+255762114508')).rejects.toMatchObject({ code: 'forbidden' });
+    await loginAs('+255700000999');
+    await repo.opsSetUserStatus('user-c2', 'active', 'Imerekebishwa');
+    await repo.signOut();
+    await expect(loginAs('+255762114508')).resolves.toMatchObject({
+      user: { phoneE164: '+255762114508' },
+    });
+  });
+
+  it('data requests from customers reach staff; deletion removes the account', async () => {
+    await loginAs('+255715330112');
+    await repo.requestAccountDeletion();
+    await repo.signOut();
+    await loginAs('+255700000999');
+    const open = (await repo.opsListDataRequests()).filter((r) => r.status === 'open');
+    expect(open.some((r) => r.userName === 'Neema Lyimo' && r.kind === 'deletion')).toBe(true);
+    const req = open.find((r) => r.userName === 'Neema Lyimo')!;
+    await repo.opsResolveDataRequest(req.id, 'done', 'Imefutwa');
+    await expect(repo.opsResolveDataRequest(req.id, 'done', '')).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    expect((await repo.opsListOrganizers()).some((o) => o.name === 'Neema Lyimo')).toBe(false);
+  });
+
+  it('plan changes are audited', async () => {
+    await loginAs('+255700000999');
+    const ev = (await repo.opsListEvents()).find((e) => e.plan === 'free')!;
+    const updated = await repo.opsSetEventPlan(ev.id, 'paid');
+    expect(updated.plan).toBe('paid');
+    expect((await repo.opsListAudit())[0]).toMatchObject({ action: 'set_plan' });
+  });
+
+  it('accepts a pending team invitation when the invitee logs in', async () => {
+    const ev = (await repo.listEvents())[0]!;
+    await repo.inviteMember(ev.id, {
+      name: 'Mgeni Mpya',
+      phoneE164: '+255799123456',
+      role: 'committee',
+    });
+    await repo.signOut();
+    await loginAs('+255799123456');
+    expect((await repo.listEvents()).some((e) => e.id === ev.id)).toBe(true);
+    await repo.signOut();
+    await loginAs('+255712000001');
+    expect(
+      (await repo.listMembers(ev.id)).find((m) => m.phoneE164 === '+255799123456')?.status,
+    ).toBe('active');
   });
 });

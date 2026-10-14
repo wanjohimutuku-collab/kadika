@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PAST, UPCOMING, seedState, setControls, shot, trackConsoleErrors } from './helpers';
+import { PAST, UPCOMING, seedState, shot, trackConsoleErrors } from './helpers';
 
 function seedGuest(status: string) {
   return seedState().guests.find(
@@ -53,9 +53,10 @@ test('owner creates an event, imports 50 guests with errors, sends, retries fail
   await expect(page.getByTestId('import-done')).toContainText('Wageni 46 wameingizwa');
 
   // Send with injected failures, watch progress, retry failures.
-  await setControls(page, { failureRate: 0.3 });
   await page.goto(`${eventUrl}/send`);
   await expect(page.getByTestId('send-summary')).toContainText('wageni 46');
+  // Inject failures only now, so the page's own reads are not affected.
+  await page.evaluate(() => window.__harusiMock?.controls.set({ failureRate: 0.3 }));
   await shot(page, 'send');
   await page.getByTestId('send-now').click();
   await page.getByRole('dialog').getByRole('button', { name: 'Tuma sasa' }).click();
@@ -64,7 +65,7 @@ test('owner creates an event, imports 50 guests with errors, sends, retries fail
     timeout: 30_000,
   });
   await shot(page, 'send-progress');
-  await setControls(page, { failureRate: 0 });
+  await page.evaluate(() => window.__harusiMock?.controls.set({ failureRate: 0 }));
   const retry = page.getByTestId('retry-failed');
   await expect(retry).toBeVisible();
   await retry.click();

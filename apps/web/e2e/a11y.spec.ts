@@ -23,10 +23,19 @@ const ROUTES = [
   `/app/e/${PAST}/reports`,
   `/app/e/${UPCOMING}/settings`,
   '/app/account',
+  '/ops',
+  '/ops/organizers',
+  '/ops/events',
+  '/ops/usage',
+  '/ops/payments',
+  '/ops/support',
+  '/ops/requests',
+  '/ops/audit',
 ];
 
 for (const locale of ['sw', 'en'] as const) {
   test.describe(`axe (${locale})`, () => {
+    test.describe.configure({ mode: 'serial' });
     test.beforeEach(async ({ context }) => {
       await context.addCookies([
         { name: 'NEXT_LOCALE', value: locale, url: 'http://localhost:3100' },
@@ -34,6 +43,15 @@ for (const locale of ['sw', 'en'] as const) {
     });
     for (const route of ROUTES) {
       test(route.replace(/[0-9a-f-]{36}/, ':id').replace('TOKEN', ':token'), async ({ page }) => {
+        if (route.startsWith('/ops')) {
+          // Staff session for the ops routes (the default storage state is the customer owner).
+          await page.goto('/login');
+          await page.evaluate(() => sessionStorage.clear());
+          await page.locator('input[type="tel"]').fill('0700000999');
+          await page.getByTestId('send-code').click();
+          await page.locator('input[autocomplete="one-time-code"]').fill('123456');
+          await page.waitForURL(/\/ops$/);
+        }
         await page.goto(route.replace('TOKEN', token('delivered')));
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(400);

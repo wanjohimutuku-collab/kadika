@@ -172,6 +172,7 @@ export class GuestService {
         guest: guests,
         status: invitations.status,
         rsvpPartySize: invitations.rsvpPartySize,
+        channelLast: invitations.channelLast,
       })
       .from(guests)
       .leftJoin(invitations, eq(invitations.guestId, guests.id))
@@ -185,6 +186,7 @@ export class GuestService {
         ...r.guest,
         status: r.status ?? 'created',
         rsvpPartySize: r.rsvpPartySize,
+        channelLast: r.channelLast,
       })),
       nextCursor:
         rows.length > limit && last
@@ -201,6 +203,25 @@ export class GuestService {
     if (!g) throw new ApiError('not_found', 'Guest not found');
     await this.eventsSvc.role(g.eventId, userId);
     return g;
+  }
+
+  /** One guest with their invitation state (status, answer, last channel) for the detail screen. */
+  async detail(guestId: string, userId: string) {
+    const g = await this.get(guestId, userId);
+    const [inv] = await this.deps.db
+      .select({
+        status: invitations.status,
+        rsvpPartySize: invitations.rsvpPartySize,
+        channelLast: invitations.channelLast,
+      })
+      .from(invitations)
+      .where(eq(invitations.guestId, guestId));
+    return {
+      ...g,
+      status: inv?.status ?? 'created',
+      rsvpPartySize: inv?.rsvpPartySize ?? null,
+      channelLast: inv?.channelLast ?? null,
+    };
   }
 
   async update(guestId: string, userId: string, patch: Partial<GuestInput>) {

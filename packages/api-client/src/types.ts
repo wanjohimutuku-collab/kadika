@@ -76,6 +76,8 @@ export interface EventStats {
 export type EventStatus = 'draft' | 'active' | 'completed' | 'archived';
 
 export interface WeddingEvent {
+  /** The signed-in user's role in this event (the API returns it; mocks omit it = owner). */
+  myRole?: 'owner' | 'committee' | 'gate';
   id: string;
   title: string;
   partnerA: string;

@@ -98,6 +98,7 @@ interface ApiGuest {
   inviteChannelPref: Guest['inviteChannelPref'];
   notes: string | null;
   status?: Guest['status'];
+  channelLast?: Guest['channelLast'];
   rsvpPartySize?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -106,26 +107,42 @@ interface ApiGuest {
 const notImplemented = (name: string) => () =>
   Promise.reject(new RepositoryError('not_implemented', `${name} is not available on the API yet`));
 
-function mapEvent(e: ApiEvent): WeddingEvent {
-  const [a = '', b = ''] = e.coupleNames.split('&').map((s) => s.trim());
-  const empty = {
-    invited: 0,
-    sent: 0,
-    delivered: 0,
-    opened: 0,
-    confirmed: 0,
-    declined: 0,
-    attended: 0,
-    headcountConfirmed: 0,
+interface ApiStats {
+  total: number;
+  byStatus: Record<string, number>;
+  failedMessages: number;
+  headcountConfirmed?: number;
+  featurePhoneGuests?: number;
+}
+
+/** Funnel counts are cumulative: a guest who opened the card also counts as sent and delivered. */
+function mapStats(s: ApiStats | null): WeddingEvent['stats'] {
+  const n = (...k: string[]) => k.reduce((t, x) => t + (s?.byStatus[x] ?? 0), 0);
+  const afterSent = ['sent', 'delivered', 'opened', 'confirmed', 'declined', 'checked_in'];
+  return {
+    invited: s?.total ?? 0,
+    sent: n(...afterSent),
+    delivered: n('delivered', 'opened', 'confirmed', 'declined', 'checked_in'),
+    opened: n('opened', 'confirmed', 'declined', 'checked_in'),
+    confirmed: n('confirmed', 'checked_in'),
+    declined: n('declined'),
+    attended: n('checked_in'),
+    headcountConfirmed: s?.headcountConfirmed ?? 0,
     headcountAttended: 0,
     pledgedTzs: 0,
     collectedTzs: 0,
     guestsWithBalance: 0,
-    failedMessages: 0,
-    featurePhoneGuests: 0,
+    failedMessages: s?.failedMessages ?? 0,
+    featurePhoneGuests: s?.featurePhoneGuests ?? 0,
   };
+}
+
+function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
+  const [a = '', b = ''] = e.coupleNames.split('&').map((s) => s.trim());
+  const empty = mapStats(stats);
   return {
     id: e.id,
+    myRole: e.myRole,
     title: e.title,
     partnerA: a,
     partnerB: b,
@@ -239,7 +256,7 @@ function mapGuest(g: ApiGuest): Guest {
     status: g.status ?? 'created',
     timeline: { created: g.createdAt },
     rsvpPartySize: g.rsvpPartySize ?? null,
-    channelLast: null,
+    channelLast: g.channelLast ?? null,
     lastMessageFailed: false,
     checkedInAt: null,
     partyAdmitted: 0,
@@ -348,6 +365,12 @@ export function createHttpRepository(
     expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   });
 
+  /** Funnel stats; a failure here must not hide the event itself. */
+  const statsOf = (eventId: string): Promise<ApiStats | null> =>
+    call<ApiStats>('GET', `/v1/events/${encodeURIComponent(eventId)}/invitations/stats`).catch(
+      () => null,
+    );
+
   const impl: Partial<Repository> = {
     async requestOtp(phone) {
       const r = await raw('POST', '/v1/auth/otp/request', { phone }, {}, false);
@@ -387,10 +410,11 @@ export function createHttpRepository(
     },
 
     async listEvents() {
-      return (await call<{ items: ApiEvent[] }>('GET', '/v1/events')).items.map(mapEvent);
+      const items = (await call<{ items: ApiEvent[] }>('GET', '/v1/events')).items;
+      return Promise.all(items.map(async (e) => mapEvent(e, await statsOf(e.id))));
     },
     async getEvent(id) {
-      return mapEvent(await call<ApiEvent>('GET', `/v1/events/${id}`));
+      return mapEvent(await call<ApiEvent>('GET', `/v1/events/${id}`), await statsOf(id));
     },
     async createEvent(input: EventInput) {
       const created = await call<ApiEvent>('POST', '/v1/events', {
@@ -424,6 +448,9 @@ export function createHttpRepository(
       if (patch.contributionTargetTzs !== undefined)
         body.contributionTargetTzs = patch.contributionTargetTzs;
       if (patch.status !== undefined) body.status = patch.status;
+      if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
+      if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
+      if (patch.greeting !== undefined) body.greeting = patch.greeting || null;
       if (
         patch.themeId !== undefined ||
         patch.coverGradient !== undefined ||

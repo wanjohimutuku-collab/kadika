@@ -1341,5 +1341,17 @@
       "billing": "Billing",
       "admin": "Admin"
     }
+  },
+  "mobile": {
+    "gateSoon": "Phone gate scanning is coming soon. For now you can see who arrived in the Guests tab.",
+    "pledgesSoon": "Pledges are coming soon in this app.",
+    "cardsTitle": "Printable cards",
+    "cardsHelp": "Download a PDF of every guest's card for printing. Print the test sheet first.",
+    "cardsA6": "A6 cards (one per guest)",
+    "cardsA5": "A5 cards (one per guest)",
+    "cardsA4": "A4 sheet (4 cards)",
+    "cardsTest": "Test sheet",
+    "cardsDone": "The PDF is ready",
+    "sharePdf": "Share PDF"
   }
 }

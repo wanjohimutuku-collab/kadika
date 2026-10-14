@@ -32,3 +32,4 @@ export function pickMessages<K extends keyof Messages>(
   for (const ns of namespaces) out[ns] = all[ns];
   return out;
 }
+export { formatIcu, type Values, type Msgs } from './icu';

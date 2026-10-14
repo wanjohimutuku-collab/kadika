@@ -272,6 +272,15 @@ describe('HttpRepository against the real API', () => {
     ctx.fail.sms = () => false;
     const retry = await r.retryFailed(job.id);
     expect(retry).toMatchObject({ total: 1, counts: { sent: 1, failed: 0 } });
+    // the guest detail carries the invitation state, not just the guest row
+    const one = (await r.listGuests(ev.id)).find((x) => x.displayName === 'Mgeni Mmoja')!;
+    expect(await r.getGuest(one.id)).toMatchObject({ status: 'sent', channelLast: 'sms' });
+    // the overview numbers come from the API's funnel stats
+    expect((await r.getEvent(ev.id)).stats).toMatchObject({
+      invited: 2,
+      sent: 2,
+      failedMessages: 0,
+    });
     await expect(
       r.sendInvitations(ev.id, { ...req, scheduleAt: '2027-01-01T08:00:00Z' }),
     ).rejects.toMatchObject({ code: 'not_implemented' });

@@ -391,7 +391,7 @@ export function createApp(deps: Deps) {
     c.json(await deliverySvc.stats(c.req.param('id'), c.get('userId'))),
   );
   app.get('/v1/guests/:id', async (c) =>
-    c.json(await guestsSvc.get(c.req.param('id'), c.get('userId'))),
+    c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),
   );
   app.patch('/v1/guests/:id', async (c) =>
     c.json(

@@ -458,6 +458,29 @@ export class DeliveryService {
           inArray(invitations.status, ['created', 'queued']),
         ),
       );
-    return { total, byStatus, failedMessages: failedGuests.length };
+    const [people] = await this.deps.db
+      .select({ n: sql<number>`coalesce(sum(${invitations.rsvpPartySize}), 0)::int` })
+      .from(invitations)
+      .innerJoin(guests, eq(guests.id, invitations.guestId))
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          inArray(invitations.status, ['confirmed', 'checked_in']),
+        ),
+      );
+    const [feature] = await this.deps.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(guests)
+      .where(
+        and(eq(guests.eventId, eventId), isNull(guests.deletedAt), eq(guests.hasSmartphone, false)),
+      );
+    return {
+      total,
+      byStatus,
+      failedMessages: failedGuests.length,
+      headcountConfirmed: people?.n ?? 0,
+      featurePhoneGuests: feature?.n ?? 0,
+    };
   }
 }

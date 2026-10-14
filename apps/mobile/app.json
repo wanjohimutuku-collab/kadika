@@ -6,8 +6,15 @@
     "scheme": "harusipass",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "android": { "package": "app.harusipass.mobile" },
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true }
+    "android": {
+      "package": "app.harusipass.mobile",
+      "permissions": []
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {},
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
   }
 }

@@ -43,7 +43,14 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ 500-guest send test with simulated failures (`delivery.test.ts`)
 
 ## Phase 4 — Organizer mobile app (Expo)
-- ☐ Not started (`apps/mobile` is not scaffolded)
+- ☑ Expo Router app on the real API: auth (phone → OTP → name), wedding list + create, five tabs, guest detail with reissue/delete, paste import (preview then confirm), send with confirm/result/retry, team invite/revoke, settings, print-PDF share (ADR 021)
+- ☑ Verified in a browser at 375×812 against the real API (sign-in, create, import, send, overview, detail, team); typecheck, eslint, 5 unit tests incl. a Swahili/English key-coverage check
+- ☑ API: guest detail now carries invitation status; list carries last channel; events carry `myRole` and funnel stats (headcount, feature-phone count)
+- ☐ Run on a real low-end Android (2 GB RAM), EAS preview build installs, APK < 40 MB
+- ☐ Check 1.5× font scale at 360×640; test the gate and committee role shells
+- ☐ Contacts picker and CSV file import; swipe and multi-select actions; native date picker
+- ☐ Persist the offline write queue across app restarts
+- ☐ Lango (Phase 5) and Michango (Phase 6) tabs are placeholders
 
 ## Phase 5 — Gate scanner (offline-first)
 - ☐ Gate bundle endpoint, SQLite, offline verify, fallbacks, sync + conflict rule, multi-device test

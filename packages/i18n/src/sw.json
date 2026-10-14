@@ -1345,5 +1345,17 @@
       "billing": "Malipo",
       "admin": "Msimamizi"
     }
+  },
+  "mobile": {
+    "gateSoon": "Skana ya lango kwenye simu inakuja hivi karibuni. Kwa sasa unaweza kuona wageni waliofika kwenye tab ya Wageni.",
+    "pledgesSoon": "Michango inakuja hivi karibuni kwenye programu hii.",
+    "cardsTitle": "Kadi za kuchapisha",
+    "cardsHelp": "Pakua PDF ya kadi za wageni wote kwa ajili ya kuchapisha. Hakikisha unachapisha kipimo cha majaribio kwanza.",
+    "cardsA6": "Kadi A6 (kila mgeni)",
+    "cardsA5": "Kadi A5 (kila mgeni)",
+    "cardsA4": "Karatasi ya A4 (kadi 4)",
+    "cardsTest": "Kipimo cha majaribio (test sheet)",
+    "cardsDone": "PDF iko tayari",
+    "sharePdf": "Shiriki PDF"
   }
 }

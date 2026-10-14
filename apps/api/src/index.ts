@@ -1,30 +1,72 @@
 import { serve } from '@hono/node-server';
 import { createDb } from '@harusi/db';
-import { FakeMessagingProvider } from '@harusi/messaging';
+import {
+  EvolutionWhatsAppProvider,
+  FakeMessagingProvider,
+  NextSmsProvider,
+  type MessagingProvider,
+} from '@harusi/messaging';
 import { createApp } from './app';
 import { loadConfig } from './config';
-import { systemRandom } from './context';
+import { systemRandom, type Deps } from './context';
+import { startWorker } from './worker';
 
 const config = loadConfig();
 const { db } = createDb(config.databaseUrl);
-// SMS gateway adapters (Beem / Africa's Talking / NextSMS) arrive in Phase 3; until then the fake
-// provider is used in every environment and OTPs are logged only when SMS_PROVIDER=fake.
-const fake = new FakeMessagingProvider('sms');
+
+// Providers (ADR 017, ADR 018): Evolution API for WhatsApp, NextSMS for SMS; fakes otherwise.
+let sms: MessagingProvider = new FakeMessagingProvider('sms');
+let smsReport: Deps['smsReport'];
+if (config.smsProvider === 'nextsms') {
+  if (!config.nextSms)
+    throw new Error(
+      'SMS_PROVIDER=nextsms needs NEXTSMS_USERNAME, NEXTSMS_PASSWORD and SMS_SENDER_ID',
+    );
+  const next = new NextSmsProvider(config.nextSms);
+  sms = next;
+  smsReport = (id) => next.report(id);
+}
+let whatsapp: MessagingProvider = new FakeMessagingProvider('whatsapp');
+if (config.whatsappProvider === 'evolution') {
+  if (!config.evolution)
+    throw new Error(
+      'WHATSAPP_PROVIDER=evolution needs EVOLUTION_BASE_URL, EVOLUTION_INSTANCE and EVOLUTION_API_KEY',
+    );
+  whatsapp = new EvolutionWhatsAppProvider(config.evolution);
+}
 // §12: OTPs are never logged. For local development only, DEV_LOG_OTP=1 prints the SMS body.
-const sms =
-  process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production'
-    ? {
-        name: 'fake-dev',
-        channel: 'sms' as const,
-        async send(to: string, body: string) {
-          console.log(JSON.stringify({ level: 'dev', msg: 'sms (DEV_LOG_OTP)', to, body }));
-          return fake.send(to, body);
-        },
-      }
-    : fake;
-// WhatsApp Cloud API adapter is not chosen yet (§15.2); the fake stands in (ADR 017).
-const whatsapp = new FakeMessagingProvider('whatsapp');
-const app = createApp({ db, sms, whatsapp, config, now: () => new Date(), random: systemRandom });
+if (process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production') {
+  const inner = sms;
+  sms = {
+    name: `${inner.name}-dev`,
+    channel: 'sms',
+    async send(to, body) {
+      console.log(JSON.stringify({ level: 'dev', msg: 'sms (DEV_LOG_OTP)', to, body }));
+      return inner.send(to, body);
+    },
+  };
+}
+
+const deps: Deps = {
+  db,
+  sms,
+  whatsapp,
+  smsReport,
+  config,
+  now: () => new Date(),
+  random: systemRandom,
+};
+if (config.redisUrl) {
+  deps.enqueueSend = startWorker(deps, config.redisUrl).enqueueSend;
+} else {
+  console.log(
+    JSON.stringify({
+      level: 'warn',
+      msg: 'REDIS_URL not set: no queue worker, reminders and fallback will not run',
+    }),
+  );
+}
+const app = createApp(deps);
 
 serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {
   console.log(JSON.stringify({ level: 'info', msg: 'api listening', port: info.port }));

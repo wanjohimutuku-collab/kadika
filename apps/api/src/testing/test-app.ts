@@ -41,6 +41,7 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
       DATABASE_URL: 'pglite',
       JWT_SECRET: 'test-secret-at-least-16-chars',
       KEY_ENC_SECRET: TEST_KEY,
+      WEBHOOK_SECRET: 'hook-secret-for-tests',
     }),
     now: opts.now ?? (() => new Date(clock.now)),
     // Deterministic bytes: tests are reproducible but ids and tokens still differ between calls.

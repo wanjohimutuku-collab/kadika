@@ -160,6 +160,8 @@ export const guests = pgTable(
     language: languageEnum('language').notNull().default('sw'),
     inviteChannelPref: channelPrefEnum('invite_channel_pref').notNull().default('mixed'),
     notes: text('notes'),
+    /** Guest asked to stop reminders from the card page (§7.4). Invitations are unaffected. */
+    remindersOptOut: boolean('reminders_opt_out').notNull().default(false),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -195,19 +197,28 @@ export const invitations = pgTable(
   ],
 );
 
-export const messageLog = pgTable('message_log', {
-  id: id(),
-  guestId: uuid('guest_id')
-    .notNull()
-    .references(() => guests.id, { onDelete: 'cascade' }),
-  channel: messageChannelEnum('channel').notNull(),
-  provider: text('provider').notNull(),
-  providerMsgId: text('provider_msg_id'),
-  status: text('status').notNull(),
-  error: text('error'),
-  costTzs: integer('cost_tzs'),
-  ...timestamps,
-});
+export const messageLog = pgTable(
+  'message_log',
+  {
+    id: id(),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    channel: messageChannelEnum('channel').notNull(),
+    /** invite | fallback | reminder_14 | reminder_7 | reminder_1 — dedupes automatic sends. */
+    kind: text('kind').notNull().default('invite'),
+    provider: text('provider').notNull(),
+    providerMsgId: text('provider_msg_id'),
+    status: text('status').notNull(),
+    error: text('error'),
+    costTzs: integer('cost_tzs'),
+    ...timestamps,
+  },
+  (t) => [
+    index('message_log_provider_msg_idx').on(t.providerMsgId),
+    index('message_log_guest_idx').on(t.guestId),
+  ],
+);
 
 export const pledges = pgTable('pledges', {
   id: id(),

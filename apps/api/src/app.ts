@@ -3,6 +3,9 @@ import { cors } from 'hono/cors';
 import type { Context, MiddlewareHandler } from 'hono';
 import { z, ZodError } from 'zod';
 import { eq } from 'drizzle-orm';
+import { timingSafeEqual } from 'node:crypto';
+import { hashGuestToken } from '@harusi/crypto';
+import { parseEvolutionUpdate, parseNextSmsStatus } from '@harusi/messaging';
 import { users } from '@harusi/db';
 import type { HealthResponse } from '@harusi/schemas';
 import type { Deps } from './context';
@@ -128,7 +131,9 @@ export function createApp(deps: Deps) {
   });
 
   app.use('/v1/*', async (c, next) =>
-    c.req.path.startsWith('/v1/auth/') || c.req.path.startsWith('/v1/c/')
+    c.req.path.startsWith('/v1/auth/') ||
+    c.req.path.startsWith('/v1/c/') ||
+    c.req.path.startsWith('/v1/webhooks/')
       ? next()
       : requireAuth(c, next),
   );
@@ -167,6 +172,44 @@ export function createApp(deps: Deps) {
     cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     const v = await cardsSvc.preview(c.req.param('token'));
     return c.json({ ...v, qrPayload: null });
+  });
+  app.post('/v1/c/:token/reminders/opt-out', async (c) => {
+    cardWrites.check(`ip:${client(c)}`);
+    const ok = await deliverySvc.optOutReminders(hashGuestToken(c.req.param('token')));
+    if (!ok) throw new ApiError('not_found', 'Invalid link');
+    return c.json({ ok: true });
+  });
+
+  // ---- delivery webhooks (§9: verified with a shared secret, compared in constant time)
+  const webhookAuth = (c: Context) => {
+    const want = deps.config.webhookSecret;
+    if (!want) throw new ApiError('forbidden', 'Webhooks are not configured');
+    const got = c.req.header('x-webhook-secret') ?? '';
+    const a = Buffer.from(got);
+    const b = Buffer.from(want);
+    if (a.length !== b.length || !timingSafeEqual(a, b))
+      throw new ApiError('unauthorized', 'Bad webhook secret');
+  };
+  app.post('/v1/webhooks/whatsapp', async (c) => {
+    webhookAuth(c);
+    const updates = parseEvolutionUpdate(await body(c));
+    for (const u of updates) await deliverySvc.recordDelivery(u.providerMsgId, u.state);
+    return c.json({ ok: true, updates: updates.length });
+  });
+  app.post('/v1/webhooks/sms', async (c) => {
+    webhookAuth(c);
+    const p = parse(
+      z.object({
+        messageId: z.union([z.string(), z.number()]),
+        status: z.object({ groupName: z.string().optional(), name: z.string().optional() }),
+      }),
+      await body(c),
+    );
+    const known = await deliverySvc.recordDelivery(
+      String(p.messageId),
+      parseNextSmsStatus(p.status),
+    );
+    return c.json({ ok: true, known });
   });
   app.post('/v1/c/:token/rsvp', async (c) => {
     cardWrites.check(`ip:${client(c)}`);
@@ -282,6 +325,15 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
+    if (new URL(c.req.url).searchParams.get('async') === '1' && deps.enqueueSend) {
+      await eventsSvc.role(c.req.param('id'), c.get('userId')); // members only
+      const jobId = await deps.enqueueSend({
+        eventId: c.req.param('id'),
+        userId: c.get('userId'),
+        input,
+      });
+      return c.json({ queued: true, jobId }, 202);
+    }
     return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
   });
   app.get('/v1/events/:id/invitations/stats', async (c) =>

@@ -127,14 +127,12 @@ export class GuestService {
           notes: input.notes ?? null,
         })
         .returning();
-      await tx
-        .insert(invitations)
-        .values({
-          id: newId(),
-          guestId: ids.id,
-          tokenHash: hashGuestToken(token),
-          tokenEnc: await encryptSecret(token, this.deps.config.keyEncSecret),
-        });
+      await tx.insert(invitations).values({
+        id: newId(),
+        guestId: ids.id,
+        tokenHash: hashGuestToken(token),
+        tokenEnc: await encryptSecret(token, this.deps.config.keyEncSecret),
+      });
       return { ...guest!, cardToken: token };
     });
   }

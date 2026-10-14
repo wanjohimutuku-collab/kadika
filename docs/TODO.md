@@ -30,10 +30,11 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 
 ## Phase 3 — Delivery
 - ☑ Send service: per-guest WhatsApp/SMS choice, retries with backoff, WhatsApp→SMS fallback on failure, `message_log`, retry-failed, stats endpoint, idempotent send (ADR 017, `delivery.test.ts`)
-- ☐ BullMQ + Redis worker around the send service
-- ☐ Real WhatsApp Cloud API and SMS gateway adapters (decisions §15.2–15.3)
-- ☐ Delivery webhooks (delivered/read) and WhatsApp→SMS fallback after N hours undelivered
-- ☐ Reminder scheduler (T-14/T-7/T-1, opt-out)
+- ◐ BullMQ worker (`worker.ts`): 15-minute tick + async send. Typechecked; not run against a live Redis
+- ◐ Evolution API (WhatsApp) and NextSMS adapters with unit tests against fake HTTP (ADR 018); verify against live accounts
+- ☑ Delivery webhooks (Evolution `messages.update`, SMS report polling), WhatsApp→SMS fallback after N hours (once per guest)
+- ☑ Reminders T-14/T-7/T-1 with opt-out (`POST /v1/c/:token/reminders/opt-out`), daytime only, once per milestone
+- ☐ Opt-out button on the guest card page (API ready)
 - ☐ Print PDF batch (A6/A5, A4 4-up, test sheet) with §6.4 assertions; `docs/qa/print-test.md`
 - ☑ 500-guest send test with simulated failures (`delivery.test.ts`)
 

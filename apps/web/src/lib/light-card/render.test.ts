@@ -57,6 +57,7 @@ describe('light guest card', () => {
     expect(html).toContain('KH-4821');
     expect(html).toMatch(/<rect[^>]*fill="#FFFFFF"\/><path d="[^"]+" fill="#000000"\/>/);
     expect(html).toContain('id="hp-yes"');
+    expect(html).toContain('data-testid="stop-reminders"'); // reminders opt-out (§7.4)
   });
 
   it('escapes guest-supplied text and keeps the data block inert', () => {

@@ -223,4 +223,61 @@ describe('HttpRepository against the real API', () => {
     await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });
     await expect(r.listPayments('x')).rejects.toMatchObject({ code: 'not_implemented' });
   });
+
+  it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {
+    const r = repo();
+    await login(r, '0712 100 110');
+    const ev = await r.createEvent({
+      title: 'Harusi',
+      partnerA: 'Asha',
+      partnerB: 'Juma',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTargetTzs: 0,
+    });
+    const guest = (name: string, phone: string) =>
+      r.createGuest(ev.id, {
+        displayName: name,
+        phone,
+        partySizeAllowed: 1,
+        inviteChannelPref: 'sms',
+        hasSmartphone: false,
+        language: 'sw',
+        notes: '',
+      });
+    await guest('Mgeni Mmoja', '0712 100 111');
+    await guest('Mgeni Wawili', '0712 100 112');
+    ctx.fail.sms = (to) => to === '+255712100112';
+    const req = {
+      audience: { kind: 'unsent' as const },
+      channel: 'auto' as const,
+      whatsappFallbackToSms: true,
+      scheduleAt: null,
+      kind: 'invite' as const,
+      idempotencyKey: 'send-key-0001',
+    };
+    const job = await r.sendInvitations(ev.id, req);
+    expect(job).toMatchObject({ status: 'done', total: 2, counts: { sent: 1, failed: 1 } });
+    expect(job.failures).toEqual([
+      expect.objectContaining({ guestName: 'Mgeni Wawili', error: 'fake provider failure' }),
+    ]);
+    expect(await r.getSendJob(job.id)).toEqual(job);
+
+    ctx.fail.sms = () => false;
+    const retry = await r.retryFailed(job.id);
+    expect(retry).toMatchObject({ total: 1, counts: { sent: 1, failed: 0 } });
+    await expect(
+      r.sendInvitations(ev.id, { ...req, scheduleAt: '2027-01-01T08:00:00Z' }),
+    ).rejects.toMatchObject({ code: 'not_implemented' });
+
+    const pdf = await r.requestCardsPdf(ev.id, { format: 'A6', layout: 'single' });
+    expect(pdf.type).toBe('application/pdf');
+    expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe('%PDF-');
+  });
 });

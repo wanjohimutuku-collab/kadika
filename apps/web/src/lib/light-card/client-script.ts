@@ -150,6 +150,14 @@ export const CLIENT_SCRIPT = String.raw`
   var prompt;
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); prompt = e; });
   $('#hp-install').addEventListener('click', function () { if (prompt) { prompt.prompt(); prompt = null; } else $('#hp-install-hint').hidden = false; });
+  $('#hp-optout').addEventListener('click', function () {
+    var msg = $('#hp-optout-msg'), btn = $('#hp-optout');
+    function say(text) { msg.textContent = text; msg.hidden = false; }
+    if (S.mode === 'mock') { say(T.stopRemindersDone); btn.hidden = true; return; }
+    fetch(S.api + '/v1/c/' + encodeURIComponent(S.token) + '/reminders/opt-out', { method: 'POST' })
+      .then(function (r) { if (!r.ok) throw 0; say(T.stopRemindersDone); btn.hidden = true; })
+      .catch(function () { say(T.stopRemindersFailed); });
+  });
   $('#hp-print').addEventListener('click', function () { window.print(); });
 
   // ---- start

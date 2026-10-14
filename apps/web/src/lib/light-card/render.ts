@@ -305,7 +305,7 @@ ${event.extraNote ? `<p class="muted mt">${esc(event.extraNote)}</p>` : ''}</sec
 ${rsvpSection}
 ${confirmed ? '' : qrSection}
 ${pledge}
-<footer class="no-print">${langChip(locale)}<nav><a href="/privacy">${esc(t.privacyLink)}</a><a href="tel:${esc(event.committeePhone)}">${esc(t.footerContact)} · ${esc(phone)}</a></nav><p class="muted">${esc(o.domain)}</p></footer>
+<footer class="no-print">${langChip(locale)}<nav><a href="/privacy">${esc(t.privacyLink)}</a><a href="tel:${esc(event.committeePhone)}">${esc(t.footerContact)} · ${esc(phone)}</a></nav><p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).
@@ -351,6 +351,8 @@ ${pledge}
 }
 
 const SCRIPT_KEYS = [
+  'stopRemindersDone',
+  'stopRemindersFailed',
   'confirmedCompact',
   'declinedCompact',
   'rsvpConfirmedBody',

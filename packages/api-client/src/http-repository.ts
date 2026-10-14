@@ -10,6 +10,7 @@ import type {
   ImportResult,
   ImportRowInput,
   Member,
+  SendJob,
   Session,
   WeddingEvent,
 } from './types';
@@ -582,6 +583,107 @@ export function createHttpRepository(
       );
       return { created: r.created, skipped: r.skipped } satisfies ImportResult;
     },
+  };
+
+  // ---- Sending (Phase 3). The API sends inline and returns a summary, so a "job" is built from it.
+  const sendJobs = new Map<string, SendJob>();
+  interface ApiSendSummary {
+    total: number;
+    sent: number;
+    failed: number;
+    skipped: number;
+    byChannel: { whatsapp: number; sms: number };
+    failures: { guestId: string; error: string }[];
+  }
+  async function runSend(
+    eventId: string,
+    target: unknown,
+    channel: 'auto' | 'whatsapp' | 'sms',
+    key: string,
+  ): Promise<SendJob> {
+    const sum = await call<ApiSendSummary>(
+      'POST',
+      `/v1/events/${encodeURIComponent(eventId)}/invitations/send`,
+      { target, channel },
+      { 'idempotency-key': key.length >= 8 ? key : newKey() },
+    );
+    const names = new Map<string, string>();
+    if (sum.failures.length > 0)
+      for (const g of await impl.listGuests!(eventId)) names.set(g.id, g.displayName);
+    const job: SendJob = {
+      id: newKey(),
+      eventId,
+      kind: 'invite',
+      total: sum.total,
+      counts: { queued: 0, sent: sum.sent, delivered: 0, failed: sum.failed },
+      byChannel: { whatsapp: sum.byChannel.whatsapp, sms: sum.byChannel.sms, print: 0 },
+      failures: sum.failures.map((f) => ({
+        guestId: f.guestId,
+        guestName: names.get(f.guestId) ?? '',
+        channel: 'sms',
+        error: f.error,
+      })),
+      status: 'done',
+      scheduledFor: null,
+      createdAt: new Date().toISOString(),
+    };
+    sendJobs.set(job.id, job);
+    return job;
+  }
+  impl.sendInvitations = (eventId, req) => {
+    if (req.kind !== 'invite')
+      return Promise.reject(new RepositoryError('not_implemented', 'Only invitations can be sent'));
+    if (req.scheduleAt)
+      return Promise.reject(
+        new RepositoryError('not_implemented', 'Scheduled sends are not available'),
+      );
+    if (req.channel === 'print')
+      return Promise.reject(new RepositoryError('validation', 'Print cards are made as a PDF'));
+    const a = req.audience;
+    const target =
+      a.kind === 'selected'
+        ? { guestIds: a.guestIds }
+        : a.kind === 'group'
+          ? { group: a.group }
+          : 'remaining';
+    return runSend(eventId, target, req.channel, req.idempotencyKey);
+  };
+  impl.getSendJob = (jobId) => {
+    const j = sendJobs.get(jobId);
+    return j ? Promise.resolve(j) : Promise.reject(new RepositoryError('not_found', 'Unknown job'));
+  };
+  impl.retryFailed = (jobId) => {
+    const j = sendJobs.get(jobId);
+    if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
+    return runSend(j.eventId, 'failed', 'auto', newKey());
+  };
+  impl.requestCardsPdf = async (eventId, opts) => {
+    const format =
+      opts.layout === 'a4-4up'
+        ? 'a4x4'
+        : opts.layout === 'test-sheet'
+          ? 'test'
+          : opts.format === 'A5'
+            ? 'a5'
+            : 'a6';
+    const send = () =>
+      doFetch(`${baseUrl}/v1/events/${encodeURIComponent(eventId)}/cards/pdf`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
+        },
+        body: JSON.stringify({ format, guestIds: opts.guestIds }),
+      });
+    let res: Response;
+    try {
+      res = await send();
+      if (res.status === 401 && tokens.get() && (await refreshTokens())) res = await send();
+    } catch {
+      throw new RepositoryError('offline', 'No network');
+    }
+    if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
+    return res.blob();
   };
 
   // Anything the API does not provide yet rejects with `not_implemented`.

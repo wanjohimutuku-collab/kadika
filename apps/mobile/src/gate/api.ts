@@ -8,15 +8,23 @@ export function makeGateApi(
 ): GateApi {
   async function call(path: string, init: RequestInit = {}, retried = false): Promise<Response> {
     // A dead or captive network must fail fast (and back off), never hang the sync loop.
-    const res = await fetch(`${API_URL}/v1/events/${eventId}/gate${path}`, {
-      signal: AbortSignal.timeout(12_000),
-      ...init,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${auth.token() ?? ''}`,
-        ...(init.headers as Record<string, string> | undefined),
-      },
-    });
+    // (Hermes has no AbortSignal.timeout, so the timer is wired by hand.)
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 12_000);
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/v1/events/${eventId}/gate${path}`, {
+        signal: ctl.signal,
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${auth.token() ?? ''}`,
+          ...(init.headers as Record<string, string> | undefined),
+        },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     if (res.status === 401 && auth.refresh && !retried) {
       await auth.refresh();
       return call(path, init, true);

@@ -30,7 +30,9 @@ The Android bundle compiles (`expo export --platform android`), but nothing has 
 
 - The engine's default `crypto.randomUUID` does not exist in Hermes, so the first scan would have crashed on a phone; the app now passes `expo-crypto`'s.
 - On Android (edge-to-edge) the keyboard covered the footer button and the sheets' buttons, so a typed number or PIN could not be submitted; screens and sheets now use `KeyboardAvoidingView`, and Enter submits the typed number.
-- Gate API calls had no timeout, so a dead network could hang the sync loop; they now fail after 12 s and back off.
+- Gate API calls had no timeout, so a dead network could hang the sync loop; they now fail after 12 s and back off. The first fix used `AbortSignal.timeout`, which Hermes does not have, and silently broke the guest-list download on the phone (Node tests cannot see this); the timer is now an `AbortController` plus `setTimeout`.
+- The gate PIN field triggered the phone's password manager (Samsung Pass offered to save the PIN); it now opts out of autofill.
+- Expo Go caches production-mode bundles per URL, so a code change can appear to have no effect: use a new Metro port or clear Expo Go's data when timing a release bundle.
 - The dev self-test (`/dev/gate-selftest`, dev builds only) runs 200 scans against the real SQLite store and Hermes crypto; it must not stay in the navigation stack because Fast Refresh reruns it and starves the UI.
 
 ## Verified on hardware (Phase 5 sign-off status)

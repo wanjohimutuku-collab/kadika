@@ -85,6 +85,9 @@ export default function GateJoin() {
         onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 8))}
         keyboardType="number-pad"
         secureTextEntry
+        autoComplete="off"
+        importantForAutofill="no"
+        textContentType="none"
         maxLength={8}
         error={error}
         onSubmitEditing={join}

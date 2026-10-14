@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { useLocale, useMessages, useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { Locale } from '@harusi/i18n';
-import { TinyIntlProvider } from '@/lib/tiny-intl';
 import {
   CalendarHeart,
   HandCoins,
@@ -62,7 +61,6 @@ export function StatesGallery({ card }: { card: CardView }) {
   const tp = useTranslations('pledges');
   const tgate = useTranslations('gate');
   const [confirm, setConfirm] = useState<string | null>(null);
-  const allMessages = useMessages() as Record<string, unknown>;
   const locale = useLocale() as Locale;
 
   const screens: Screen[] = [
@@ -191,8 +189,6 @@ export function StatesGallery({ card }: { card: CardView }) {
     }
   };
 
-  const reissued: CardView = { ...card, state: 'reissued', event: null, guest: null };
-  const invalid: CardView = { ...card, state: 'invalid', event: null, guest: null };
   const passed: CardView = { ...card, eventPassed: true, rsvpOpen: false };
   const closed: CardView = {
     ...card,

@@ -10,6 +10,8 @@ import type { Config } from './config';
 export interface Deps {
   db: Db;
   sms: MessagingProvider;
+  /** Reports an unexpected (5xx) error to an external service such as Sentry; secrets already scrubbed. */
+  reportError?: (err: Error) => void;
   /** Shared rate-limit counters (Redis) when there is more than one instance; memory otherwise. */
   rateStore?: RateStore;
   /** Mobile-money aggregator (fake in dev and tests until one is chosen, ADR 023). */

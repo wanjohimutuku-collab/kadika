@@ -33,6 +33,8 @@ export interface Config {
   logRequests: boolean;
   /** Card views allowed per IP per minute (default 120; raise only for load tests). */
   cardReadLimit: number;
+  /** Sentry project DSN; error reporting is off without it. */
+  sentryDsn: string | null;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -99,5 +101,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     port: Number(env.API_PORT ?? env.PORT ?? 3001),
     logRequests: env.LOG_REQUESTS !== '0',
     cardReadLimit: Number(env.CARD_READ_LIMIT ?? 120),
+    sentryDsn: env.SENTRY_DSN || null,
   };
 }

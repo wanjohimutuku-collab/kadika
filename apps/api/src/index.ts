@@ -13,6 +13,7 @@ import { loadConfig } from './config';
 import { systemRandom, type Deps } from './context';
 import { Redis } from 'ioredis';
 import { RedisRateStore } from './rate-limit';
+import { initObservability } from './observability';
 import { startWorker } from './worker';
 
 const config = loadConfig();
@@ -82,11 +83,17 @@ if (config.paymentProvider === 'fake') {
   );
 }
 
+const reportError = initObservability(
+  config.sentryDsn ?? undefined,
+  process.env.NODE_ENV ?? 'development',
+);
+
 const deps: Deps = {
   db,
   sms,
   whatsapp,
   payments,
+  reportError,
   smsReport,
   config,
   now: () => new Date(),

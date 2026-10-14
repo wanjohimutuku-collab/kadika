@@ -648,6 +648,7 @@ export function createApp(deps: Deps) {
       return c.json(new ApiError('validation', 'Invalid input').toJSON(), 400);
     // Never log tokens, OTPs, keys or full phone numbers (§12): only the message.
     console.error(JSON.stringify({ level: 'error', msg: err.message }));
+    deps.reportError?.(err);
     return c.json(new ApiError('internal', 'Internal server error').toJSON(), 500);
   });
 

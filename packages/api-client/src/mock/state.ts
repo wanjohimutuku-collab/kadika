@@ -93,7 +93,7 @@ export interface JobRecord extends Omit<SendJob, 'counts' | 'failures' | 'status
 
 export interface MockState {
   /** Bumped when the shape changes; older saved states are re-seeded. */
-  version: 2;
+  version: 3;
   seedDay: string;
   users: User[];
   sessionUserId: string | null;
@@ -114,6 +114,8 @@ export interface MockState {
   dataRequests: DataRequest[];
   /** Staff actions, including every view of a full phone number. */
   opsAudit: OpsAuditEntry[];
+  /** Staff session passed the second factor. Reset on sign-out. */
+  staffVerified: boolean;
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */
@@ -425,7 +427,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
   const today = startOfDayEAT(now);
   const rng = new Rng(mulberry32(opts.seed ?? 20_261_013));
   const state: MockState = {
-    version: 2,
+    version: 3,
     seedDay: iso(today),
     users: [],
     sessionUserId: null,
@@ -443,6 +445,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
     otp: {},
     dataRequests: [],
     opsAudit: [],
+    staffVerified: false,
   };
   // Everything is anchored to midnight EAT so the seed is identical for the whole day (server ≡ browser).
   const anchor = today;
@@ -471,8 +474,19 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
   const staff: User = {
     ...customer('user-staff', 'Zawadi Kimaro (Harusi Pass)', '+255700000999', 200, 0),
     roleGlobal: 'admin',
+    staffRole: 'admin',
   };
-  state.users.push(owner, committee, gate, staff);
+  const supportAgent: User = {
+    ...customer('user-staff-support', 'Omari Said (Msaada)', '+255700000998', 90, 3),
+    roleGlobal: 'admin',
+    staffRole: 'support',
+  };
+  const billingAgent: User = {
+    ...customer('user-staff-billing', 'Pendo Mrema (Malipo)', '+255700000997', 80, 4),
+    roleGlobal: 'admin',
+    staffRole: 'billing',
+  };
+  state.users.push(owner, committee, gate, staff, supportAgent, billingAgent);
 
   // Upcoming event (52 days ahead, 16:00 EAT).
   const upcomingDate = today + 52 * DAY + 16 * HOUR;

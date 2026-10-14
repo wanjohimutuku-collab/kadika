@@ -73,3 +73,16 @@ export async function shot(page: Page, name: string) {
   await page.addStyleTag({ content: '[data-testid="dev-panel-launcher"]{display:none!important}' });
   await page.screenshot({ path: `../../docs/ui/screenshots/${name}-${tag}.png`, fullPage: false });
 }
+
+/** Staff sign-in: SMS code, then the second factor (mock 654321). Lands on /ops. */
+export async function loginStaff(page: Page, phone = '0700000999') {
+  await page.goto('/login');
+  await page.evaluate(() => sessionStorage.clear());
+  await page.locator('input[type="tel"]').fill(phone);
+  await page.getByTestId('send-code').click();
+  await page.waitForURL(/\/login\/otp/);
+  await page.locator('input[autocomplete="one-time-code"]').fill('123456');
+  await expect(page.getByTestId('second-factor')).toBeVisible();
+  await page.locator('input[autocomplete="one-time-code"]').fill('654321');
+  await page.waitForURL(/\/ops$/);
+}

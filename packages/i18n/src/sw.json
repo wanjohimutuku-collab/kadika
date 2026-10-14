@@ -322,7 +322,12 @@
     "trust": "Hatutakuomba nenosiri. Namba ya uthibitisho ni kwa ajili yako tu — usiitaje kwa mtu yeyote.",
     "mockPhoneHint": "Toleo la majaribio: ingia kwa 0712 000 001 kuona harusi za mfano.",
     "suspended": "Akaunti hii imesimamishwa. Wasiliana na Harusi Pass kwa msaada.",
-    "staffHint": "Wafanyakazi wa Harusi Pass: ingia kwa 0700 000 999 kuona dashibodi ya /ops."
+    "staffHint": "Wafanyakazi wa Harusi Pass: 0700 000 999 (msimamizi), 0700 000 998 (msaada) au 0700 000 997 (malipo); namba ya pili ni 654321.",
+    "secondFactorTitle": "Hatua ya pili ya usalama",
+    "secondFactorBody": "Kwa usalama wa data za wateja, wafanyakazi wanahitaji namba ya pili kutoka kwenye programu ya uthibitisho.",
+    "secondFactorLabel": "Namba ya programu ya uthibitisho",
+    "secondFactorMock": "Toleo la majaribio: tumia namba 654321.",
+    "wrongStaffCode": "Namba si sahihi. Jaribu tena."
   },
   "landing": {
     "metaTitle": "Harusi Pass — Kadi za harusi zinazofanya kazi kwa kila mgeni",
@@ -1306,6 +1311,12 @@
         "lookup": "Alitafuta"
       },
       "empty": "Hakuna kumbukumbu."
+    },
+    "noPermission": "Huna ruhusa ya kitendo hiki kwa nafasi yako.",
+    "role": {
+      "support": "Msaada",
+      "billing": "Malipo",
+      "admin": "Msimamizi"
     }
   }
 }

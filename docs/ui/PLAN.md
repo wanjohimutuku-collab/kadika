@@ -133,7 +133,7 @@ Shared `<QueryState>` wrapper renders Skeleton / EmptyState / ErrorState (Jaribu
 - **Lighthouse ≥ 90: met.** `/` 0.94–0.97 and `/c/[token]` 0.93–0.95 (3 runs each, simulated slow-4G mobile) after dropping the web font from the guest card (ADR 009).
 - **< 100 KB initial load** conflicts with the mandated Next.js stack (ADR 009); the card is 116 KB gz of JS (< 120 KB budget).
 - Native-speaker Swahili review pending (`sw.json` `_meta.reviewed: false`).
-- Staff panel: pricing, invoices, refunds, staff sub-roles and 2FA are undecided (ADR 012).
+- Staff panel: pricing, invoices and refunds are undecided (ADR 012); staff sub-roles and a second factor are built (mock).
 
 Each milestone ends with: run app → check in browser at 360×640 and 1280×800 → fix defects → update this table → Conventional Commit.
 

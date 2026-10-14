@@ -46,6 +46,8 @@ export interface Repository {
   // Auth — POST /v1/auth/otp/request, /verify, /refresh
   requestOtp(phoneE164: string): Promise<{ resendAfterSeconds: number }>;
   verifyOtp(phoneE164: string, code: string): Promise<Session>;
+  /** Staff only: second step after the SMS code (authenticator code in production). */
+  verifyStaffSecondFactor(code: string): Promise<Session>;
   getSession(): Promise<Session | null>;
   signOut(): Promise<void>;
   updateProfile(patch: { name: string }): Promise<Session>;

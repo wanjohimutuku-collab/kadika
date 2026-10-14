@@ -5,7 +5,15 @@ import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Eye, Search } from 'lucide-react';
 import type { OpsLookupResult } from '@harusi/api-client';
-import { OpsPage, DataTable, Td, Th, AccountStatus } from '@/components/ops/ops-ui';
+import {
+  OpsPage,
+  DataTable,
+  Td,
+  Th,
+  AccountStatus,
+  NoPermission,
+  useStaffCan,
+} from '@/components/ops/ops-ui';
 import { Button } from '@/components/ui/button';
 import { Banner, Card } from '@/components/ui/display';
 import { TextField } from '@/components/ui/form';
@@ -26,6 +34,9 @@ export default function SupportPage() {
   const ts = useTranslations('states');
   const tst = useTranslations('status');
   const toast = useToast();
+  const canLookup = useStaffCan('lookup');
+  const canReveal = useStaffCan('reveal');
+  const tops = useTranslations('ops');
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
   const [short, setShort] = useState(false);
@@ -59,7 +70,9 @@ export default function SupportPage() {
     result && !result.organizers.length && !result.guests.length && !result.payments.length;
   return (
     <OpsPage title={t('title')} subtitle={t('intro')}>
+      {!canLookup ? <NoPermission text={tops('noPermission')} /> : null}
       <form
+        hidden={!canLookup}
         className="mb-5 flex max-w-xl flex-col gap-3 sm:flex-row sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
@@ -100,7 +113,7 @@ export default function SupportPage() {
                       </span>
                     </span>
                     <AccountStatus status={o.status} label={to(`status.${o.status}`)} />
-                    {!revealed[o.id] ? (
+                    {canReveal && !revealed[o.id] ? (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -132,7 +145,7 @@ export default function SupportPage() {
                         · {tst(g.status)}
                       </span>
                     </span>
-                    {g.phoneMasked && !revealed[g.guestId] ? (
+                    {canReveal && g.phoneMasked && !revealed[g.guestId] ? (
                       <Button
                         size="sm"
                         variant="ghost"

@@ -14,12 +14,25 @@ import type { ThemeId } from '@harusi/ui-tokens/themes';
 export type { ThemeId };
 export type ISODate = string;
 
+export type StaffRole = 'support' | 'billing' | 'admin';
+
+export type StaffPermission = 'read' | 'lookup' | 'reveal' | 'requests' | 'plan' | 'suspend';
+
+/** What each staff level may do. Reads of aggregate data are open to all staff. */
+export const STAFF_PERMISSIONS: Record<StaffRole, StaffPermission[]> = {
+  support: ['read', 'lookup', 'reveal', 'requests'],
+  billing: ['read', 'plan'],
+  admin: ['read', 'lookup', 'reveal', 'requests', 'plan', 'suspend'],
+};
+
 export interface User {
   id: string;
   name: string;
   phoneE164: string;
   /** `admin` = Harusi Pass staff (ops panel). Customers are `user`. */
   roleGlobal?: 'user' | 'admin';
+  /** Staff level (ops panel). support: lookups, reveals, data requests · billing: plans · admin: everything incl. suspension. */
+  staffRole?: StaffRole;
   status?: 'active' | 'suspended';
   suspendedReason?: string | null;
   createdAt?: ISODate;
@@ -28,6 +41,8 @@ export interface User {
 
 export interface Session {
   user: User;
+  /** Staff accounts must pass a second factor before any data is available. */
+  needsSecondFactor?: boolean;
   /** Role on the currently selected event (mock: switchable in the dev panel). */
   role: MemberRole;
   expiresAt: ISODate;

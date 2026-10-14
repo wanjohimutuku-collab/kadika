@@ -7,7 +7,7 @@ import { Ban, RotateCcw } from 'lucide-react';
 import type { OpsOrganizer } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import { QueryState } from '@/components/console/query-state';
-import { AccountStatus, DataTable, OpsPage, Td, Th } from '@/components/ops/ops-ui';
+import { AccountStatus, DataTable, OpsPage, Td, Th, useStaffCan } from '@/components/ops/ops-ui';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/display';
 import { TextField } from '@/components/ui/form';
@@ -24,6 +24,7 @@ export default function OrganizersPage() {
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const toast = useToast();
+  const canSuspend = useStaffCan('suspend');
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: qk.ops('organizers'),
@@ -111,20 +112,22 @@ export default function OrganizersPage() {
                 <Td muted>{o.lastLoginAt ? formatRelative(o.lastLoginAt, locale) : t('never')}</Td>
                 <Td muted>{o.createdAt ? formatDateShort(o.createdAt, locale) : '—'}</Td>
                 <Td>
-                  <Button
-                    size="sm"
-                    variant={o.status === 'active' ? 'ghost' : 'secondary'}
-                    icon={
-                      o.status === 'active' ? (
-                        <Ban className="size-4" aria-hidden="true" />
-                      ) : (
-                        <RotateCcw className="size-4" aria-hidden="true" />
-                      )
-                    }
-                    onClick={() => setTarget(o)}
-                  >
-                    {o.status === 'active' ? t('suspend') : t('reactivate')}
-                  </Button>
+                  {canSuspend ? (
+                    <Button
+                      size="sm"
+                      variant={o.status === 'active' ? 'ghost' : 'secondary'}
+                      icon={
+                        o.status === 'active' ? (
+                          <Ban className="size-4" aria-hidden="true" />
+                        ) : (
+                          <RotateCcw className="size-4" aria-hidden="true" />
+                        )
+                      }
+                      onClick={() => setTarget(o)}
+                    >
+                      {o.status === 'active' ? t('suspend') : t('reactivate')}
+                    </Button>
+                  ) : null}
                 </Td>
               </tr>
             ))}

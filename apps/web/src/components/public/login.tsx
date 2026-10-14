@@ -116,6 +116,7 @@ export function LoginOtp() {
   const [resendIn, setResendIn] = useState(30);
   const [notice, setNotice] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
+  const [secondFactor, setSecondFactor] = useState(false);
   const [name, setName] = useState('');
 
   useEffect(() => {
@@ -137,6 +138,13 @@ export function LoginOtp() {
     try {
       const session = await getRepository().verifyOtp(phone, value);
       sessionStorage.removeItem(PHONE_KEY);
+      if (session.needsSecondFactor) {
+        // Staff accounts need a second factor before any data is available.
+        setSecondFactor(true);
+        setCode('');
+        setBusy(false);
+        return;
+      }
       if (!session.user.name) {
         setNeedsName(true);
         setBusy(false);
@@ -168,6 +176,51 @@ export function LoginOtp() {
       setBusy(false);
     }
   };
+
+  const verifyStaff = async (value: string) => {
+    if (value.length !== 6) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await getRepository().verifyStaffSecondFactor(value);
+      router.replace(params.get('next') ? safeNext(params.get('next')) : '/ops');
+    } catch {
+      setCode('');
+      setError(t('wrongStaffCode'));
+      setBusy(false);
+    }
+  };
+
+  if (secondFactor) {
+    return (
+      <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10" data-testid="second-factor">
+        <h1 className="text-3xl font-semibold">{t('secondFactorTitle')}</h1>
+        <p>{t('secondFactorBody')}</p>
+        {USE_MOCKS ? <Banner tone="info">{t('secondFactorMock')}</Banner> : null}
+        <form
+          noValidate
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void verifyStaff(code);
+          }}
+        >
+          <OtpField
+            value={code}
+            onChange={setCode}
+            onComplete={(v) => void verifyStaff(v)}
+            label={t('secondFactorLabel')}
+            cellLabel={(i) => t('otpCell', { n: i + 1 })}
+            error={error ?? undefined}
+            disabled={busy}
+          />
+          <Button type="submit" size="lg" block loading={busy} disabled={code.length !== 6}>
+            {t('verify')}
+          </Button>
+        </form>
+      </main>
+    );
+  }
 
   if (needsName) {
     return (

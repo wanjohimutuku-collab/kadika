@@ -21,6 +21,13 @@ Status: accepted
 - A team invitation was never linked to the invitee's account. The mock now accepts pending invitations when the invited phone logs in (status `invited` → `active`, weddings appear in their list), and links an existing account at invite time. The real API must do the same matching in the OTP verify step.
 - Account state (`status`, `last_login_at`, `created_at`) was missing from `users`; the mock now carries them. `users` needs matching columns (or an `accounts` status table) in Phase 1.
 
+## Staff roles and second factor (added)
+
+- **Three staff levels** (`users.staff_role`): **support** (lookups, phone reveals, data requests), **billing** (plan changes) and **admin** (everything, including suspending customers). Aggregate dashboards are readable by all staff. The data layer enforces this (`forbidden` with `missing_permission`); the UI hides actions a role cannot use.
+- **Second factor for staff**: after the SMS code, staff enter a second code (authenticator app in production, `654321` in mocks). Until then the session has no data access (`getSession()` returns null). Customers are unaffected.
+- Mock staff logins: `0700 000 999` admin, `0700 000 998` support, `0700 000 997` billing.
+- Production needs: TOTP enrolment and recovery, session expiry for staff, and the `staff_role` column (Phase 1).
+
 ## Not covered (needs decisions or later phases)
 
-Pricing/plans and invoicing, refunds, provider cost reconciliation, staff roles beyond one `admin` level (e.g. read-only support vs. billing), SSO/2FA for staff, alerting, and CSV export of operational reports.
+Pricing/plans and invoicing, refunds, provider cost reconciliation, alerting, and CSV export of operational reports.

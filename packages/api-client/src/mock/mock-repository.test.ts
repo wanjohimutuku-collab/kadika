@@ -283,7 +283,8 @@ describe('MockRepository', () => {
 describe('staff (ops) panel and accounts', () => {
   async function loginAs(phone: string) {
     await repo.requestOtp(phone).catch(() => undefined);
-    return repo.verifyOtp(phone, '123456');
+    const session = await repo.verifyOtp(phone, '123456');
+    return session.needsSecondFactor ? repo.verifyStaffSecondFactor('654321') : session;
   }
 
   it('refuses customers and lets staff in', async () => {
@@ -368,5 +369,51 @@ describe('staff (ops) panel and accounts', () => {
     expect(
       (await repo.listMembers(ev.id)).find((m) => m.phoneE164 === '+255799123456')?.status,
     ).toBe('active');
+  });
+
+  it('staff need a second factor before any data is available', async () => {
+    await repo.signOut();
+    await repo.requestOtp('+255700000999').catch(() => undefined);
+    const first = await repo.verifyOtp('+255700000999', '123456');
+    expect(first.needsSecondFactor).toBe(true);
+    expect(await repo.getSession()).toBeNull();
+    await expect(repo.opsOverview()).rejects.toMatchObject({ code: 'unauthorized' });
+    await expect(repo.verifyStaffSecondFactor('000000')).rejects.toMatchObject({
+      code: 'validation',
+    });
+    expect(await repo.verifyStaffSecondFactor('654321')).toMatchObject({
+      user: { staffRole: 'admin' },
+    });
+    await expect(repo.opsOverview()).resolves.toBeTruthy();
+    await repo.signOut();
+    await expect(repo.opsOverview()).rejects.toBeTruthy();
+  });
+
+  it('support staff can look up and reveal but not suspend or change plans', async () => {
+    await loginAs('+255700000998');
+    await expect(repo.opsLookup('Neema')).resolves.toBeTruthy();
+    await expect(
+      repo.opsRevealPhone({ kind: 'organizer', id: 'user-c1' }, 'Mteja aliomba msaada'),
+    ).resolves.toBeTruthy();
+    await expect(
+      repo.opsSetUserStatus('user-c1', 'suspended', 'Sababu ndefu ya kutosha'),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    const ev = (await repo.opsListEvents())[0]!;
+    await expect(repo.opsSetEventPlan(ev.id, 'paid')).rejects.toMatchObject({ code: 'forbidden' });
+  });
+
+  it('billing staff can change plans but cannot look up or reveal customer data', async () => {
+    await loginAs('+255700000997');
+    const ev = (await repo.opsListEvents())[0]!;
+    await expect(
+      repo.opsSetEventPlan(ev.id, ev.plan === 'paid' ? 'free' : 'paid'),
+    ).resolves.toBeTruthy();
+    await expect(repo.opsLookup('Neema')).rejects.toMatchObject({ code: 'forbidden' });
+    await expect(
+      repo.opsRevealPhone({ kind: 'organizer', id: 'user-c1' }, 'Sababu ya majaribio'),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    await expect(repo.opsResolveDataRequest('dr-1', 'done', '')).rejects.toMatchObject({
+      code: 'forbidden',
+    });
   });
 });

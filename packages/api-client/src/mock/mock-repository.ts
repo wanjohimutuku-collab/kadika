@@ -47,7 +47,9 @@ import type {
   OpsOverview,
   OpsPayment,
   OpsUsage,
+  StaffPermission,
 } from '../types';
+import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
 import { pledgeTotals, summarizePledge } from '../domain/pledge';
@@ -69,6 +71,8 @@ import {
 
 const STATE_KEY = 'harusi.mock.v1';
 export const MOCK_OTP = '123456';
+/** Mock second factor for staff (an authenticator code in production). */
+export const MOCK_STAFF_CODE = '654321';
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_LOCK_MS = 10 * 60_000;
 const OTP_RESEND_S = 30;
@@ -119,7 +123,7 @@ export class MockRepository implements Repository {
       const raw = this.storage?.getItem(STATE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as MockState;
-      return parsed.version === 2 ? parsed : null;
+      return parsed.version === 3 ? parsed : null;
     } catch {
       return null;
     }
@@ -328,7 +332,10 @@ export class MockRepository implements Repository {
   }
 
   private sessionUser() {
-    return this.state.users.find((u) => u.id === this.state.sessionUserId) ?? null;
+    const u = this.state.users.find((x) => x.id === this.state.sessionUserId) ?? null;
+    // Staff are only signed in after the second factor.
+    if (u?.roleGlobal === 'admin' && !this.state.staffVerified) return null;
+    return u;
   }
 
   private requireSession() {
@@ -412,6 +419,7 @@ export class MockRepository implements Repository {
         this.state.users.push(user);
       }
       user.lastLoginAt = nowIso;
+      this.state.staffVerified = false;
       // Accept pending team invitations for this phone (Timu → "Amealikwa" becomes active).
       for (const list of Object.values(this.state.members)) {
         for (const m of list) {
@@ -423,6 +431,26 @@ export class MockRepository implements Repository {
         }
       }
       this.state.sessionUserId = user.id;
+      this.persist();
+      if (user.roleGlobal === 'admin') {
+        return {
+          user,
+          role: 'owner',
+          expiresAt: iso(this.now() + 30 * DAY),
+          needsSecondFactor: true,
+        };
+      }
+      return this.session()!;
+    });
+  }
+
+  verifyStaffSecondFactor(code: string): Promise<Session> {
+    return this.run('online-only', 'otp', () => {
+      const u = this.state.users.find((x) => x.id === this.state.sessionUserId);
+      if (!u || u.roleGlobal !== 'admin')
+        throw new RepositoryError('unauthorized', 'Sign in required');
+      if (code !== MOCK_STAFF_CODE) throw new RepositoryError('validation', 'Wrong code');
+      this.state.staffVerified = true;
       this.persist();
       return this.session()!;
     });
@@ -440,6 +468,7 @@ export class MockRepository implements Repository {
 
   async signOut(): Promise<void> {
     this.state.sessionUserId = null;
+    this.state.staffVerified = false;
     this.persist();
   }
 
@@ -1819,10 +1848,13 @@ export class MockRepository implements Repository {
 
   // ---------------------------------------------------------------- staff (ops) panel
 
-  private requireStaff() {
+  private requireStaff(permission: StaffPermission = 'read') {
     const u = this.sessionUser();
     if (!u) throw new RepositoryError('unauthorized', 'Sign in required');
     if (u.roleGlobal !== 'admin') throw new RepositoryError('forbidden', 'staff_only');
+    if (!STAFF_PERMISSIONS[u.staffRole ?? 'support'].includes(permission)) {
+      throw new RepositoryError('forbidden', 'missing_permission', { permission });
+    }
     return u;
   }
 
@@ -2034,7 +2066,7 @@ export class MockRepository implements Repository {
   /** Support lookup by phone digits, name, card code or payment reference. Phones stay masked. */
   opsLookup(query: string): Promise<OpsLookupResult> {
     return this.run('read', 'ops', () => {
-      this.requireStaff();
+      this.requireStaff('lookup');
       const q = query.trim().toLowerCase();
       if (q.length < 3) return { organizers: [], guests: [], payments: [] };
       const digits = q.replace(/\D/g, '').replace(/^0/, '');
@@ -2082,7 +2114,7 @@ export class MockRepository implements Repository {
     reason: string,
   ): Promise<{ phoneE164: string }> {
     return this.run('write', 'ops-reveal', () => {
-      this.requireStaff();
+      this.requireStaff('reveal');
       if (reason.trim().length < 5) throw new RepositoryError('validation', 'reason_required');
       const rec =
         target.kind === 'guest'
@@ -2102,7 +2134,7 @@ export class MockRepository implements Repository {
     reason: string,
   ): Promise<OpsOrganizer> {
     return this.run('write', 'ops-status', () => {
-      this.requireStaff();
+      this.requireStaff('suspend');
       const u = this.state.users.find((x) => x.id === userId && x.roleGlobal !== 'admin');
       if (!u) throw new RepositoryError('not_found');
       if (status === 'suspended' && reason.trim().length < 5)
@@ -2122,7 +2154,7 @@ export class MockRepository implements Repository {
 
   opsSetEventPlan(eventId: string, plan: 'free' | 'paid'): Promise<OpsEvent> {
     return this.run('write', 'ops-plan', () => {
-      this.requireStaff();
+      this.requireStaff('plan');
       const e = this.event(eventId);
       e.plan = plan;
       e.updatedAt = iso(this.now());
@@ -2157,7 +2189,7 @@ export class MockRepository implements Repository {
     note: string,
   ): Promise<DataRequest> {
     return this.run('write', 'ops-request', () => {
-      const staff = this.requireStaff();
+      const staff = this.requireStaff('requests');
       const r = this.state.dataRequests.find((x) => x.id === id);
       if (!r) throw new RepositoryError('not_found');
       if (r.status !== 'open') throw new RepositoryError('conflict', 'already_resolved');

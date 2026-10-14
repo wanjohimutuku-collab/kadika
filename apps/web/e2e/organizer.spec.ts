@@ -160,6 +160,10 @@ test.describe('keyboard', () => {
     await page.goto(`/app/e/${UPCOMING}/guests`);
     await page.getByTestId('guest-search').focus();
     await page.keyboard.type('Asha');
+    // Wait for the filtered rows (150 ms debounce) before tabbing into the table.
+    await expect(
+      page.getByTestId('guest-list').getByRole('link', { name: /Asha/ }).first(),
+    ).toBeVisible();
     // Tab into the table: select-all checkbox, sortable headers, then the first row's checkbox and name link.
     let reachedLink = false;
     const trail: string[] = [];

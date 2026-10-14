@@ -1,16 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
-import { shot } from './helpers';
+import { expect, test } from '@playwright/test';
+import { loginStaff, shot } from './helpers';
 
 test.use({ storageState: { cookies: [], origins: [] } });
-
-async function loginStaff(page: Page) {
-  await page.goto('/login');
-  await page.getByLabel('Namba ya simu').fill('0700000999');
-  await page.getByTestId('send-code').click();
-  await page.waitForURL(/\/login\/otp/);
-  await page.getByLabel('Tarakimu 1 kati ya 6').fill('123456');
-  await page.waitForURL(/\/ops$/);
-}
 
 test('customers are refused from /ops; staff land there after login', async ({ page, browser }) => {
   await page.goto('/login');
@@ -105,4 +96,47 @@ test('a team invitation is accepted when the invitee logs in', async ({ page, br
   await p2.waitForURL(/\/app$/);
   await expect(p2.getByTestId('event-list')).toBeVisible();
   await ctx.close();
+});
+
+test('staff must pass the second factor; wrong code is refused', async ({ page }) => {
+  await page.goto('/login');
+  await page.locator('input[type="tel"]').fill('0700000999');
+  await page.getByTestId('send-code').click();
+  await page.locator('input[autocomplete="one-time-code"]').fill('123456');
+  await expect(page.getByTestId('second-factor')).toBeVisible();
+  await page.locator('input[autocomplete="one-time-code"]').fill('000000');
+  await expect(page.getByText('Namba si sahihi. Jaribu tena.')).toBeVisible();
+  await page.goto('/ops');
+  await expect(page).toHaveURL(/\/login/);
+});
+
+test('support staff cannot suspend or change plans; billing staff cannot look up', async ({
+  page,
+}) => {
+  await loginStaff(page, '0700000998');
+  await page.goto('/ops/organizers');
+  await expect(page.getByTestId('organizer-row').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Simamisha' })).toHaveCount(0);
+  await page.goto('/ops/events');
+  await expect(page.getByTestId('ops-event-row').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Weka imelipiwa|Rudisha kuwa bure/ })).toHaveCount(
+    0,
+  );
+  await page.goto('/ops/support');
+  await expect(page.getByTestId('ops-search')).toBeVisible();
+  const billing = await page.context().newPage();
+  await billing.goto('/login');
+  await billing.evaluate(() => sessionStorage.clear());
+  await billing.locator('input[type="tel"]').fill('0700000997');
+  await billing.getByTestId('send-code').click();
+  await billing.locator('input[autocomplete="one-time-code"]').fill('123456');
+  await expect(billing.getByTestId('second-factor')).toBeVisible();
+  await billing.locator('input[autocomplete="one-time-code"]').fill('654321');
+  await billing.waitForURL(/\/ops$/);
+  await billing.goto('/ops/support');
+  await expect(billing.getByText('Huna ruhusa ya kitendo hiki kwa nafasi yako.')).toBeVisible();
+  await billing.goto('/ops/events');
+  await expect(
+    billing.getByRole('button', { name: /Weka imelipiwa|Rudisha kuwa bure/ }).first(),
+  ).toBeVisible();
 });

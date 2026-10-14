@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { PAST, UPCOMING, token } from './helpers';
+import { PAST, UPCOMING, loginStaff, token } from './helpers';
 
 const ROUTES = [
   '/',
@@ -43,15 +43,7 @@ for (const locale of ['sw', 'en'] as const) {
     });
     for (const route of ROUTES) {
       test(route.replace(/[0-9a-f-]{36}/, ':id').replace('TOKEN', ':token'), async ({ page }) => {
-        if (route.startsWith('/ops')) {
-          // Staff session for the ops routes (the default storage state is the customer owner).
-          await page.goto('/login');
-          await page.evaluate(() => sessionStorage.clear());
-          await page.locator('input[type="tel"]').fill('0700000999');
-          await page.getByTestId('send-code').click();
-          await page.locator('input[autocomplete="one-time-code"]').fill('123456');
-          await page.waitForURL(/\/ops$/);
-        }
+        if (route.startsWith('/ops')) await loginStaff(page);
         await page.goto(route.replace('TOKEN', token('delivered')));
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(400);

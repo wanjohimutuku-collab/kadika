@@ -7,7 +7,7 @@ import { ShieldCheck } from 'lucide-react';
 import type { DataRequest } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import { QueryState } from '@/components/console/query-state';
-import { DataTable, OpsPage, Td, Th } from '@/components/ops/ops-ui';
+import { DataTable, OpsPage, Td, Th, useStaffCan } from '@/components/ops/ops-ui';
 import { Button } from '@/components/ui/button';
 import { Banner, EmptyState, Skeleton, StatusPill } from '@/components/ui/display';
 import { Textarea } from '@/components/ui/form';
@@ -23,6 +23,7 @@ export default function RequestsPage() {
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const toast = useToast();
+  const canResolve = useStaffCan('requests');
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: qk.ops('requests'),
@@ -85,7 +86,7 @@ export default function RequestsPage() {
                   {r.note || '—'}
                 </Td>
                 <Td>
-                  {r.status === 'open' ? (
+                  {canResolve && r.status === 'open' ? (
                     <Button size="sm" onClick={() => setTarget(r)}>
                       {t('resolve')}
                     </Button>

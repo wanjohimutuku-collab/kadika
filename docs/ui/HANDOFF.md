@@ -29,7 +29,7 @@ pnpm --filter @harusi/web dev            # http://localhost:3000
 
 ## Staff panel (`/ops`)
 
-Harusi Pass employees run the business from `/ops` (ADR 012): overview, customers (suspend/reactivate), weddings (mark paid), usage and costs, payments, support lookup, data requests, staff audit log. In mocks, sign in with **0700 000 999** + `123456`. The `Repository` methods are the `ops*` group in `packages/api-client/src/repository.ts`; the real API must enforce `users.role_global = 'admin'`, mask phones by default, require a reason to reveal a full number, and write every reveal, suspension, plan change and request resolution to an audit table.
+Harusi Pass employees run the business from `/ops` (ADR 012): overview, customers (suspend/reactivate), weddings (mark paid), usage and costs, payments, support lookup, data requests, staff audit log. In mocks, sign in with **0700 000 999** (admin), **0700 000 998** (support) or **0700 000 997** (billing) + `123456`, then the staff second code `654321`. The `Repository` methods are the `ops*` group in `packages/api-client/src/repository.ts`; the real API must enforce `users.role_global = 'admin'`, mask phones by default, require a reason to reveal a full number, and write every reveal, suspension, plan change and request resolution to an audit table.
 
 ## Known gaps
 
@@ -40,7 +40,7 @@ Harusi Pass employees run the business from `/ops` (ADR 012): overview, customer
 - **PDF export** returns a one-line mock PDF. The real batch PDF (A6/A5, A4 4-up, test sheet) is Phase 3 and must keep the §6.4 assertions; the console already blocks layouts with a QR below 25 mm or modules below 0.8 mm.
 - **Contacts picker** uses the Contact Picker API on Android Chrome; elsewhere it shows sample contacts.
 - **Reminder scheduler** (T-14/T-7/T-1) is configuration only; the BullMQ scheduler is Phase 3.
-- **Staff panel** has no pricing, invoices, refunds, staff sub-roles or 2FA yet (ADR 012).
+- **Staff panel** has no pricing, invoices or refunds yet (ADR 012). Staff sub-roles and a second factor exist in the mock.
 - **Gate scanner** is not on the web (by design, ADR 005/010); the web Lango page is a monitor with manual check-in.
 - **Storybook** covers the framework-agnostic `src/components/ui` set. `ConsoleShell`, headers and `LanguageChip` depend on next-intl/router and are covered by Playwright screenshots and `/dev/states` (ADR 011).
 - **Token contrast**: §17.2 gate fills and the gold accent don't reach the ratios the spec claims (ADR 006). The web uses the accent decoratively only; the Android gate overlay (Phase 5) must darken the fills.

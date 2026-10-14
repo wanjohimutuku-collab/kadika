@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { OpsEvent } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import { QueryState } from '@/components/console/query-state';
-import { DataTable, OpsPage, Td, Th } from '@/components/ops/ops-ui';
+import { DataTable, OpsPage, Td, Th, useStaffCan } from '@/components/ops/ops-ui';
 import { Button } from '@/components/ui/button';
 import { Banner, Skeleton, StatusPill } from '@/components/ui/display';
 import { useToast } from '@/components/ui/toast';
@@ -19,6 +19,7 @@ export default function OpsEventsPage() {
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const toast = useToast();
+  const canPlan = useStaffCan('plan');
   const queryClient = useQueryClient();
   const list = useQuery({
     queryKey: qk.ops('events'),
@@ -90,14 +91,18 @@ export default function OpsEventsPage() {
                 <Td right>{formatTzs(e.collectedTzs)}</Td>
                 <Td right>{formatTzs(e.smsCostTzs)}</Td>
                 <Td>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setPlan.mutate({ e, plan: e.plan === 'paid' ? 'free' : 'paid' })}
-                    loading={setPlan.isPending && setPlan.variables?.e.id === e.id}
-                  >
-                    {e.plan === 'paid' ? t('markFree') : t('markPaid')}
-                  </Button>
+                  {canPlan ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        setPlan.mutate({ e, plan: e.plan === 'paid' ? 'free' : 'paid' })
+                      }
+                      loading={setPlan.isPending && setPlan.variables?.e.id === e.id}
+                    >
+                      {e.plan === 'paid' ? t('markFree') : t('markPaid')}
+                    </Button>
+                  ) : null}
                 </Td>
               </tr>
             ))}

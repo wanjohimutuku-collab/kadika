@@ -106,7 +106,9 @@ export function OpsShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="flex flex-col gap-2 border-t border-border p-3">
-          <p className="truncate px-1 text-sm text-muted">{user.name}</p>
+          <p className="truncate px-1 text-sm text-muted">
+            {user.name} · {t(`role.${user.staffRole ?? 'support'}`)}
+          </p>
           <LanguageChip />
         </div>
       </aside>

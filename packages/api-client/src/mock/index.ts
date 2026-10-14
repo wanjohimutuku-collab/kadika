@@ -1,4 +1,9 @@
-export { MockRepository, MOCK_OTP, type MockRepositoryOptions } from './mock-repository';
+export {
+  MockRepository,
+  MOCK_OTP,
+  MOCK_STAFF_CODE,
+  type MockRepositoryOptions,
+} from './mock-repository';
 export {
   MockControls,
   type MockControlsState,

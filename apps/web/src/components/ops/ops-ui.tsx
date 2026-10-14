@@ -1,7 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { StatusPill } from '@/components/ui/display';
+import { STAFF_PERMISSIONS, type StaffPermission } from '@harusi/api-client';
+import { Banner, StatusPill } from '@/components/ui/display';
+import { useSession } from '@/lib/queries';
 import { PageHeader } from '@/components/console/page-header';
 
 export function OpsPage({
@@ -89,4 +91,14 @@ export function AccountStatus({
   label: string;
 }) {
   return <StatusPill tone={status === 'active' ? 'success' : 'danger'}>{label}</StatusPill>;
+}
+
+/** Mirrors the data layer's staff permissions so buttons a role may not use are hidden, not just refused. */
+export function useStaffCan(permission: StaffPermission): boolean {
+  const user = useSession().data?.user;
+  return !!user && STAFF_PERMISSIONS[user.staffRole ?? 'support'].includes(permission);
+}
+
+export function NoPermission({ text }: { text: string }) {
+  return <Banner tone="warning">{text}</Banner>;
 }

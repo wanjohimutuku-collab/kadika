@@ -532,7 +532,7 @@ Decided in ADR 005 (answers open decision 6): v1 ships a full responsive organiz
 
 Guest-facing web routes: `/c/[token]` (+ `/pay`), `/s/[code]` (SMS short link), `/k` (enter card number). Public: `/`, `/privacy`, `/terms`, `/login`. Dev only: `/dev/states`. Plan, status and handoff: `docs/ui/PLAN.md`, `docs/ui/HANDOFF.md`; related ADRs 005–011.
 
-**Staff (ops) panel, `/ops`** (ADR 012): Harusi Pass employees only (`users.role_global = 'admin'`). Overview, customers (suspend/reactivate with reason), weddings (mark paid), usage and costs, payments, support lookup (phones masked; revealing one needs a reason and is audited), PDPA data requests, staff audit log. Every staff action touching customer data is audit-logged.
+**Staff (ops) panel, `/ops`** (ADR 012): Harusi Pass employees only (`users.role_global = 'admin'`). Overview, customers (suspend/reactivate with reason), weddings (mark paid), usage and costs, payments, support lookup (phones masked; revealing one needs a reason and is audited), PDPA data requests, staff audit log. Staff have three levels (support / billing / admin) and sign in with a second factor. Every staff action touching customer data is audit-logged.
 
 ### 17.9 Component inventory (build once, reuse)
 

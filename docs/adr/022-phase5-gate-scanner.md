@@ -38,3 +38,9 @@ The Android bundle compiles (`expo export --platform android`), but nothing has 
 ## Verified on hardware (Phase 5 sign-off status)
 
 Samsung Galaxy A17 (Android 16) with Expo Go SDK 53 against a dev API on the same Wi-Fi: real camera decode of a signed QR, offline verification, sync, vibration and sound events, SQLite survival across a force-stop, a real network outage (API frozen) with a later cross-device conflict resolved by earliest scan. Still open: two physical phones, a release build on a 2 GB device, the three-person usability test.
+
+## Two physical phones (done)
+
+A Galaxy A17 and a Galaxy A51 joined the same event with the same gate link and PIN. With the API frozen they both admitted the same guest offline (A first, B about 27 seconds later). After the API returned, the server recorded A's scan as the admission, and B's next scan of that guest showed the amber "already in" screen naming A's gate and time, with no override for a gate agent.
+
+Known issue seen on both Samsung phones: the gate PIN field (`secureTextEntry`) still makes Samsung Pass offer to save the PIN even with autofill disabled. Dismissing it works; hiding the digits without a password-type field is a follow-up.

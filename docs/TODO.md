@@ -63,7 +63,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ SQLite across restarts on the phone: force-stopped Expo Go, relaunched, it opened straight into the gate with the saved bundle and admissions (2 / 3)
 - ☑ Offline on the phone: with the API process frozen the phone admitted a guest, then the server ordered it correctly against a second device (a scripted gate device running the real engine) that scanned later but synced first: the phone's earlier scan kept the admission and the second device saw "duplicate, first by the phone"
 - ☑ 200 mixed scans against the phone's SQLite store and Hermes crypto (dev self-test): all results correct, 73–177 ms per scan in a dev build, nothing lost after reopening the database
-- ⏭ Deferred to pilot (owner decision): two *physical* phones at once. Verified so far with phone + a scripted device running the real engine; runbook in `docs/qa/gate-device-test.md`
+- ☑ Two physical phones at once (Galaxy A17 + Galaxy A51, both on Expo Go SDK 53, same gate link): with the API frozen both phones admitted the same guest offline (each showed green KARIBU NDANI, A at 14:55:30Z and B at 14:55:57Z); after the API came back the server kept A's earlier scan as the admission, and B's next scan of that guest showed amber TAYARI AMEINGIA with "Saa 17:55 · Lango 0A2" (A) and no override button for a gate agent
 - ☑ Torch: switched on from the scanner on the Galaxy A17 and the flash LED lit (confirmed by eye by the owner)
 - ☑ Release-mode timing (overlay ≤ 100 ms) on the Galaxy A17, production-mode bundle, warm, with the verify-once cache: 200 mixed scans in 11.98 s = **60 ms per scan** (first-time verify ≈ 60 ms, SQLite insert 7–13 ms; re-scans skip the verify). Earlier runs 74–76 ms before the cache; one cold run right after clearing Expo Go's data took 790 ms per scan, so the first scan after a cold start can be slow: warm up by opening the scanner before guests arrive. Overlay render time on top of this was not measured
 - ⏭ Deferred to pilot (owner decision): usability check with 3 first-time gate agents; protocol and recording sheet ready in `docs/ux/gate-usability-test.md`
@@ -87,3 +87,4 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 
 ## Open decisions (CLAUDE.md §15)
 - ☐ Brand/domains · WhatsApp route · SMS gateway · payment aggregator · pricing — confirm before Phases 3 and 6
+

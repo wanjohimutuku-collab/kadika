@@ -1,4 +1,4 @@
-import { verifyQrToken } from '@harusi/crypto';
+import { verifyQrToken, type QrClaims } from '@harusi/crypto';
 import { normalizeShortCode } from '@harusi/schemas/short-code';
 import type {
   Admission,
@@ -43,6 +43,9 @@ export class GateEngine {
   private byCode = new Map<string, BundleGuest>();
   private server = new Map<string, Admission>();
   private local = new Map<string, Admission>();
+  /** Tokens already verified against the current bundle: a re-scan skips the ~60 ms signature check. */
+  private verified = new Map<string, QrClaims>();
+  private verifyCalls = 0;
   private failures = 0;
   private nextRetryAt = 0;
 
@@ -70,6 +73,7 @@ export class GateEngine {
 
   private index(b: Bundle) {
     this.bundle = b;
+    this.verified.clear(); // a reissue changes token versions, so earlier results no longer apply
     this.byShort = new Map(b.guests.map((g) => [g.guestShort, g]));
     this.byId = new Map(b.guests.map((g) => [g.id, g]));
     this.byCode = new Map(b.guests.map((g) => [g.shortCode, g]));
@@ -94,6 +98,11 @@ export class GateEngine {
     const b = this.local.get(guestId);
     if (a && b) return a.scannedAt <= b.scannedAt ? a : b;
     return a ?? b ?? null;
+  }
+
+  /** How many signature checks this device has done (a re-scan of a verified QR does not count). */
+  get verifications(): number {
+    return this.verifyCalls;
   }
 
   get ready(): boolean {
@@ -157,6 +166,12 @@ export class GateEngine {
   /** Scan a QR: signature, event and revocation are all checked on this device. */
   async scanQr(raw: string): Promise<ScanOutcome> {
     if (!this.bundle) throw new Error('Gate bundle not loaded');
+    const cached = this.verified.get(raw);
+    if (cached) {
+      const guest = this.byId.get(cached.guestId);
+      if (guest) return this.admit(guest, Math.min(cached.partySize, guest.partySizeAllowed), 'qr');
+    }
+    this.verifyCalls++;
     const r = verifyQrToken(raw, {
       eventId: this.bundle.event.id,
       publicKey: this.bundle.publicKey,
@@ -166,6 +181,8 @@ export class GateEngine {
       },
     });
     if (r.ok) {
+      if (this.verified.size > 5000) this.verified.clear(); // bounded: a few thousand guests at most
+      this.verified.set(raw, r.claims);
       const guest = this.byId.get(r.claims.guestId)!;
       return this.admit(guest, Math.min(r.claims.partySize, guest.partySizeAllowed), 'qr');
     }

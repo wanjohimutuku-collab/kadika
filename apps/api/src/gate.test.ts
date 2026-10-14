@@ -299,6 +299,28 @@ describe('gate engine, offline', () => {
     expect(await d.engine.stats()).toMatchObject({ admitted: 3, total: 5 });
   });
 
+  it('verifies a QR once: re-scans reuse the result, and a bundle refresh after a reissue still revokes it', async () => {
+    const s = await setup(2);
+    const clock = { now: Date.parse('2027-06-01T08:00:00Z') };
+    const d = await device(s, 'device-cache-0001', 'gate', clock);
+    d.net.online = false;
+    const g = s.guests[0]!;
+    await d.engine.scanQr(g.qr);
+    for (let i = 0; i < 5; i++)
+      expect(await d.engine.scanQr(g.qr)).toMatchObject({ kind: 'duplicate' });
+    expect(d.engine.verifications).toBe(1); // six scans, one signature check
+    // a forged token is never cached, so it is checked (and refused) every time
+    const bad = forge(s.guests[1]!.qr);
+    await d.engine.scanQr(bad);
+    await d.engine.scanQr(bad);
+    expect(d.engine.verifications).toBe(3);
+    // after a reissue and a bundle refresh the old QR must be refused, not served from the cache
+    await api(ctx, 'POST', `/v1/guests/${g.id}/reissue`, { token: s.t });
+    d.net.online = true;
+    await d.engine.refreshBundle(d.api);
+    expect(await d.engine.scanQr(g.qr)).toMatchObject({ kind: 'deny', reason: 'revoked' });
+  });
+
   it('only committee or owner can override a duplicate, and the override is not undone by ordering', async () => {
     const s = await setup(2);
     const clock = { now: Date.parse('2027-06-01T08:00:00Z') };

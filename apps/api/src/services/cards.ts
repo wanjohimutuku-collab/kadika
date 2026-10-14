@@ -1,6 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { events, guests, invitations, retiredCardTokens, signingKeys } from '@harusi/db';
-import { hashGuestToken, signQrToken } from '@harusi/crypto';
+import { hashGuestToken } from '@harusi/crypto';
+import { signQrTokenFast as signQrToken } from '../qr-sign';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret } from '../crypto-at-rest';
@@ -134,16 +135,28 @@ export class CardService {
     };
   }
 
+  /**
+   * The signed QR for this guest. An Ed25519 signature is deterministic, so for one signing key,
+   * guest, party size and token version it never changes: it is cached for ten minutes instead of
+   * decrypting the event key and signing again on every card view (1,000 guests opening their cards
+   * at once is the busy moment). A reissue bumps the version, so it gets a fresh entry at once.
+   */
+  private qrCache = new Map<string, { qr: string; expires: number }>();
+
   private async qr(
     row: NonNullable<Awaited<ReturnType<CardService['find']>>['row']>,
   ): Promise<string> {
+    const now = this.deps.now().getTime();
+    const cacheKey = `${row.event.signingKeyId}:${row.guest.id}:${row.guest.partySizeAllowed}:${row.guest.tokenVersion}`;
+    const hit = this.qrCache.get(cacheKey);
+    if (hit && hit.expires > now) return hit.qr;
     const [key] = await this.deps.db
       .select()
       .from(signingKeys)
       .where(and(eq(signingKeys.eventId, row.event.id), isNull(signingKeys.revokedAt)));
     if (!key) throw new ApiError('internal', 'Event has no signing key');
     const privateKey = await decryptSecret(key.privateKeyEncrypted, this.deps.config.keyEncSecret);
-    return signQrToken(
+    const qr = signQrToken(
       {
         eventId: row.event.id,
         guestId: row.guest.id,
@@ -152,6 +165,9 @@ export class CardService {
       },
       privateKey,
     );
+    if (this.qrCache.size > 20_000) this.qrCache.clear();
+    this.qrCache.set(cacheKey, { qr, expires: now + 10 * 60_000 });
+    return qr;
   }
 
   /**

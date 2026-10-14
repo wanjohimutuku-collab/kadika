@@ -31,6 +31,8 @@ export interface Config {
   port: number;
   /** One structured log line per request (on unless LOG_REQUESTS=0; tests turn it off). */
   logRequests: boolean;
+  /** Card views allowed per IP per minute (default 120; raise only for load tests). */
+  cardReadLimit: number;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -96,5 +98,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       .filter(Boolean),
     port: Number(env.API_PORT ?? env.PORT ?? 3001),
     logRequests: env.LOG_REQUESTS !== '0',
+    cardReadLimit: Number(env.CARD_READ_LIMIT ?? 120),
   };
 }

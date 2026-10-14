@@ -89,6 +89,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Rate limits on Redis (limiters are in-memory per instance), gate/OTP lockouts across instances
 - ☐ Privacy and terms pages: real legal text (placeholders marked "Rasimu"), a lawyer and a native-speaker review
 - ☐ Backup and restore drill (`infra/coolify/RESTORE.md`), nightly pg_dump
-- ☐ Load test: 1,000 concurrent card views and 20 gate devices against real Postgres
+- ◐ Load test script `scripts/load-test.mjs` (creates its own event; 1,000 concurrent card views + 20 gate devices syncing 50 scans each; checks every scan lands). Smoke run on the Docker-free dev server (in-memory PGlite, one query at a time, 500 guests): 0 errors, all 500 check-ins reconciled, gate bundle+sync p95 ≈ 0.35 s, card views p95 ≈ 3.8 s with everything queued behind one database connection, so that number is a test-rig artefact. **Real capacity is unmeasured: run the script against staging Postgres + Redis**
+- ☑ Card views cache the signed QR (10 min, keyed by signing key, guest, party size and token version, so a reissue is instant) and the server signs with Node's native Ed25519 (byte-identical to the library, tested, ~100× faster)
 - ☐ Sentry, uptime checks (Uptime Kuma) wiring
 - ☐ Audit view in the apps; pilot with 2–3 real weddings and the §14 KPIs

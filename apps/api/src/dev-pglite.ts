@@ -39,6 +39,8 @@ const config = loadConfig({
   KEY_ENC_SECRET: Buffer.alloc(32, 9).toString('base64'),
   CORS_ORIGINS: process.env.CORS_ORIGINS ?? 'http://localhost:8081,http://localhost:19006',
   API_PORT: process.env.API_PORT ?? '3001',
+  LOG_REQUESTS: process.env.LOG_REQUESTS ?? '0',
+  CARD_READ_LIMIT: process.env.CARD_READ_LIMIT ?? '120',
 });
 const app = createApp({
   db,

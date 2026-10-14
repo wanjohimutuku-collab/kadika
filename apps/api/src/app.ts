@@ -132,7 +132,7 @@ export function createApp(deps: Deps) {
   const payReads = new RateLimiter(deps.now, 120, 60_000);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
-  const cardReads = new RateLimiter(deps.now, 120, 60_000);
+  const cardReads = new RateLimiter(deps.now, deps.config.cardReadLimit, 60_000);
   const cardWrites = new RateLimiter(deps.now, 20, 60_000);
   const client = (c: Context) => c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
 

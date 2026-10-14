@@ -1,7 +1,8 @@
 import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
 import { guests, invitations, newId, retiredCardTokens, shortOf, signingKeys } from '@harusi/db';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
-import { generateGuestToken, hashGuestToken, signQrToken } from '@harusi/crypto';
+import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
+import { signQrTokenFast as signQrToken } from '../qr-sign';
 import {
   buildPreview,
   summarizePreview,

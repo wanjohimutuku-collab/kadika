@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { SwRegister } from '@/components/card/sw-register';
-import { displaySerifPreloaded } from '@/lib/fonts-card';
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -9,7 +8,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default function CardLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <div className={displaySerifPreloaded.variable}>{children}</div>
+      <div>{children}</div>
       <SwRegister />
     </>
   );

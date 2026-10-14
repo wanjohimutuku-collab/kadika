@@ -24,7 +24,7 @@
   --radius-card: var(--hp-radius-card);
   --radius-input: var(--hp-radius-input);
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, sans-serif;
-  --font-display: var(--font-display-serif, Georgia), Georgia, 'Times New Roman', serif;
+  --font-display: var(--font-display-serif, Georgia), Georgia, Cambria, 'Times New Roman', serif;
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 }
 

@@ -33,6 +33,7 @@ Harusi Pass employees run the business from `/ops` (ADR 012): overview, customer
 
 ## Known gaps
 
+- **Lighthouse** is met (0.93–0.97 mobile) because the guest card uses a system serif instead of the web font; re-adding it costs ~0.1 (ADR 009).
 - **Guest card "< 100 KB initial load"** (§7.3) is not achievable with Next.js App Router: the framework runtime alone is 103 KB gz. The card meets the 120 KB gz JS budget (§10) at 116 KB. See ADR 009 for options.
 - **Mock-mode bundle**: in mock mode the repository chunk (seed generator + zod) loads after first paint on the guest card. The real `HttpRepository` will be much smaller.
 - **Cover photos** are mocked with gradients; real uploads need S3 (§3) and image optimisation (AVIF/WebP, ≤ 40 KB).

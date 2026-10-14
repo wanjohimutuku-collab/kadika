@@ -491,6 +491,7 @@ export default function NewEventPage() {
               themeId: values.themeId ?? 'emerald-gold',
               coverGradient: values.coverGradient ?? '',
               venueName: values.venueName ?? '',
+              eventKind: values.eventKind ?? '',
               partnerA: values.partnerA ?? '',
               partnerB: values.partnerB ?? '',
               dateStart: preview.dateStart,

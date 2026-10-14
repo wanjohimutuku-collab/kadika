@@ -13,7 +13,7 @@ import {
   type RsvpInput,
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
-import { defaultSender } from '../sender';
+import { defaultSender } from '@harusi/schemas';
 import {
   paletteContrastIssues,
   resolvePalette,
@@ -1041,6 +1041,7 @@ export class MockRepository implements Repository {
       locale: 'sw',
       partnerA: e.partnerA,
       partnerB: e.partnerB,
+      kind: e.eventKind,
       dateText: '14 Des 2026',
       shortLink: 'hrs.example/s/KH-4826',
       code: 'KH-4826',
@@ -1754,6 +1755,7 @@ export class MockRepository implements Repository {
       state: 'ok',
       event: {
         id: e.id,
+        eventKind: e.eventKind,
         partnerA: e.partnerA,
         partnerB: e.partnerB,
         coupleNames: e.coupleNames,

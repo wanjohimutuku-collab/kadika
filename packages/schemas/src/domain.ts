@@ -105,6 +105,24 @@ export type GuestInputParsed = z.output<typeof guestInputSchema>;
 
 /** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
 export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const;
+/** The kind to show: what the organiser wrote, else the default for the language. */
+export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | 'en'): string {
+  return kind?.trim() || (locale === 'sw' ? 'Harusi' : 'Wedding');
+}
+/** Host names joined for display; a single host has no dangling ampersand. */
+export function hostNames(a: string, b?: string | null): string {
+  return [a, b]
+    .map((n) => n?.trim())
+    .filter(Boolean)
+    .join(' & ');
+}
+
+/** Default "sent by" line; names the kind of event when the organiser wrote one. */
+export function defaultSender(kind: string | null | undefined, hosts: string): string {
+  const k = kind?.trim();
+  return k ? `Kamati ya ${k} ya ${hosts}` : `Kamati ya ${hosts}`;
+}
+
 export const eventKindSchema = z.string().trim().max(40, 'name.too_long');
 
 export const eventInputSchema = z.object({

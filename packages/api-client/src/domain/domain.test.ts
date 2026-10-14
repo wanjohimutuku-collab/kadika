@@ -110,3 +110,26 @@ describe('mock token', () => {
     expect(isMockPayload(t)).toBe(true);
   });
 });
+
+describe('kind-aware messages', () => {
+  const base = {
+    partnerA: 'Neema',
+    partnerB: '',
+    dateText: '14 Des',
+    shortLink: 'x.co/s/1',
+    code: 'KH-4821',
+  };
+  it('names a custom kind and has no dangling ampersand for one host', () => {
+    expect(buildInviteSms({ ...base, locale: 'sw', kind: 'Send-off' })).toMatch(
+      /^Karibu kwenye send-off ya Neema, 14 Des\./,
+    );
+    expect(buildInviteSms({ ...base, locale: 'en', kind: 'Kitchen party' })).toMatch(
+      /^You're invited to the kitchen party of Neema,/,
+    );
+  });
+  it('falls back to wedding wording when no kind is set', () => {
+    expect(buildInviteSms({ ...base, partnerB: 'Juma', locale: 'sw' })).toMatch(
+      /^Karibu kwenye harusi ya Neema & Juma,/,
+    );
+  });
+});

@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import type { Locale } from '@harusi/i18n';
+import { eventKindLabel, hostNames } from '@harusi/schemas';
 import { QrBlock } from '@/components/ui/qr-block';
 import { qrMatrix, QR_QUIET_ZONE } from '@/lib/qr';
 import { OrnamentBand, OrnamentDiamond } from '@/components/card/ornament';
@@ -65,12 +66,14 @@ export function PrintCard({
       >
         <OrnamentBand id={`print-band-${format}`} className="block" />
         <OrnamentDiamond className="mx-auto mt-[3mm]" />
-        <p className="mt-[2mm] text-[9pt] tracking-[0.25em] uppercase">{tc('weddingOf')}</p>
+        <p className="mt-[2mm] text-[9pt] tracking-[0.25em] uppercase">
+          {tc('weddingOf', { kind: eventKindLabel(data.eventKind, locale) })}
+        </p>
         <p
           className="font-display text-[26pt] leading-tight font-semibold"
           style={{ color: 'var(--hp-primary)' }}
         >
-          {data.partnerA} &amp; {data.partnerB}
+          {hostNames(data.partnerA, data.partnerB)}
         </p>
         {data.greeting ? <p className="mt-[2mm] text-[9pt] leading-snug">{data.greeting}</p> : null}
         <p className="mt-[1.5mm] text-[10pt] font-semibold">

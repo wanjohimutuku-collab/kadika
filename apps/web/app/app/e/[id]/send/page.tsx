@@ -24,7 +24,7 @@ import {
   type SendJob,
   type SendRequest,
 } from '@harusi/api-client';
-import type { MessageChannel } from '@harusi/schemas';
+import { eventKindLabel, type MessageChannel } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -194,6 +194,7 @@ function SendInner({ id }: { id: string }) {
                 locale: previewLang,
                 partnerA: e.partnerA,
                 partnerB: e.partnerB,
+                kind: e.eventKind,
                 dateText,
                 shortLink,
                 code: 'KH-4826',
@@ -203,6 +204,7 @@ function SendInner({ id }: { id: string }) {
                 locale: previewLang,
                 partnerA: e.partnerA,
                 partnerB: e.partnerB,
+                kind: e.eventKind,
                 dateText,
                 shortLink,
                 code: 'KH-4826',
@@ -494,6 +496,7 @@ function SendInner({ id }: { id: string }) {
                         {t('whatsappTemplate', {
                           guest: 'Asha',
                           couple: e.coupleNames,
+                          kind: eventKindLabel(e.eventKind, previewLang),
                           date: dateText,
                           venue: e.venueName,
                           link: `${host}/c/…`,

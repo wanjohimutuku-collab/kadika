@@ -50,6 +50,7 @@ export default function Send() {
       locale,
       partnerA: e.partnerA,
       partnerB: e.partnerB,
+      kind: e.eventKind,
       dateText: formatDate(e.dateStart, locale),
       shortLink: 'harusi.example/s/…',
       code: 'KH-4821',

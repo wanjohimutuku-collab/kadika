@@ -102,6 +102,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
     <QueryState query={event} skeleton={<Skeleton className="h-96" />}>
       {(e) => {
         const data = {
+          eventKind: e.eventKind,
           partnerA: e.partnerA,
           partnerB: e.partnerB,
           dateStart: e.dateStart,

@@ -1,6 +1,7 @@
 import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
+import { eventKindLabel, hostNames } from '@harusi/schemas';
 import { buildInviteSms, buildReminderSms } from '@harusi/api-client';
 import { pledgeSummaryOf } from './pledges';
 import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
@@ -166,6 +167,7 @@ export class DeliveryService {
       locale: guest.language,
       partnerA: a,
       partnerB: b,
+      kind: event.eventKind,
       dateText: dateText(event.dateStart, guest.language),
       shortLink: `${this.deps.config.shortBaseUrl}/s/${token}`,
       code: guest.shortCode,
@@ -423,9 +425,11 @@ export class DeliveryService {
       const tzs = (n: number) => `TZS ${n.toLocaleString('en-US')}`;
       const link = `${this.deps.config.shortBaseUrl}/s/${await this.cardToken(inv)}`;
       const sw = guest.language === 'sw';
+      const kind = eventKindLabel(event.eventKind, guest.language).toLowerCase();
+      const hosts = hostNames(a, b);
       const text = sw
-        ? `Habari ${guest.displayName}, mchango wa harusi ya ${a} & ${b}: ahadi ${tzs(s.amountTzs)}, salio ${tzs(s.balanceTzs)}. Lipa hapa: ${link}`
-        : `Hello ${guest.displayName}, your gift for ${a} & ${b}'s wedding: pledged ${tzs(s.amountTzs)}, balance ${tzs(s.balanceTzs)}. Pay here: ${link}`;
+        ? `Habari ${guest.displayName}, mchango wa ${kind} ya ${hosts}: ahadi ${tzs(s.amountTzs)}, salio ${tzs(s.balanceTzs)}. Lipa hapa: ${link}`
+        : `Hello ${guest.displayName}, your gift for the ${kind} of ${hosts}: pledged ${tzs(s.amountTzs)}, balance ${tzs(s.balanceTzs)}. Pay here: ${link}`;
       const channels: MessageChannel[] =
         inv.channelLast === 'whatsapp' && this.deps.whatsapp ? ['whatsapp', 'sms'] : ['sms'];
       const r = await this.dispatch(guest, inv, event, 'pledge_reminder', channels, undefined, {

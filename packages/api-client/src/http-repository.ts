@@ -1,6 +1,5 @@
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
-import type { EventInput, GuestInput } from '@harusi/schemas';
-import { defaultSender } from './sender';
+import { defaultSender, hostNames, type EventInput, type GuestInput } from '@harusi/schemas';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
@@ -216,6 +215,7 @@ function mapCard(token: string, c: ApiCard): CardView {
     event: e
       ? {
           id: e.id,
+          eventKind: e.eventKind ?? '',
           partnerA: a,
           partnerB: b,
           coupleNames: e.coupleNames,
@@ -446,6 +446,8 @@ export function createHttpRepository(
       const body: Record<string, unknown> = {};
       if (patch.title !== undefined) body.title = patch.title;
       if (patch.coupleNames !== undefined) body.coupleNames = patch.coupleNames;
+      else if (patch.partnerA !== undefined || patch.partnerB !== undefined)
+        body.coupleNames = hostNames(patch.partnerA ?? '', patch.partnerB);
       if (patch.eventKind !== undefined) body.eventKind = patch.eventKind || null;
       if (patch.dateStart !== undefined) body.dateStart = patch.dateStart;
       if (patch.venueName !== undefined) body.venueName = patch.venueName;

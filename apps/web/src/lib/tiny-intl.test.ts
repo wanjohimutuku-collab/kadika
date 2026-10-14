@@ -40,6 +40,7 @@ describe('tiny ICU formatter', () => {
       seconds: 30,
       n: 2,
       group: 'Marafiki',
+      kind: 'Harusi',
       failed: 3,
       total: 120,
     };

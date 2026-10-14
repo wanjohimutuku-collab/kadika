@@ -1,3 +1,4 @@
+import { eventKindLabel, hostNames } from '@harusi/schemas';
 /** GSM 03.38 basic charset (+ extension chars that cost 2 septets). */
 const GSM_BASIC =
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
@@ -56,6 +57,8 @@ export interface InviteTextInput {
   locale: 'sw' | 'en';
   partnerA: string;
   partnerB: string;
+  /** Free-text kind of event; defaults to wedding. */
+  kind?: string | null;
   dateText: string;
   shortLink: string;
   code: string;
@@ -63,13 +66,17 @@ export interface InviteTextInput {
 
 /** §7.2 SMS template (≤ 160 chars when names are of normal length). */
 export function buildInviteSms(i: InviteTextInput): string {
+  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `Karibu kwenye harusi ya ${i.partnerA} & ${i.partnerB}, ${i.dateText}. Kadi yako: ${i.shortLink} Namba: ${i.code}`
-    : `You're invited to the wedding of ${i.partnerA} & ${i.partnerB}, ${i.dateText}. Your card: ${i.shortLink} Code: ${i.code}`;
+    ? `Karibu kwenye ${kind} ya ${hosts}, ${i.dateText}. Kadi yako: ${i.shortLink} Namba: ${i.code}`
+    : `You're invited to the ${kind} of ${hosts}, ${i.dateText}. Your card: ${i.shortLink} Code: ${i.code}`;
 }
 
 export function buildReminderSms(i: InviteTextInput & { daysLeft: number }): string {
+  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `Kumbukumbu: harusi ya ${i.partnerA} & ${i.partnerB} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
-    : `Reminder: ${i.partnerA} & ${i.partnerB}'s wedding is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
+    ? `Kumbukumbu: ${kind} ya ${hosts} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
+    : `Reminder: the ${kind} of ${hosts} is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
 }

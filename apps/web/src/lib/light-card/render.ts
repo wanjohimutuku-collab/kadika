@@ -1,3 +1,4 @@
+import { eventKindLabel } from '@harusi/schemas';
 import { messages, pickMessages, type Locale } from '@harusi/i18n';
 import { lightColors } from '@harusi/ui-tokens/colors';
 import { mixHex, resolvePalette, type Palette } from '@harusi/ui-tokens/palette';
@@ -288,8 +289,8 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
 
   const body = `<div id="hp-offline" class="offline-bar" role="status" hidden>${esc(m.states.offlineCached)}</div>
 <main class="card" data-testid="guest-card">
-<header class="cover"${cover}><div><p class="eyebrow">${esc(t.weddingOf)}</p>
-<h1 class="names">${esc(event.partnerA)} <small>&amp;</small> ${esc(event.partnerB)}</h1>
+<header class="cover"${cover}><div><p class="eyebrow">${esc(fmt(t.weddingOf!, { kind: eventKindLabel(event.eventKind, locale) }))}</p>
+<h1 class="names">${esc(event.partnerA)}${event.partnerB ? ` <small>&amp;</small> ${esc(event.partnerB)}` : ''}</h1>
 <p class="when">${esc(formatWeekday(event.dateStart, locale))} ${esc(formatDate(event.dateStart, locale))}</p><p>${esc(time)}</p></div></header><div class="band" aria-hidden="true"></div>
 ${
   event.greeting
@@ -327,13 +328,17 @@ ${pledge}
       shortCode: guest.shortCode,
       start: event.dateStart,
       couple: event.coupleNames,
+      kind: eventKindLabel(event.eventKind, locale),
       venue: event.venueName,
       dress: event.dressCode ?? '',
       domain: o.domain,
     },
   };
 
-  const title = fmt(t.metaTitle!, { couple: event.coupleNames });
+  const title = fmt(t.metaTitle!, {
+    couple: event.coupleNames,
+    kind: eventKindLabel(event.eventKind, locale),
+  });
   const description = fmt(t.metaDescription!, {
     date: formatDate(event.dateStart, locale),
     venue: event.venueName,

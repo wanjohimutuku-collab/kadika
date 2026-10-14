@@ -287,6 +287,7 @@ export interface CardView {
   event: Pick<
     WeddingEvent,
     | 'id'
+    | 'eventKind'
     | 'partnerA'
     | 'partnerB'
     | 'coupleNames'

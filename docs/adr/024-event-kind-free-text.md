@@ -19,9 +19,16 @@ considered and set aside: they need ticket sales, inventory and manifests, which
   files for no behavioural gain.
 - The default "sent by" line is `Kamati ya {kind} ya {hosts}` and falls back to `Kamati ya {hosts}`.
 
+## Wording that follows the kind
+
+Guest card eyebrow, page title and calendar entry, link preview image, PWA name, SMS invite and
+reminder texts, the pledge reminder, the default sender line and the print and preview cards all use
+the kind (`eventKindLabel`, default Harusi/Wedding). Organiser screens, settings and privacy text say
+"event / tukio" instead of "wedding / harusi". The marketing landing page still talks about weddings.
+
 ## Consequences
 
 - Existing events have a null kind and behave as before (the UI treats it as Harusi).
-- Wedding-specific copy elsewhere (e.g. "Bibi/Bwana Harusi" labels in settings, the default
-  senderName in older paths, print card wording) is not yet kind-aware.
+- WhatsApp templates are approved by Meta with fixed wording and two name slots; the kind and a
+  single host are not reflected there until the templates are re-registered.
 - Not built: pass types, capacities, multi-session events, ticket sales. Revisit with a separate spec.

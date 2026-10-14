@@ -121,7 +121,7 @@
     "open": "Fungua paneli ya majaribio",
     "role": "Nafasi",
     "roles": {
-      "owner": "Mwenye harusi",
+      "owner": "Mwenyeji",
       "committee": "Kamati",
       "gate": "Mlinda lango"
     },
@@ -151,9 +151,9 @@
     "signedInAs": "Umeingia kama {name}"
   },
   "card": {
-    "metaTitle": "Mwaliko wa harusi ya {couple}",
+    "metaTitle": "Mwaliko wa {kind} ya {couple}",
     "metaDescription": "{date} · {venue}. Fungua kadi yako ya mwaliko.",
-    "weddingOf": "Harusi ya",
+    "weddingOf": "{kind} ya",
     "invitesYou": "Wanakualika, {guest}",
     "dateLine": "{weekday} {date}",
     "timeLine": "Saa {time}",
@@ -195,11 +195,11 @@
     "addCalendar": "Ongeza kwenye kalenda",
     "addHome": "Ongeza kwenye skrini ya mwanzo",
     "savePdf": "Hifadhi kama PDF",
-    "calendarTitle": "Harusi ya {couple}",
+    "calendarTitle": "{kind} ya {couple}",
     "pledgeTitle": "Mchango",
     "pledgeSummary": "Ahadi {pledged} · Imelipwa {paid} · Salio {balance}",
     "pledgePaidInFull": "Asante! Ahadi yako imelipwa yote.",
-    "pledgeNone": "Unaweza kuchangia harusi hii kwa simu.",
+    "pledgeNone": "Unaweza kuchangia tukio hili kwa simu.",
     "pay": "Lipa kwa simu",
     "footerContact": "Kamati",
     "privacyLink": "Faragha",
@@ -211,7 +211,7 @@
     "invalidBody": "Kiungo hiki si sahihi au kimeisha muda. Wasiliana na kamati.",
     "reissuedTitle": "Kadi hii imebadilishwa",
     "reissuedBody": "Kadi hii imebadilishwa; tumia kiungo kipya ulichotumiwa. QR ya zamani haitafanya kazi mlangoni.",
-    "eventPassedTitle": "Harusi hii imeshafanyika",
+    "eventPassedTitle": "Tukio hili limeshafanyika",
     "eventPassedBody": "Asante kwa kuwa sehemu ya siku hii. Majibu hayapokelewi tena.",
     "enterCodeInstead": "Weka namba ya kadi",
     "installHint": "Fungua menyu ya kivinjari kisha chagua \"Ongeza kwenye skrini ya mwanzo\".",
@@ -256,7 +256,7 @@
     "tryAgain": "Jaribu tena",
     "backToCard": "Rudi kwenye kadi",
     "duplicateNote": "Tumepokea taarifa ya malipo zaidi ya mara moja; imehesabiwa mara moja tu.",
-    "noPledges": "Malipo hayajawezeshwa kwa harusi hii.",
+    "noPledges": "Malipo hayajawezeshwa kwa tukio hili.",
     "safety": "Hatutakuomba PIN au namba ya siri. Ombi la malipo linaonyesha jina la mtoa huduma tu."
   },
   "short": {
@@ -279,20 +279,20 @@
     "reports": "Ripoti",
     "settings": "Mipangilio",
     "account": "Akaunti",
-    "events": "Harusi zangu",
+    "events": "Matukio yangu",
     "more": "Zaidi",
     "mainNav": "Urambazaji mkuu",
-    "switchEvent": "Badili harusi",
-    "currentEvent": "Harusi: {name}",
+    "switchEvent": "Badili tukio",
+    "currentEvent": "Tukio: {name}",
     "userMenu": "Menyu ya mtumiaji",
     "signOut": "Toka",
-    "newEvent": "Harusi mpya",
+    "newEvent": "Tukio jipya",
     "syncSheetTitle": "Hali ya kusawazisha",
     "syncQueueEmpty": "Hakuna mabadiliko yanayosubiri.",
     "syncQueued": "Mabadiliko yanayosubiri kutumwa",
     "syncedToast": "{count, plural, one {Badiliko # limesawazishwa} other {Mabadiliko # yamesawazishwa}}",
     "syncFailed": "Haikuweza kusawazisha — bado hakuna mtandao",
-    "roleOwner": "Mwenye harusi",
+    "roleOwner": "Mwenyeji",
     "roleCommittee": "Kamati",
     "ownerOnly": "Sehemu hii ni kwa mwenye harusi tu.",
     "gateNoConsole": "Walinda lango hutumia programu ya simu ya Harusi Pass. Dashibodi hii ni kwa wenye harusi na kamati.",
@@ -323,7 +323,7 @@
     "nameLabel": "Jina lako kamili",
     "continue": "Endelea",
     "trust": "Hatutakuomba nenosiri. Namba ya uthibitisho ni kwa ajili yako tu — usiitaje kwa mtu yeyote.",
-    "mockPhoneHint": "Toleo la majaribio: ingia kwa 0712 000 001 kuona harusi za mfano.",
+    "mockPhoneHint": "Toleo la majaribio: ingia kwa 0712 000 001 kuona matukio ya mfano.",
     "suspended": "Akaunti hii imesimamishwa. Wasiliana na Harusi Pass kwa msaada.",
     "staffHint": "Wafanyakazi wa Harusi Pass: 0700 000 999 (msimamizi), 0700 000 998 (msaada) au 0700 000 997 (malipo); namba ya pili ni 654321.",
     "secondFactorTitle": "Hatua ya pili ya usalama",
@@ -374,7 +374,7 @@
       },
       "data": {
         "title": "Data zako ni zako",
-        "body": "Namba za wageni zinatumika kwa harusi yako tu. Unaweza kuzipakua au kuzifuta wakati wowote."
+        "body": "Namba za wageni zinatumika kwa tukio lako tu. Unaweza kuzipakua au kuzifuta wakati wowote."
       }
     },
     "faqTitle": "Maswali yanayoulizwa mara kwa mara",
@@ -417,9 +417,9 @@
       "collectTitle": "Tunachokusanya",
       "collect": "Jina la mgeni, namba ya simu (ikiwa ipo), jibu la mwaliko, idadi ya watu, ahadi na malipo, na kumbukumbu ya kuingia mlangoni.",
       "useTitle": "Tunavyotumia",
-      "use": "Kwa harusi husika tu: kutuma kadi na vikumbusho, kuonyesha hali kwa kamati, na kuthibitisha kuingia. Hatuuzi wala kushiriki data na watangazaji.",
+      "use": "Kwa tukio husika tu: kutuma kadi na vikumbusho, kuonyesha hali kwa kamati, na kuthibitisha kuingia. Hatuuzi wala kushiriki data na watangazaji.",
       "rightsTitle": "Haki zako",
-      "rights": "Mwenye harusi anaweza kupakua au kufuta kabisa data ya mgeni kutoka kwenye programu. Mgeni anaweza kuomba nakala au kufutwa kwa kuwasiliana na kamati ya harusi au nasi.",
+      "rights": "Mwenyeji anaweza kupakua au kufuta kabisa data ya mgeni kutoka kwenye programu. Mgeni anaweza kuomba nakala au kufutwa kwa kuwasiliana na kamati ya tukio au nasi.",
       "securityTitle": "Usalama",
       "security": "Viungo vya kadi ni vya kipekee na havitabiriki. Hatuombi nenosiri, PIN wala namba za siri kutoka kwa wageni.",
       "contactTitle": "Mawasiliano",
@@ -427,7 +427,7 @@
       "processorsTitle": "Watoa huduma tunaowatumia",
       "processors": "Ili kutuma kadi na kuthibitisha malipo tunatumia: kampuni za ujumbe wa WhatsApp na SMS, mtoa huduma wa malipo ya simu, na seva za kuhifadhi data. Wanapokea tu kinachohitajika kufanya kazi hiyo na hawaruhusiwi kukitumia kwa shughuli nyingine.",
       "retentionTitle": "Tunahifadhi kwa muda gani",
-      "retention": "Data za harusi zinabaki hadi mwenye harusi azifute au aombe zifutwe. Mgeni akifutwa kabisa, jina, simu na maelezo yake huondolewa; kiasi cha malipo kinabaki bila taarifa za mtu, kwa ajili ya hesabu za harusi. [Muda wa juu wa kuhifadhi utaamuliwa na mwanasheria.]",
+      "retention": "Data za tukio zinabaki hadi mwenye harusi azifute au aombe zifutwe. Mgeni akifutwa kabisa, jina, simu na maelezo yake huondolewa; kiasi cha malipo kinabaki bila taarifa za mtu, kwa ajili ya hesabu za tukio. [Muda wa juu wa kuhifadhi utaamuliwa na mwanasheria.]",
       "deviceTitle": "Kinachohifadhiwa kwenye kifaa chako",
       "device": "Kadi yako huhifadhi nakala kwenye kifaa ili ionekane bila mtandao, na jibu lako hadi litumwe. Programu ya mlangoni huhifadhi orodha ya wageni kwenye simu ya mlinda lango; PIN ya lango haihifadhiwi. Hatutumii vidakuzi vya matangazo."
     },
@@ -442,7 +442,7 @@
       "liabilityTitle": "Mipaka ya dhima",
       "liability": "Huduma inatolewa kama ilivyo wakati wa majaribio.",
       "gateTitle": "Walinda lango",
-      "gate": "Mwenye harusi huwapa walinda lango kiungo na PIN. Usishiriki PIN. Mwenye harusi anaweza kufuta viungo vya lango wakati wowote, na kila hatua inarekodiwa."
+      "gate": "Mwenyeji huwapa walinda lango kiungo na PIN. Usishiriki PIN. Mwenyeji anaweza kufuta viungo vya lango wakati wowote, na kila hatua inarekodiwa."
     }
   },
   "status": {
@@ -473,9 +473,9 @@
     "auto": "Kulingana na mgeni"
   },
   "events": {
-    "title": "Harusi zangu",
-    "new": "Harusi mpya",
-    "empty": "Bado huna harusi. Anza kwa kuunda harusi yako ya kwanza.",
+    "title": "Matukio yangu",
+    "new": "Tukio jipya",
+    "empty": "Bado huna tukio. Anza kwa kuunda tukio lako la kwanza.",
     "daysLeft": "{days, plural, =0 {Leo} one {Siku # imebaki} other {Siku # zimebaki}}",
     "daysAgo": "{days, plural, one {Siku # iliyopita} other {Siku # zilizopita}}",
     "statusPill": {
@@ -490,7 +490,7 @@
     "open": "Fungua {name}"
   },
   "wizard": {
-    "title": "Harusi mpya",
+    "title": "Tukio jipya",
     "stepOf": "Hatua {current} kati ya {total}",
     "steps": {
       "names": "Majina & tarehe",
@@ -502,8 +502,8 @@
     "kindHint": "Chagua moja au andika yako, mfano Mahafali au Kitchen party",
     "hostA": "Jina la mwenyeji (au la kwanza)",
     "hostB": "Jina la pili (si lazima)",
-    "partnerA": "Jina la Bibi Harusi",
-    "partnerB": "Jina la Bwana Harusi",
+    "partnerA": "Jina la mwenyeji (au la kwanza)",
+    "partnerB": "Jina la pili (si lazima)",
     "titleHint": "Linaonekana kwenye dashibodi tu",
     "date": "Tarehe na saa",
     "dateHint": "Saa za Afrika Mashariki (EAT)",
@@ -530,11 +530,11 @@
     "draftSaved": "Rasimu imehifadhiwa kwenye kifaa hiki",
     "draftRestored": "Tumerudisha rasimu yako",
     "discardDraft": "Anza upya",
-    "create": "Unda harusi",
-    "created": "Harusi imeundwa",
+    "create": "Unda tukio",
+    "created": "Tukio limeundwa",
     "reviewEdit": "Badilisha",
     "preview": "Hivi ndivyo kadi itakavyoonekana",
-    "eventTitle": "Jina la harusi",
+    "eventTitle": "Jina la tukio",
     "coverSunset": "Picha ya mfano: Machweo",
     "coverGarden": "Picha ya mfano: Bustani"
   },
@@ -836,7 +836,7 @@
     "previewLang": "Lugha ya hakiki",
     "previewSms": "SMS",
     "previewWhatsapp": "WhatsApp",
-    "whatsappTemplate": "Habari {guest}! {couple} wanakualika kwenye harusi yao {date}, {venue}. Fungua kadi yako: {link}",
+    "whatsappTemplate": "Habari {guest}! {couple} wanakualika: {kind}, {date}, {venue}. Fungua kadi yako: {link}",
     "testSend": "Jaribu kwa namba yangu",
     "testSent": "Ujumbe wa majaribio umetumwa kwa {to}",
     "sendNow": "Tuma sasa",
@@ -1010,7 +1010,7 @@
       "ok": "Sawa",
       "duplicate": "Marudio",
       "invalid_sig": "Saini batili",
-      "wrong_event": "Harusi nyingine",
+      "wrong_event": "Tukio lingine",
       "not_found": "Hayupo",
       "manual_ok": "Kwa mkono",
       "manual_denied": "Amekataliwa"
@@ -1027,7 +1027,7 @@
     "title": "Timu",
     "members": "Wanatimu",
     "role": {
-      "owner": "Mwenye harusi",
+      "owner": "Mwenyeji",
       "committee": "Kamati",
       "gate": "Mlinda lango"
     },
@@ -1051,7 +1051,7 @@
     "invited": "{name} amealikwa",
     "revoke": "Ondoa",
     "revokeTitle": "Ondoa {name} kwenye timu?",
-    "revokeBody": "{name} hataweza tena kuingia kwenye harusi hii wala kuendesha lango.",
+    "revokeBody": "{name} hataweza tena kuingia kwenye tukio hili wala kuendesha lango.",
     "revoked": "{name} ameondolewa",
     "gateLink": "Kiungo cha lango na PIN",
     "gateLinkHelp": "Walinda lango wanafungua kiungo hiki kwenye programu na kuweka PIN.",
@@ -1095,17 +1095,17 @@
     "arrivals": "Waliofika kwa saa",
     "exportCsv": "Pakua CSV",
     "exportPdf": "Pakua PDF",
-    "postEvent": "Baada ya harusi",
+    "postEvent": "Baada ya tukio",
     "thankYou": "Ujumbe wa shukrani",
-    "thankYouDefault": "Asanteni sana kwa kuwa nasi siku yetu ya harusi. Mungu awabariki! — {couple}",
+    "thankYouDefault": "Asanteni sana kwa kuwa nasi. Mungu awabariki! — {couple}",
     "thankYouAudience": "Utatumwa kwa {count, plural, one {mgeni #} other {wageni #}} waliothibitisha au kufika.",
     "sendThankYou": "Tuma shukrani",
     "thankYouSent": "Ujumbe wa shukrani umeanza kutumwa",
-    "notYet": "Ujumbe wa shukrani unapatikana baada ya siku ya harusi."
+    "notYet": "Ujumbe wa shukrani unapatikana baada ya siku ya tukio."
   },
   "settings": {
     "title": "Mipangilio",
-    "event": "Taarifa za harusi",
+    "event": "Taarifa za tukio",
     "venue": "Ukumbi",
     "rsvp": "Majibu",
     "trust": "Mtumaji (kinaonekana kwenye kila kadi)",
@@ -1119,17 +1119,17 @@
     "save": "Hifadhi",
     "saved": "Mipangilio imehifadhiwa",
     "danger": "Eneo la hatari",
-    "archive": "Hifadhi harusi kwenye kumbukumbu",
+    "archive": "Hifadhi tukio kwenye kumbukumbu",
     "archiveHelp": "Majibu na malipo mapya yatazimwa. Data zitabaki kusomeka.",
     "archiveTitle": "Hifadhi {name} kwenye kumbukumbu?",
-    "archived": "Harusi imehifadhiwa kwenye kumbukumbu",
-    "delete": "Futa harusi",
-    "deleteHelp": "Inafuta harusi, wageni, kadi na kumbukumbu zote. Haiwezi kutenduliwa.",
+    "archived": "Tukio limehifadhiwa kwenye kumbukumbu",
+    "delete": "Futa tukio",
+    "deleteHelp": "Inafuta tukio, wageni, kadi na kumbukumbu zote. Haiwezi kutenduliwa.",
     "deleteTitle": "Futa {name} kabisa?",
     "deleteBody": "Kadi zote {count} zitaacha kufanya kazi, na data za wageni zitafutwa kabisa. Hatua hii haiwezi kutenduliwa.",
     "deleteType": "Andika {word} ili kuthibitisha",
     "deleteWord": "FUTA",
-    "deleted": "Harusi imefutwa",
+    "deleted": "Tukio limefutwa",
     "pledgesEnabled": "Ruhusu michango kwenye kadi",
     "fallbackHours": "Subiri saa ngapi kabla ya SMS"
   },
@@ -1147,7 +1147,7 @@
     "exportDone": "Ombi limepokelewa ({date}). Tutakutumia kiungo cha kupakua kwa SMS.",
     "deletion": "Omba kufuta akaunti",
     "deletionTitle": "Omba kufuta akaunti yako?",
-    "deletionBody": "Tutafuta akaunti yako na harusi unazomiliki ndani ya siku 30, kwa mujibu wa Sheria ya Ulinzi wa Taarifa Binafsi. Utapokea SMS ya uthibitisho.",
+    "deletionBody": "Tutafuta akaunti yako na matukio unayomiliki ndani ya siku 30, kwa mujibu wa Sheria ya Ulinzi wa Taarifa Binafsi. Utapokea SMS ya uthibitisho.",
     "deletionDone": "Ombi la kufuta limepokelewa ({date}).",
     "signOut": "Toka",
     "privacyLink": "Soma sera ya faragha"
@@ -1167,7 +1167,7 @@
     "title": "Dashibodi ya Harusi Pass",
     "staffOnly": "Sehemu hii ni kwa wafanyakazi wa Harusi Pass tu.",
     "staffOnlyTitle": "Huna ruhusa",
-    "backToConsole": "Rudi kwenye harusi zangu",
+    "backToConsole": "Rudi kwenye matukio yangu",
     "nav": {
       "overview": "Muhtasari",
       "organizers": "Wateja",
@@ -1191,7 +1191,7 @@
       "smsCost": "Gharama ya SMS (siku 30)",
       "contributions": "Michango (siku 30)",
       "contributionsCount": "{count, plural, one {malipo #} other {malipo #}}",
-      "paidPlans": "Harusi zilizolipiwa",
+      "paidPlans": "Matukio yaliyolipiwa",
       "openRequests": "Maombi ya data yanayosubiri",
       "messagesChart": "Jumbe zilizotumwa kwa siku",
       "attention": "Yanayohitaji hatua",
@@ -1230,7 +1230,7 @@
       "reveal": "Onyesha simu kamili"
     },
     "events": {
-      "title": "Harusi zote",
+      "title": "Matukio yote",
       "col": {
         "event": "Harusi",
         "owner": "Mmiliki",
@@ -1263,7 +1263,7 @@
         "cost": "Gharama"
       },
       "daily": "Jumbe kwa siku",
-      "topEvents": "Harusi zinazotumia zaidi",
+      "topEvents": "Matukio yanayotumia zaidi",
       "reasons": "Sababu za kushindwa",
       "reason": {
         "not_on_whatsapp": "Namba haina WhatsApp",

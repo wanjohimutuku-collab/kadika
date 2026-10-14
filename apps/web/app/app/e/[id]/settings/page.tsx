@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
+import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
 import { normalizeTzPhone } from '@harusi/schemas/phone';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -20,6 +21,7 @@ import { qk, useEvent, useSession } from '@/lib/queries';
 import { formatPhone, fromLocalInput, toLocalInput } from '@/lib/format';
 
 interface FormState {
+  eventKind: string;
   partnerA: string;
   partnerB: string;
   title: string;
@@ -38,6 +40,7 @@ interface FormState {
 
 function toForm(e: WeddingEvent): FormState {
   return {
+    eventKind: e.eventKind,
     partnerA: e.partnerA,
     partnerB: e.partnerB,
     title: e.title,
@@ -117,7 +120,8 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
     if (!form) return;
     const errs: typeof errors = {};
     if (form.partnerA.trim().length < 2) errs.partnerA = tv('name.too_short');
-    if (form.partnerB.trim().length < 2) errs.partnerB = tv('name.too_short');
+    if (form.partnerB.trim() && form.partnerB.trim().length < 2)
+      errs.partnerB = tv('name.too_short');
     if (form.venueName.trim().length < 2) errs.venueName = tv('venue.required');
     const phone = normalizeTzPhone(form.committeePhone);
     if (!phone.ok) errs.committeePhone = tv(`phone.${phone.error}`);
@@ -126,6 +130,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
     setErrors(errs);
     if (Object.keys(errs).length || !phone.ok) return;
     save.mutate({
+      eventKind: form.eventKind.trim(),
       partnerA: form.partnerA.trim(),
       partnerB: form.partnerB.trim(),
       title: form.title.trim(),
@@ -167,6 +172,20 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
               <Card title={t('event')} titleId="ev-h">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <TextField
+                    label={tw('kind')}
+                    hint={tw('kindHint')}
+                    list="event-kind-suggestions"
+                    maxLength={40}
+                    value={form.eventKind}
+                    onChange={(ev) => set('eventKind', ev.target.value)}
+                    wrapperClassName="sm:col-span-2"
+                  />
+                  <datalist id="event-kind-suggestions">
+                    {EVENT_KIND_SUGGESTIONS.map((k) => (
+                      <option key={k} value={k} />
+                    ))}
+                  </datalist>
+                  <TextField
                     label={tw('partnerA')}
                     value={form.partnerA}
                     onChange={(ev) => set('partnerA', ev.target.value)}
@@ -174,6 +193,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                   />
                   <TextField
                     label={tw('partnerB')}
+                    optionalLabel={tc('optional')}
                     value={form.partnerB}
                     onChange={(ev) => set('partnerB', ev.target.value)}
                     error={errors.partnerB}

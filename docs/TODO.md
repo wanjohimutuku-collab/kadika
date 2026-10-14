@@ -57,6 +57,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ `@harusi/gate` engine: offline QR verify, card-number/name/last-4 lookup, duplicate and override rules, sync queue with backoff, reissue via bundle refresh
 - ☑ Tests: 200 mixed scans offline → correct results, zero lost after reconnect, server log matches; two devices on one guest → one admit + one duplicate; forged / wrong-event / revoked; lockout; override rules
 - ☑ App: scanner UI, search, typed number, result overlay (AAA colours), sync sheet, camera-denied fallback, Lango tab, gate-join + kiosk, owner creates link and PIN; verified in a browser against the real API (typed-number admit, duplicate overlay, background sync)
+- ☐ Remaining device checks have a runbook: `docs/qa/gate-device-test.md` (torch LED, verify-vs-write timing, two phones, denied-permission on a phone)
 - ☑ Run on real Android (Samsung Galaxy A17, Android 16, Expo Go SDK 53, over Wi-Fi to a dev API): the camera decoded a real signed QR shown on a screen, verified offline on the phone, and the admission (party of 2) reached the server; full-screen ADMIT overlay seen on the phone; the system logs show 5 vibration effects and 5 audio tracks at the 5 scan times
 - ☑ SQLite across restarts on the phone: force-stopped Expo Go, relaunched, it opened straight into the gate with the saved bundle and admissions (2 / 3)
 - ☑ Offline on the phone: with the API process frozen the phone admitted a guest, then the server ordered it correctly against a second device (a scripted gate device running the real engine) that scanned later but synced first: the phone's earlier scan kept the admission and the second device saw "duplicate, first by the phone"
@@ -64,7 +65,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Two *physical* phones at once (second device was the real engine in a script; the emulator hung under load)
 - ☐ Torch: toggled on the phone and the camera service reports a torch request, not seen by eye
 - ◐ Release-mode timing (overlay ≤ 100 ms): a production-mode (`--no-dev --minify`) bundle on the Galaxy A17 measured 74–76 ms per scan end to end (verify + SQLite write, signing excluded), so the ≤ 100 ms target holds with little margin; the verify-vs-write split probe is in `/dev/gate-selftest` but its result was not read yet (phone locked)
-- ☐ Usability check: a first-time gate agent joins and scans with no instructions (3 people)
+- ☐ Usability check: a first-time gate agent joins and scans with no instructions (3 people) — protocol and recording sheet ready in `docs/ux/gate-usability-test.md`
 - ☑ Gate token lasts until its link expires (no mid-event expiry); vibration setting is remembered
 - ☑ Sound feedback: generated tones (rising two-tone admit, beep duplicate, low buzz deny) with a remembered toggle; tone generator unit-tested, playback unverified on a device
 - ☑ Android Hermes bundle builds (`expo export --platform android`, 3.4 MB) so every native import resolves

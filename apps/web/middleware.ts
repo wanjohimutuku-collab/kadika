@@ -13,4 +13,7 @@ export function middleware(req: NextRequest) {
   return NextResponse.next({ request: { headers } });
 }
 
-export const config = { matcher: ['/', '/privacy', '/terms'] };
+/** Public content routes only; private surfaces and assets are left alone. */
+export const config = {
+  matcher: ['/((?!_next|api|icons|c/|s/|k|app|ops|dev|login|sw\\.js|.*\\..*).*)'],
+};

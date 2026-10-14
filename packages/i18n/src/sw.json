@@ -333,7 +333,7 @@
     "wrongStaffCode": "Namba si sahihi. Jaribu tena."
   },
   "landing": {
-    "metaTitle": "Harusi Pass — Kadi za harusi zinazofanya kazi kwa kila mgeni",
+    "metaTitle": "Kadi ya Harusi Mtandaoni Tanzania | Harusi Pass",
     "heroTitle": "Kadi moja ya harusi: inafika kwa kila mgeni, inajibu, inachangia, inaingia mlangoni.",
     "heroBody": "WhatsApp, SMS au karatasi — kila mgeni anapata kadi yake yenye QR na namba. Hata bila smartphone, hata bila mtandao.",
     "cta": "Anza",
@@ -404,46 +404,31 @@
         "a": "Wakati wa majaribio ni bure. Gharama za SMS zinaonyeshwa kabla ya kutuma."
       }
     },
-    "footerTagline": "Imetengenezwa Tanzania kwa ajili ya harusi za Kitanzania.",
-    "openCard": "Fungua kadi yako"
-  },
-  "legal": {
-    "draftBanner": "Rasimu — maandishi haya si ya mwisho na yatapitiwa na mwanasheria kabla ya kuzinduliwa.",
-    "privacyTitle": "Sera ya faragha",
-    "termsTitle": "Masharti ya matumizi",
-    "updated": "Imesasishwa: {date}",
-    "privacy": {
-      "intro": "Harusi Pass inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni mlangoni. Tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania (2022).",
-      "collectTitle": "Tunachokusanya",
-      "collect": "Jina la mgeni, namba ya simu (ikiwa ipo), jibu la mwaliko, idadi ya watu, ahadi na malipo, na kumbukumbu ya kuingia mlangoni.",
-      "useTitle": "Tunavyotumia",
-      "use": "Kwa tukio husika tu: kutuma kadi na vikumbusho, kuonyesha hali kwa kamati, na kuthibitisha kuingia. Hatuuzi wala kushiriki data na watangazaji.",
-      "rightsTitle": "Haki zako",
-      "rights": "Mwenyeji anaweza kupakua au kufuta kabisa data ya mgeni kutoka kwenye programu. Mgeni anaweza kuomba nakala au kufutwa kwa kuwasiliana na kamati ya tukio au nasi.",
-      "securityTitle": "Usalama",
-      "security": "Viungo vya kadi ni vya kipekee na havitabiriki. Hatuombi nenosiri, PIN wala namba za siri kutoka kwa wageni.",
-      "contactTitle": "Mawasiliano",
-      "contact": "Kwa maswali kuhusu faragha: faragha@harusipass.co.tz",
-      "processorsTitle": "Watoa huduma tunaowatumia",
-      "processors": "Ili kutuma kadi na kuthibitisha malipo tunatumia: kampuni za ujumbe wa WhatsApp na SMS, mtoa huduma wa malipo ya simu, na seva za kuhifadhi data. Wanapokea tu kinachohitajika kufanya kazi hiyo na hawaruhusiwi kukitumia kwa shughuli nyingine.",
-      "retentionTitle": "Tunahifadhi kwa muda gani",
-      "retention": "Data za tukio zinabaki hadi mwenye harusi azifute au aombe zifutwe. Mgeni akifutwa kabisa, jina, simu na maelezo yake huondolewa; kiasi cha malipo kinabaki bila taarifa za mtu, kwa ajili ya hesabu za tukio. [Muda wa juu wa kuhifadhi utaamuliwa na mwanasheria.]",
-      "deviceTitle": "Kinachohifadhiwa kwenye kifaa chako",
-      "device": "Kadi yako huhifadhi nakala kwenye kifaa ili ionekane bila mtandao, na jibu lako hadi litumwe. Programu ya mlangoni huhifadhi orodha ya wageni kwenye simu ya mlinda lango; PIN ya lango haihifadhiwi. Hatutumii vidakuzi vya matangazo."
+    "footerTagline": "Imetengenezwa Tanzania kwa ajili ya harusi na sherehe za Kitanzania.",
+    "openCard": "Fungua kadi yako",
+    "metaDescription": "Tuma kadi ya harusi, send-off au uchumba kwa WhatsApp, SMS au karatasi. Fuatilia majibu na michango, na ingiza wageni langoni kwa QR bila mtandao.",
+    "definitionTitle": "Harusi Pass ni nini?",
+    "definition": "Harusi Pass ni huduma ya Kitanzania ya kadi za mwaliko za mtandaoni. Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi, ikiwa na QR na namba fupi. Kamati inaona nani amejibu, nani amechangia, na nani ameingia langoni, hata mtandao ukikatika.",
+    "eventsTitle": "Kwa harusi, send-off, uchumba na zaidi",
+    "events": {
+      "wedding": {
+        "title": "Kadi ya harusi mtandaoni",
+        "body": "Mwaliko wa kila mgeni, majibu na vikumbusho."
+      },
+      "sendoff": {
+        "title": "Kadi ya send-off",
+        "body": "Muage binti kwa mwaliko, michango na lango la familia."
+      },
+      "engagement": {
+        "title": "Kadi ya uchumba",
+        "body": "Mwaliko wa uchumba na engagement party."
+      },
+      "michango": {
+        "title": "Michango ya harusi",
+        "body": "Ahadi na malipo ya M-Pesa, Mixx by Yas, Airtel Money na HaloPesa."
+      }
     },
-    "terms": {
-      "intro": "Kwa kutumia Harusi Pass unakubali masharti haya ya rasimu.",
-      "accountTitle": "Akaunti",
-      "account": "Wenye harusi na kamati wanaingia kwa namba ya simu na namba ya uthibitisho. Unawajibika kwa taarifa za wageni unazoingiza.",
-      "messagesTitle": "Ujumbe",
-      "messages": "Tuma mialiko kwa watu unaowafahamu tu. Usitumie huduma kutuma matangazo.",
-      "paymentsTitle": "Malipo",
-      "payments": "Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Harusi Pass haihifadhi PIN za malipo.",
-      "liabilityTitle": "Mipaka ya dhima",
-      "liability": "Huduma inatolewa kama ilivyo wakati wa majaribio.",
-      "gateTitle": "Walinda lango",
-      "gate": "Mwenyeji huwapa walinda lango kiungo na PIN. Usishiriki PIN. Mwenyeji anaweza kufuta viungo vya lango wakati wowote, na kila hatua inarekodiwa."
-    }
+    "moreTitle": "Miongozo"
   },
   "status": {
     "created": "Iliyoundwa",

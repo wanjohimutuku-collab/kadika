@@ -1,21 +1,16 @@
 import type { Metadata } from 'next';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getLocale } from 'next-intl/server';
 import type { Locale } from '@harusi/i18n';
-import { SeoLinks } from '@/components/public/seo-links';
-import { LegalPage } from '@/components/public/legal-page';
+import { ContentPage } from '@/components/public/content-page';
+import { getPage, textOf } from '@/content';
+
+const page = getPage('privacy')!;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: (await getTranslations('legal'))('privacyTitle'),
-  };
+  const t = textOf(page, (await getLocale()) as Locale);
+  return { title: { absolute: t.title }, description: t.description };
 }
 
 export default async function PrivacyPage() {
-  const locale = (await getLocale()) as Locale;
-  return (
-    <>
-      <SeoLinks path="/privacy" locale={locale} />
-      <LegalPage kind="privacy" />
-    </>
-  );
+  return <ContentPage page={page} locale={(await getLocale()) as Locale} />;
 }

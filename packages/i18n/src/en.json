@@ -329,7 +329,7 @@
     "wrongStaffCode": "The code is not correct. Try again."
   },
   "landing": {
-    "metaTitle": "Harusi Pass — Wedding cards that work for every guest",
+    "metaTitle": "Digital Wedding Invitations Tanzania | Harusi Pass",
     "heroTitle": "One wedding card that reaches every guest, collects replies and contributions, and opens the gate.",
     "heroBody": "WhatsApp, SMS or paper — every guest gets their own card with a QR and a number. Even without a smartphone, even without a network.",
     "cta": "Get started",
@@ -400,46 +400,31 @@
         "a": "It is free during the pilot. SMS costs are shown before sending."
       }
     },
-    "footerTagline": "Made in Tanzania for Tanzanian weddings.",
-    "openCard": "Open your card"
-  },
-  "legal": {
-    "draftBanner": "Draft — this text is not final and will be reviewed by a lawyer before launch.",
-    "privacyTitle": "Privacy notice",
-    "termsTitle": "Terms of use",
-    "updated": "Updated: {date}",
-    "privacy": {
-      "intro": "Harusi Pass collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We follow Tanzania's Personal Data Protection Act (2022).",
-      "collectTitle": "What we collect",
-      "collect": "Guest name, phone number (if any), RSVP, party size, pledges and payments, and the gate check-in record.",
-      "useTitle": "How we use it",
-      "use": "For that event only: sending cards and reminders, showing status to the committee, and confirming entry. We do not sell or share data with advertisers.",
-      "rightsTitle": "Your rights",
-      "rights": "The host can download or permanently erase a guest's data from the app. A guest can ask for a copy or for erasure by contacting the organising committee or us.",
-      "securityTitle": "Security",
-      "security": "Card links are unique and unguessable. We never ask guests for passwords, PINs or secret codes.",
-      "contactTitle": "Contact",
-      "contact": "Privacy questions: faragha@harusipass.co.tz",
-      "processorsTitle": "Providers we use",
-      "processors": "To send cards and confirm payments we use WhatsApp and SMS messaging companies, a mobile-money payment provider and servers that store data. They receive only what is needed to do that job and may not use it for anything else.",
-      "retentionTitle": "How long we keep it",
-      "retention": "Event data stays until the host deletes it or asks for it to be deleted. When a guest is erased, their name, phone and notes are removed; the payment amount stays without any personal details, for the event's accounts. [The maximum retention period will be set by a lawyer.]",
-      "deviceTitle": "What is kept on your device",
-      "device": "Your card keeps a copy on your device so it shows offline, and your reply until it is sent. The gate app keeps the guest list on the gate agent's phone; the gate PIN is never stored. We do not use advertising cookies."
+    "footerTagline": "Made in Tanzania for Tanzanian weddings and celebrations.",
+    "openCard": "Open your card",
+    "metaDescription": "Send wedding, send-off or engagement cards by WhatsApp, SMS or paper. Track replies and contributions, and admit guests at the gate by QR, even offline.",
+    "definitionTitle": "What is Harusi Pass?",
+    "definition": "Harusi Pass is a Tanzanian service for online invitations. Every guest gets their own card by WhatsApp, SMS or paper, with a QR and a short number. The committee sees who replied, who contributed and who arrived at the gate, even when the network drops.",
+    "eventsTitle": "For weddings, send-offs, engagements and more",
+    "events": {
+      "wedding": {
+        "title": "Digital wedding cards",
+        "body": "A card per guest, replies and reminders."
+      },
+      "sendoff": {
+        "title": "Send-off invitations",
+        "body": "See the bride off with invitations, contributions and a family gate."
+      },
+      "engagement": {
+        "title": "Engagement invitations",
+        "body": "Invitations for an engagement or uchumba party."
+      },
+      "michango": {
+        "title": "Wedding contributions",
+        "body": "Pledges and payments by M-Pesa, Mixx by Yas, Airtel Money and HaloPesa."
+      }
     },
-    "terms": {
-      "intro": "By using Harusi Pass you accept these draft terms.",
-      "accountTitle": "Accounts",
-      "account": "Couples and committee members sign in with a phone number and a confirmation code. You are responsible for the guest information you enter.",
-      "messagesTitle": "Messages",
-      "messages": "Only invite people you know. Do not use the service for advertising.",
-      "paymentsTitle": "Payments",
-      "payments": "Contributions are paid through licensed payment providers. Harusi Pass never stores payment PINs.",
-      "liabilityTitle": "Limitation of liability",
-      "liability": "The service is provided as is during the pilot.",
-      "gateTitle": "Gate agents",
-      "gate": "The host gives gate agents a link and PIN. Do not share the PIN. The host can revoke gate links at any time, and every step is recorded."
-    }
+    "moreTitle": "Guides"
   },
   "status": {
     "created": "Created",

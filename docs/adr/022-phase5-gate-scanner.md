@@ -25,3 +25,14 @@ API integration tests (real routes, PGlite, real engine): lockout and scoped tok
 ## Not verified
 
 The Android bundle compiles (`expo export --platform android`), but nothing has run on Android. No Android device or emulator: camera scanning, torch, haptics, SQLite persistence across restarts, keep-awake, the 100 ms overlay target, usability with three first-time agents and the 2 GB RAM check are all untested. Multi-device behaviour was tested through the API, not with two physical phones.
+
+## Found on real devices (and fixed)
+
+- The engine's default `crypto.randomUUID` does not exist in Hermes, so the first scan would have crashed on a phone; the app now passes `expo-crypto`'s.
+- On Android (edge-to-edge) the keyboard covered the footer button and the sheets' buttons, so a typed number or PIN could not be submitted; screens and sheets now use `KeyboardAvoidingView`, and Enter submits the typed number.
+- Gate API calls had no timeout, so a dead network could hang the sync loop; they now fail after 12 s and back off.
+- The dev self-test (`/dev/gate-selftest`, dev builds only) runs 200 scans against the real SQLite store and Hermes crypto; it must not stay in the navigation stack because Fast Refresh reruns it and starves the UI.
+
+## Verified on hardware (Phase 5 sign-off status)
+
+Samsung Galaxy A17 (Android 16) with Expo Go SDK 53 against a dev API on the same Wi-Fi: real camera decode of a signed QR, offline verification, sync, vibration and sound events, SQLite survival across a force-stop, a real network outage (API frozen) with a later cross-device conflict resolved by earliest scan. Still open: two physical phones, a release build on a 2 GB device, the three-person usability test.

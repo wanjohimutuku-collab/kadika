@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { GateEngine, MemoryGateStore, type GateRole, type GateStore } from '@harusi/gate';
 import { useOnline } from '../lib/network';
 import { getDeviceId } from './device';
@@ -65,7 +66,8 @@ export function useGate({ eventId, role, token, refresh }: Opts) {
       if (!alive) return;
       setDeviceId(id);
       store.current = s;
-      engine.current = new GateEngine(s, { deviceId: id, role });
+      // Hermes has no global crypto.randomUUID, so the engine gets expo-crypto's
+      engine.current = new GateEngine(s, { deviceId: id, role, uuid: () => Crypto.randomUUID() });
       if (await engine.current.load()) {
         await refreshStats();
         setLastSync(await s.getKv('lastSyncAt'));

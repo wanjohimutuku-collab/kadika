@@ -7,7 +7,9 @@ export function makeGateApi(
   auth: { token: () => string | null; refresh?: () => Promise<void> },
 ): GateApi {
   async function call(path: string, init: RequestInit = {}, retried = false): Promise<Response> {
+    // A dead or captive network must fail fast (and back off), never hang the sync loop.
     const res = await fetch(`${API_URL}/v1/events/${eventId}/gate${path}`, {
+      signal: AbortSignal.timeout(12_000),
       ...init,
       headers: {
         'content-type': 'application/json',

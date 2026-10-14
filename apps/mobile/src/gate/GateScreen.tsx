@@ -114,6 +114,12 @@ export function GateScreen(p: Props) {
   const results =
     g.engine.current && query.trim().length >= 2 ? g.engine.current.search(query) : [];
   const canOverride = p.role !== 'gate';
+  const submitCode = async () => {
+    const o = await g.engine.current!.scanCode(code);
+    setSheet(null);
+    setCode('');
+    show(o);
+  };
 
   // ---- first run: the list has to be downloaded once
   if (g.state === 'opening' || g.state === 'downloading')
@@ -263,16 +269,10 @@ export function GateScreen(p: Props) {
           onChangeText={setCode}
           autoCapitalize="characters"
           autoCorrect={false}
+          returnKeyType="go"
+          onSubmitEditing={submitCode}
         />
-        <Button
-          label={t('gateApp.go')}
-          onPress={async () => {
-            const o = await g.engine.current!.scanCode(code);
-            setSheet(null);
-            setCode('');
-            show(o);
-          }}
-        />
+        <Button label={t('gateApp.go')} onPress={submitCode} />
       </Sheet>
 
       <Sheet

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   ScrollView,
@@ -31,32 +32,35 @@ export function Screen({
   const c = useColors();
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={['left', 'right']}>
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={{
-            padding: spacing.lg,
-            gap: spacing.md,
-            paddingBottom: spacing.xxxl,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={{ flex: 1, padding: spacing.lg, gap: spacing.md }}>{children}</View>
-      )}
-      {footer ? (
-        <View
-          style={{
-            padding: spacing.lg,
-            borderTopWidth: 1,
-            borderColor: c.border,
-            backgroundColor: c.bg,
-          }}
-        >
-          {footer}
-        </View>
-      ) : null}
+      {/* Android is edge-to-edge here, so the keyboard would cover the footer without this. */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={{
+              padding: spacing.lg,
+              gap: spacing.md,
+              paddingBottom: spacing.xxxl,
+            }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={{ flex: 1, padding: spacing.lg, gap: spacing.md }}>{children}</View>
+        )}
+        {footer ? (
+          <View
+            style={{
+              padding: spacing.lg,
+              borderTopWidth: 1,
+              borderColor: c.border,
+              backgroundColor: c.bg,
+            }}
+          >
+            {footer}
+          </View>
+        ) : null}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -419,29 +423,41 @@ export function Sheet({
 }) {
   const c = useColors();
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        style={{ flex: 1, backgroundColor: '#00000066' }}
-        onPress={onClose}
-        accessibilityLabel="close"
-      />
-      <View
-        style={{
-          backgroundColor: c.bg,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          padding: spacing.lg,
-          gap: spacing.md,
-          maxHeight: '85%',
-        }}
-      >
-        <Txt bold size={20}>
-          {title}
-        </Txt>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.md }}>
-          {children}
-        </ScrollView>
-      </View>
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      {/* the sheet rides above the keyboard so its buttons stay tappable on Android */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <Pressable
+          style={{ flex: 1, backgroundColor: '#00000066' }}
+          onPress={onClose}
+          accessibilityLabel="close"
+        />
+        <View
+          style={{
+            backgroundColor: c.bg,
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            padding: spacing.lg,
+            gap: spacing.md,
+            maxHeight: '85%',
+          }}
+        >
+          <Txt bold size={20}>
+            {title}
+          </Txt>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ gap: spacing.md }}
+          >
+            {children}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

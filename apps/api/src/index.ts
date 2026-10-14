@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { createDb } from '@harusi/db';
 import {
   EvolutionWhatsAppProvider,
+  WhatsAppCloudProvider,
   FakeMessagingProvider,
   NextSmsProvider,
   type MessagingProvider,
@@ -33,6 +34,26 @@ if (config.whatsappProvider === 'evolution') {
       'WHATSAPP_PROVIDER=evolution needs EVOLUTION_BASE_URL, EVOLUTION_INSTANCE and EVOLUTION_API_KEY',
     );
   whatsapp = new EvolutionWhatsAppProvider(config.evolution);
+} else if (config.whatsappProvider === 'cloud') {
+  if (!config.whatsappCloud)
+    throw new Error('WHATSAPP_PROVIDER=cloud needs WHATSAPP_TOKEN and WHATSAPP_PHONE_ID');
+  if (!config.whatsappCloud.templates.invite)
+    console.log(
+      JSON.stringify({
+        level: 'warn',
+        msg: 'WHATSAPP_TEMPLATE_INVITE not set: first-contact invitations will fail on WhatsApp and fall back to SMS',
+      }),
+    );
+  whatsapp = new WhatsAppCloudProvider({
+    token: config.whatsappCloud.token,
+    phoneNumberId: config.whatsappCloud.phoneNumberId,
+    apiVersion: config.whatsappCloud.apiVersion,
+    templates: config.whatsappCloud.templates,
+  });
+} else if (config.whatsappProvider !== 'fake') {
+  throw new Error(
+    `Unknown WHATSAPP_PROVIDER "${config.whatsappProvider}" (fake | evolution | cloud)`,
+  );
 }
 // §12: OTPs are never logged. For local development only, DEV_LOG_OTP=1 prints the SMS body.
 if (process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production') {

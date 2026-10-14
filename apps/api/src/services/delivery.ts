@@ -2,7 +2,7 @@ import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { buildInviteSms, buildReminderSms } from '@harusi/api-client';
-import type { DeliveryState } from '@harusi/messaging';
+import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
 import type { MessageChannel, MessagingProvider } from '@harusi/messaging';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
@@ -104,12 +104,13 @@ export class DeliveryService {
     p: MessagingProvider,
     to: string,
     body: string,
+    template?: MessageTemplate,
   ): Promise<{ ok: true; id: string; cost?: number } | { ok: false; error: string }> {
     const sleep = this.deps.sleep ?? ((ms) => new Promise<void>((r) => setTimeout(r, ms)));
     let error = 'unknown error';
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
       try {
-        const r = await p.send(to, body);
+        const r = await p.send(to, body, template);
         return { ok: true, id: r.providerMsgId, cost: r.costTzs };
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
@@ -157,7 +158,7 @@ export class DeliveryService {
     inv: typeof invitations.$inferSelect,
     event: typeof events.$inferSelect,
     daysLeft?: number,
-  ): Promise<string> {
+  ): Promise<{ text: string; template: MessageTemplate }> {
     const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
     const token = await this.cardToken(inv);
     const base = {
@@ -168,7 +169,21 @@ export class DeliveryService {
       shortLink: `${this.deps.config.shortBaseUrl}/s/${token}`,
       code: guest.shortCode,
     };
-    return daysLeft === undefined ? buildInviteSms(base) : buildReminderSms({ ...base, daysLeft });
+    const template: MessageTemplate = {
+      kind: daysLeft === undefined ? 'invite' : 'reminder',
+      locale: guest.language,
+      params: [
+        a,
+        b,
+        daysLeft === undefined ? base.dateText : String(daysLeft),
+        base.shortLink,
+        base.code,
+      ],
+    };
+    return {
+      text: daysLeft === undefined ? buildInviteSms(base) : buildReminderSms({ ...base, daysLeft }),
+      template,
+    };
   }
 
   /** Tries each channel in order; logs every attempt; marks the invitation sent on the first success. */
@@ -180,12 +195,12 @@ export class DeliveryService {
     channels: MessageChannel[],
     daysLeft?: number,
   ): Promise<{ ok: true; channel: MessageChannel } | { ok: false; error: string }> {
-    const text = await this.text(guest, inv, event, daysLeft);
+    const { text, template } = await this.text(guest, inv, event, daysLeft);
     let lastError = 'no provider configured';
     for (const ch of channels) {
       const p = this.provider(ch);
       if (!p) continue;
-      const r = await this.attempt(p, guest.phoneE164!, text);
+      const r = await this.attempt(p, guest.phoneE164!, text, template);
       await this.log(guest.id, ch, p.name, r, kind);
       if (r.ok) {
         await this.deps.db

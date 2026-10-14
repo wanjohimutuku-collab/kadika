@@ -7,14 +7,26 @@ export interface SendResult {
   costTzs?: number;
 }
 
+/**
+ * Structured form of a message, for providers that need an approved template (WhatsApp Cloud API
+ * business-initiated messages). Providers that send free text ignore it.
+ */
+export interface MessageTemplate {
+  kind: 'invite' | 'reminder';
+  locale: 'sw' | 'en';
+  /** Positional values for {{1}}…{{n}}: invite = A, B, date, link, code; reminder = A, B, days, link, code. */
+  params: string[];
+}
+
 export interface MessagingProvider {
   readonly name: string;
   readonly channel: MessageChannel;
   /** Throws on failure; callers record the error in `message_log`. */
-  send(to: string, body: string): Promise<SendResult>;
+  send(to: string, body: string, template?: MessageTemplate): Promise<SendResult>;
 }
 
 export interface SentMessage {
+  template?: MessageTemplate;
   to: string;
   body: string;
   channel: MessageChannel;
@@ -35,9 +47,9 @@ export class FakeMessagingProvider implements MessagingProvider {
     private readonly failFor: (to: string) => boolean = () => false,
   ) {}
 
-  async send(to: string, body: string): Promise<SendResult> {
+  async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
     if (this.failFor(to)) throw new Error('fake provider failure');
-    this.sent.push({ to, body, channel: this.channel, at: new Date() });
+    this.sent.push({ to, body, template, channel: this.channel, at: new Date() });
     return { providerMsgId: `fake-${++this.counter}`, costTzs: this.channel === 'sms' ? 25 : 0 };
   }
 
@@ -48,3 +60,4 @@ export class FakeMessagingProvider implements MessagingProvider {
 }
 export * from './evolution';
 export * from './nextsms';
+export * from './whatsapp-cloud';

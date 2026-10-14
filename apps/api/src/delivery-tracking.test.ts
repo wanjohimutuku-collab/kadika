@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { events, guests, messageLog } from '@harusi/db';
@@ -74,6 +75,64 @@ describe('delivery webhooks and fallback', () => {
     expect(
       (await ctx.db.select().from(messageLog).where(eq(messageLog.providerMsgId, id)))[0]!.status,
     ).toBe('delivered');
+  });
+
+  it('hands the WhatsApp provider the template parameters for invitations and reminders', async () => {
+    const { ev, t } = await setup('0777000020', new Date(ctx.clock.now + 14 * DAY));
+    const g = (await add(ev.id, t, { displayName: 'Bibi Pendo', phone: '0713000020' })).body!;
+    ctx.whatsapp.sent.length = 0;
+    await sendAll(ev.id, t);
+    const inv = ctx.whatsapp.sent[0]!;
+    expect(inv.template).toMatchObject({ kind: 'invite', locale: 'sw' });
+    expect(inv.template!.params.slice(0, 3)).toEqual([
+      'Asha',
+      'Juma',
+      expect.stringMatching(/^\d+ \w+ \d{4}$/),
+    ]);
+    expect(inv.template!.params[3]).toMatch(/\/s\//);
+    expect(inv.template!.params[4]).toBe(g.shortCode);
+    ctx.whatsapp.sent.length = 0;
+    await delivery.sendReminders();
+    expect(ctx.whatsapp.sent[0]!.template).toMatchObject({ kind: 'reminder' });
+    expect(ctx.whatsapp.sent[0]!.template!.params[2]).toBe('14');
+  });
+
+  it('accepts official WhatsApp Cloud webhooks: handshake, signature and delivery statuses', async () => {
+    const { ev, t } = await setup('0777000021', new Date(ctx.clock.now + 60 * DAY));
+    await add(ev.id, t, { displayName: 'Bibi Pendo', phone: '0713000021' });
+    await sendAll(ev.id, t);
+    const [log] = await ctx.db.select().from(messageLog);
+
+    const ok = await ctx.app.request(
+      '/v1/webhooks/whatsapp-cloud?hub.mode=subscribe&hub.verify_token=verify-me&hub.challenge=777',
+    );
+    expect(await ok.text()).toBe('777');
+    const bad = await ctx.app.request(
+      '/v1/webhooks/whatsapp-cloud?hub.mode=subscribe&hub.verify_token=nope&hub.challenge=777',
+    );
+    expect(bad.status).toBe(403);
+
+    const raw = JSON.stringify({
+      entry: [
+        { changes: [{ value: { statuses: [{ id: log!.providerMsgId, status: 'delivered' }] } }] },
+      ],
+    });
+    const post = (body: string, sig?: string) =>
+      ctx.app.request('/v1/webhooks/whatsapp-cloud', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(sig ? { 'x-hub-signature-256': sig } : {}),
+        },
+        body,
+      });
+    expect((await post(raw)).status).toBe(401);
+    expect((await post(raw, 'sha256=' + 'a'.repeat(64))).status).toBe(401);
+    expect((await stats(ev.id, t)).byStatus).toMatchObject({ sent: 1 });
+    const sig = 'sha256=' + createHmac('sha256', 'meta-app-secret').update(raw).digest('hex');
+    const res = await post(raw, sig);
+    expect(await res.json()).toMatchObject({ ok: true, updates: 1 });
+    expect((await stats(ev.id, t)).byStatus).toMatchObject({ delivered: 1 });
   });
 
   it('sends one SMS when a WhatsApp invitation is still undelivered after N hours', async () => {

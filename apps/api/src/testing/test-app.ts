@@ -42,6 +42,10 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
       JWT_SECRET: 'test-secret-at-least-16-chars',
       KEY_ENC_SECRET: TEST_KEY,
       WEBHOOK_SECRET: 'hook-secret-for-tests',
+      WHATSAPP_TOKEN: 'cloud-token',
+      WHATSAPP_PHONE_ID: '1234567890',
+      WHATSAPP_VERIFY_TOKEN: 'verify-me',
+      WHATSAPP_APP_SECRET: 'meta-app-secret',
     }),
     now: opts.now ?? (() => new Date(clock.now)),
     // Deterministic bytes: tests are reproducible but ids and tokens still differ between calls.

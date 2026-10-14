@@ -5,7 +5,13 @@ import { z, ZodError } from 'zod';
 import { eq } from 'drizzle-orm';
 import { timingSafeEqual } from 'node:crypto';
 import { hashGuestToken } from '@harusi/crypto';
-import { parseEvolutionUpdate, parseNextSmsStatus } from '@harusi/messaging';
+import {
+  metaVerifyChallenge,
+  parseCloudStatuses,
+  parseEvolutionUpdate,
+  parseNextSmsStatus,
+  verifyMetaSignature,
+} from '@harusi/messaging';
 import { users } from '@harusi/db';
 import type { HealthResponse } from '@harusi/schemas';
 import type { Deps } from './context';
@@ -195,6 +201,34 @@ export function createApp(deps: Deps) {
   app.post('/v1/webhooks/whatsapp', async (c) => {
     webhookAuth(c);
     const updates = parseEvolutionUpdate(await body(c));
+    for (const u of updates) await deliverySvc.recordDelivery(u.providerMsgId, u.state);
+    return c.json({ ok: true, updates: updates.length });
+  });
+  // Official WhatsApp Cloud API: Meta's subscribe handshake, then HMAC-signed status callbacks.
+  app.get('/v1/webhooks/whatsapp-cloud', (c) => {
+    const want = deps.config.whatsappCloud?.verifyToken;
+    if (!want) throw new ApiError('forbidden', 'Webhooks are not configured');
+    const q = c.req.query();
+    const challenge = metaVerifyChallenge(
+      { mode: q['hub.mode'], token: q['hub.verify_token'], challenge: q['hub.challenge'] },
+      want,
+    );
+    if (challenge === null) throw new ApiError('forbidden', 'Bad verify token');
+    return c.text(challenge);
+  });
+  app.post('/v1/webhooks/whatsapp-cloud', async (c) => {
+    const secret = deps.config.whatsappCloud?.appSecret;
+    if (!secret) throw new ApiError('forbidden', 'Webhooks are not configured');
+    const raw = await c.req.text();
+    if (!verifyMetaSignature(raw, c.req.header('x-hub-signature-256'), secret))
+      throw new ApiError('unauthorized', 'Bad signature');
+    let payload: unknown;
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      throw new ApiError('validation', 'Body must be JSON');
+    }
+    const updates = parseCloudStatuses(payload);
     for (const u of updates) await deliverySvc.recordDelivery(u.providerMsgId, u.state);
     return c.json({ ok: true, updates: updates.length });
   });

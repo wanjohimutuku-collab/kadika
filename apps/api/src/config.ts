@@ -10,6 +10,15 @@ export interface Config {
   /** Shared secret for delivery webhooks (header `x-webhook-secret`); webhooks are off without it. */
   webhookSecret: string | null;
   evolution: { baseUrl: string; instance: string; apiKey: string } | null;
+  /** Official WhatsApp Business Cloud API (alternative to Evolution). */
+  whatsappCloud: {
+    token: string;
+    phoneNumberId: string;
+    apiVersion: string;
+    verifyToken: string | null;
+    appSecret: string | null;
+    templates: { invite?: string; reminder?: string };
+  } | null;
   nextSms: { username: string; password: string; senderId: string } | null;
   redisUrl: string | null;
   /** Hours a WhatsApp invitation may stay undelivered before the SMS fallback (§7.2). */
@@ -48,6 +57,20 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
             baseUrl: env.EVOLUTION_BASE_URL.replace(/\/$/, ''),
             instance: env.EVOLUTION_INSTANCE,
             apiKey: env.EVOLUTION_API_KEY,
+          }
+        : null,
+    whatsappCloud:
+      env.WHATSAPP_TOKEN && env.WHATSAPP_PHONE_ID
+        ? {
+            token: env.WHATSAPP_TOKEN,
+            phoneNumberId: env.WHATSAPP_PHONE_ID,
+            apiVersion: env.WHATSAPP_API_VERSION ?? 'v21.0',
+            verifyToken: env.WHATSAPP_VERIFY_TOKEN ?? null,
+            appSecret: env.WHATSAPP_APP_SECRET ?? null,
+            templates: {
+              invite: env.WHATSAPP_TEMPLATE_INVITE,
+              reminder: env.WHATSAPP_TEMPLATE_REMINDER,
+            },
           }
         : null,
     nextSms:

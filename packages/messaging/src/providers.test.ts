@@ -1,7 +1,12 @@
+import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   EvolutionWhatsAppProvider,
   NextSmsProvider,
+  WhatsAppCloudProvider,
+  metaVerifyChallenge,
+  parseCloudStatuses,
+  verifyMetaSignature,
   parseEvolutionUpdate,
   parseNextSmsStatus,
   toEvolutionNumber,
@@ -111,5 +116,108 @@ describe('NextSmsProvider', () => {
     expect(await p.report('1')).toBe('delivered');
     expect(parseNextSmsStatus({ groupName: 'UNDELIVERABLE' })).toBe('failed');
     expect(parseNextSmsStatus({ groupName: 'PENDING' })).toBe('pending');
+  });
+});
+
+describe('WhatsAppCloudProvider', () => {
+  const base = {
+    token: 'tok',
+    phoneNumberId: '1234567890',
+    templates: { invite: 'harusi_invite', reminder: 'harusi_reminder' },
+  };
+  const template = {
+    kind: 'invite' as const,
+    locale: 'sw' as const,
+    params: ['Asha', 'Juma', '1 Juni 2027', 'https://s.test/s/abc', 'KH-4821'],
+  };
+
+  it('sends an approved template with positional parameters and Bearer auth', async () => {
+    const { impl, calls } = fakeFetch(200, { messages: [{ id: 'wamid.ABC' }] });
+    const p = new WhatsAppCloudProvider({ ...base, fetchImpl: impl });
+    expect((await p.send('+255712345678', 'plain text', template)).providerMsgId).toBe('wamid.ABC');
+    expect(calls[0]!.url).toBe('https://graph.facebook.com/v21.0/1234567890/messages');
+    expect((calls[0]!.init.headers as Record<string, string>).authorization).toBe('Bearer tok');
+    expect(JSON.parse(calls[0]!.init.body as string)).toEqual({
+      messaging_product: 'whatsapp',
+      to: '255712345678',
+      type: 'template',
+      template: {
+        name: 'harusi_invite',
+        language: { code: 'sw' },
+        components: [
+          { type: 'body', parameters: template.params.map((text) => ({ type: 'text', text })) },
+        ],
+      },
+    });
+  });
+  it('uses the reminder template, and plain text when no template is configured', async () => {
+    const a = fakeFetch(200, { messages: [{ id: 'w1' }] });
+    await new WhatsAppCloudProvider({ ...base, fetchImpl: a.impl }).send('+255712345678', 'x', {
+      ...template,
+      kind: 'reminder',
+    });
+    expect(JSON.parse(a.calls[0]!.init.body as string).template.name).toBe('harusi_reminder');
+    const b = fakeFetch(200, { messages: [{ id: 'w2' }] });
+    await new WhatsAppCloudProvider({ token: 't', phoneNumberId: '1', fetchImpl: b.impl }).send(
+      '+255712345678',
+      'Karibu',
+      template,
+    );
+    expect(JSON.parse(b.calls[0]!.init.body as string)).toMatchObject({
+      type: 'text',
+      text: { body: 'Karibu' },
+    });
+  });
+  it('reports the Meta error code without echoing the message text or token', async () => {
+    const p = new WhatsAppCloudProvider({
+      ...base,
+      fetchImpl: fakeFetch(400, {
+        error: { code: 131047, message: 'to 255712345678 re-engagement' },
+      }).impl,
+    });
+    await expect(p.send('+255712345678', 'x', template)).rejects.toThrow(
+      /^whatsapp-cloud 400 code 131047$/,
+    );
+    const none = new WhatsAppCloudProvider({ ...base, fetchImpl: fakeFetch(200, {}).impl });
+    await expect(none.send('+255712345678', 'x', template)).rejects.toThrow(/no message id/);
+  });
+  it('verifies Meta signatures, the subscribe handshake and status callbacks', () => {
+    const raw = JSON.stringify({ entry: [] });
+    const sig = 'sha256=' + createHmac('sha256', 'app-secret').update(raw).digest('hex');
+    expect(verifyMetaSignature(raw, sig, 'app-secret')).toBe(true);
+    expect(verifyMetaSignature(raw + ' ', sig, 'app-secret')).toBe(false);
+    expect(verifyMetaSignature(raw, undefined, 'app-secret')).toBe(false);
+    expect(verifyMetaSignature(raw, 'sha256=abc', 'app-secret')).toBe(false);
+    expect(metaVerifyChallenge({ mode: 'subscribe', token: 'v', challenge: '42' }, 'v')).toBe('42');
+    expect(
+      metaVerifyChallenge({ mode: 'subscribe', token: 'bad', challenge: '42' }, 'v'),
+    ).toBeNull();
+    expect(
+      parseCloudStatuses({
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  statuses: [
+                    { id: 'a', status: 'delivered' },
+                    { id: 'b', status: 'read' },
+                    { id: 'c', status: 'failed' },
+                    { id: 'd', status: 'sent' },
+                    { status: 'read' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toEqual([
+      { providerMsgId: 'a', state: 'delivered' },
+      { providerMsgId: 'b', state: 'read' },
+      { providerMsgId: 'c', state: 'failed' },
+      { providerMsgId: 'd', state: 'pending' },
+    ]);
+    expect(parseCloudStatuses(null)).toEqual([]);
   });
 });

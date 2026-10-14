@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Switch, Text, View } from 'react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import type { SendJob } from '@harusi/api-client';
 import { buildInviteSms, estimateSmsCost } from '@harusi/api-client';
@@ -8,6 +8,7 @@ import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { formatDate, formatTzs } from '../../../../../src/lib/format';
 import { useOnline } from '../../../../../src/lib/network';
 import { useColors } from '../../../../../src/lib/theme';
+import { Icon } from '../../../../../src/ui/icons';
 import {
   Banner,
   Button,
@@ -15,7 +16,8 @@ import {
   ConfirmSheet,
   Kpi,
   Screen,
-  Segmented,
+  SectionTitle,
+  Tile,
   Txt,
 } from '../../../../../src/ui/kit';
 
@@ -84,6 +86,7 @@ export default function Send() {
         footer={
           job.counts.failed > 0 ? (
             <Button
+              icon="sync"
               label={t('send.retryFailed')}
               loading={retry.isPending}
               onPress={async () => setJob(await retry.mutateAsync(job.id))}
@@ -93,12 +96,30 @@ export default function Send() {
           )
         }
       >
-        <Txt size={20} bold>
-          {t('send.progressDone')}
-        </Txt>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Kpi label={t('send.counters.sent')} value={job.counts.sent} />
-          <Kpi label={t('send.counters.failed')} value={job.counts.failed} />
+        <View style={{ alignItems: 'center', gap: 10, paddingVertical: 12 }}>
+          <View
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: 36,
+              backgroundColor: (job.counts.failed > 0 ? c.warning : c.success) + '1F',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon
+              name={job.counts.failed > 0 ? 'warn' : 'checkCircle'}
+              size={36}
+              color={job.counts.failed > 0 ? c.warning : c.success}
+            />
+          </View>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: c.ink }}>
+            {t('send.progressDone')}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Kpi icon="send" label={t('send.counters.sent')} value={job.counts.sent} />
+          <Kpi icon="warn" label={t('send.counters.failed')} value={job.counts.failed} />
         </View>
         {job.counts.failed > 0 ? (
           <Banner
@@ -107,9 +128,12 @@ export default function Send() {
           />
         ) : null}
         {job.failures.map((f) => (
-          <Txt key={f.guestId} size={14} color={c.danger}>
-            {f.guestName}: {f.error}
-          </Txt>
+          <View key={f.guestId} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Icon name="close" size={16} color={c.danger} />
+            <Txt size={14} color={c.danger}>
+              {f.guestName}: {f.error}
+            </Txt>
+          </View>
         ))}
       </Screen>
     );
@@ -118,58 +142,110 @@ export default function Send() {
     <Screen
       footer={
         <Button
-          label={t('send.sendNow')}
+          icon="send"
+          label={`${t('send.sendNow')} (${targets.length})`}
           disabled={targets.length === 0 || !online}
           loading={send.isPending}
           onPress={() => setConfirm(true)}
         />
       }
     >
-      <Txt size={20} bold>
-        {t('send.title')}
-      </Txt>
       {!online ? <Banner tone="warning" text={t('send.offline')} /> : null}
+
       <Card>
-        <Txt bold>{t('send.audience')}</Txt>
-        <Txt>
-          {t('send.audiences.unsent')}: {t('send.recipients', { count: targets.length })}
-        </Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              backgroundColor: c.primary + '1A',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon name="guests" size={26} color={c.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 28, fontWeight: '800', color: c.ink }}>{targets.length}</Text>
+            <Text style={{ fontSize: 14, color: c.muted }}>{t('send.audiences.unsent')}</Text>
+          </View>
+        </View>
         {targets.length - withPhone.length > 0 ? (
-          <Txt size={14} color={c.muted}>
+          <Txt size={13} color={c.muted}>
             {t('send.withoutPhone', { count: targets.length - withPhone.length })}
           </Txt>
         ) : null}
       </Card>
-      <Txt bold>{t('send.channel')}</Txt>
-      <Segmented<Channel>
-        value={channel}
-        onChange={setChannel}
-        options={[
-          { value: 'auto', label: t('channel.auto') },
-          { value: 'whatsapp', label: t('channel.whatsapp') },
-          { value: 'sms', label: t('channel.sms') },
-        ]}
-      />
+
+      <SectionTitle>{t('send.channel')}</SectionTitle>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <Tile
+          icon="send"
+          label={t('channel.auto')}
+          hint={`WhatsApp ${waCount} · SMS ${smsCount}`}
+          selected={channel === 'auto'}
+          onPress={() => setChannel('auto')}
+        />
+        <Tile
+          icon="whatsapp"
+          label={t('channel.whatsapp')}
+          hint={String(withPhone.length)}
+          selected={channel === 'whatsapp'}
+          onPress={() => setChannel('whatsapp')}
+        />
+        <Tile
+          icon="sms"
+          label={t('channel.sms')}
+          hint={`${withPhone.length} · ${formatTzs(estimateSmsCost(sample, withPhone.length).costTzs)}`}
+          selected={channel === 'sms'}
+          onPress={() => setChannel('sms')}
+        />
+      </View>
       {channel === 'auto' ? (
-        <Txt size={14} color={c.muted}>
+        <Txt size={13} color={c.muted}>
           {t('send.channelAutoHelp')}
         </Txt>
       ) : null}
-      <Card>
-        <Txt bold>{t('send.preview')}</Txt>
-        <Txt size={14}>{sample}</Txt>
-        <Txt size={14} color={c.muted}>
+
+      <SectionTitle>{t('send.preview')}</SectionTitle>
+      <View
+        style={{
+          alignSelf: 'stretch',
+          backgroundColor: c.primary + '14',
+          borderRadius: 16,
+          borderTopLeftRadius: 4,
+          padding: 14,
+          gap: 8,
+        }}
+      >
+        <Text style={{ fontSize: 15, color: c.ink, lineHeight: 22 }}>{sample}</Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icon name="sms" size={14} color={c.muted} />
+        <Txt size={13} color={c.muted}>
           {t('send.smsCost', { cost: formatTzs(cost.costTzs) })}
         </Txt>
+      </View>
+
+      <Card>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: c.ink }}>
+              {t('send.fallback')}
+            </Text>
+            <Text style={{ fontSize: 13, color: c.muted }}>
+              {t('send.fallbackHelp', { hours: 6 })}
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel={t('send.fallback')}
+            value={fallback}
+            onValueChange={setFallback}
+            trackColor={{ true: c.primary, false: c.border }}
+          />
+        </View>
       </Card>
-      <Segmented<'on' | 'off'>
-        value={fallback ? 'on' : 'off'}
-        onChange={(v) => setFallback(v === 'on')}
-        options={[
-          { value: 'on', label: t('send.fallback') },
-          { value: 'off', label: t('common.no') },
-        ]}
-      />
       {send.isError ? <Banner tone="danger" text={t('states.errorBody')} /> : null}
       <ConfirmSheet
         open={confirm}

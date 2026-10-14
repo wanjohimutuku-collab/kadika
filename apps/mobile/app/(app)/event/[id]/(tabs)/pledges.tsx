@@ -177,7 +177,9 @@ export default function Pledges() {
   };
 
   return (
-    <Screen footer={<Button label={`＋ ${t('pledges.record')}`} onPress={() => setSheet('pay')} />}>
+    <Screen
+      footer={<Button icon="plus" label={t('pledges.record')} onPress={() => setSheet('pay')} />}
+    >
       {msg ? <Banner tone="success" text={msg} /> : null}
       {q.isPending ? (
         <>

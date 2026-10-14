@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { radius, spacing, useColors } from '../lib/theme';
+import { Icon, type IconName } from './icons';
 import { useT } from '../lib/i18n';
 
 /** Touch targets are at least 48 dp (§17.1). */
@@ -100,6 +101,7 @@ export function Button({
   variant = 'primary',
   loading,
   disabled,
+  icon,
   style,
 }: {
   label: string;
@@ -107,6 +109,7 @@ export function Button({
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   loading?: boolean;
   disabled?: boolean;
+  icon?: IconName;
   style?: StyleProp<ViewStyle>;
 }) {
   const c = useColors();
@@ -127,25 +130,29 @@ export function Button({
       accessibilityState={{ disabled: !!off, busy: !!loading }}
       disabled={off}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         {
-          minHeight: MIN,
-          borderRadius: radius.input,
+          minHeight: 52,
+          borderRadius: 14,
           backgroundColor: bg,
-          borderWidth: variant === 'secondary' ? 1 : 0,
-          borderColor: c.border,
+          borderWidth: variant === 'secondary' ? 1.5 : 0,
+          borderColor: variant === 'secondary' ? c.primary : 'transparent',
           paddingHorizontal: spacing.lg,
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
           gap: spacing.sm,
-          opacity: off ? 0.55 : 1,
+          opacity: off ? 0.5 : pressed ? 0.85 : 1,
         },
         style,
       ]}
     >
-      {loading ? <ActivityIndicator color={fg} /> : null}
-      <Text style={{ color: fg, fontSize: 16, fontWeight: '600' }}>{label}</Text>
+      {loading ? (
+        <ActivityIndicator color={fg} />
+      ) : icon ? (
+        <Icon name={icon} size={20} color={fg} />
+      ) : null}
+      <Text style={{ color: fg, fontSize: 16, fontWeight: '700' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -191,15 +198,28 @@ export function Field({
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Card({
+  children,
+  style,
+  tone = 'plain',
+  onPress,
+  label,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  /** `brand` is the emerald hero card; `soft` a quiet tinted one. */
+  tone?: 'plain' | 'brand' | 'soft';
+  onPress?: () => void;
+  label?: string;
+}) {
   const c = useColors();
-  return (
+  const body = (
     <View
       style={[
         {
-          backgroundColor: c.surface,
-          borderRadius: radius.card,
-          borderWidth: 1,
+          backgroundColor: tone === 'brand' ? c.primary : tone === 'soft' ? c.bg : c.surface,
+          borderRadius: 16,
+          borderWidth: tone === 'brand' ? 0 : 1,
           borderColor: c.border,
           padding: spacing.lg,
           gap: spacing.sm,
@@ -209,6 +229,13 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
     >
       {children}
     </View>
+  );
+  return onPress ? (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
+      {body}
+    </Pressable>
+  ) : (
+    body
   );
 }
 
@@ -225,7 +252,7 @@ export function Row({
   const body = (
     <View
       style={{
-        minHeight: 56,
+        minHeight: 64,
         flexDirection: 'row',
         alignItems: 'center',
         gap: spacing.md,
@@ -235,6 +262,7 @@ export function Row({
       }}
     >
       {children}
+      {onPress ? <Icon name="next" size={18} color={c.muted} /> : null}
     </View>
   );
   return onPress ? (
@@ -246,20 +274,22 @@ export function Row({
   );
 }
 
-export function Avatar({ text }: { text: string }) {
-  const c = useColors();
+const AVATAR_COLORS = ['#0F5C4D', '#1D4E89', '#8A3B12', '#6B2D5C', '#2F6B3A', '#7A4A00'];
+export function Avatar({ text, size = 44, seed }: { text: string; size?: number; seed?: string }) {
+  let h = 0;
+  for (const ch of seed ?? text) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return (
     <View
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: c.primary,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: AVATAR_COLORS[h % AVATAR_COLORS.length],
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <Text style={{ color: c.onPrimary, fontWeight: '700' }}>{text}</Text>
+      <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: size * 0.38 }}>{text}</Text>
     </View>
   );
 }
@@ -271,21 +301,39 @@ const TONES = {
   danger: 'danger',
   info: 'info',
 } as const;
-/** Colour is never the only signal: the pill always has a word (§17.12). */
-export function Pill({ label, tone = 'neutral' }: { label: string; tone?: keyof typeof TONES }) {
+const PILL_ICON = {
+  neutral: 'clock',
+  success: 'check',
+  warning: 'warn',
+  danger: 'close',
+  info: 'check',
+} as const;
+/** Colour is never the only signal: the pill always has a word and an icon (§17.12). */
+export function Pill({
+  label,
+  tone = 'neutral',
+  icon,
+}: {
+  label: string;
+  tone?: keyof typeof TONES;
+  icon?: IconName;
+}) {
   const c = useColors();
   const color = c[TONES[tone]];
   return (
     <View
       style={{
-        borderWidth: 1,
-        borderColor: color,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: color + '1F',
         borderRadius: radius.pill,
         paddingHorizontal: 10,
-        paddingVertical: 2,
+        paddingVertical: 4,
       }}
     >
-      <Text style={{ color, fontSize: 14, fontWeight: '600' }}>{label}</Text>
+      <Icon name={icon ?? PILL_ICON[tone]} size={13} color={color} strokeWidth={2.5} />
+      <Text style={{ color, fontSize: 13, fontWeight: '700' }}>{label}</Text>
     </View>
   );
 }
@@ -354,18 +402,23 @@ export function Banner({
   tone?: 'info' | 'warning' | 'danger' | 'success';
 }) {
   const c = useColors();
+  const icon: IconName = tone === 'success' ? 'checkCircle' : tone === 'info' ? 'shield' : 'warn';
   return (
     <View
       accessibilityRole="alert"
       style={{
-        borderLeftWidth: 4,
-        borderColor: c[tone],
-        backgroundColor: c.surface,
+        flexDirection: 'row',
+        gap: spacing.sm,
+        alignItems: 'flex-start',
+        backgroundColor: c[tone] + '1A',
         padding: spacing.md,
-        borderRadius: radius.input,
+        borderRadius: 12,
       }}
     >
-      <Txt size={14}>{text}</Txt>
+      <Icon name={icon} size={20} color={c[tone]} />
+      <View style={{ flex: 1 }}>
+        <Txt size={14}>{text}</Txt>
+      </View>
     </View>
   );
 }
@@ -380,12 +433,27 @@ export function Skeleton({ height = 56 }: { height?: number }) {
 export function EmptyState({
   text,
   action,
+  icon = 'guests',
 }: {
   text: string;
   action?: { label: string; onPress: () => void };
+  icon?: IconName;
 }) {
+  const c = useColors();
   return (
     <View style={{ alignItems: 'center', gap: spacing.md, padding: spacing.xl }}>
+      <View
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: c.primary + '14',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon name={icon} size={32} color={c.primary} />
+      </View>
       <Txt style={{ textAlign: 'center' } as never}>{text}</Txt>
       {action ? <Button label={action.label} onPress={action.onPress} /> : null}
     </View>
@@ -534,26 +602,38 @@ export function Stepper({
   );
 }
 
-export function Kpi({ label, value }: { label: string; value: string | number }) {
+export function Kpi({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  icon?: IconName;
+}) {
   const c = useColors();
   return (
     <View
       style={{
         flex: 1,
         backgroundColor: c.surface,
-        borderRadius: radius.card,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: c.border,
         padding: spacing.md,
-        gap: 2,
+        gap: 6,
       }}
     >
-      <Txt size={14} color={c.muted}>
+      {icon ? <Icon name={icon} size={20} color={c.primary} /> : null}
+      <Text style={{ fontSize: 28, fontWeight: '800', color: c.ink }}>{String(value)}</Text>
+      <Text
+        numberOfLines={2}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={{ fontSize: 13, color: c.muted }}
+      >
         {label}
-      </Txt>
-      <Txt size={28} bold>
-        {String(value)}
-      </Txt>
+      </Text>
     </View>
   );
 }
@@ -562,22 +642,20 @@ export function FunnelBar({ steps }: { steps: { label: string; value: number }[]
   const c = useColors();
   const max = Math.max(1, ...steps.map((s) => s.value));
   return (
-    <View style={{ gap: spacing.sm }}>
-      {steps.map((s) => (
-        <View key={s.label} style={{ gap: 2 }}>
+    <View style={{ gap: spacing.md }}>
+      {steps.map((s, i) => (
+        <View key={s.label} style={{ gap: 6 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Txt size={14}>{s.label}</Txt>
-            <Txt size={14} bold>
-              {s.value}
-            </Txt>
+            <Text style={{ fontSize: 14, color: c.ink }}>{s.label}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: c.ink }}>{s.value}</Text>
           </View>
-          <View style={{ height: 8, borderRadius: 4, backgroundColor: c.border }}>
+          <View style={{ height: 10, borderRadius: 5, backgroundColor: c.border }}>
             <View
               style={{
-                height: 8,
-                borderRadius: 4,
-                width: `${(s.value / max) * 100}%`,
-                backgroundColor: c.primary,
+                height: 10,
+                borderRadius: 5,
+                width: `${Math.max(s.value > 0 ? 3 : 0, (s.value / max) * 100)}%`,
+                backgroundColor: i === steps.length - 1 ? c.success : c.primary,
               }}
             />
           </View>
@@ -593,3 +671,124 @@ export function useToggle(initial = false): [boolean, () => void, (v: boolean) =
 }
 
 export const styles = StyleSheet.create({ flex: { flex: 1 } });
+
+/** A quiet heading that groups what follows (replaces ad-hoc bold lines). */
+export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  const c = useColors();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: spacing.sm,
+      }}
+    >
+      <Text
+        accessibilityRole="header"
+        style={{
+          fontSize: 13,
+          fontWeight: '800',
+          letterSpacing: 0.6,
+          color: c.muted,
+          textTransform: 'uppercase',
+        }}
+      >
+        {children}
+      </Text>
+      {action}
+    </View>
+  );
+}
+
+/** A tappable tile with an icon: quick actions, channel choices. */
+export function Tile({
+  icon,
+  label,
+  hint,
+  onPress,
+  selected,
+}: {
+  icon: IconName;
+  label: string;
+  hint?: string;
+  onPress: () => void;
+  selected?: boolean;
+}) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: !!selected }}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexGrow: 1,
+        flexBasis: '45%',
+        minHeight: 88,
+        gap: 6,
+        padding: spacing.md,
+        borderRadius: 16,
+        borderWidth: selected ? 2 : 1,
+        borderColor: selected ? c.primary : c.border,
+        backgroundColor: selected ? c.primary + '12' : c.surface,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Icon name={icon} size={24} color={c.primary} />
+      <Text style={{ fontSize: 15, fontWeight: '700', color: c.ink }}>{label}</Text>
+      {hint ? <Text style={{ fontSize: 13, color: c.muted }}>{hint}</Text> : null}
+    </Pressable>
+  );
+}
+
+/** A search box with its icon inside, like every phone app; the visible label is the placeholder. */
+export function SearchBox({
+  value,
+  onChangeText,
+  label,
+  placeholder,
+}: {
+  value: string;
+  onChangeText: (v: string) => void;
+  label: string;
+  placeholder?: string;
+}) {
+  const c = useColors();
+  return (
+    <View
+      style={{
+        minHeight: 52,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: c.border,
+        backgroundColor: c.surface,
+      }}
+    >
+      <Icon name="search" size={20} color={c.muted} />
+      <TextInput
+        accessibilityLabel={label}
+        placeholder={placeholder ?? label}
+        placeholderTextColor={c.muted}
+        value={value}
+        onChangeText={onChangeText}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={{ flex: 1, fontSize: 16, color: c.ink, minHeight: 48 }}
+      />
+      {value ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="clear"
+          onPress={() => onChangeText('')}
+        >
+          <Icon name="close" size={18} color={c.muted} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}

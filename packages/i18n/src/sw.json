@@ -1382,7 +1382,9 @@
       "pledge_update": "Ahadi ilibadilishwa",
       "payment_manual": "Malipo yalirekodiwa",
       "payment_webhook": "Malipo ya simu yalithibitishwa"
-    }
+    },
+    "kpiComing": "Wanakuja",
+    "sentProgress": "Kadi zimetumwa: {sent} kati ya {total}"
   },
   "gateApp": {
     "gateName": "Lango",

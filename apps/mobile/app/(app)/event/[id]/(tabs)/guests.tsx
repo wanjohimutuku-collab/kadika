@@ -6,16 +6,17 @@ import { useGuests } from '../../../../../src/lib/queries';
 import { useT } from '../../../../../src/lib/i18n';
 import { initials, statusKey } from '../../../../../src/lib/format';
 import { useColors } from '../../../../../src/lib/theme';
+import { Icon } from '../../../../../src/ui/icons';
 import {
   Avatar,
   Button,
   Chip,
   EmptyState,
   ErrorState,
-  Field,
   Pill,
   Row,
   Screen,
+  SearchBox,
   Sheet,
   Skeleton,
   Txt,
@@ -49,12 +50,12 @@ export default function Guests() {
   const q = useGuests(id, query);
 
   return (
-    <Screen footer={<Button label={`＋ ${t('guests.add')}`} onPress={() => setSheet(true)} />}>
-      <Field
+    <Screen footer={<Button icon="plus" label={t('guests.add')} onPress={() => setSheet(true)} />}>
+      <SearchBox
         label={t('guests.searchLabel')}
+        placeholder={t('common.search')}
         value={search}
         onChangeText={setSearch}
-        autoCapitalize="none"
       />
       <ScrollView
         horizontal
@@ -97,35 +98,47 @@ export default function Guests() {
           }
         />
       ) : (
-        q.data.map((g) => {
-          const sk = statusKey(g);
-          return (
-            <Row
-              key={g.id}
-              onPress={() => router.push(`/event/${id}/guest/${g.id}`)}
-              label={g.displayName}
-            >
-              <Avatar text={initials(g.displayName)} />
-              <View style={{ flex: 1 }}>
-                <Txt bold numberOfLines={1}>
-                  {g.displayName}
-                </Txt>
-                <Txt size={14} color={c.muted} numberOfLines={1}>
-                  {[
-                    g.groupLabel,
-                    g.shortCode,
-                    g.phoneE164
-                      ? t(`channel.${g.channelLast ?? (g.hasSmartphone ? 'whatsapp' : 'sms')}`)
-                      : t('guests.noPhone'),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Txt>
-              </View>
-              <Pill label={t(`status.${sk}`)} tone={TONE[sk as keyof typeof TONE] ?? 'neutral'} />
-            </Row>
-          );
-        })
+        <>
+          <Txt size={13} color={c.muted}>
+            {t('common.guestsCount', { count: q.data.length })}
+          </Txt>
+          {q.data.map((g) => {
+            const sk = statusKey(g);
+            return (
+              <Row
+                key={g.id}
+                onPress={() => router.push(`/event/${id}/guest/${g.id}`)}
+                label={g.displayName}
+              >
+                <Avatar text={initials(g.displayName)} />
+                <View style={{ flex: 1 }}>
+                  <Txt bold numberOfLines={1}>
+                    {g.displayName}
+                  </Txt>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Icon
+                      name={
+                        !g.phoneE164
+                          ? 'card'
+                          : (g.channelLast ?? (g.hasSmartphone ? 'whatsapp' : 'sms')) === 'whatsapp'
+                            ? 'whatsapp'
+                            : 'sms'
+                      }
+                      size={14}
+                      color={c.muted}
+                    />
+                    <Txt size={13} color={c.muted} numberOfLines={1}>
+                      {[g.groupLabel, g.shortCode].filter(Boolean).join(' · ') ||
+                        t('guests.noPhone')}
+                      {!g.phoneE164 ? ` · ${t('guests.noPhone')}` : ''}
+                    </Txt>
+                  </View>
+                </View>
+                <Pill label={t(`status.${sk}`)} tone={TONE[sk as keyof typeof TONE] ?? 'neutral'} />
+              </Row>
+            );
+          })}
+        </>
       )}
       <Sheet open={sheet} onClose={() => setSheet(false)} title={t('guests.add')}>
         <Button

@@ -1378,7 +1378,9 @@
       "pledge_update": "Pledge changed",
       "payment_manual": "Payment recorded",
       "payment_webhook": "Mobile payment confirmed"
-    }
+    },
+    "kpiComing": "Coming",
+    "sentProgress": "Cards sent: {sent} of {total}"
   },
   "gateApp": {
     "gateName": "Gate",

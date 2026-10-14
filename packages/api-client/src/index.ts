@@ -9,7 +9,13 @@ export * from './domain/funnel';
 export * from './domain/guest-filter';
 export * from './domain/import';
 export * from './domain/token';
-export { createHttpRepository } from './http-repository';
+export {
+  createHttpRepository,
+  memoryTokenStore,
+  webStorageTokenStore,
+  type TokenStore,
+  type HttpRepositoryOptions,
+} from './http-repository';
 
 /** Minimal health client (Phase 0). */
 export function createApiClient(baseUrl: string, fetchImpl: typeof fetch = fetch) {

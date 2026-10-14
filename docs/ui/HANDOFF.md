@@ -16,7 +16,17 @@ pnpm --filter @harusi/web dev            # http://localhost:3000
 
 ## Swap `MockRepository` for the real API
 
-Phase 1 of the API is live (ADR 013): auth, events, members, guests (CRUD/import/reissue) and signed QR tokens. `HttpRepository` still needs to be written against those endpoints; pagination, idempotency keys and the OpenAPI client are not built yet.
+Phase 1 of the API is live (ADR 013) and `HttpRepository` is wired to it: auth (OTP, refresh), events, members and guests (CRUD, import, reissue). Run both sides:
+
+```bash
+# API (needs docker compose up for Postgres; DEV_LOG_OTP=1 prints the SMS code in its log)
+DEV_LOG_OTP=1 CORS_ORIGINS=http://localhost:3300 DATABASE_URL=postgres://harusi:harusi@localhost:5432/harusi \
+  JWT_SECRET=dev-secret-dev-secret KEY_ENC_SECRET=$(openssl rand -base64 32) pnpm --filter @harusi/api dev
+# Web against the real API
+NEXT_PUBLIC_USE_MOCKS=0 NEXT_PUBLIC_API_URL=http://localhost:3001 pnpm --filter @harusi/web dev -p 3300
+```
+
+Verified in a browser: login with a real SMS code, wedding list, guest list and add-guest form all go through the API. Methods the API does not have yet (sending, pledges, gate, reports, public card/RSVP/payment, activity, gate links) reject with `not_implemented`, so those screens show their error state in this mode until their phases land. The guest card (`/c/[token]`) still needs the Phase 2 public endpoints.
 
 1. Implement `HttpRepository` in `packages/api-client/src/http-repository.ts` against `/v1` (§8). Every method is typed by `Repository` in `src/repository.ts`; return the same view types (`WeddingEvent`, `Guest`, `CardView`, …) and throw `RepositoryError` with the §8 error codes (`offline`, `not_found`, `invalid_token`, `reissued`, `rate_limited`, `validation`, `unauthorized`, `forbidden`, `conflict`, `locked`, `server`).
 2. Set `NEXT_PUBLIC_USE_MOCKS=0` and `NEXT_PUBLIC_API_URL`. `apps/web/src/lib/repo.ts` is the only place that picks the implementation.

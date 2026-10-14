@@ -17,6 +17,7 @@
   },
   "include": [
     "*.ts",
+    ".next-prod/types/**/*.ts",
     ".next/types/**/*.ts",
     ".storybook",
     "app",
@@ -24,7 +25,7 @@
     "next-env.d.ts",
     "next.config.ts",
     "src",
-    ".next-prod/types/**/*.ts"
+    ".next-live/types/**/*.ts"
   ],
   "exclude": ["node_modules", "storybook-static", ".next-prod"]
 }

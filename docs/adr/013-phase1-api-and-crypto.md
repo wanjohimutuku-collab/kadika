@@ -39,4 +39,4 @@ Implemented now: `POST auth/otp/request|verify`, `auth/refresh`, `auth/logout`, 
 
 ## Not yet in Phase 1
 
-Pagination on other list endpoints (events, members), idempotency on the send/pay/sync endpoints (built with their phases), OpenAPI generation (`@hono/zod-openapi`) and the generated client, Better Auth (replaced here by a small purpose-built phone-OTP flow), per-IP rate limiting, audit-log writes for admin actions, and wiring the web app's `HttpRepository` to these endpoints.
+Pagination on other list endpoints (events, members), idempotency on the send/pay/sync endpoints (built with their phases), OpenAPI generation (`@hono/zod-openapi`) and the generated client, Better Auth (replaced here by a small purpose-built phone-OTP flow), per-IP rate limiting, audit-log writes for admin actions, and the guest-card/RSVP/pay endpoints (Phase 2). The web app's `HttpRepository` is wired to what exists (tests run it against the real routes and SQL in `apps/api/src/http-repository.test.ts`).

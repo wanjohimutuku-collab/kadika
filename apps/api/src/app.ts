@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import type { Context, MiddlewareHandler } from 'hono';
 import { z, ZodError } from 'zod';
 import { eq } from 'drizzle-orm';
@@ -56,6 +57,17 @@ const guestBase = z.object({
 
 export function createApp(deps: Deps) {
   const app = new Hono<Env>();
+  // The web app and the API are on different origins (APP_BASE_URL vs the API host).
+  app.use(
+    '*',
+    cors({
+      origin: deps.config.corsOrigins,
+      allowHeaders: ['authorization', 'content-type', 'idempotency-key'],
+      allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      exposeHeaders: ['idempotent-replayed'],
+      maxAge: 600,
+    }),
+  );
   const auth = new AuthService(deps);
   const eventsSvc = new EventService(deps);
   const guestsSvc = new GuestService(deps, eventsSvc);

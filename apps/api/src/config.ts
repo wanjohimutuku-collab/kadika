@@ -6,6 +6,8 @@ export interface Config {
   appBaseUrl: string;
   shortBaseUrl: string;
   smsProvider: string;
+  /** Browser origins allowed to call the API (web app, admin). */
+  corsOrigins: string[];
   port: number;
 }
 
@@ -30,6 +32,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     smsProvider: env.SMS_PROVIDER ?? 'fake',
+    corsOrigins: (env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
     port: Number(env.API_PORT ?? env.PORT ?? 3001),
   };
 }

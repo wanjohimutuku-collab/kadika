@@ -19,3 +19,4 @@ docs/ui/lighthouse/*.json
 docs/ui/lighthouse
 apps/web/.lighthouseci
 apps/web/e2e/.auth
+.next-live

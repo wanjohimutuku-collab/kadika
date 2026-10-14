@@ -1,4 +1,9 @@
-import { createHttpRepository, type Repository } from '@harusi/api-client';
+import {
+  createHttpRepository,
+  memoryTokenStore,
+  webStorageTokenStore,
+  type Repository,
+} from '@harusi/api-client';
 import { MockControls, MockRepository } from '@harusi/api-client/mock';
 import { USE_MOCKS } from './env';
 
@@ -40,7 +45,15 @@ export function getMock(): MockRepository | null {
 export function getRepository(): Repository {
   const m = getMock();
   if (m) return m;
-  return (http ??= createHttpRepository(process.env.NEXT_PUBLIC_API_URL ?? '/api'));
+  // Real API (Phase 1: auth, events, members, guests). Tokens live in localStorage; unimplemented
+  // methods reject with `not_implemented` until their phases land (docs/ui/HANDOFF.md).
+  const store = storage();
+  return (http ??= createHttpRepository(
+    process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
+    {
+      tokens: store ? webStorageTokenStore(store) : memoryTokenStore(),
+    },
+  ));
 }
 
 export function newIdempotencyKey(): string {

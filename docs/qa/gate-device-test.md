@@ -23,7 +23,7 @@ Everything here was run once on a Galaxy A17 except the items marked OPEN. Repea
 | 7 | Torch button | the camera LED lights, and turns off on the second press | OPEN (toggled; LED not observed) |
 | 8 | Camera permission denied | explanation screen, "Fungua mipangilio", typed number and search still work | done in Expo Go emulator; OPEN with *Don't ask again* on a phone |
 | 9 | Two phones, same guest, both offline | after both sync: one admit and one duplicate, earliest `scanned_at` wins, the loser's next scan shows who was first | OPEN with two phones (done with phone + scripted device) |
-| 10 | Timing: open `/dev/gate-selftest` with `EXPO_PUBLIC_GATE_SELFTEST=1 npx expo start --no-dev --minify` | 200 scans correct; "verify only" and "one SQLite insert" lines readable; scan ≤ 100 ms | 74–76 ms per scan twice; verify ≈ 60 ms vs SQLite insert ≈ 7 ms; one cold run took 790 ms per scan, so re-measure warm: PARTLY done |
+| 10 | Timing: open `/dev/gate-selftest` with `EXPO_PUBLIC_GATE_SELFTEST=1 npx expo start --no-dev --minify` | 200 scans correct; "verify only" and "one SQLite insert" lines readable; scan ≤ 100 ms | warm, with the verify-once cache: 60 ms per scan over 200 mixed scans (verify ≈ 60 ms, SQLite insert 7–13 ms); one cold run took 790 ms per scan: done, with the cold-start caveat |
 
 ## Reading results
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { API_URL } from '../../src/lib/repo';
 import { getDeviceId, gateLabel } from '../../src/gate/device';
+import { applyMaskedInput, mask } from '../../src/gate/mask';
 import { saveGateSession } from '../../src/gate/gate-session';
 import { useT } from '../../src/lib/i18n';
 import { Banner, Button, Field, Screen, Txt } from '../../src/ui/kit';
@@ -81,11 +82,9 @@ export default function GateJoin() {
       />
       <Field
         label={t('gateApp.pin')}
-        value={pin}
-        onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 8))}
+        value={mask(pin)}
+        onChangeText={(v) => setPin((p) => applyMaskedInput(p, v))}
         keyboardType="number-pad"
-        secureTextEntry
-        autoComplete="off"
         importantForAutofill="no"
         textContentType="none"
         maxLength={8}

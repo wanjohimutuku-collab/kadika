@@ -43,4 +43,4 @@ Samsung Galaxy A17 (Android 16) with Expo Go SDK 53 against a dev API on the sam
 
 A Galaxy A17 and a Galaxy A51 joined the same event with the same gate link and PIN. With the API frozen they both admitted the same guest offline (A first, B about 27 seconds later). After the API returned, the server recorded A's scan as the admission, and B's next scan of that guest showed the amber "already in" screen naming A's gate and time, with no override for a gate agent.
 
-Known issue seen on both Samsung phones: the gate PIN field (`secureTextEntry`) still makes Samsung Pass offer to save the PIN even with autofill disabled. Dismissing it works; hiding the digits without a password-type field is a follow-up.
+Known issue seen on both Samsung phones: the gate PIN field (`secureTextEntry`) still makes Samsung Pass offer to save the PIN even with autofill disabled. Fixed afterwards: the PIN is now masked by hand (bullets over a plain numeric field, `src/gate/mask.ts`, unit-tested), so no password-type field exists for a password manager to latch onto. Checked on the Galaxy A17: bullets shown, join works, no Samsung Pass prompt.

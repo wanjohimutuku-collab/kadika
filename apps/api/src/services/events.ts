@@ -25,6 +25,7 @@ export interface EventInput {
   languageDefault?: 'sw' | 'en';
   rsvpDeadline?: Date | null;
   contributionTargetTzs?: number | null;
+  pledgesEnabled?: boolean;
   brandTheme?: Record<string, unknown> | null;
 }
 

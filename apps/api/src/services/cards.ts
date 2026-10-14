@@ -4,6 +4,7 @@ import { hashGuestToken, signQrToken } from '@harusi/crypto';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret } from '../crypto-at-rest';
+import { pledgeSummaryOf, type PledgeSummary } from './pledges';
 
 type Status = typeof invitations.$inferSelect.status;
 const RANK: Record<Status, number> = {
@@ -32,6 +33,7 @@ export interface CardView {
     senderName: string | null;
     greeting: string | null;
     brandTheme: Record<string, unknown> | null;
+    pledgesEnabled: boolean;
     rsvpDeadline: Date | null;
     timezone: string;
   } | null;
@@ -43,6 +45,7 @@ export interface CardView {
     language: 'sw' | 'en';
   } | null;
   qrPayload: string | null;
+  pledge: PledgeSummary | null;
   rsvp: { status: 'pending' | 'confirmed' | 'declined'; partySize: number | null };
   rsvpOpen: boolean;
   eventPassed: boolean;
@@ -53,6 +56,7 @@ const EMPTY = (state: 'reissued' | 'invalid'): CardView => ({
   event: null,
   guest: null,
   qrPayload: null,
+  pledge: null,
   rsvp: { status: 'pending', partySize: null },
   rsvpOpen: false,
   eventPassed: false,
@@ -79,6 +83,7 @@ export class CardService {
   private view(
     row: NonNullable<Awaited<ReturnType<CardService['find']>>['row']>,
     qrPayload: string,
+    pledge: PledgeSummary | null = null,
   ): CardView {
     const { guest, invitation, event } = row;
     const now = this.deps.now().getTime();
@@ -106,6 +111,7 @@ export class CardService {
         senderName: event.senderName,
         greeting: event.greeting,
         brandTheme: event.brandTheme,
+        pledgesEnabled: event.pledgesEnabled,
         rsvpDeadline: event.rsvpDeadline,
         timezone: event.timezone,
       },
@@ -117,6 +123,7 @@ export class CardService {
         language: guest.language,
       },
       qrPayload,
+      pledge,
       rsvp: { status: answered, partySize: invitation.rsvpPartySize },
       rsvpOpen:
         !eventPassed &&
@@ -153,7 +160,9 @@ export class CardService {
    */
   async preview(token: string): Promise<CardView> {
     const { row } = await this.find(token);
-    return row ? this.view(row, '') : EMPTY('invalid');
+    return row
+      ? this.view(row, '', await pledgeSummaryOf(this.deps.db, row.guest.id))
+      : EMPTY('invalid');
   }
 
   /** Marks the invitation `opened` (never moves a status backwards) and returns the card. */
@@ -173,7 +182,7 @@ export class CardService {
         .where(eq(invitations.id, row.invitation.id));
       row.invitation.status = 'opened';
     }
-    return this.view(row, await this.qr(row));
+    return this.view(row, await this.qr(row), await pledgeSummaryOf(this.deps.db, row.guest.id));
   }
 
   /** Idempotent: answering the same way again changes nothing; a changed answer replaces the old one. */
@@ -204,6 +213,6 @@ export class CardService {
       row.invitation.status = status;
       row.invitation.rsvpPartySize = party;
     }
-    return this.view(row, await this.qr(row));
+    return this.view(row, await this.qr(row), await pledgeSummaryOf(this.deps.db, row.guest.id));
   }
 }

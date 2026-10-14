@@ -50,6 +50,9 @@ importers:
       '@harusi/messaging':
         specifier: workspace:*
         version: link:../../packages/messaging
+      '@harusi/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@harusi/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas

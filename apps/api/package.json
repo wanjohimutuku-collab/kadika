@@ -17,6 +17,7 @@
     "@harusi/db": "workspace:*",
     "@harusi/gate": "workspace:*",
     "@harusi/messaging": "workspace:*",
+    "@harusi/payments": "workspace:*",
     "@harusi/schemas": "workspace:*",
     "@harusi/ui-tokens": "workspace:*",
     "@hono/node-server": "^1.19.17",

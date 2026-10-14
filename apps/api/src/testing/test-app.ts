@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { fileURLToPath } from 'node:url';
 import { FakeMessagingProvider } from '@harusi/messaging';
+import { FakePaymentProvider } from '@harusi/payments';
 import * as schema from '@harusi/db/schema';
 import type { Db } from '@harusi/db';
 import { createApp } from '../app';
@@ -19,9 +20,14 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
     migrationsFolder: fileURLToPath(new URL('../../../../packages/db/drizzle', import.meta.url)),
   });
   // Tests flip these to simulate gateway outages for chosen numbers (delivery retries, fallback).
-  const fail = { wa: (_to: string) => false, sms: (_to: string) => false };
+  const fail = {
+    wa: (_to: string) => false,
+    sms: (_to: string) => false,
+    pay: (_phone: string) => false,
+  };
   const sms = new FakeMessagingProvider('sms', (to) => fail.sms(to));
   const whatsapp = new FakeMessagingProvider('whatsapp', (to) => fail.wa(to));
+  const payments = new FakePaymentProvider('pay-secret-for-tests', (phone) => fail.pay(phone));
   // mulberry32: a real PRNG (a Weyl sequence correlates badly with the short-code generator).
   let seed = 0x9e3779b9;
   const next = () => {
@@ -36,12 +42,14 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
     db,
     sms,
     whatsapp,
+    payments,
     sleep: async () => {},
     config: loadConfig({
       DATABASE_URL: 'pglite',
       JWT_SECRET: 'test-secret-at-least-16-chars',
       KEY_ENC_SECRET: TEST_KEY,
       WEBHOOK_SECRET: 'hook-secret-for-tests',
+      PAYMENT_WEBHOOK_SECRET: 'pay-secret-for-tests',
       WHATSAPP_TOKEN: 'cloud-token',
       WHATSAPP_PHONE_ID: '1234567890',
       WHATSAPP_VERIFY_TOKEN: 'verify-me',
@@ -52,7 +60,7 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
     random: (n) => Uint8Array.from({ length: n }, () => next() & 255),
   };
   const app = createApp(deps);
-  return { app, deps, sms, whatsapp, fail, clock, db, close: () => client.close() };
+  return { app, deps, sms, whatsapp, payments, fail, clock, db, close: () => client.close() };
 }
 
 export type TestContext = Awaited<ReturnType<typeof createTestContext>>;

@@ -7,6 +7,9 @@ export interface Config {
   shortBaseUrl: string;
   smsProvider: string;
   whatsappProvider: string;
+  paymentProvider: string;
+  /** Shared secret the aggregator signs webhooks with; payments are off without it. */
+  paymentWebhookSecret: string | null;
   /** Shared secret for delivery webhooks (header `x-webhook-secret`); webhooks are off without it. */
   webhookSecret: string | null;
   evolution: { baseUrl: string; instance: string; apiKey: string } | null;
@@ -50,6 +53,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     smsProvider: env.SMS_PROVIDER ?? 'fake',
     whatsappProvider: env.WHATSAPP_PROVIDER ?? 'fake',
+    paymentProvider: env.PAYMENT_PROVIDER ?? 'fake',
+    paymentWebhookSecret: env.PAYMENT_WEBHOOK_SECRET ?? null,
     webhookSecret: env.WEBHOOK_SECRET ?? null,
     evolution:
       env.EVOLUTION_BASE_URL && env.EVOLUTION_INSTANCE && env.EVOLUTION_API_KEY

@@ -7,6 +7,7 @@ import {
   NextSmsProvider,
   type MessagingProvider,
 } from '@harusi/messaging';
+import { FakePaymentProvider, type PaymentProvider } from '@harusi/payments';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { systemRandom, type Deps } from './context';

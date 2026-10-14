@@ -100,6 +100,8 @@ export const events = pgTable('events', {
   brandTheme: jsonb('brand_theme').$type<Record<string, unknown>>(),
   rsvpDeadline: timestamp('rsvp_deadline', { withTimezone: true }),
   contributionTargetTzs: integer('contribution_target_tzs'),
+  /** Whether guests may pledge and pay from their card (§7.3). */
+  pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
   plan: eventPlanEnum('plan').notNull().default('free'),
   ...timestamps,
 });
@@ -220,17 +222,21 @@ export const messageLog = pgTable(
   ],
 );
 
-export const pledges = pgTable('pledges', {
-  id: id(),
-  guestId: uuid('guest_id')
-    .notNull()
-    .references(() => guests.id, { onDelete: 'cascade' }),
-  amountTzs: integer('amount_tzs').notNull(),
-  note: text('note'),
-  status: pledgeStatusEnum('status').notNull().default('pledged'),
-  createdBy: uuid('created_by').references(() => users.id),
-  ...timestamps,
-});
+export const pledges = pgTable(
+  'pledges',
+  {
+    id: id(),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    amountTzs: integer('amount_tzs').notNull(),
+    note: text('note'),
+    status: pledgeStatusEnum('status').notNull().default('pledged'),
+    createdBy: uuid('created_by').references(() => users.id),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('pledges_guest_uq').on(t.guestId)],
+);
 
 export const payments = pgTable(
   'payments',
@@ -245,6 +251,12 @@ export const payments = pgTable(
     amountTzs: integer('amount_tzs').notNull(),
     status: paymentStatusEnum('status').notNull().default('pending'),
     phoneE164: text('phone_e164'),
+    /** mpesa | mixx | airtel | halopesa | cash | bank */
+    method: text('method').notNull().default('cash'),
+    note: text('note'),
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    /** A pending mobile-money request that is not confirmed by then counts as expired. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     raw: jsonb('raw'),
     ...timestamps,
@@ -300,7 +312,10 @@ export const gateLinks = pgTable(
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
     ...timestamps,
   },
-  (t) => [uniqueIndex('gate_links_code_uq').on(t.code), index('gate_links_event_idx').on(t.eventId)],
+  (t) => [
+    uniqueIndex('gate_links_code_uq').on(t.code),
+    index('gate_links_event_idx').on(t.eventId),
+  ],
 );
 
 /** Registered gate devices (§9): one row per event + device id, with the last time it was seen. */

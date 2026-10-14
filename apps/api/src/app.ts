@@ -26,6 +26,7 @@ import { CardService } from './services/cards';
 import { DeliveryService } from './services/delivery';
 import { PrintService } from './services/print';
 import { GateService, type GateActor } from './services/gate';
+import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
 
 type Env = { Variables: { userId: string; gate?: GateClaims } };
@@ -59,6 +60,7 @@ const eventBase = z.object({
   languageDefault: z.enum(['sw', 'en']).optional(),
   rsvpDeadline: optionalDate,
   contributionTargetTzs: z.number().int().min(0).nullish(),
+  pledgesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
 });
 const guestBase = z.object({
@@ -93,6 +95,9 @@ export function createApp(deps: Deps) {
   const deliverySvc = new DeliveryService(deps, eventsSvc);
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
+  const pledgeSvc = new PledgeService(deps, eventsSvc);
+  const payStarts = new RateLimiter(deps.now, 10, 60_000);
+  const payReads = new RateLimiter(deps.now, 120, 60_000);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
   const cardReads = new RateLimiter(deps.now, 120, 60_000);
@@ -167,7 +172,9 @@ export function createApp(deps: Deps) {
     c.req.path.startsWith('/v1/auth/') ||
     c.req.path.startsWith('/v1/c/') ||
     c.req.path.startsWith('/v1/webhooks/') ||
-    c.req.path === '/v1/gate/join'
+    c.req.path.startsWith('/v1/payments/webhook/') ||
+    c.req.path === '/v1/gate/join' ||
+    /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
       : gateOrUser(c, next),
   );
@@ -177,6 +184,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/events/:id/guests/import', once);
   app.post('/v1/guests/:id/reissue', once);
   app.post('/v1/events/:id/invitations/send', once);
+  app.post('/v1/payments/manual', once);
 
   app.get('/v1/me', async (c) => {
     const [u] = await deps.db
@@ -474,9 +482,79 @@ export function createApp(deps: Deps) {
       'cache-control': 'no-store',
     });
   });
-  app.get('/v1/events/:id/invitations/stats', async (c) =>
-    c.json(await deliverySvc.stats(c.req.param('id'), c.get('userId'))),
+  app.get('/v1/events/:id/invitations/stats', async (c) => {
+    const id = c.req.param('id');
+    const stats = await deliverySvc.stats(id, c.get('userId'));
+    // money stays out of the numbers a gate agent can read (§2)
+    if ((await eventsSvc.role(id, c.get('userId'))) === 'gate') return c.json(stats);
+    return c.json({ ...stats, ...(await pledgeSvc.totals(id)) });
+  });
+  app.get('/v1/events/:id/pledges', async (c) =>
+    c.json(await pledgeSvc.summary(c.req.param('id'), c.get('userId'))),
   );
+  app.post('/v1/guests/:id/pledges', async (c) => {
+    const input = parse(
+      z.object({
+        amountTzs: z.number().int().min(0).max(100_000_000),
+        note: z.string().max(200).nullish(),
+        waived: z.boolean().optional(),
+      }),
+      await body(c),
+    );
+    return c.json(await pledgeSvc.upsertPledge(c.req.param('id'), c.get('userId'), input), 200);
+  });
+  app.post('/v1/payments/manual', async (c) => {
+    const input = parse(
+      z.object({
+        guestId: z.string().uuid(),
+        amountTzs: z.number().int().min(1).max(100_000_000),
+        method: z.enum(MANUAL_METHODS),
+        reference: z.string().trim().max(60).optional(),
+        note: z.string().trim().max(200).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(await pledgeSvc.recordManual(c.get('userId'), input), 201);
+  });
+  app.get('/v1/events/:id/payments', async (c) =>
+    c.json(await pledgeSvc.listPayments(c.req.param('id'), c.get('userId'))),
+  );
+  app.get('/v1/events/:id/exports/:kind', async (c) => {
+    const kind = c.req.param('kind').replace(/\.csv$/, '');
+    if (kind !== 'pledges' && kind !== 'payments')
+      throw new ApiError('not_found', 'Unknown export');
+    const csv = await pledgeSvc.exportCsv(c.req.param('id'), c.get('userId'), kind);
+    return c.body(csv, 200, {
+      'content-type': 'text/csv; charset=utf-8',
+      'content-disposition': `attachment; filename="${kind}.csv"`,
+      'cache-control': 'no-store',
+    });
+  });
+  // ---- pay from the card and the aggregator webhook
+  app.post('/v1/c/:token/pay', async (c) => {
+    payStarts.check(`ip:${client(c)}`);
+    payStarts.check(`t:${c.req.param('token').slice(0, 8)}`);
+    const input = parse(
+      z.object({
+        amountTzs: z.number().int(),
+        phone: z.string().min(1).max(30),
+        method: z.enum(MOBILE_METHODS),
+      }),
+      await body(c),
+    );
+    const key = c.req.header('idempotency-key') ?? '';
+    return c.json(await pledgeSvc.startPayment(c.req.param('token'), input, key), 201);
+  });
+  app.get('/v1/payments/:reference/status', async (c) => {
+    payReads.check(`ip:${client(c)}`);
+    return c.json(await pledgeSvc.paymentStatus(c.req.param('reference')));
+  });
+  app.post('/v1/payments/webhook/:provider', async (c) => {
+    const raw = await c.req.text();
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
+    return c.json(await pledgeSvc.webhook(c.req.param('provider'), raw, headers));
+  });
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),
   );

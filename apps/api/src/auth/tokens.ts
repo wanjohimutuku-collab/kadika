@@ -50,7 +50,7 @@ export function newRefreshToken(deps: Pick<Deps, 'random'>): { token: string; ha
 
 // ---- gate tokens: issued to a gate agent after link + PIN, scoped to one event and one device
 
-const GATE_TTL_S = 24 * 3600;
+const GATE_TTL_S = 3 * 24 * 3600;
 
 export interface GateClaims {
   eventId: string;
@@ -61,8 +61,13 @@ export interface GateClaims {
 export async function signGateToken(
   deps: Pick<Deps, 'config' | 'now'>,
   claims: GateClaims,
+  /** The gate link's own expiry: a token never outlives the link it came from. */
+  notAfter?: Date,
 ): Promise<{ token: string; expiresAt: Date }> {
   const iat = Math.floor(deps.now().getTime() / 1000);
+  const ttl = notAfter
+    ? Math.max(60, Math.min(GATE_TTL_S, Math.floor(notAfter.getTime() / 1000) - iat))
+    : GATE_TTL_S;
   const token = await new SignJWT({
     typ: 'gate',
     evt: claims.eventId,
@@ -71,9 +76,9 @@ export async function signGateToken(
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(iat)
-    .setExpirationTime(iat + GATE_TTL_S)
+    .setExpirationTime(iat + ttl)
     .sign(key(deps.config.jwtSecret));
-  return { token, expiresAt: new Date((iat + GATE_TTL_S) * 1000) };
+  return { token, expiresAt: new Date((iat + ttl) * 1000) };
 }
 
 /** Returns the claims for a gate token, or null when the token is anything else (or invalid). */

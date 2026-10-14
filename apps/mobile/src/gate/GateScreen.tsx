@@ -9,6 +9,7 @@ import { gateColorsAaa } from '@harusi/ui-tokens';
 import { useT } from '../lib/i18n';
 import { useColors } from '../lib/theme';
 import { Banner, Button, Field, Sheet, Txt } from '../ui/kit';
+import { store } from '../lib/storage';
 import { gateLabel } from './device';
 import { useGate } from './use-gate';
 
@@ -34,6 +35,14 @@ export function GateScreen(p: Props) {
   const [perm, requestPerm] = useCameraPermissions();
   const [torch, setTorch] = useState(false);
   const [haptics, setHaptics] = useState(true);
+  useEffect(() => {
+    void store.get('harusi.gate.haptics').then((v) => v !== null && setHaptics(v === '1'));
+  }, []);
+  const toggleHaptics = () =>
+    setHaptics((x) => {
+      void store.set('harusi.gate.haptics', x ? '0' : '1');
+      return !x;
+    });
   const [outcome, setOutcome] = useState<ScanOutcome | null>(null);
   const [sheet, setSheet] = useState<'code' | 'search' | 'sync' | 'override' | null>(null);
   const busy = useRef(false); // the next scan is accepted only after the overlay is dismissed
@@ -200,11 +209,7 @@ export function GateScreen(p: Props) {
           onPress={() => setSheet('code')}
           style={{ flex: 1 }}
         />
-        <Button
-          label={`${haptics ? '📳' : '🔕'}`}
-          variant="secondary"
-          onPress={() => setHaptics((x) => !x)}
-        />
+        <Button label={`${haptics ? '📳' : '🔕'}`} variant="secondary" onPress={toggleHaptics} />
       </View>
       <Pressable
         accessibilityRole="button"

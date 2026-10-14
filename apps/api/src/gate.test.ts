@@ -182,6 +182,10 @@ describe('gate link + PIN (§7.6, §9)', () => {
     ctx.clock.now += 16 * 60_000;
     expect((await join(link.pin)).status).toBe(200);
 
+    // the token lasts until the link does (event day + 2), capped at 3 days: no mid-event expiry
+    const exp = new Date(ok.body!.expiresAt).getTime();
+    expect(exp).toBeGreaterThan(ctx.clock.now + 2 * 24 * 3_600_000);
+    expect(exp).toBeLessThanOrEqual(new Date(link.expiresAt).getTime());
     expect((await join(link.pin, 'ZZZZZZZZ')).status).toBe(404);
     // the clock moved on, so sign in again (access tokens last 15 minutes)
     const fresh = (await loginAs(ctx, s.phone)).accessToken;

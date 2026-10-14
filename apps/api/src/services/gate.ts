@@ -164,11 +164,11 @@ export class GateService {
         target: [gateDevices.eventId, gateDevices.deviceId],
         set: { lastSeenAt: now, linkId: link.id, name: input.deviceName ?? null },
       });
-    const { token, expiresAt } = await signGateToken(this.deps, {
-      eventId: link.eventId,
-      linkId: link.id,
-      deviceId: input.deviceId,
-    });
+    const { token, expiresAt } = await signGateToken(
+      this.deps,
+      { eventId: link.eventId, linkId: link.id, deviceId: input.deviceId },
+      link.expiresAt,
+    );
     const [event] = await this.deps.db.select().from(events).where(eq(events.id, link.eventId));
     return {
       accessToken: token,

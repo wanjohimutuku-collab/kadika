@@ -60,7 +60,8 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Run on real Android: camera decode, torch, haptics, SQLite across restarts, overlay ≤ 100 ms
 - ☐ Two physical phones scanning one guest; 200-scan airplane-mode run on a device
 - ☐ Usability check: a first-time gate agent joins and scans with no instructions (3 people)
-- ☐ Sound feedback; sound/vibration persisted setting; gate token refresh
+- ☑ Gate token lasts until its link expires (no mid-event expiry); vibration setting is remembered
+- ☐ Sound feedback
 - ☐ Update CLAUDE.md §17.2 gate fills to the AAA values (ADR 006/022)
 
 ## Phase 6 — Pledges and payments

@@ -17,6 +17,7 @@ import { formatTzs } from '../../../../../src/lib/format';
 import { useColors } from '../../../../../src/lib/theme';
 import {
   Banner,
+  ConfirmSheet,
   Button,
   Chip,
   EmptyState,
@@ -55,6 +56,7 @@ export default function Pledges() {
   const setPledge = useSetPledge(id);
   const [filter, setFilter] = useState<Filter>('all');
   const [sheet, setSheet] = useState<'pay' | 'pledge' | null>(null);
+  const [confirmRemind, setConfirmRemind] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [amount, setAmount] = useState('');
@@ -135,6 +137,19 @@ export default function Pledges() {
       reset();
     } catch {
       setErr(t('states.errorBody'));
+    }
+  };
+
+  const owing = rows.filter((r) => r.balanceTzs > 0);
+  const remind = async () => {
+    try {
+      const r = await getRepository().sendPledgeReminders(
+        id,
+        owing.map((o) => o.guestId),
+      );
+      setMsg(t('pledges.reminded', { count: r.queued }));
+    } catch {
+      setMsg(t('states.errorBody'));
     }
   };
 
@@ -239,6 +254,13 @@ export default function Pledges() {
               </Row>
             ))
           )}
+          {owing.length > 0 ? (
+            <Button
+              variant="secondary"
+              label={`${t('pledges.remind')} (${owing.length})`}
+              onPress={() => setConfirmRemind(true)}
+            />
+          ) : null}
           <Button variant="secondary" label={t('pledges.export')} onPress={exportCsv} />
           {ev.data && !ev.data.pledgesEnabled ? (
             <Banner tone="warning" text={t('settings.pledgesEnabled')} />
@@ -246,6 +268,14 @@ export default function Pledges() {
         </>
       )}
 
+      <ConfirmSheet
+        open={confirmRemind}
+        title={t('pledges.remindTitle', { count: owing.length })}
+        body={t('pledges.remindBody')}
+        confirmLabel={t('pledges.remind')}
+        onClose={() => setConfirmRemind(false)}
+        onConfirm={remind}
+      />
       <Sheet open={sheet === 'pay'} onClose={reset} title={t('pledges.recordTitle')}>
         {picked ? (
           <Row onPress={() => setGuestId(null)} label={picked.displayName}>

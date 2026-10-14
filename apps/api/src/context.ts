@@ -1,6 +1,7 @@
 import type { Db } from '@harusi/db';
 import type { DeliveryState } from '@harusi/messaging';
 import type { PaymentProvider } from '@harusi/payments';
+import type { RateStore } from './rate-limit';
 import type { SendInput } from './services/delivery';
 import type { MessagingProvider } from '@harusi/messaging';
 import type { Config } from './config';
@@ -9,6 +10,8 @@ import type { Config } from './config';
 export interface Deps {
   db: Db;
   sms: MessagingProvider;
+  /** Shared rate-limit counters (Redis) when there is more than one instance; memory otherwise. */
+  rateStore?: RateStore;
   /** Mobile-money aggregator (fake in dev and tests until one is chosen, ADR 023). */
   payments?: PaymentProvider;
   /** WhatsApp Cloud API adapter (primary channel, §7.2). Optional: without it everything goes by SMS. */

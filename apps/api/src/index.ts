@@ -11,6 +11,8 @@ import { FakePaymentProvider, type PaymentProvider } from '@harusi/payments';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { systemRandom, type Deps } from './context';
+import { Redis } from 'ioredis';
+import { RedisRateStore } from './rate-limit';
 import { startWorker } from './worker';
 
 const config = loadConfig();
@@ -91,6 +93,13 @@ const deps: Deps = {
   random: systemRandom,
 };
 if (config.redisUrl) {
+  // Rate-limit counters in Redis so several API instances share one budget (§9).
+  const limiterRedis = new Redis(config.redisUrl, {
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+  });
+  limiterRedis.on('error', () => undefined); // a Redis outage falls back to per-process counters
+  deps.rateStore = new RedisRateStore(limiterRedis, deps.now);
   deps.enqueueSend = startWorker(deps, config.redisUrl).enqueueSend;
 } else {
   console.log(

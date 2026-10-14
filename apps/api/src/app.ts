@@ -128,12 +128,18 @@ export function createApp(deps: Deps) {
   const pledgeSvc = new PledgeService(deps, eventsSvc);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
-  const payStarts = new RateLimiter(deps.now, 10, 60_000);
-  const payReads = new RateLimiter(deps.now, 120, 60_000);
-  const gateJoins = new RateLimiter(deps.now, 20, 60_000);
+  const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
+  const payReads = new RateLimiter(deps.now, 120, 60_000, 'pay-read', deps.rateStore);
+  const gateJoins = new RateLimiter(deps.now, 20, 60_000, 'gate-join', deps.rateStore);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
-  const cardReads = new RateLimiter(deps.now, deps.config.cardReadLimit, 60_000);
-  const cardWrites = new RateLimiter(deps.now, 20, 60_000);
+  const cardReads = new RateLimiter(
+    deps.now,
+    deps.config.cardReadLimit,
+    60_000,
+    'card-read',
+    deps.rateStore,
+  );
+  const cardWrites = new RateLimiter(deps.now, 20, 60_000, 'card-write', deps.rateStore);
   const client = (c: Context) => c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
@@ -246,18 +252,18 @@ export function createApp(deps: Deps) {
 
   // ---- public guest card (no login; the card token is the credential)
   app.get('/v1/c/:token', async (c) => {
-    cardReads.check(`ip:${client(c)}`);
-    cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    await cardReads.check(`ip:${client(c)}`);
+    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     return c.json(await cardsSvc.get(c.req.param('token')));
   });
   app.get('/v1/c/:token/preview', async (c) => {
-    cardReads.check(`ip:${client(c)}`);
-    cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    await cardReads.check(`ip:${client(c)}`);
+    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     const v = await cardsSvc.preview(c.req.param('token'));
     return c.json({ ...v, qrPayload: null });
   });
   app.post('/v1/c/:token/reminders/opt-out', async (c) => {
-    cardWrites.check(`ip:${client(c)}`);
+    await cardWrites.check(`ip:${client(c)}`);
     const ok = await deliverySvc.optOutReminders(hashGuestToken(c.req.param('token')));
     if (!ok) throw new ApiError('not_found', 'Invalid link');
     return c.json({ ok: true });
@@ -323,8 +329,8 @@ export function createApp(deps: Deps) {
     return c.json({ ok: true, known });
   });
   app.post('/v1/c/:token/rsvp', async (c) => {
-    cardWrites.check(`ip:${client(c)}`);
-    cardWrites.check(`t:${c.req.param('token').slice(0, 8)}`);
+    await cardWrites.check(`ip:${client(c)}`);
+    await cardWrites.check(`t:${c.req.param('token').slice(0, 8)}`);
     const input = parse(
       z.object({ attending: z.boolean(), partySize: z.number().int().min(0).max(10) }),
       await body(c),
@@ -353,7 +359,7 @@ export function createApp(deps: Deps) {
   });
   // ---- gate (§7.6): join with link + PIN, offline bundle, scan sync
   app.post('/v1/gate/join', async (c) => {
-    gateJoins.check(`ip:${client(c)}`);
+    await gateJoins.check(`ip:${client(c)}`);
     const input = parse(
       z.object({
         code: z.string().min(4).max(20),
@@ -589,8 +595,8 @@ export function createApp(deps: Deps) {
   });
   // ---- pay from the card and the aggregator webhook
   app.post('/v1/c/:token/pay', async (c) => {
-    payStarts.check(`ip:${client(c)}`);
-    payStarts.check(`t:${c.req.param('token').slice(0, 8)}`);
+    await payStarts.check(`ip:${client(c)}`);
+    await payStarts.check(`t:${c.req.param('token').slice(0, 8)}`);
     const input = parse(
       z.object({
         amountTzs: z.number().int(),
@@ -603,7 +609,7 @@ export function createApp(deps: Deps) {
     return c.json(await pledgeSvc.startPayment(c.req.param('token'), input, key), 201);
   });
   app.get('/v1/payments/:reference/status', async (c) => {
-    payReads.check(`ip:${client(c)}`);
+    await payReads.check(`ip:${client(c)}`);
     return c.json(await pledgeSvc.paymentStatus(c.req.param('reference')));
   });
   app.post('/v1/payments/webhook/:provider', async (c) => {

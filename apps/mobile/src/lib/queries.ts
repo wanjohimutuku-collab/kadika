@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GuestQuery, ImportRowInput, SendRequest, WeddingEvent } from '@harusi/api-client';
-import type { EventInput, GuestInput } from '@harusi/schemas';
+import type { EventInput, GuestInput, PaymentMethod } from '@harusi/schemas';
+
+export type ManualMethod = PaymentMethod;
 import { getRepository } from './repo';
 
 const repo = () => getRepository();
@@ -19,6 +21,8 @@ export const useEvent = (id: string) =>
   useQuery({ queryKey: keys.event(id), queryFn: () => repo().getEvent(id) });
 export const useGuests = (eventId: string, q?: GuestQuery) =>
   useQuery({ queryKey: keys.guests(eventId, q), queryFn: () => repo().listGuests(eventId, q) });
+export const usePledgeSummary = (eventId: string) =>
+  useQuery({ queryKey: ['pledges', eventId], queryFn: () => repo().getPledgeSummary(eventId) });
 export const useGuest = (id: string) =>
   useQuery({ queryKey: keys.guest(id), queryFn: () => repo().getGuest(id) });
 export const useMembers = (eventId: string) =>
@@ -56,6 +60,40 @@ export const useImportGuests = (eventId: string) =>
   useInvalidating(
     (v: { rows: ImportRowInput[]; key: string }) => repo().importGuests(eventId, v.rows, v.key),
     () => [['guests', eventId], keys.event(eventId)],
+  );
+export const useRecordPayment = (eventId: string) =>
+  useInvalidating(
+    (v: {
+      guestId: string;
+      amountTzs: number;
+      method: ManualMethod;
+      reference: string;
+      note: string;
+      key: string;
+    }) =>
+      repo().recordManualPayment(
+        eventId,
+        {
+          guestId: v.guestId,
+          amountTzs: v.amountTzs,
+          method: v.method,
+          reference: v.reference,
+          note: v.note,
+        },
+        v.key,
+      ),
+    (v) => [
+      ['pledges', eventId],
+      keys.event(eventId),
+      keys.guest(v.guestId),
+      ['payments', eventId],
+    ],
+  );
+export const useSetPledge = (eventId: string) =>
+  useInvalidating(
+    (v: { guestId: string; amountTzs: number; note?: string }) =>
+      repo().upsertPledge(v.guestId, v.amountTzs, v.note),
+    (v) => [['pledges', eventId], keys.event(eventId), keys.guest(v.guestId)],
   );
 export const useReissue = (eventId: string) =>
   useInvalidating(

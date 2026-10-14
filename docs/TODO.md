@@ -73,11 +73,13 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ CLAUDE.md §17.2 gate fills updated to the AAA values (ADR 006/022); revert that line if you prefer the original colours
 
 ## Phase 6 — Pledges and payments
-- ☑ Server code written and tested (`pledges.test.ts`, 9 tests; API suite 74 passing): `@harusi/payments` (PaymentProvider interface, HMAC helpers, fake; 2 unit tests pass), migration 0009 (pledge unique per guest, payment method/note/recorded_by/expires_at, `events.pledges_enabled`), `PledgeService` (pledge status math, manual payments, pay-from-card with idempotent reference, status polling, atomic webhook, CSV exports), routes for all of them, pledge summary on the public card, dashboard totals merged into `/invitations/stats`
-- ☑ API tests: a webhook replayed 5× (and 5 at once) records one payment; balances reconcile with the dashboard; the aggregator's amount wins; failed, late, forged and unknown webhooks; expired requests are not money; gate role cannot see money; idempotent pay start; pledges-off closes payments; CSV escapes formulas
-- ☐ `HttpRepository` mapping (upsertPledge, recordManualPayment, listPayments, startPayment, getPaymentStatus, exportCsv) and card pledge fields; mobile Michango tab (replace the placeholder); PDF export
-- ☐ Aggregator choice (§15.4) and a real adapter; ADR 023; policy toggle "require minimum pledge before card" (default OFF) not built
-- ☐ Sandbox integration with the chosen aggregator
+- ☑ `@harusi/payments`: `PaymentProvider` interface, HMAC helpers, fake provider (ADR 023)
+- ☑ Server: migration 0009, pledge status math, manual payments, pay-from-card with idempotent reference, status polling, atomic webhook, CSV exports, pledge on the public card, dashboard money in event stats; gate agents never see money
+- ☑ Tests (`pledges.test.ts`, 9 + repository end-to-end; API suite 75 passing): a webhook replayed 5× (and 5 at once) records one payment; balances reconcile with the dashboard; the aggregator's amount wins; forged, unsigned, unknown, failed and late webhooks; expired requests are not money; idempotent pay start; pledges-off closes payments; CSV formula escaping
+- ☑ `HttpRepository` pledges, payments, card pay, status, CSV export, pledge summary (+ mock); mobile Michango tab (totals, progress, filters, record payment, set pledge, CSV share), checked in a browser against the real API
+- ☐ Choose the aggregator (§15.4) and write its adapter; run its sandbox; verify its real webhook format
+- ☐ Policy toggle "require minimum pledge before card" (default OFF) and PDF export; send pledge reminders from the app
+- ☐ Re-check the web card's pay screen against the real API in a browser; Michango tab on a real phone
 
 ## Phase 7 — Hardening and launch
 - ☐ Rate limits audit, privacy pages (legal text is placeholder), backups drill, load test, Sentry, pilot

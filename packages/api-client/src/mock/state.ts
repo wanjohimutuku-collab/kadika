@@ -184,6 +184,7 @@ function baseEvent(
 ): EventRecord {
   return {
     title: `Harusi ya ${partial.partnerA} & ${partial.partnerB}`,
+    eventKind: 'Harusi',
     coupleNames: `${partial.partnerA} & ${partial.partnerB}`,
     venueName: '',
     venueMapUrl: '',

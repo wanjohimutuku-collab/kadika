@@ -51,6 +51,7 @@ const phone = z.string().min(1).max(30);
 const optionalDate = z.coerce.date().nullish();
 const eventBase = z.object({
   title: z.string().trim().min(2).max(80),
+  eventKind: z.string().trim().max(40).nullish(),
   coupleNames: z.string().trim().min(2).max(120),
   dateStart: z.coerce.date(),
   venueName: z.string().trim().max(120).nullish(),

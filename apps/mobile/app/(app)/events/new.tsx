@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { eventInputSchema } from '@harusi/schemas';
+import { EVENT_KIND_SUGGESTIONS, eventInputSchema } from '@harusi/schemas';
 import { useCreateEvent } from '../../../src/lib/queries';
 import { useLocale, useT } from '../../../src/lib/i18n';
 import { AppHeader } from '../../../src/ui/header';
-import { Button, Field, Screen, Segmented, Txt } from '../../../src/ui/kit';
+import { Button, Chip, Field, Screen, Segmented, Txt } from '../../../src/ui/kit';
 
 const THEMES = ['emerald-gold', 'navy-silver', 'terracotta', 'rose-sage'] as const;
 
@@ -21,6 +21,7 @@ export default function NewEvent() {
   const t = useT();
   const { locale } = useLocale();
   const create = useCreateEvent();
+  const [kind, setKind] = useState<string>(EVENT_KIND_SUGGESTIONS[0]);
   const [a, setA] = useState('');
   const [b, setB] = useState('');
   const [date, setDate] = useState('');
@@ -34,7 +35,8 @@ export default function NewEvent() {
   const submit = async () => {
     const iso = toIso(date, time);
     const parsed = eventInputSchema.safeParse({
-      title: `Harusi ya ${a.trim()} & ${b.trim()}`,
+      title: `${kind.trim() || 'Mwaliko'} ya ${[a.trim(), b.trim()].filter(Boolean).join(' & ')}`,
+      eventKind: kind,
       partnerA: a,
       partnerB: b,
       dateStart: iso ?? '',
@@ -68,8 +70,21 @@ export default function NewEvent() {
       <Screen
         footer={<Button label={t('common.save')} loading={create.isPending} onPress={submit} />}
       >
-        <Field label={t('wizard.partnerA')} value={a} onChangeText={setA} error={errors.partnerA} />
-        <Field label={t('wizard.partnerB')} value={b} onChangeText={setB} error={errors.partnerB} />
+        <Field
+          label={t('wizard.kind')}
+          hint={t('wizard.kindHint')}
+          value={kind}
+          onChangeText={setKind}
+          maxLength={40}
+          error={errors.eventKind}
+        />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {EVENT_KIND_SUGGESTIONS.map((k) => (
+            <Chip key={k} label={k} active={kind === k} onPress={() => setKind(k)} />
+          ))}
+        </View>
+        <Field label={t('wizard.hostA')} value={a} onChangeText={setA} error={errors.partnerA} />
+        <Field label={t('wizard.hostB')} value={b} onChangeText={setB} error={errors.partnerB} />
         <Field
           label={t('wizard.date')}
           hint={`${t('wizard.dateHint')} — 2027-03-20`}

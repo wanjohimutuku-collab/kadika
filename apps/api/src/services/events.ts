@@ -14,6 +14,7 @@ export type MemberRole = 'owner' | 'committee' | 'gate';
 
 export interface EventInput {
   title: string;
+  eventKind?: string | null;
   coupleNames: string;
   dateStart: Date;
   venueName?: string | null;

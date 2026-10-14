@@ -494,6 +494,10 @@
       "style": "Card style",
       "review": "Review"
     },
+    "kind": "Type of invitation",
+    "kindHint": "Choose one or write your own, for example Graduation or Kitchen party",
+    "hostA": "Host name (or first name)",
+    "hostB": "Second name (optional)",
     "partnerA": "Bride's name",
     "partnerB": "Groom's name",
     "titleHint": "Shown on the dashboard only",

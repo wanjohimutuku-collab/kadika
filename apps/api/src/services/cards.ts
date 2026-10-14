@@ -25,6 +25,7 @@ export interface CardView {
   state: 'ok' | 'reissued' | 'invalid';
   event: {
     id: string;
+    eventKind: string | null;
     coupleNames: string;
     dateStart: Date;
     venueName: string | null;
@@ -103,6 +104,7 @@ export class CardService {
       state: 'ok',
       event: {
         id: event.id,
+        eventKind: event.eventKind,
         coupleNames: event.coupleNames,
         dateStart: event.dateStart,
         venueName: event.venueName,

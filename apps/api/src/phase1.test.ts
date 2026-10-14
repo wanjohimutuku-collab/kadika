@@ -106,6 +106,21 @@ describe('events, members and signing keys', () => {
     expect(list.body?.items).toHaveLength(1);
   });
 
+  it('stores a free-text event kind and allows a single-host event', async () => {
+    const owner = await loginAs(ctx, '0711000099');
+    const created = await api(ctx, 'POST', '/v1/events', {
+      token: owner.accessToken,
+      body: { ...eventBody(), eventKind: 'Kitchen party', coupleNames: 'Neema' },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ eventKind: 'Kitchen party', coupleNames: 'Neema' });
+    const patched = await api(ctx, 'PATCH', `/v1/events/${created.body!.id}`, {
+      token: owner.accessToken,
+      body: { eventKind: 'Send-off' },
+    });
+    expect(patched.body?.eventKind).toBe('Send-off');
+  });
+
   it('hides events from non-members and limits roles', async () => {
     const owner = await loginAs(ctx, '0711000002');
     const stranger = await loginAs(ctx, '0711000003');

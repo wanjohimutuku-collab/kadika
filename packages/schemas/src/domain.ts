@@ -103,10 +103,15 @@ export const guestInputSchema = z.object({
 export type GuestInput = z.input<typeof guestInputSchema>;
 export type GuestInputParsed = z.output<typeof guestInputSchema>;
 
+/** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
+export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const;
+export const eventKindSchema = z.string().trim().max(40, 'name.too_long');
+
 export const eventInputSchema = z.object({
   title: z.string().trim().min(2, 'name.too_short').max(80),
+  eventKind: eventKindSchema.optional().default(''),
   partnerA: z.string().trim().min(2, 'name.too_short').max(40),
-  partnerB: z.string().trim().min(2, 'name.too_short').max(40),
+  partnerB: z.string().trim().max(40).optional().default(''),
   dateStart: z.string().min(1, 'date.required'), // ISO date-time (local Africa/Dar_es_Salaam)
   venueName: z.string().trim().min(2, 'venue.required').max(120),
   venueMapUrl: z.string().trim().url('url.invalid').or(z.literal('')).optional().default(''),

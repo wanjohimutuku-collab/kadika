@@ -13,6 +13,7 @@ import {
   type RsvpInput,
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
+import { defaultSender } from '../sender';
 import {
   paletteContrastIssues,
   resolvePalette,
@@ -598,9 +599,10 @@ export class MockRepository implements Repository {
       const e: EventRecord = {
         id: this.rng.uuid(),
         title: v.title,
+        eventKind: v.eventKind,
         partnerA: v.partnerA,
         partnerB: v.partnerB,
-        coupleNames: `${v.partnerA} & ${v.partnerB}`,
+        coupleNames: [v.partnerA, v.partnerB].filter(Boolean).join(' & '),
         dateStart: new Date(v.dateStart).toISOString(),
         venueName: v.venueName,
         venueMapUrl: v.venueMapUrl,
@@ -613,7 +615,10 @@ export class MockRepository implements Repository {
         palette: checkedPalette(v.themeId, v.palette),
         rsvpDeadline: v.rsvpDeadline ? new Date(v.rsvpDeadline).toISOString() : null,
         contributionTargetTzs: v.contributionTargetTzs,
-        senderName: `Kamati ya Harusi ya ${v.partnerA} & ${v.partnerB}`,
+        senderName: defaultSender(
+          v.eventKind,
+          [v.partnerA, v.partnerB].filter(Boolean).join(' & '),
+        ),
         committeePhone: u.phoneE164,
         pledgesEnabled: true,
         requirePledgeBeforeCard: false,
@@ -650,7 +655,8 @@ export class MockRepository implements Repository {
       if (patch.palette !== undefined)
         allowed.palette = checkedPalette(patch.themeId ?? e.themeId, patch.palette);
       Object.assign(e, allowed, { updatedAt: iso(this.now()) });
-      if (patch.partnerA || patch.partnerB) e.coupleNames = `${e.partnerA} & ${e.partnerB}`;
+      if (patch.partnerA || patch.partnerB)
+        e.coupleNames = [e.partnerA, e.partnerB].filter(Boolean).join(' & ');
       return this.toEvent(e);
     });
   }

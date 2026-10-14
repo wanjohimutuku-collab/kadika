@@ -1,5 +1,6 @@
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import type { EventInput, GuestInput } from '@harusi/schemas';
+import { defaultSender } from './sender';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
@@ -67,6 +68,7 @@ interface ApiUser {
 interface ApiEvent {
   id: string;
   title: string;
+  eventKind?: string | null;
   coupleNames: string;
   dateStart: string;
   venueName: string | null;
@@ -152,6 +154,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     id: e.id,
     myRole: e.myRole,
     title: e.title,
+    eventKind: e.eventKind ?? '',
     partnerA: a,
     partnerB: b,
     coupleNames: e.coupleNames,
@@ -168,7 +171,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     palette: sanitizeOverrides((e.brandTheme as { palette?: unknown } | null)?.palette),
     rsvpDeadline: e.rsvpDeadline,
     contributionTargetTzs: e.contributionTargetTzs ?? 0,
-    senderName: e.senderName || `Kamati ya Harusi ya ${e.coupleNames}`,
+    senderName: e.senderName || defaultSender(e.eventKind, e.coupleNames),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
     requirePledgeBeforeCard: false,
@@ -189,7 +192,7 @@ interface ApiCard {
     | (Omit<
         NonNullable<CardView['event']>,
         'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
-      > & { brandTheme: Record<string, unknown> | null })
+      > & { brandTheme: Record<string, unknown> | null; eventKind?: string | null })
     | null;
   guest: CardView['guest'];
   qrPayload: string | null;
@@ -224,7 +227,7 @@ function mapCard(token: string, c: ApiCard): CardView {
           coverGradient: theme.coverGradient ?? '',
           palette: sanitizeOverrides(theme.palette),
           rsvpDeadline: e.rsvpDeadline,
-          senderName: e.senderName || `Kamati ya Harusi ya ${e.coupleNames}`,
+          senderName: e.senderName || defaultSender(e.eventKind, e.coupleNames),
           committeePhone: e.committeePhone ?? '',
           pledgesEnabled: e.pledgesEnabled ?? false,
           greeting: e.greeting ?? '',
@@ -422,7 +425,8 @@ export function createHttpRepository(
     async createEvent(input: EventInput) {
       const created = await call<ApiEvent>('POST', '/v1/events', {
         title: input.title,
-        coupleNames: `${input.partnerA} & ${input.partnerB}`,
+        eventKind: input.eventKind || null,
+        coupleNames: [input.partnerA, input.partnerB].filter(Boolean).join(' & '),
         dateStart: input.dateStart,
         venueName: input.venueName,
         venueMapUrl: input.venueMapUrl || null,
@@ -442,6 +446,7 @@ export function createHttpRepository(
       const body: Record<string, unknown> = {};
       if (patch.title !== undefined) body.title = patch.title;
       if (patch.coupleNames !== undefined) body.coupleNames = patch.coupleNames;
+      if (patch.eventKind !== undefined) body.eventKind = patch.eventKind || null;
       if (patch.dateStart !== undefined) body.dateStart = patch.dateStart;
       if (patch.venueName !== undefined) body.venueName = patch.venueName;
       if (patch.venueMapUrl !== undefined) body.venueMapUrl = patch.venueMapUrl || null;

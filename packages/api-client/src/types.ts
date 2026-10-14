@@ -80,7 +80,10 @@ export interface WeddingEvent {
   myRole?: 'owner' | 'committee' | 'gate';
   id: string;
   title: string;
+  /** Free-text kind of invitation the organiser chose (Harusi, Send-off, Uchumba, or their own words). */
+  eventKind: string;
   partnerA: string;
+  /** Second host; empty for single-host events. */
   partnerB: string;
   coupleNames: string;
   dateStart: ISODate;

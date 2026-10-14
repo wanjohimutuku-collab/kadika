@@ -82,6 +82,8 @@ export const events = pgTable('events', {
     .notNull()
     .references(() => users.id),
   title: text('title').notNull(),
+  /** Free-text kind of occasion the organiser typed (e.g. Harusi, Send-off, Uchumba); display only. */
+  eventKind: text('event_kind'),
   coupleNames: text('couple_names').notNull(),
   dateStart: timestamp('date_start', { withTimezone: true }).notNull(),
   venueName: text('venue_name'),

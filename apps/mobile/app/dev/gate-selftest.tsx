@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 import * as Crypto from 'expo-crypto';
-import { ed, generateEventKeyPair, shortId, signQrToken, toHex } from '@harusi/crypto';
+import {
+  ed,
+  generateEventKeyPair,
+  verifyQrToken,
+  shortId,
+  signQrToken,
+  toHex,
+} from '@harusi/crypto';
 import { GateEngine, type Bundle, type BundleGuest, type ScanOutcome } from '@harusi/gate';
 import { SqliteGateStore } from '../../src/gate/sqlite-store';
 import { Screen, Txt } from '../../src/ui/kit';
@@ -14,7 +21,8 @@ import { Screen, Txt } from '../../src/ui/kit';
 export default function GateSelfTest() {
   const [lines, setLines] = useState<string[]>(['running…']);
   useEffect(() => {
-    if (!__DEV__) return; // never runs in a release build
+    // never runs in a release build unless a developer sets the flag to time a production bundle
+    if (!__DEV__ && process.env.EXPO_PUBLIC_GATE_SELFTEST !== '1') return;
     void run()
       .then((r) => {
         console.log(`GATE_SELFTEST: ${r.pass ? 'PASS' : 'FAIL'} ${JSON.stringify(r.lines)}`);
@@ -97,10 +105,13 @@ async function run(): Promise<{ pass: boolean; lines: string[] }> {
     const k = o.kind === 'deny' ? `deny:${o.reason}` : o.kind;
     tally[k] = (tally[k] ?? 0) + 1;
   };
+  // sign everything first: a real scan only verifies, so signing must not count towards the timing
+  const valid = guests.map(qr);
+  const forged = valid.slice(0, 30).map(forge);
   const t0 = Date.now();
-  for (const g of guests) bump(await engine.scanQr(qr(g)));
-  for (const g of guests.slice(0, 50)) bump(await engine.scanQr(qr(g)));
-  for (const g of guests.slice(0, 30)) bump(await engine.scanQr(forge(qr(g))));
+  for (const t of valid) bump(await engine.scanQr(t));
+  for (const t of valid.slice(0, 50)) bump(await engine.scanQr(t));
+  for (const t of forged) bump(await engine.scanQr(t));
   for (let i = 0; i < 10; i++) bump(await engine.scanQr(foreign));
   for (let i = 0; i < 10; i++) bump(await engine.scanCode(`ZZ-${2000 + i}`));
   const ms = Date.now() - t0;
@@ -115,6 +126,34 @@ async function run(): Promise<{ pass: boolean; lines: string[] }> {
     JSON.stringify(Object.entries(tally).sort()) === JSON.stringify(Object.entries(want).sort());
   lines.push(
     `200 scans in ${ms} ms (${Math.round(ms / 200)} ms each): ${okTally ? 'results correct' : `WRONG ${JSON.stringify(tally)}`}`,
+  );
+
+  // where does a scan's time go? verify alone, and one database insert alone
+  const v0 = Date.now();
+  for (const t of valid.slice(0, 20))
+    verifyQrToken(t, {
+      eventId,
+      publicKey: keys.publicKey,
+      lookupGuest: (sh) => {
+        const g = guests.find((x) => x.guestShort === sh);
+        return g ? { guestId: g.id, currentVersion: 1 } : null;
+      },
+    });
+  const verifyMs = (Date.now() - v0) / 20;
+  const w0 = Date.now();
+  for (let i = 0; i < 20; i++)
+    await store.addScan({
+      clientId: `probe-${i}-${Date.now()}`,
+      guestId: null,
+      result: 'not_found',
+      partyAdmitted: 0,
+      scannedAt: new Date().toISOString(),
+      offline: true,
+      synced: true,
+    });
+  const writeMs = (Date.now() - w0) / 20;
+  lines.push(
+    `verify only: ${verifyMs.toFixed(1)} ms · one SQLite insert: ${writeMs.toFixed(1)} ms`,
   );
 
   // "restart": a brand-new engine and database handle on the same file

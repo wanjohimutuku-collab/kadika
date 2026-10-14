@@ -63,7 +63,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ 200 mixed scans against the phone's SQLite store and Hermes crypto (dev self-test): all results correct, 73–177 ms per scan in a dev build, nothing lost after reopening the database
 - ☐ Two *physical* phones at once (second device was the real engine in a script; the emulator hung under load)
 - ☐ Torch: toggled on the phone and the camera service reports a torch request, not seen by eye
-- ☐ Release-build timing (overlay ≤ 100 ms): dev-build scan processing measured above is 73 ms at best
+- ◐ Release-mode timing (overlay ≤ 100 ms): a production-mode (`--no-dev --minify`) bundle on the Galaxy A17 measured 74–76 ms per scan end to end (verify + SQLite write, signing excluded), so the ≤ 100 ms target holds with little margin; the verify-vs-write split probe is in `/dev/gate-selftest` but its result was not read yet (phone locked)
 - ☐ Usability check: a first-time gate agent joins and scans with no instructions (3 people)
 - ☑ Gate token lasts until its link expires (no mid-event expiry); vibration setting is remembered
 - ☑ Sound feedback: generated tones (rising two-tone admit, beep duplicate, low buzz deny) with a remembered toggle; tone generator unit-tested, playback unverified on a device

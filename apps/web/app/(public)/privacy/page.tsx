@@ -1,11 +1,21 @@
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@harusi/i18n';
+import { SeoLinks } from '@/components/public/seo-links';
 import { LegalPage } from '@/components/public/legal-page';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getTranslations('legal'))('privacyTitle') };
+  return {
+    title: (await getTranslations('legal'))('privacyTitle'),
+  };
 }
 
-export default function PrivacyPage() {
-  return <LegalPage kind="privacy" />;
+export default async function PrivacyPage() {
+  const locale = (await getLocale()) as Locale;
+  return (
+    <>
+      <SeoLinks path="/privacy" locale={locale} />
+      <LegalPage kind="privacy" />
+    </>
+  );
 }

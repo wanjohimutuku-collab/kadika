@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@harusi/i18n';
+import { SeoLinks } from '@/components/public/seo-links';
+import { SITE_URL, absoluteLocaleUrl } from '@/lib/seo';
 import {
   ChevronDown,
   DoorOpen,
@@ -19,7 +22,19 @@ import { OrnamentDiamond } from '@/components/card/ornament';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('landing');
-  return { title: { absolute: t('metaTitle') }, description: t('heroBody') };
+  const locale = (await getLocale()) as Locale;
+  return {
+    title: { absolute: t('metaTitle') },
+    description: t('heroBody'),
+    openGraph: {
+      type: 'website',
+      siteName: 'Harusi Pass',
+      title: t('metaTitle'),
+      description: t('heroBody'),
+      locale: locale === 'sw' ? 'sw_TZ' : 'en_KE',
+      url: absoluteLocaleUrl('/', locale),
+    },
+  };
 }
 
 const STEP_ICONS = [UserPlus, Send, HandCoins, DoorOpen] as const;
@@ -29,8 +44,25 @@ export default async function Landing() {
   const t = await getTranslations('landing');
   const steps = ['1', '2', '3', '4'] as const;
   const faqs = ['1', '2', '3', '4', '5', '6'] as const;
+  const tc = await getTranslations('common');
+  const locale = (await getLocale()) as Locale;
+  const organization = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: tc('appName'),
+    url: SITE_URL,
+    logo: `${SITE_URL}/icons/512.png`,
+    description: tc('tagline'),
+    areaServed: ['TZ', 'KE'],
+  };
   return (
     <main>
+      <SeoLinks path="/" locale={locale} />
+      <script
+        type="application/ld+json"
+        // Static, server-built object; `<` is escaped so the JSON cannot close the tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, '\\u003c') }}
+      />
       <section className="bg-primary text-on-primary">
         <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-14 md:py-20">
           <OrnamentDiamond className="[--hp-pattern:#D9B26A]" />

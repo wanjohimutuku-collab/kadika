@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 import type { Context, MiddlewareHandler } from 'hono';
 import { z, ZodError } from 'zod';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { timingSafeEqual } from 'node:crypto';
 import { hashGuestToken } from '@harusi/crypto';
 import {
@@ -25,6 +26,7 @@ import { idempotent } from './idempotency';
 import { CardService } from './services/cards';
 import { DeliveryService } from './services/delivery';
 import { PrintService } from './services/print';
+import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
@@ -76,6 +78,34 @@ const guestBase = z.object({
 
 export function createApp(deps: Deps) {
   const app = new Hono<Env>();
+  // Security headers on every response (§9). The API only returns JSON, CSV and PDF, so nothing
+  // it sends should ever be rendered or framed: a locked-down CSP costs nothing.
+  app.use(
+    '*',
+    secureHeaders({
+      strictTransportSecurity: 'max-age=63072000; includeSubDomains',
+      contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+      referrerPolicy: 'no-referrer',
+      xFrameOptions: 'DENY',
+    }),
+  );
+  // One JSON line per request, never with a card token, PIN, OTP or phone number in it: the route
+  // pattern (`/v1/c/:token/pay`) is logged, not the real path (§12).
+  app.use('*', async (c, next) => {
+    const t0 = Date.now();
+    await next();
+    if (deps.config.logRequests)
+      console.log(
+        JSON.stringify({
+          level: c.res.status >= 500 ? 'error' : 'info',
+          msg: 'req',
+          method: c.req.method,
+          route: c.req.routePath,
+          status: c.res.status,
+          ms: Date.now() - t0,
+        }),
+      );
+  });
   // The web app and the API are on different origins (APP_BASE_URL vs the API host).
   app.use(
     '*',
@@ -96,6 +126,8 @@ export function createApp(deps: Deps) {
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
+  const auditSvc = new AuditService(deps, eventsSvc);
+  const privacySvc = new PrivacyService(deps, eventsSvc);
   const payStarts = new RateLimiter(deps.now, 10, 60_000);
   const payReads = new RateLimiter(deps.now, 120, 60_000);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000);
@@ -141,6 +173,15 @@ export function createApp(deps: Deps) {
     return claims ? { kind: 'gate', claims } : { kind: 'user', userId: c.get('userId') };
   };
 
+  // Readiness (§11): healthy only when the database answers; /health stays a cheap liveness probe.
+  app.get('/ready', async (c) => {
+    try {
+      await deps.db.execute(sql`select 1`);
+      return c.json({ status: 'ready', time: deps.now().toISOString() });
+    } catch {
+      return c.json({ status: 'unavailable', time: deps.now().toISOString() }, 503);
+    }
+  });
   app.get('/health', (c) => {
     const res: HealthResponse = { status: 'ok', service: 'api', time: deps.now().toISOString() };
     return c.json(res);
@@ -515,6 +556,22 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await pledgeSvc.recordManual(c.get('userId'), input), 201);
+  });
+  // ---- audit trail and personal data rights (§9)
+  app.get('/v1/events/:id/audit', async (c) =>
+    c.json(
+      await auditSvc.list(c.req.param('id'), c.get('userId'), {
+        limit: Number(c.req.query('limit')) || undefined,
+        before: c.req.query('before') || undefined,
+      }),
+    ),
+  );
+  app.get('/v1/guests/:id/export', async (c) =>
+    c.json(await privacySvc.exportGuest(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/guests/:id/erase', async (c) => {
+    await privacySvc.eraseGuest(c.req.param('id'), c.get('userId'));
+    return c.body(null, 204);
   });
   app.get('/v1/events/:id/payments', async (c) =>
     c.json(await pledgeSvc.listPayments(c.req.param('id'), c.get('userId'))),

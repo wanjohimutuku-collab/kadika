@@ -15,6 +15,7 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import type { EventService } from './events';
 import { pledgeSummaryOf } from './pledges';
+import { recordAudit } from './audit';
 
 export interface GuestInput {
   displayName: string;
@@ -279,6 +280,13 @@ export class GuestService {
       .update(guests)
       .set({ deletedAt: this.deps.now() })
       .where(eq(guests.id, guestId));
+    await recordAudit(this.deps.db, {
+      eventId: g.eventId,
+      actorId: userId,
+      action: 'guest.delete',
+      entity: 'guest',
+      entityId: guestId,
+    });
   }
 
   /**
@@ -314,6 +322,14 @@ export class GuestService {
         })
         .where(eq(invitations.guestId, guestId));
       return u!;
+    });
+    await recordAudit(this.deps.db, {
+      eventId: g.eventId,
+      actorId: userId,
+      action: 'guest.reissue',
+      entity: 'guest',
+      entityId: guestId,
+      diff: { tokenVersion: updated.tokenVersion },
     });
     return { guest: updated, cardToken: token };
   }

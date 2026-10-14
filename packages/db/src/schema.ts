@@ -346,16 +346,22 @@ export const signingKeys = pgTable('signing_keys', {
   ...timestamps,
 });
 
-export const auditLog = pgTable('audit_log', {
-  id: id(),
-  actorId: uuid('actor_id').references(() => users.id),
-  action: text('action').notNull(),
-  entity: text('entity').notNull(),
-  entityId: text('entity_id'),
-  diff: jsonb('diff'),
-  ip: text('ip'),
-  ...timestamps,
-});
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: id(),
+    actorId: uuid('actor_id').references(() => users.id),
+    action: text('action').notNull(),
+    entity: text('entity').notNull(),
+    entityId: text('entity_id'),
+    diff: jsonb('diff'),
+    ip: text('ip'),
+    /** The event this action belongs to, so an owner can read their event's trail (§9). */
+    eventId: uuid('event_id').references(() => events.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [index('audit_log_event_idx').on(t.eventId, t.createdAt)],
+);
 
 export const refreshTokens = pgTable(
   'refresh_tokens',

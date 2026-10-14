@@ -16,6 +16,7 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { signGateToken, type GateClaims } from '../auth/tokens';
 import type { EventService, MemberRole } from './events';
+import { recordAudit } from './audit';
 
 const MAX_PIN_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60_000;
@@ -100,6 +101,13 @@ export class GateService {
       createdBy: userId,
       expiresAt,
     });
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'gatelink.create',
+      entity: 'gate_link',
+      diff: { expiresAt: expiresAt.toISOString() },
+    });
     return { code, pin, url: `${this.deps.config.appBaseUrl}/gate-join/${code}`, expiresAt };
   }
 
@@ -110,6 +118,12 @@ export class GateService {
       .update(gateLinks)
       .set({ revokedAt: this.deps.now() })
       .where(and(eq(gateLinks.eventId, eventId), isNull(gateLinks.revokedAt)));
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'gatelink.revoke',
+      entity: 'gate_link',
+    });
   }
 
   async join(input: { code: string; pin: string; deviceId: string; deviceName?: string }) {

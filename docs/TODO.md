@@ -83,9 +83,12 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Re-check the web card's pay screen against the real API in a browser; Michango tab on a real phone
 
 ## Phase 7 — Hardening and launch
-- ☐ Rate limits audit, privacy pages (legal text is placeholder), backups drill, load test, Sentry, pilot
-- ☐ Native-speaker Swahili review (`sw.json` `reviewed: false`)
-
-## Open decisions (CLAUDE.md §15)
-- ☐ Brand/domains · WhatsApp route · SMS gateway · payment aggregator · pricing — confirm before Phases 3 and 6
-
+- ☑ API security headers (HSTS, nosniff, frame deny, CSP `default-src 'none'`, no referrer) on every response, `/ready` DB readiness probe, one JSON log line per request with the route pattern only (never tokens, PINs, OTPs or phones); tested
+- ☑ Audit trail: `audit_log.event_id` (migration 0010); reissue, delete, erase, export, member add/invite/remove, gate link create/revoke, pledges, manual payments and payment webhooks are recorded; owner-only `GET /v1/events/:id/audit` (newest first, no secrets); tested
+- ☑ PDPA: owner-only `GET /v1/guests/:id/export` (everything held about a guest) and `POST /v1/guests/:id/erase` (name, phone, notes removed; payment amounts kept for the books; card dies); both audited; tested
+- ☐ Rate limits on Redis (limiters are in-memory per instance), gate/OTP lockouts across instances
+- ☐ Privacy and terms pages: real legal text (placeholders marked "Rasimu"), a lawyer and a native-speaker review
+- ☐ Backup and restore drill (`infra/coolify/RESTORE.md`), nightly pg_dump
+- ☐ Load test: 1,000 concurrent card views and 20 gate devices against real Postgres
+- ☐ Sentry, uptime checks (Uptime Kuma) wiring
+- ☐ Audit view in the apps; pilot with 2–3 real weddings and the §14 KPIs

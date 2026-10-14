@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { auditLog, events, guests, newId, payments, pledges, users } from '@harusi/db';
+import { events, guests, newId, payments, pledges, users } from '@harusi/db';
 import { normalizeTzPhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { hashGuestToken } from '@harusi/crypto';
 import { invitations } from '@harusi/db';
 import type { EventService } from './events';
+import { recordAudit } from './audit';
 
 export type PledgeStatus = 'pledged' | 'partial' | 'paid' | 'waived';
 export const MANUAL_METHODS = ['cash', 'bank', 'mpesa', 'mixx', 'airtel', 'halopesa'] as const;
@@ -84,14 +85,20 @@ export class PledgeService {
     return g;
   }
 
-  private async audit(userId: string | null, action: string, entityId: string, diff: unknown) {
-    await this.deps.db.insert(auditLog).values({
-      id: newId(),
+  private async audit(
+    userId: string | null,
+    action: string,
+    entityId: string,
+    diff: unknown,
+    eventId: string | null = null,
+  ) {
+    await recordAudit(this.deps.db, {
+      eventId,
       actorId: userId,
       action,
       entity: 'payment',
       entityId,
-      diff: diff as never,
+      diff: diff as Record<string, unknown>,
     });
   }
 
@@ -147,10 +154,16 @@ export class PledgeService {
         createdBy: userId,
       });
     await this.recompute(guestId);
-    await this.audit(userId, existing ? 'pledge.update' : 'pledge.create', guestId, {
-      amountTzs: input.amountTzs,
-      waived: !!input.waived,
-    });
+    await this.audit(
+      userId,
+      existing ? 'pledge.update' : 'pledge.create',
+      guestId,
+      {
+        amountTzs: input.amountTzs,
+        waived: !!input.waived,
+      },
+      g.eventId,
+    );
     return pledgeSummaryOf(this.deps.db, guestId);
   }
 
@@ -267,11 +280,17 @@ export class PledgeService {
         field: 'reference',
       });
     await this.recompute(input.guestId);
-    await this.audit(userId, 'payment.manual', inserted[0]!.id, {
-      guestId: input.guestId,
-      amountTzs: input.amountTzs,
-      method: input.method,
-    });
+    await this.audit(
+      userId,
+      'payment.manual',
+      inserted[0]!.id,
+      {
+        guestId: input.guestId,
+        amountTzs: input.amountTzs,
+        method: input.method,
+      },
+      g.eventId,
+    );
     return this.paymentView(inserted[0]!.id);
   }
 
@@ -505,10 +524,16 @@ export class PledgeService {
     }
     if (ev.status === 'success') {
       await this.recompute(p.guestId);
-      await this.audit(null, 'payment.webhook', p.id, {
-        reference: ev.reference,
-        amountTzs: ev.amountTzs ?? p.amountTzs,
-      });
+      await this.audit(
+        null,
+        'payment.webhook',
+        p.id,
+        {
+          reference: ev.reference,
+          amountTzs: ev.amountTzs ?? p.amountTzs,
+        },
+        (await this.guestEvent(p.guestId)).eventId,
+      );
     }
     return { ok: true, known: true, applied: true, duplicate: false };
   }

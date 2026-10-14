@@ -29,6 +29,8 @@ export interface Config {
   /** Browser origins allowed to call the API (web app, admin). */
   corsOrigins: string[];
   port: number;
+  /** One structured log line per request (on unless LOG_REQUESTS=0; tests turn it off). */
+  logRequests: boolean;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -93,5 +95,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       .map((o) => o.trim())
       .filter(Boolean),
     port: Number(env.API_PORT ?? env.PORT ?? 3001),
+    logRequests: env.LOG_REQUESTS !== '0',
   };
 }

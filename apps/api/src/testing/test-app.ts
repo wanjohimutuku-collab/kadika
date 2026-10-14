@@ -50,6 +50,7 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
       KEY_ENC_SECRET: TEST_KEY,
       WEBHOOK_SECRET: 'hook-secret-for-tests',
       PAYMENT_WEBHOOK_SECRET: 'pay-secret-for-tests',
+      LOG_REQUESTS: '0',
       WHATSAPP_TOKEN: 'cloud-token',
       WHATSAPP_PHONE_ID: '1234567890',
       WHATSAPP_VERIFY_TOKEN: 'verify-me',

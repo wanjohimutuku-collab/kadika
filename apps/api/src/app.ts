@@ -13,6 +13,8 @@ import { EventService } from './services/events';
 import { GuestService } from './services/guests';
 import { MemberService } from './services/members';
 import { idempotent } from './idempotency';
+import { CardService } from './services/cards';
+import { RateLimiter } from './rate-limit';
 
 type Env = { Variables: { userId: string } };
 
@@ -72,6 +74,11 @@ export function createApp(deps: Deps) {
   const eventsSvc = new EventService(deps);
   const guestsSvc = new GuestService(deps, eventsSvc);
   const membersSvc = new MemberService(deps, eventsSvc);
+  const cardsSvc = new CardService(deps);
+  // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
+  const cardReads = new RateLimiter(deps.now, 120, 60_000);
+  const cardWrites = new RateLimiter(deps.now, 20, 60_000);
+  const client = (c: Context) => c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
     const h = c.req.header('authorization');
@@ -116,7 +123,9 @@ export function createApp(deps: Deps) {
   });
 
   app.use('/v1/*', async (c, next) =>
-    c.req.path.startsWith('/v1/auth/') ? next() : requireAuth(c, next),
+    c.req.path.startsWith('/v1/auth/') || c.req.path.startsWith('/v1/c/')
+      ? next()
+      : requireAuth(c, next),
   );
   // Idempotency-Key (§8) on the endpoints where a retry would otherwise duplicate or rotate things.
   const once = idempotent(deps);
@@ -139,6 +148,22 @@ export function createApp(deps: Deps) {
       .where(eq(users.id, c.get('userId')))
       .returning();
     return c.json({ id: u!.id, name: u!.name });
+  });
+
+  // ---- public guest card (no login; the card token is the credential)
+  app.get('/v1/c/:token', async (c) => {
+    cardReads.check(`ip:${client(c)}`);
+    cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    return c.json(await cardsSvc.get(c.req.param('token')));
+  });
+  app.post('/v1/c/:token/rsvp', async (c) => {
+    cardWrites.check(`ip:${client(c)}`);
+    cardWrites.check(`t:${c.req.param('token').slice(0, 8)}`);
+    const input = parse(
+      z.object({ attending: z.boolean(), partySize: z.number().int().min(0).max(10) }),
+      await body(c),
+    );
+    return c.json(await cardsSvc.rsvp(c.req.param('token'), input));
   });
 
   // ---- events

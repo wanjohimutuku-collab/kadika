@@ -19,6 +19,7 @@ describe('schema', () => {
       schema.refreshTokens,
       schema.eventInvites,
       schema.idempotencyKeys,
+      schema.retiredCardTokens,
     ].map(getTableName);
     expect(names).toEqual([
       'users',
@@ -35,6 +36,7 @@ describe('schema', () => {
       'refresh_tokens',
       'event_invites',
       'idempotency_keys',
+      'retired_card_tokens',
     ]);
   });
 

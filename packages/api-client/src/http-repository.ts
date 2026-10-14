@@ -3,6 +3,7 @@ import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
 import type {
+  CardView,
   Guest,
   GuestQuery,
   ImportResult,
@@ -148,6 +149,70 @@ function mapEvent(e: ApiEvent): WeddingEvent {
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
     stats: empty,
+  };
+}
+
+interface ApiCard {
+  state: CardView['state'];
+  event:
+    | (Omit<
+        NonNullable<CardView['event']>,
+        | 'partnerA'
+        | 'partnerB'
+        | 'senderName'
+        | 'committeePhone'
+        | 'pledgesEnabled'
+        | 'greeting'
+        | 'extraNote'
+        | 'themeId'
+        | 'coverGradient'
+      > & { brandTheme: Record<string, unknown> | null })
+    | null;
+  guest: CardView['guest'];
+  qrPayload: string | null;
+  rsvp: CardView['rsvp'];
+  rsvpOpen: boolean;
+  eventPassed: boolean;
+}
+
+function mapCard(token: string, c: ApiCard): CardView {
+  const e = c.event;
+  const theme = (e?.brandTheme ?? {}) as {
+    themeId?: WeddingEvent['themeId'];
+    coverGradient?: string;
+  };
+  const [a = '', b = ''] = (e?.coupleNames ?? '').split('&').map((x) => x.trim());
+  return {
+    token,
+    state: c.state,
+    event: e
+      ? {
+          id: e.id,
+          partnerA: a,
+          partnerB: b,
+          coupleNames: e.coupleNames,
+          dateStart: e.dateStart,
+          venueName: e.venueName ?? '',
+          venueMapUrl: e.venueMapUrl ?? '',
+          dressCode: e.dressCode ?? '',
+          themeId: theme.themeId ?? 'emerald-gold',
+          coverGradient: theme.coverGradient ?? '',
+          rsvpDeadline: e.rsvpDeadline,
+          senderName: `Kamati ya Harusi ya ${e.coupleNames}`,
+          committeePhone: '',
+          pledgesEnabled: false,
+          greeting: '',
+          extraNote: '',
+          timezone: 'Africa/Dar_es_Salaam',
+        }
+      : null,
+    guest: c.guest,
+    qrPayload: c.qrPayload,
+    rsvp: c.rsvp,
+    pledge: null,
+    rsvpOpen: c.rsvpOpen,
+    eventPassed: c.eventPassed,
+    isMock: false,
   };
 }
 
@@ -464,6 +529,18 @@ export function createHttpRepository(
       });
       return mapGuest(r.guest);
     },
+    // Public guest card (no login; the card token is the credential).
+    async getCard(token) {
+      const r = await raw('GET', `/v1/c/${encodeURIComponent(token)}`, undefined, {}, false);
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      return mapCard(token, r.json as unknown as ApiCard);
+    },
+    async rsvp(token, input) {
+      const r = await raw('POST', `/v1/c/${encodeURIComponent(token)}/rsvp`, input, {}, false);
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      return mapCard(token, r.json as unknown as ApiCard);
+    },
+
     async importGuests(eventId, rows: ImportRowInput[], idempotencyKey) {
       const csv = toCsv([
         ['Jina', 'Simu', 'Kikundi', 'Idadi'],

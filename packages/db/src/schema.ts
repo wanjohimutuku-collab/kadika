@@ -312,3 +312,17 @@ export const idempotencyKeys = pgTable(
   },
   (t) => [uniqueIndex('idempotency_user_key_uq').on(t.userId, t.key)],
 );
+
+/** Card tokens replaced by a reissue: their links show "kadi imebadilishwa" instead of "invalid". */
+export const retiredCardTokens = pgTable(
+  'retired_card_tokens',
+  {
+    id: id(),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('retired_card_tokens_hash_uq').on(t.tokenHash)],
+);

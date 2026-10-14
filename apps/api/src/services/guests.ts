@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
-import { guests, invitations, newId, shortOf, signingKeys } from '@harusi/db';
+import { guests, invitations, newId, retiredCardTokens, shortOf, signingKeys } from '@harusi/db';
 import { decryptSecret } from '../crypto-at-rest';
 import { generateGuestToken, hashGuestToken, signQrToken } from '@harusi/crypto';
 import {
@@ -267,6 +267,17 @@ export class GuestService {
         .set({ tokenVersion: sql`${guests.tokenVersion} + 1` })
         .where(eq(guests.id, guestId))
         .returning();
+      // The old link keeps working as a "replaced" notice instead of looking invalid.
+      const [inv] = await tx
+        .select({ tokenHash: invitations.tokenHash })
+        .from(invitations)
+        .where(eq(invitations.guestId, guestId));
+      if (inv) {
+        await tx
+          .insert(retiredCardTokens)
+          .values({ id: newId(), guestId, tokenHash: inv.tokenHash })
+          .onConflictDoNothing();
+      }
       await tx
         .update(invitations)
         .set({ tokenHash: hashGuestToken(token) })

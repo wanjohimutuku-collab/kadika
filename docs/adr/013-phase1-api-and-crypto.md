@@ -37,6 +37,14 @@ Implemented now: `POST auth/otp/request|verify`, `auth/refresh`, `auth/logout`, 
 - `GET /v1/events/:id/guests` is cursor-paginated (`limit` 1–200, default 50, opaque `cursor`, `nextCursor`), ordered by name then id, so inserts between pages never skip or repeat a guest. Status filtering happens in SQL.
 - `Idempotency-Key` (8–128 chars, per user) on guest create, import and reissue: the first 2xx response is stored in `idempotency_keys` and replayed with `Idempotent-Replayed: true`. One-time secrets (the card token) are never stored, so a replay returns the guest without it. The same key on a different method/path is a 409.
 
+## Public guest card API (Phase 2 backend)
+
+- `GET /v1/c/:token` (no login) returns the card: event essentials, the guest's own name/party/short code, a **freshly signed QR payload**, RSVP state, `rsvpOpen` and `eventPassed`. It never returns phones, other guests, the token hash or any key. Opening a card moves the invitation to `opened` (never backwards).
+- `POST /v1/c/:token/rsvp` `{ attending, partySize }` is naturally idempotent: repeating an answer changes nothing, a changed answer replaces the old one, the party size is capped at the guest's allowed maximum. Closed after the RSVP deadline (+1 day grace) or 12 h after the wedding start (`409 rsvp_closed`), and for archived events.
+- A reissue moves the old token hash to `retired_card_tokens`, so the old link answers `reissued` (GET) / `409 reissued` (RSVP) instead of looking invalid. Unknown tokens answer `invalid` / `404`. Deleted guests' cards read as invalid.
+- Both endpoints are rate-limited per client IP and per token prefix (reads 120/min, RSVP 20/min). The limiter is in-memory; it moves to Redis in Phase 7.
+- Not in this slice: pay (`/c/:token/pay`), short-link resolution (`/s/:code`, needs an opaque per-guest slug, ADR 007), calendar/OG data, and the opened/RSVP event fan-out to the dashboard activity feed.
+
 ## Not yet in Phase 1
 
 Pagination on other list endpoints (events, members), idempotency on the send/pay/sync endpoints (built with their phases), OpenAPI generation (`@hono/zod-openapi`) and the generated client, Better Auth (replaced here by a small purpose-built phone-OTP flow), per-IP rate limiting, audit-log writes for admin actions, and the guest-card/RSVP/pay endpoints (Phase 2). The web app's `HttpRepository` is wired to what exists (tests run it against the real routes and SQL in `apps/api/src/http-repository.test.ts`).

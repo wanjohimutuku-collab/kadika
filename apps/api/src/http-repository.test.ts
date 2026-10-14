@@ -173,6 +173,51 @@ describe('HttpRepository against the real API', () => {
     expect(await invitee.listEvents().catch(() => [])).toEqual([]);
   });
 
+  it('serves the public guest card and RSVP through the same client (no login)', async () => {
+    const tokens = memoryTokenStore();
+    const owner = repo(tokens);
+    await login(owner, '0712 100 106');
+    const ev = await owner.createEvent({
+      title: 'Harusi K',
+      partnerA: 'Asha',
+      partnerB: 'Juma',
+      dateStart: '2027-06-01T10:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: 'Kijani',
+      languageDefault: 'sw',
+      themeId: 'terracotta',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTargetTzs: 0,
+    });
+    // The client hides the one-time card token, so create the guest over raw HTTP to read it.
+    const res = await ctx.app.request(`/v1/events/${ev.id}/guests`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${tokens.get()!.accessToken}`,
+      },
+      body: JSON.stringify({ displayName: 'Bibi Pendo', partySizeAllowed: 2 }),
+    });
+    const { cardToken } = (await res.json()) as { cardToken: string };
+    const guestView = repo(); // a different client with no session
+    const card = await guestView.getCard(cardToken);
+    expect(card).toMatchObject({
+      state: 'ok',
+      isMock: false,
+      event: { partnerA: 'Asha', partnerB: 'Juma', dressCode: 'Kijani', themeId: 'terracotta' },
+      guest: { displayName: 'Bibi Pendo' },
+      rsvpOpen: true,
+    });
+    expect(card.qrPayload).toMatch(/^v1\./);
+    expect((await guestView.rsvp(cardToken, { attending: true, partySize: 5 }, 'k')).rsvp).toEqual({
+      status: 'confirmed',
+      partySize: 2,
+    });
+    expect((await guestView.getCard('nope')).state).toBe('invalid');
+  });
+
   it('rejects not-yet-built features with not_implemented', async () => {
     const r = repo();
     await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });

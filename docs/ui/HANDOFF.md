@@ -43,10 +43,14 @@ Verified in a browser: login with a real SMS code, wedding list, guest list and 
 
 Harusi Pass employees run the business from `/ops` (ADR 012): overview, customers (suspend/reactivate), weddings (mark paid), usage and costs, payments, support lookup, data requests, staff audit log. In mocks, sign in with **0700 000 999** (admin), **0700 000 998** (support) or **0700 000 997** (billing) + `123456`, then the staff second code `654321`. The `Repository` methods are the `ops*` group in `packages/api-client/src/repository.ts`; the real API must enforce `users.role_global = 'admin'`, mask phones by default, require a reason to reveal a full number, and write every reveal, suspension, plan change and request resolution to an audit table.
 
+## Card colours
+
+Owners can override every colour of the digital and print card on the Kadi page (ADR 015). The palette is stored in `events.brand_theme.palette`, validated for contrast by the API and the mock, and rendered by the light card, the pay page, the OG image and both console previews.
+
 ## Known gaps
 
 - **Lighthouse** is met (0.93–0.97 mobile) because the guest card uses a system serif instead of the web font; re-adding it costs ~0.1 (ADR 009).
-- **Guest card "< 100 KB initial load"** (§7.3) is not achievable with Next.js App Router: the framework runtime alone is 103 KB gz. The card meets the 120 KB gz JS budget (§10) at 116 KB. See ADR 009 for options.
+- **Guest card initial load** is now ~30 KB of HTML (under 15 KB gzipped) with no framework runtime: `/c/[token]` is a static-HTML route handler (ADR 014). Lighthouse and offline/RSVP checks against it still need a run; the e2e specs in `e2e/guest.spec.ts` were not re-run (Playwright browsers not installed here).
 - **Mock-mode bundle**: in mock mode the repository chunk (seed generator + zod) loads after first paint on the guest card. The real `HttpRepository` will be much smaller.
 - **Cover photos** are mocked with gradients; real uploads need S3 (§3) and image optimisation (AVIF/WebP, ≤ 40 KB).
 - **PDF export** returns a one-line mock PDF. The real batch PDF (A6/A5, A4 4-up, test sheet) is Phase 3 and must keep the §6.4 assertions; the console already blocks layouts with a QR below 25 mm or modules below 0.8 mm.

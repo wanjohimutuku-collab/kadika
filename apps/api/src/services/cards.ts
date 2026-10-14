@@ -28,6 +28,9 @@ export interface CardView {
     venueName: string | null;
     venueMapUrl: string | null;
     dressCode: string | null;
+    committeePhone: string | null;
+    senderName: string | null;
+    greeting: string | null;
     brandTheme: Record<string, unknown> | null;
     rsvpDeadline: Date | null;
     timezone: string;
@@ -99,6 +102,9 @@ export class CardService {
         venueName: event.venueName,
         venueMapUrl: event.venueMapUrl,
         dressCode: event.dressCode,
+        committeePhone: event.committeePhone,
+        senderName: event.senderName,
+        greeting: event.greeting,
         brandTheme: event.brandTheme,
         rsvpDeadline: event.rsvpDeadline,
         timezone: event.timezone,
@@ -139,6 +145,15 @@ export class CardService {
       },
       privateKey,
     );
+  }
+
+  /**
+   * Read-only card for link-preview bots, the OG image and the PWA manifest: same data as `get`
+   * but no QR and, above all, it never marks the invitation `opened`.
+   */
+  async preview(token: string): Promise<CardView> {
+    const { row } = await this.find(token);
+    return row ? this.view(row, '') : EMPTY('invalid');
   }
 
   /** Marks the invitation `opened` (never moves a status backwards) and returns the card. */

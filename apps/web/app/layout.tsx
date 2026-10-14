@@ -26,8 +26,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const locale = (await getLocale()) as Locale;
   const tDev = await getTranslations('dev');
   return (
-    <html lang={locale}>
-      <body className="min-h-dvh antialiased">
+    // Browser extensions (Grammarly, etc.) inject attributes into <html>/<body>
+    // before hydration; suppress only those two elements' attribute warnings.
+    <html lang={locale} suppressHydrationWarning>
+      <body className="min-h-dvh antialiased" suppressHydrationWarning>
         {children}
         {SHOW_DEV_TOOLS ? (
           <DevPanelLauncher

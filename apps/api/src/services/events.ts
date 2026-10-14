@@ -1,6 +1,11 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { eventMembers, events, newId, signingKeys } from '@harusi/db';
 import { generateEventKeyPair } from '@harusi/crypto';
+import {
+  paletteContrastIssues,
+  resolvePalette,
+  sanitizeOverrides,
+} from '@harusi/ui-tokens/palette';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { encryptSecret } from '../crypto-at-rest';
@@ -14,10 +19,38 @@ export interface EventInput {
   venueName?: string | null;
   venueMapUrl?: string | null;
   dressCode?: string | null;
+  committeePhone?: string | null;
+  senderName?: string | null;
+  greeting?: string | null;
   languageDefault?: 'sw' | 'en';
   rsvpDeadline?: Date | null;
   contributionTargetTzs?: number | null;
   brandTheme?: Record<string, unknown> | null;
+}
+
+/**
+ * `brand_theme` holds `{ themeId, coverGradient, palette }`. A patch only replaces the keys it
+ * sends, and the resulting palette must stay readable (WCAG contrast, ADR 015) or the call fails.
+ */
+export function mergeBrandTheme(
+  current: Record<string, unknown> | null,
+  patch: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | undefined {
+  if (!patch) return current ?? undefined;
+  const merged: Record<string, unknown> = { ...(current ?? {}) };
+  for (const [k, v] of Object.entries(patch)) if (v !== undefined) merged[k] = v;
+  const themeId = typeof merged.themeId === 'string' ? merged.themeId : undefined;
+  if ('palette' in merged) {
+    const palette = sanitizeOverrides(merged.palette);
+    const issues = paletteContrastIssues(resolvePalette(themeId, palette));
+    if (issues.length)
+      throw new ApiError('validation', 'Palette is not readable', {
+        reason: 'palette.contrast',
+        pairs: issues.map((i) => i.pair),
+      });
+    merged.palette = palette;
+  }
+  return merged;
 }
 
 export class EventService {
@@ -32,7 +65,12 @@ export class EventService {
       const keyId = newId();
       const [event] = await tx
         .insert(events)
-        .values({ id: eventId, ownerId, ...input, brandTheme: input.brandTheme ?? undefined })
+        .values({
+          id: eventId,
+          ownerId,
+          ...input,
+          brandTheme: mergeBrandTheme(null, input.brandTheme),
+        })
         .returning();
       await tx
         .insert(signingKeys)
@@ -83,9 +121,17 @@ export class EventService {
     const role = await this.role(eventId, userId);
     if (role !== 'owner')
       throw new ApiError('forbidden', 'Only the owner can change event settings');
+    let brandTheme: Record<string, unknown> | undefined;
+    if (patch.brandTheme) {
+      const [current] = await this.deps.db
+        .select({ brandTheme: events.brandTheme })
+        .from(events)
+        .where(eq(events.id, eventId));
+      brandTheme = mergeBrandTheme(current?.brandTheme ?? null, patch.brandTheme);
+    }
     const [updated] = await this.deps.db
       .update(events)
-      .set({ ...patch, brandTheme: patch.brandTheme ?? undefined })
+      .set({ ...patch, brandTheme })
       .where(eq(events.id, eventId))
       .returning();
     if (!updated) throw new ApiError('not_found');

@@ -8,7 +8,7 @@ import {
   guessMapping,
   parseCsv,
   type ImportField,
-} from '@harusi/api-client';
+} from '@harusi/schemas/import';
 import { generateShortCode } from '@harusi/schemas/short-code';
 import { normalizeTzPhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';

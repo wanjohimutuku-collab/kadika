@@ -10,6 +10,7 @@ import type {
   ScanResult,
 } from '@harusi/schemas';
 import type { ThemeId } from '@harusi/ui-tokens/themes';
+import type { PaletteOverrides } from '@harusi/ui-tokens/palette';
 
 export type { ThemeId };
 export type ISODate = string;
@@ -89,6 +90,8 @@ export interface WeddingEvent {
   status: EventStatus;
   themeId: ThemeId;
   coverGradient: string;
+  /** Colour overrides on top of the theme; empty = the preset as is. */
+  palette: PaletteOverrides;
   rsvpDeadline: ISODate | null;
   contributionTargetTzs: number;
   /** Shown on the trust strip (§7.2): who sent the invitation and how to call them. */
@@ -249,6 +252,7 @@ export interface CardView {
     | 'dressCode'
     | 'themeId'
     | 'coverGradient'
+    | 'palette'
     | 'rsvpDeadline'
     | 'senderName'
     | 'committeePhone'

@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./phone": "./src/phone.ts",
+    "./import": "./src/import.ts",
     "./short-code": "./src/short-code.ts"
   },
   "scripts": {

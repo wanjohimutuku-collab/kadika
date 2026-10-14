@@ -50,6 +50,9 @@ importers:
       '@harusi/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@harusi/ui-tokens':
+        specifier: workspace:*
+        version: link:../../packages/ui-tokens
       '@hono/node-server':
         specifier: ^1.19.17
         version: 1.19.17(hono@4.13.13)

@@ -13,6 +13,7 @@ import {
   formatWeekday,
   swahiliTime,
 } from '@/lib/format';
+import type { PaletteOverrides } from '@harusi/ui-tokens/palette';
 import { themeStyle } from '@/lib/theme';
 
 export interface CardPreviewData {
@@ -23,6 +24,7 @@ export interface CardPreviewData {
   dressCode: string;
   themeId: string;
   coverGradient: string;
+  palette?: PaletteOverrides;
   greeting?: string;
   extraNote?: string;
   senderName?: string;
@@ -45,7 +47,7 @@ export function CardPreview({ data, compact }: { data: CardPreviewData; compact?
     >
       <div
         className="h-[540px] overflow-hidden overflow-y-auto rounded-[1.5rem] bg-surface"
-        style={themeStyle(data.themeId)}
+        style={themeStyle(data.themeId, data.palette)}
       >
         <div
           className="relative text-center text-on-primary"

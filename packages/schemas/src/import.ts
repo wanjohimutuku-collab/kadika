@@ -1,5 +1,5 @@
-import { normalizeTzPhone, type PhoneError } from '@harusi/schemas';
-import type { ChannelPref } from '@harusi/schemas';
+import { normalizeTzPhone, type PhoneError } from './phone';
+import type { ChannelPref } from './domain';
 
 /** Minimal RFC 4180 CSV parser (quotes, escaped quotes, CRLF, `,` or `;` delimiter auto-detected). */
 export function parseCsv(text: string): string[][] {

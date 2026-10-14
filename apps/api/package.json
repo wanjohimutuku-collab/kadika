@@ -17,6 +17,7 @@
     "@harusi/db": "workspace:*",
     "@harusi/messaging": "workspace:*",
     "@harusi/schemas": "workspace:*",
+    "@harusi/ui-tokens": "workspace:*",
     "@hono/node-server": "^1.19.17",
     "@noble/hashes": "^1.8.0",
     "drizzle-orm": "^0.45.4",

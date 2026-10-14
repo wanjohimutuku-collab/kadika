@@ -7,10 +7,11 @@ export * from './domain/pledge';
 export * from './domain/sms';
 export * from './domain/funnel';
 export * from './domain/guest-filter';
-export * from './domain/import';
+export * from '@harusi/schemas/import';
 export * from './domain/token';
 export {
   createHttpRepository,
+  fetchCardPreview,
   memoryTokenStore,
   webStorageTokenStore,
   type TokenStore,

@@ -880,7 +880,31 @@
     "pdfReady": "PDF imepakuliwa (ya majaribio)",
     "invitesLine": "Wanawaalika {guest}",
     "sampleGuest": "Mgeni wa mfano",
-    "rsvpLine": "Jibu au maswali: {phone}"
+    "rsvpLine": "Jibu au maswali: {phone}",
+    "palette": "Rangi za kadi",
+    "paletteHelp": "Badilisha rangi yoyote ya kadi ya simu na ya kuchapisha. Rangi ya QR haibadiliki: daima nyeusi juu ya nyeupe ili ichanganuliwe mlangoni.",
+    "paletteReset": "Rudisha",
+    "paletteResetAll": "Rudisha rangi zote za mtindo",
+    "paletteHex": "Msimbo wa rangi (hex)",
+    "paletteHexInvalid": "Tumia msimbo kama #0F5C4D",
+    "paletteCustom": "Rangi zimebadilishwa: {n}",
+    "paletteReadable": "Rangi zote zinasomeka vizuri.",
+    "paletteUnreadable": "Baadhi ya rangi hazisomeki vizuri pamoja. Hifadhi imezuiliwa mpaka urekebishe.",
+    "paletteIssue": "{a} na {b}: uwiano {ratio}:1 ni mdogo mno",
+    "paletteQrNote": "QR na namba ya kadi hubaki nyeusi juu ya nyeupe.",
+    "palettePrintNote": "Chapisha: rangi nyeusi sana au za ukingoni zinaweza kutoka tofauti kwenye karatasi. Chapisha kadi moja ya majaribio kwanza.",
+    "swatch": {
+      "primary": "Rangi kuu (juu, vitufe)",
+      "onPrimary": "Maandishi juu ya rangi kuu",
+      "accent": "Rangi ya pili (mapambo)",
+      "bg": "Mandharinyuma ya ukurasa",
+      "surface": "Karatasi ya kadi",
+      "ink": "Maandishi",
+      "muted": "Maandishi hafifu",
+      "border": "Mistari",
+      "pattern": "Mpaka wa mapambo",
+      "success": "Kijani cha uthibitisho"
+    }
   },
   "pledges": {
     "title": "Michango",

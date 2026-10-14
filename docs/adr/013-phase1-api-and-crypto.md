@@ -23,7 +23,7 @@ Implemented now: `POST auth/otp/request|verify`, `auth/refresh`, `auth/logout`, 
 - **Suspended users** are refused at login, refresh and on every request.
 - **Roles**: owner / committee / gate per event. Non-members get 404 (not 403) so event ids cannot be probed. Gate agents cannot manage guests.
 - **Invitations**: new table `event_invites`; an invite to an existing user becomes a membership immediately, otherwise it is accepted at that phone's first login (the gap found in ADR 012).
-- **Import** reuses the parsing/dedupe domain code from `@harusi/api-client` (same behaviour as the web preview); moving it into `@harusi/schemas` is a worthwhile cleanup.
+- **Import** parsing/dedupe lives in `@harusi/schemas/import` (moved out of `@harusi/api-client`, which re-exports it), so the API, the mock and the web preview share one implementation.
 - **Errors** use the §8 shape; internal errors never log tokens, OTPs, keys or full phone numbers.
 - `DEV_LOG_OTP=1` prints the OTP SMS to the API log in non-production only (§12 otherwise forbids logging OTPs).
 - No SMS gateway yet: `FakeMessagingProvider` (Phase 3 adds Beem/Africa's Talking/NextSMS adapters).

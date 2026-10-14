@@ -41,6 +41,9 @@ const eventBase = z.object({
   venueName: z.string().trim().max(120).nullish(),
   venueMapUrl: z.string().url().max(500).nullish(),
   dressCode: z.string().trim().max(80).nullish(),
+  committeePhone: z.string().trim().max(30).nullish(),
+  senderName: z.string().trim().max(120).nullish(),
+  greeting: z.string().trim().max(200).nullish(),
   languageDefault: z.enum(['sw', 'en']).optional(),
   rsvpDeadline: optionalDate,
   contributionTargetTzs: z.number().int().min(0).nullish(),
@@ -155,6 +158,12 @@ export function createApp(deps: Deps) {
     cardReads.check(`ip:${client(c)}`);
     cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     return c.json(await cardsSvc.get(c.req.param('token')));
+  });
+  app.get('/v1/c/:token/preview', async (c) => {
+    cardReads.check(`ip:${client(c)}`);
+    cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    const v = await cardsSvc.preview(c.req.param('token'));
+    return c.json({ ...v, qrPayload: null });
   });
   app.post('/v1/c/:token/rsvp', async (c) => {
     cardWrites.check(`ip:${client(c)}`);

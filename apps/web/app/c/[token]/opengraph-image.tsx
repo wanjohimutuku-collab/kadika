@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
-import { USE_MOCKS } from '@/lib/env';
-import { peekCardOnServer } from '@/lib/server-mock';
+import { resolvePalette } from '@harusi/ui-tokens/palette';
+import { previewCardOnServer } from '@/lib/server-card';
 import { formatDate } from '@/lib/format';
 
 export const size = { width: 1200, height: 630 };
@@ -10,8 +10,9 @@ export const alt = 'Harusi Pass';
 /** WhatsApp/SMS link preview (§7.2). Shows names, date and venue — never the QR or guest data. */
 export default async function OgImage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const v = USE_MOCKS ? peekCardOnServer(token) : null;
+  const v = await previewCardOnServer(token);
   const ev = v?.state === 'ok' ? v.event : null;
+  const palette = resolvePalette(ev?.themeId, ev?.palette);
   return new ImageResponse(
     <div
       style={{
@@ -21,8 +22,8 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: ev?.coverGradient || '#0F5C4D',
-        color: '#fff',
+        background: ev?.coverGradient || palette.primary,
+        color: palette.onPrimary,
         fontFamily: 'Georgia, serif',
       }}
     >

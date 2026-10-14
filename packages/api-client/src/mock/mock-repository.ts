@@ -13,6 +13,23 @@ import {
   type RsvpInput,
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
+import {
+  paletteContrastIssues,
+  resolvePalette,
+  sanitizeOverrides,
+  type PaletteOverrides,
+} from '@harusi/ui-tokens/palette';
+
+/** Same rule as the API: overrides must keep the card readable (WCAG, ADR 006/015). */
+function checkedPalette(themeId: string, raw: PaletteOverrides | undefined): PaletteOverrides {
+  const clean = sanitizeOverrides(raw);
+  const issues = paletteContrastIssues(resolvePalette(themeId, clean));
+  if (issues.length)
+    throw new RepositoryError('validation', 'palette.contrast', {
+      pairs: issues.map((i) => i.pair),
+    });
+  return clean;
+}
 import type { Repository } from '../repository';
 import type {
   Activity,
@@ -54,7 +71,7 @@ import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
 import { pledgeTotals, summarizePledge } from '../domain/pledge';
 import { buildInviteSms, estimateSmsCost } from '../domain/sms';
-import { toCsv } from '../domain/import';
+import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
 import { MockControls } from './controls';
 import { Rng } from './prng';
@@ -114,6 +131,45 @@ export class MockRepository implements Repository {
     this.rng = new Rng(this.random);
     this.baseUrl = opts.baseUrl ?? 'https://harusipass.example';
     this.state = opts.initialState ?? this.load() ?? createSeedState({ now: this.now() });
+    this.applyCardOverlays();
+  }
+
+  /**
+   * The light guest card (apps/web `light-card`) has no repository: before this state exists it
+   * stores RSVPs as `harusi.card.overlay.<token>`. Fold them in so the console sees them.
+   */
+  private applyCardOverlays(): void {
+    const s = this.storage;
+    if (!s || typeof s.length !== 'number') return;
+    const prefix = 'harusi.card.overlay.';
+    const keys: string[] = [];
+    for (let i = 0; i < s.length; i++) {
+      const k = s.key(i);
+      if (k?.startsWith(prefix)) keys.push(k);
+    }
+    let changed = false;
+    for (const k of keys) {
+      try {
+        const o = JSON.parse(s.getItem(k) ?? 'null') as {
+          status: 'confirmed' | 'declined';
+          rsvpPartySize: number;
+          at: string;
+        } | null;
+        const g = o && this.state.guests.find((x) => x.token === k.slice(prefix.length));
+        if (o && g && (o.status === 'confirmed' || o.status === 'declined')) {
+          g.status = o.status;
+          g.rsvpPartySize = o.rsvpPartySize;
+          g.updatedAt = o.at;
+          g.timeline = { ...g.timeline, [o.status]: o.at };
+          delete g.timeline[o.status === 'confirmed' ? 'declined' : 'confirmed'];
+          changed = true;
+        }
+      } catch {
+        /* ignore a corrupt overlay */
+      }
+      s.removeItem(k);
+    }
+    if (changed) this.persist();
   }
 
   // ---------------------------------------------------------------- infrastructure
@@ -552,6 +608,7 @@ export class MockRepository implements Repository {
         status: 'active',
         themeId: v.themeId,
         coverGradient: v.coverGradient,
+        palette: checkedPalette(v.themeId, v.palette),
         rsvpDeadline: v.rsvpDeadline ? new Date(v.rsvpDeadline).toISOString() : null,
         contributionTargetTzs: v.contributionTargetTzs,
         senderName: `Kamati ya Harusi ya ${v.partnerA} & ${v.partnerB}`,
@@ -588,6 +645,8 @@ export class MockRepository implements Repository {
       this.requireSession();
       const e = this.event(eventId);
       const { stats: _s, id: _i, timezone: _tz, createdAt: _c, ...allowed } = patch;
+      if (patch.palette !== undefined)
+        allowed.palette = checkedPalette(patch.themeId ?? e.themeId, patch.palette);
       Object.assign(e, allowed, { updatedAt: iso(this.now()) });
       if (patch.partnerA || patch.partnerB) e.coupleNames = `${e.partnerA} & ${e.partnerB}`;
       return this.toEvent(e);
@@ -1658,6 +1717,7 @@ export class MockRepository implements Repository {
         dressCode: e.dressCode,
         themeId: e.themeId,
         coverGradient: e.coverGradient,
+        palette: sanitizeOverrides(e.palette),
         rsvpDeadline: e.rsvpDeadline,
         senderName: e.senderName,
         committeePhone: e.committeePhone,

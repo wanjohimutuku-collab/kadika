@@ -876,7 +876,31 @@
     "pdfReady": "PDF downloaded (demo)",
     "invitesLine": "invite {guest}",
     "sampleGuest": "Sample guest",
-    "rsvpLine": "Replies or questions: {phone}"
+    "rsvpLine": "Replies or questions: {phone}",
+    "palette": "Card colours",
+    "paletteHelp": "Change any colour of the phone card and the printed card. The QR colours never change: always black on white so it scans at the gate.",
+    "paletteReset": "Reset",
+    "paletteResetAll": "Reset all colours to the style",
+    "paletteHex": "Colour code (hex)",
+    "paletteHexInvalid": "Use a code like #0F5C4D",
+    "paletteCustom": "Customised colours: {n}",
+    "paletteReadable": "All colours are readable.",
+    "paletteUnreadable": "Some colours are hard to read together. Saving is blocked until you fix them.",
+    "paletteIssue": "{a} on {b}: contrast {ratio}:1 is too low",
+    "paletteQrNote": "The QR and the card number stay black on white.",
+    "palettePrintNote": "Printing: very dark or edge-to-edge colours can come out differently on paper. Print one test card first.",
+    "swatch": {
+      "primary": "Main colour (header, buttons)",
+      "onPrimary": "Text on the main colour",
+      "accent": "Second colour (decoration)",
+      "bg": "Page background",
+      "surface": "Card paper",
+      "ink": "Text",
+      "muted": "Soft text",
+      "border": "Lines",
+      "pattern": "Decorative border",
+      "success": "Confirmation green"
+    }
   },
   "pledges": {
     "title": "Contributions",

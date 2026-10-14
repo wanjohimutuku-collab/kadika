@@ -171,7 +171,7 @@ export function PayFlow({ token }: { token: string }) {
   const providerName = (m: PaymentMethod) => t(`providers.${m}`);
 
   return (
-    <div style={themeStyle(card.event?.themeId)} className="min-h-dvh bg-bg">
+    <div style={themeStyle(card.event?.themeId, card.event?.palette)} className="min-h-dvh bg-bg">
       <main
         className="mx-auto flex max-w-lg flex-col gap-4 bg-surface p-5 md:my-6 md:rounded-2xl md:border md:border-border"
         data-testid="pay-flow"

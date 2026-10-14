@@ -193,6 +193,7 @@ function baseEvent(
     status: 'active',
     themeId: 'emerald-gold',
     coverGradient: 'linear-gradient(135deg,#0F5C4D 0%,#1E7D6A 55%,#B8893B 100%)',
+    palette: {},
     rsvpDeadline: null,
     contributionTargetTzs: 0,
     senderName: '',

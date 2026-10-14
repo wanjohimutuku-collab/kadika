@@ -154,6 +154,40 @@ test('overview, cards, team, settings render', async ({ page }) => {
   await expect(page.getByTestId('settings-save')).toBeVisible();
 });
 
+test('owner recolours the card: live preview, unreadable colours block saving, answer persists', async ({
+  page,
+}) => {
+  await page.goto(`/app/e/${UPCOMING}/cards`);
+  const save = page.getByRole('button', { name: 'Hifadhi mabadiliko' });
+  await expect(page.getByTestId('palette-editor')).toBeVisible();
+  await expect(save).toBeEnabled();
+
+  // a readable custom colour shows up in the live preview straight away
+  await page.getByTestId('palette-hex-primary').fill('#7A1F3D');
+  await expect(page.locator('[style*="--hp-primary: #7A1F3D"]').first()).toBeAttached();
+
+  // text that cannot be read on the card paper blocks saving and says which pair
+  await page.getByTestId('palette-hex-ink').fill('#EEEEEE');
+  await expect(page.getByTestId('palette-issues')).toContainText('Maandishi na Karatasi ya kadi');
+  await expect(save).toBeDisabled();
+  await page.getByTestId('palette-hex-ink').fill('#1B1B1F');
+  await expect(page.getByTestId('palette-issues')).toHaveCount(0);
+  await expect(save).toBeEnabled();
+
+  // a half-typed colour is flagged but never applied
+  await page.getByTestId('palette-hex-accent').fill('#12');
+  await expect(page.getByText('Tumia msimbo kama #0F5C4D')).toBeVisible();
+
+  await page.getByTestId('palette-hex-accent').blur();
+  await save.click();
+  await expect(page.getByText('Kadi imehifadhiwa').first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('palette-hex-primary')).toHaveValue('#7A1F3D');
+
+  await page.getByTestId('palette-reset-all').click();
+  await expect(page.getByTestId('palette-hex-primary')).not.toHaveValue('#7A1F3D');
+});
+
 test.describe('keyboard', () => {
   test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, 'table is desktop-only');
   test('keyboard-only run through the guests table', async ({ page }) => {

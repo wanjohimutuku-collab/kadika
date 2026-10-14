@@ -6,11 +6,16 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, FileDown, Grid2x2, ImagePlus, Ruler } from 'lucide-react';
 import {
   contrastRatio,
+  paletteContrastIssues,
+  resolvePalette,
+  sanitizeOverrides,
   themeContrastIssues,
   themeIds,
   themes,
+  type PaletteOverrides,
   type ThemeId,
 } from '@harusi/ui-tokens';
+import { PaletteEditor } from '@/components/console/palette-editor';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { CardPreview } from '@/components/console/card-preview';
@@ -44,6 +49,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
   const event = useEvent(id);
   const [themeId, setThemeId] = useState<ThemeId>('emerald-gold');
   const [cover, setCover] = useState('');
+  const [palette, setPalette] = useState<PaletteOverrides>({});
   const [greeting, setGreeting] = useState('');
   const [dressCode, setDressCode] = useState('');
   const [extraNote, setExtraNote] = useState('');
@@ -55,6 +61,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
     if (!event.data) return;
     setThemeId(event.data.themeId);
     setCover(event.data.coverGradient);
+    setPalette(sanitizeOverrides(event.data.palette));
     setGreeting(event.data.greeting);
     setDressCode(event.data.dressCode);
     setExtraNote(event.data.extraNote);
@@ -63,13 +70,14 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
   const modules = useMemo(() => qrMatrix(SAMPLE_PAYLOAD).size, []);
   const minMm = minPrintSizeMm(modules);
   const issues = printQrIssues(qrMm, modules);
-  const contrastIssues = themeContrastIssues(themes[themeId]);
+  const contrastIssues = paletteContrastIssues(resolvePalette(themeId, palette));
 
   const save = useMutation({
     mutationFn: () =>
       getRepository().updateEvent(id, {
         themeId,
         coverGradient: cover,
+        palette,
         greeting,
         dressCode,
         extraNote,
@@ -101,6 +109,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
           dressCode,
           themeId,
           coverGradient: cover,
+          palette,
           greeting,
           extraNote,
           senderName: e.senderName,
@@ -193,7 +202,9 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                           />
                           <span
                             className="flex h-10 w-full items-center justify-center rounded-input text-white"
-                            style={{ background: c.value || themes[themeId].primary }}
+                            style={{
+                              background: c.value || resolvePalette(themeId, palette).primary,
+                            }}
                             aria-hidden="true"
                           >
                             {c.id !== 'theme' ? <ImagePlus className="size-4" /> : null}
@@ -207,6 +218,15 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                       ))}
                     </div>
                   </fieldset>
+                </Card>
+
+                <Card title={t('palette')} titleId="pal-h">
+                  <PaletteEditor
+                    themeId={themeId}
+                    overrides={palette}
+                    onChange={setPalette}
+                    issues={contrastIssues}
+                  />
                 </Card>
 
                 <Card title={t('wording')} titleId="wd-h">

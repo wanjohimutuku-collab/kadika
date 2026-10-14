@@ -29,6 +29,22 @@ export const scanResultSchema = z.enum([
   'manual_denied',
 ]);
 export const themeIdSchema = z.enum(['emerald-gold', 'navy-silver', 'terracotta', 'rose-sage']);
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'color.invalid');
+/** Per-event colour overrides for the digital and print cards (keys mirror `@harusi/ui-tokens` PALETTE_KEYS). */
+export const paletteOverridesSchema = z
+  .object({
+    primary: hexColor,
+    onPrimary: hexColor,
+    accent: hexColor,
+    bg: hexColor,
+    surface: hexColor,
+    ink: hexColor,
+    muted: hexColor,
+    border: hexColor,
+    pattern: hexColor,
+  })
+  .partial()
+  .strict();
 
 export type Language = z.infer<typeof languageSchema>;
 export type ChannelPref = z.infer<typeof channelPrefSchema>;
@@ -98,6 +114,7 @@ export const eventInputSchema = z.object({
   languageDefault: languageSchema,
   themeId: themeIdSchema,
   coverGradient: z.string().optional().default(''),
+  palette: paletteOverridesSchema.optional(),
   rsvpDeadline: z.string().optional().default(''),
   contributionTargetTzs: z.coerce.number().int().min(0).optional().default(0),
 });

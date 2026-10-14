@@ -36,6 +36,13 @@
       "when": 1791948820940,
       "tag": "0004_breezy_gressill",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791965149190,
+      "tag": "0005_event_trust_fields",
+      "breakpoints": true
     }
   ]
 }

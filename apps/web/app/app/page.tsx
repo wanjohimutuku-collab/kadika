@@ -54,7 +54,7 @@ export default function EventsPage() {
                     href={`/app/e/${e.id}`}
                     aria-label={t('open', { name: e.coupleNames })}
                     className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface transition-shadow hover:shadow-md"
-                    style={themeStyle(e.themeId)}
+                    style={themeStyle(e.themeId, e.palette)}
                   >
                     <div
                       className="flex items-start justify-between gap-3 p-4 text-on-primary"

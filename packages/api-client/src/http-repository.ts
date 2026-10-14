@@ -1,3 +1,4 @@
+import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import type { EventInput, GuestInput } from '@harusi/schemas';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
@@ -12,7 +13,7 @@ import type {
   Session,
   WeddingEvent,
 } from './types';
-import { toCsv } from './domain/import';
+import { toCsv } from '@harusi/schemas/import';
 
 /** Where the session tokens live: `localStorage` in browsers, memory elsewhere. */
 export interface TokenStore {
@@ -67,6 +68,9 @@ interface ApiEvent {
   venueName: string | null;
   venueMapUrl: string | null;
   dressCode: string | null;
+  committeePhone?: string | null;
+  senderName?: string | null;
+  greeting?: string | null;
   languageDefault: 'sw' | 'en';
   timezone: string;
   status: WeddingEvent['status'];
@@ -135,13 +139,14 @@ function mapEvent(e: ApiEvent): WeddingEvent {
     themeId: ((e.brandTheme as { themeId?: WeddingEvent['themeId'] } | null)?.themeId ??
       'emerald-gold') as WeddingEvent['themeId'],
     coverGradient: String((e.brandTheme as { coverGradient?: string } | null)?.coverGradient ?? ''),
+    palette: sanitizeOverrides((e.brandTheme as { palette?: unknown } | null)?.palette),
     rsvpDeadline: e.rsvpDeadline,
     contributionTargetTzs: e.contributionTargetTzs ?? 0,
-    senderName: `Kamati ya Harusi ya ${e.coupleNames}`,
-    committeePhone: '',
+    senderName: e.senderName || `Kamati ya Harusi ya ${e.coupleNames}`,
+    committeePhone: e.committeePhone ?? '',
     pledgesEnabled: true,
     requirePledgeBeforeCard: false,
-    greeting: '',
+    greeting: e.greeting ?? '',
     extraNote: '',
     reminders: { t14: true, t7: true, t1: true },
     whatsappFallbackHours: 6,
@@ -159,13 +164,11 @@ interface ApiCard {
         NonNullable<CardView['event']>,
         | 'partnerA'
         | 'partnerB'
-        | 'senderName'
-        | 'committeePhone'
         | 'pledgesEnabled'
-        | 'greeting'
         | 'extraNote'
         | 'themeId'
         | 'coverGradient'
+        | 'palette'
       > & { brandTheme: Record<string, unknown> | null })
     | null;
   guest: CardView['guest'];
@@ -180,6 +183,7 @@ function mapCard(token: string, c: ApiCard): CardView {
   const theme = (e?.brandTheme ?? {}) as {
     themeId?: WeddingEvent['themeId'];
     coverGradient?: string;
+    palette?: unknown;
   };
   const [a = '', b = ''] = (e?.coupleNames ?? '').split('&').map((x) => x.trim());
   return {
@@ -197,11 +201,12 @@ function mapCard(token: string, c: ApiCard): CardView {
           dressCode: e.dressCode ?? '',
           themeId: theme.themeId ?? 'emerald-gold',
           coverGradient: theme.coverGradient ?? '',
+          palette: sanitizeOverrides(theme.palette),
           rsvpDeadline: e.rsvpDeadline,
-          senderName: `Kamati ya Harusi ya ${e.coupleNames}`,
-          committeePhone: '',
+          senderName: e.senderName || `Kamati ya Harusi ya ${e.coupleNames}`,
+          committeePhone: e.committeePhone ?? '',
           pledgesEnabled: false,
-          greeting: '',
+          greeting: e.greeting ?? '',
           extraNote: '',
           timezone: 'Africa/Dar_es_Salaam',
         }
@@ -248,6 +253,17 @@ function mapGuest(g: ApiGuest): Guest {
  * API does not have yet (sending, pledges, gate, reports, public card) rejects with
  * `not_implemented`; the web app keeps using the mock for those until their phases land.
  */
+/** Side-effect-free card read for the OG image and manifest (never marks the invitation opened). */
+export async function fetchCardPreview(
+  baseUrl: string,
+  token: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<CardView> {
+  const res = await fetchImpl(`${baseUrl}/v1/c/${encodeURIComponent(token)}/preview`);
+  if (!res.ok) throw new Error(`preview failed: ${res.status}`);
+  return mapCard(token, (await res.json()) as ApiCard);
+}
+
 export function createHttpRepository(
   baseUrl: string,
   opts: HttpRepositoryOptions = {},
@@ -386,7 +402,11 @@ export function createHttpRepository(
         languageDefault: input.languageDefault,
         rsvpDeadline: input.rsvpDeadline || null,
         contributionTargetTzs: input.contributionTargetTzs ?? null,
-        brandTheme: { themeId: input.themeId, coverGradient: input.coverGradient ?? '' },
+        brandTheme: {
+          themeId: input.themeId,
+          coverGradient: input.coverGradient ?? '',
+          palette: input.palette ?? {},
+        },
       });
       return mapEvent(created);
     },
@@ -403,8 +423,16 @@ export function createHttpRepository(
       if (patch.contributionTargetTzs !== undefined)
         body.contributionTargetTzs = patch.contributionTargetTzs;
       if (patch.status !== undefined) body.status = patch.status;
-      if (patch.themeId !== undefined || patch.coverGradient !== undefined)
-        body.brandTheme = { themeId: patch.themeId, coverGradient: patch.coverGradient };
+      if (
+        patch.themeId !== undefined ||
+        patch.coverGradient !== undefined ||
+        patch.palette !== undefined
+      )
+        body.brandTheme = {
+          themeId: patch.themeId,
+          coverGradient: patch.coverGradient,
+          palette: patch.palette,
+        };
       return mapEvent(await call<ApiEvent>('PATCH', `/v1/events/${id}`, body));
     },
     archiveEvent: (id) => impl.updateEvent!(id, { status: 'archived' }),

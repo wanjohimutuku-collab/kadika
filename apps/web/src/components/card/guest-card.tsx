@@ -469,7 +469,7 @@ function CardBody({ view, setView, status, locale, t, initialQr }: BodyProps) {
   ) : null;
 
   return (
-    <div style={themeStyle(event.themeId)} className="min-h-dvh bg-bg">
+    <div style={themeStyle(event.themeId, event.palette)} className="min-h-dvh bg-bg">
       <main
         className="mx-auto max-w-lg overflow-hidden bg-surface shadow-sm md:my-6 md:rounded-2xl md:border md:border-border"
         data-testid="guest-card"

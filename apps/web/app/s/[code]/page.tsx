@@ -12,6 +12,9 @@ export default async function ShortLink({ params }: { params: Promise<{ code: st
   const { code: raw } = await params;
   const code = normalizeShortCode(decodeURIComponent(raw)) ?? raw;
   const token = USE_MOCKS ? peekShortCodeOnServer(code) : null;
+  // Real mode (ADR 016): the SMS link carries the card token itself.
+  if (!USE_MOCKS && !normalizeShortCode(decodeURIComponent(raw)) && /^[\w-]{16,}$/.test(raw))
+    redirect(`/c/${raw}`);
   if (token) redirect(`/c/${token}`);
   const locale = (await getLocale()) as Locale;
   return (

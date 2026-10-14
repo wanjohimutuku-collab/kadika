@@ -16,6 +16,8 @@ describe('schema', () => {
       schema.scanLog,
       schema.signingKeys,
       schema.auditLog,
+      schema.refreshTokens,
+      schema.eventInvites,
     ].map(getTableName);
     expect(names).toEqual([
       'users',
@@ -29,6 +31,8 @@ describe('schema', () => {
       'scan_log',
       'signing_keys',
       'audit_log',
+      'refresh_tokens',
+      'event_invites',
     ]);
   });
 

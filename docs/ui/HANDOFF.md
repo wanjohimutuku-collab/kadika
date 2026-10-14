@@ -16,6 +16,8 @@ pnpm --filter @harusi/web dev            # http://localhost:3000
 
 ## Swap `MockRepository` for the real API
 
+Phase 1 of the API is live (ADR 013): auth, events, members, guests (CRUD/import/reissue) and signed QR tokens. `HttpRepository` still needs to be written against those endpoints; pagination, idempotency keys and the OpenAPI client are not built yet.
+
 1. Implement `HttpRepository` in `packages/api-client/src/http-repository.ts` against `/v1` (§8). Every method is typed by `Repository` in `src/repository.ts`; return the same view types (`WeddingEvent`, `Guest`, `CardView`, …) and throw `RepositoryError` with the §8 error codes (`offline`, `not_found`, `invalid_token`, `reissued`, `rate_limited`, `validation`, `unauthorized`, `forbidden`, `conflict`, `locked`, `server`).
 2. Set `NEXT_PUBLIC_USE_MOCKS=0` and `NEXT_PUBLIC_API_URL`. `apps/web/src/lib/repo.ts` is the only place that picks the implementation.
 3. Server rendering of the guest card: `app/c/[token]/page.tsx` currently calls `peekCardOnServer` (mock seed). Replace it with a server-side `GET /v1/c/:token` (and do the same in `opengraph-image.tsx`, `manifest.webmanifest/route.ts` and `/s/[code]`).

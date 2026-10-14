@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { createDb } from './client';
+import { newId, shortOf } from './ids';
 import { events, guests, signingKeys, users } from './schema';
 
 const url = process.env.DATABASE_URL;
@@ -47,21 +48,15 @@ try {
       .returning();
     if (key) await db.update(events).set({ signingKeyId: key.id }).where(eq(events.id, event.id));
 
-    await db.insert(guests).values([
-      {
-        eventId: event.id,
-        displayName: 'Asha Mwinyi',
-        phoneE164: '+255700000002',
-        shortCode: 'KH-4826',
-      },
-      {
-        eventId: event.id,
-        displayName: 'Baraka Joseph',
-        phoneE164: '+255700000003',
-        shortCode: 'KH-7392',
-      },
-      { eventId: event.id, displayName: 'Mama Neema', shortCode: 'KH-5546', hasSmartphone: false },
-    ]);
+    const seedGuests = [
+      { displayName: 'Asha Mwinyi', phoneE164: '+255700000002', shortCode: 'KH-4826' },
+      { displayName: 'Baraka Joseph', phoneE164: '+255700000003', shortCode: 'KH-7392' },
+      { displayName: 'Mama Neema', shortCode: 'KH-5546', hasSmartphone: false },
+    ].map((g) => {
+      const id = newId();
+      return { ...g, id, guestShort: shortOf(id), eventId: event.id };
+    });
+    await db.insert(guests).values(seedGuests);
     console.log('seed: demo event created');
   }
 } finally {

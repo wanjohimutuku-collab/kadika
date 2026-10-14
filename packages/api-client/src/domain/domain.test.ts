@@ -177,7 +177,7 @@ describe('mock token', () => {
       2,
       1,
     );
-    expect(t).toBe('v1.0192f1a0.abcdef12.2.1.MOCKSIG');
+    expect(t).toBe('v1.4a6f0001.34567890.2.1.MOCKSIG');
     expect(isMockPayload(t)).toBe(true);
   });
 });

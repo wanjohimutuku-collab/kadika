@@ -8,6 +8,20 @@
       "when": 1791901168426,
       "tag": "0000_slimy_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791946664239,
+      "tag": "0001_chilly_deadpool",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791946721598,
+      "tag": "0002_flashy_makkari",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,8 @@ const timestamps = {
 
 // Enums
 export const globalRoleEnum = pgEnum('global_role', ['user', 'admin']);
+export const staffRoleEnum = pgEnum('staff_role', ['support', 'billing', 'admin']);
+export const userStatusEnum = pgEnum('user_status', ['active', 'suspended']);
 export const eventStatusEnum = pgEnum('event_status', ['draft', 'active', 'completed', 'archived']);
 export const eventPlanEnum = pgEnum('event_plan', ['free', 'paid']);
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'committee', 'gate']);
@@ -65,6 +67,10 @@ export const users = pgTable(
     phoneE164: text('phone_e164').notNull(),
     email: text('email'),
     roleGlobal: globalRoleEnum('role_global').notNull().default('user'),
+    staffRole: staffRoleEnum('staff_role'),
+    status: userStatusEnum('status').notNull().default('active'),
+    suspendedReason: text('suspended_reason'),
+    lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex('users_phone_e164_uq').on(t.phoneE164)],
@@ -112,6 +118,26 @@ export const eventMembers = pgTable(
   (t) => [uniqueIndex('event_members_event_user_uq').on(t.eventId, t.userId)],
 );
 
+export const inviteStatusEnum = pgEnum('invite_status', ['pending', 'accepted', 'revoked']);
+
+/** Team invitations by phone: accepted when the invited number signs in (ADR 012). */
+export const eventInvites = pgTable(
+  'event_invites',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    phoneE164: text('phone_e164').notNull(),
+    name: text('name').notNull(),
+    role: memberRoleEnum('role').notNull(),
+    status: inviteStatusEnum('status').notNull().default('pending'),
+    invitedBy: uuid('invited_by').references(() => users.id),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('event_invites_event_phone_uq').on(t.eventId, t.phoneE164)],
+);
+
 export const guests = pgTable(
   'guests',
   {
@@ -125,6 +151,8 @@ export const guests = pgTable(
     groupLabel: text('group_label'),
     partySizeAllowed: integer('party_size_allowed').notNull().default(1),
     shortCode: text('short_code').notNull(),
+    // Last 8 hex characters of the guest id: the on-card id inside the signed QR (ADR 013).
+    guestShort: text('guest_short').notNull(),
     tokenVersion: integer('token_version').notNull().default(1),
     language: languageEnum('language').notNull().default('sw'),
     inviteChannelPref: channelPrefEnum('invite_channel_pref').notNull().default('mixed'),
@@ -134,6 +162,7 @@ export const guests = pgTable(
   },
   (t) => [
     uniqueIndex('guests_event_short_code_uq').on(t.eventId, t.shortCode),
+    uniqueIndex('guests_event_guest_short_uq').on(t.eventId, t.guestShort),
     index('guests_event_phone_idx').on(t.eventId, t.phoneE164),
   ],
 );
@@ -248,3 +277,21 @@ export const auditLog = pgTable('audit_log', {
   ip: text('ip'),
   ...timestamps,
 });
+
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('refresh_tokens_hash_uq').on(t.tokenHash),
+    index('refresh_tokens_user_idx').on(t.userId),
+  ],
+);

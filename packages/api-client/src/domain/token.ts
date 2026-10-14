@@ -10,7 +10,7 @@ export function mockQrPayload(
   partySize: number,
   version: number,
 ): string {
-  const short = (id: string) => id.replace(/-/g, '').slice(0, 8);
+  const short = (id: string) => id.replace(/-/g, '').slice(-8);
   return `v1.${short(eventId)}.${short(guestId)}.${partySize}.${version}.${MOCK_SIGNATURE}`;
 }
 

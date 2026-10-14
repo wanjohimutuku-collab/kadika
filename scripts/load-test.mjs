@@ -35,14 +35,13 @@ console.log(`API ${API}: ${GUESTS} guests, ${DEVICES} gate devices`);
 const ev = (await call('POST', '/v1/events', { title: `Load test ${Date.now()}`, coupleNames: 'Load & Test', dateStart: '2027-06-01T10:00:00+03:00' })).json;
 if (!ev?.id) { console.error('could not create the event', ev); process.exit(2); }
 
-// guests, 200 per import call; the import response carries no tokens, so reissue-free tokens come from create
-const guests = [];
+// guests, 100 per import call (the import response carries no card links)
 for (let i = 0; i < GUESTS; i += 100) {
   const batch = Array.from({ length: Math.min(100, GUESTS - i) }, (_, k) => `Mgeni ${i + k + 1},07${String(40_000_000 + i + k).padStart(8, '0')}`);
   const r = await call('POST', `/v1/events/${ev.id}/guests/import`, { csv: ['Jina,Simu', ...batch].join('\n') });
   if (r.status !== 200) { console.error('import failed', r.status, r.text.slice(0, 200)); process.exit(2); }
 }
-// card tokens are only returned when a card is created or reissued: reissue the first CARD_SAMPLE guests
+// card links are only returned when a card is created or reissued, so reissue every guest to get one
 const list = [];
 for (let cursor = ''; ; ) {
   const r = await call('GET', `/v1/events/${ev.id}/guests?limit=200${cursor ? `&cursor=${cursor}` : ''}`);

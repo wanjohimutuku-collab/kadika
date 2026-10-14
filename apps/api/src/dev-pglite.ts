@@ -9,6 +9,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { fileURLToPath } from 'node:url';
 import { FakeMessagingProvider } from '@harusi/messaging';
+import { FakePaymentProvider } from '@harusi/payments';
 import * as schema from '@harusi/db/schema';
 import type { Db } from '@harusi/db';
 import { createApp } from './app';
@@ -43,6 +44,7 @@ const app = createApp({
   db,
   sms: log('sms'),
   whatsapp: log('whatsapp'),
+  payments: new FakePaymentProvider('dev-pay-secret'),
   config,
   now: () => new Date(),
   random: systemRandom,

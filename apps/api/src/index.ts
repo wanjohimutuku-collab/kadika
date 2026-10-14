@@ -69,10 +69,22 @@ if (process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production') {
   };
 }
 
+// Mobile-money aggregator (ADR 023): none is chosen yet, so only the fake exists. It needs a webhook
+// secret; without one, payments are simply off. Any other value stops the API at startup.
+let payments: PaymentProvider | undefined;
+if (config.paymentProvider === 'fake') {
+  if (config.paymentWebhookSecret) payments = new FakePaymentProvider(config.paymentWebhookSecret);
+} else {
+  throw new Error(
+    `Unknown PAYMENT_PROVIDER "${config.paymentProvider}" (fake only, until an aggregator is chosen)`,
+  );
+}
+
 const deps: Deps = {
   db,
   sms,
   whatsapp,
+  payments,
   smsReport,
   config,
   now: () => new Date(),

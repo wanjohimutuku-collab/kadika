@@ -49,6 +49,7 @@ import type {
   PaymentStart,
   PaymentStatusView,
   PledgeSummaryView,
+  AuditPage,
   ScanEntry,
   SendJob,
   SendPreview,
@@ -1518,6 +1519,11 @@ export class MockRepository implements Repository {
         return out;
       }),
     );
+  }
+
+  listAuditLog(_eventId: string, _before?: string): Promise<AuditPage> {
+    // the demo data has no per-event trail; the real API serves one
+    return this.run('read', 'audit-log', () => ({ items: [], nextBefore: null }));
   }
 
   getPledgeSummary(eventId: string): Promise<PledgeSummaryView> {

@@ -130,6 +130,11 @@ export default function Overview() {
             label={t('nav.settings')}
             onPress={() => router.push(`/event/${id}/settings`)}
           />
+          <Button
+            variant="secondary"
+            label={t('mobile.auditTitle')}
+            onPress={() => router.push(`/event/${id}/audit`)}
+          />
         </>
       ) : null}
     </Screen>

@@ -1352,7 +1352,25 @@
     "cardsA4": "A4 sheet (4 cards)",
     "cardsTest": "Test sheet",
     "cardsDone": "The PDF is ready",
-    "sharePdf": "Share PDF"
+    "sharePdf": "Share PDF",
+    "auditTitle": "Change log",
+    "auditEmpty": "No changes recorded yet.",
+    "auditMore": "Load more",
+    "auditActions": {
+      "guest_reissue": "Card reissued",
+      "guest_delete": "Guest deleted",
+      "guest_erase": "Guest data erased",
+      "guest_export": "Guest data exported",
+      "member_add": "Team member added",
+      "member_invite": "Team member invited",
+      "member_remove": "Team member removed",
+      "gatelink_create": "Gate link created",
+      "gatelink_revoke": "Gate links revoked",
+      "pledge_create": "Pledge set",
+      "pledge_update": "Pledge changed",
+      "payment_manual": "Payment recorded",
+      "payment_webhook": "Mobile payment confirmed"
+    }
   },
   "gateApp": {
     "gateName": "Gate",

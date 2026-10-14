@@ -22,6 +22,7 @@ import type {
   PaymentStart,
   PaymentStatusView,
   PledgeSummaryView,
+  AuditPage,
   ScanEntry,
   SendJob,
   SendPreview,
@@ -130,6 +131,8 @@ export interface Repository {
   listPayments(eventId: string): Promise<Payment[]>;
   /** Every guest's pledge, paid and balance plus the event totals (committee and owner only). */
   getPledgeSummary(eventId: string): Promise<PledgeSummaryView>;
+  /** The event's audit trail, newest first (owner only). */
+  listAuditLog(eventId: string, before?: string): Promise<AuditPage>;
   sendPledgeReminders(eventId: string, guestIds: string[]): Promise<{ queued: number }>;
 
   // Reports

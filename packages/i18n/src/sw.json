@@ -1356,7 +1356,25 @@
     "cardsA4": "Karatasi ya A4 (kadi 4)",
     "cardsTest": "Kipimo cha majaribio (test sheet)",
     "cardsDone": "PDF iko tayari",
-    "sharePdf": "Shiriki PDF"
+    "sharePdf": "Shiriki PDF",
+    "auditTitle": "Kumbukumbu za mabadiliko",
+    "auditEmpty": "Hakuna mabadiliko yaliyorekodiwa bado.",
+    "auditMore": "Pakia zaidi",
+    "auditActions": {
+      "guest_reissue": "Kadi mpya ilitolewa",
+      "guest_delete": "Mgeni alifutwa",
+      "guest_erase": "Data za mgeni zilifutwa kabisa",
+      "guest_export": "Data za mgeni zilipakuliwa",
+      "member_add": "Mwanatimu aliongezwa",
+      "member_invite": "Mwanatimu alialikwa",
+      "member_remove": "Mwanatimu aliondolewa",
+      "gatelink_create": "Kiungo cha lango kilitengenezwa",
+      "gatelink_revoke": "Viungo vya lango vilifutwa",
+      "pledge_create": "Ahadi iliwekwa",
+      "pledge_update": "Ahadi ilibadilishwa",
+      "payment_manual": "Malipo yalirekodiwa",
+      "payment_webhook": "Malipo ya simu yalithibitishwa"
+    }
   },
   "gateApp": {
     "gateName": "Lango",

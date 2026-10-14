@@ -695,6 +695,11 @@ export function createHttpRepository(
     if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
     return runSend(j.eventId, 'failed', 'auto', newKey());
   };
+  impl.listAuditLog = (eventId, before) =>
+    call(
+      'GET',
+      `/v1/events/${encodeURIComponent(eventId)}/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ''}`,
+    );
   impl.getPledgeSummary = (eventId) =>
     call('GET', `/v1/events/${encodeURIComponent(eventId)}/pledges`);
   impl.upsertPledge = async (guestId, amountTzs, note) => {

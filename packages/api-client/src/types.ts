@@ -182,6 +182,22 @@ export interface PledgeSummaryView {
   guests: PledgeRow[];
 }
 
+export interface AuditItem {
+  id: string;
+  at: ISODate;
+  /** A name if the person gave one, otherwise the last four digits of their phone. */
+  actor: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  diff: Record<string, unknown> | null;
+}
+
+export interface AuditPage {
+  items: AuditItem[];
+  nextBefore: string | null;
+}
+
 export interface Payment {
   id: string;
   guestId: string;

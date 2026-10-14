@@ -20,12 +20,12 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ axe on all routes incl. `/c/:token` (sw+en, mobile+desktop): 131 e2e tests pass
 - ☑ 412 px: no horizontal scroll, QR ≥ 220 px, zero serious axe issues (`e2e/card-412.spec.ts`)
 - ☑ web typecheck clean; vitest web 21 + api 36 pass
-- ☐ Working tree has 60+ uncommitted changes
+- ☑ Committed locally as aa11c7b (not pushed)
 - ☑ OG image and manifest read the API through `GET /v1/c/:token/preview` (no QR, never marks the card opened; tested)
 - ☑ `/s/<token>` redirects to the card in real mode; short codes need `/k` (ADR 016)
 - ☑ API card now returns sender name, committee phone, greeting (new `events` columns, migration 0005, test in `card.test.ts`)
 - ☐ API card still lacks pledge summary and `pledgesEnabled` (Phase 6)
-- ☐ Commit and push the `feat/light-guest-card` work; delete unused React `GuestCard` once `/dev/states` stops needing it
+- ☐ Push `feat/light-guest-card`; delete unused React `GuestCard` once `/dev/states` stops needing it
 
 ## Phase 3 — Delivery
 - ☐ WhatsApp + SMS adapters, BullMQ, retries, webhooks, WhatsApp→SMS fallback, reminders, message log

@@ -69,7 +69,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ Gate token lasts until its link expires (no mid-event expiry); vibration setting is remembered
 - ☑ Sound feedback: generated tones (rising two-tone admit, beep duplicate, low buzz deny) with a remembered toggle; tone generator unit-tested, playback unverified on a device
 - ☑ Android Hermes bundle builds (`expo export --platform android`, 3.4 MB) so every native import resolves
-- ☐ Update CLAUDE.md §17.2 gate fills to the AAA values (ADR 006/022)
+- ☑ CLAUDE.md §17.2 gate fills updated to the AAA values (ADR 006/022); revert that line if you prefer the original colours
 
 ## Phase 6 — Pledges and payments
 - ☐ Pledge CRUD, manual payments, aggregator sandbox, webhook idempotency, exports

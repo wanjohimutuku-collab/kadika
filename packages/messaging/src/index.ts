@@ -12,9 +12,9 @@ export interface SendResult {
  * business-initiated messages). Providers that send free text ignore it.
  */
 export interface MessageTemplate {
-  kind: 'invite' | 'reminder';
+  kind: 'invite' | 'reminder' | 'pledge';
   locale: 'sw' | 'en';
-  /** Positional values for {{1}}…{{n}}: invite = A, B, date, link, code; reminder = A, B, days, link, code. */
+  /** Positional values for {{1}}…{{n}}: invite = A, B, date, link, code; reminder = A, B, days, link, code; pledge = name, A & B, pledged, balance, link. */
   params: string[];
 }
 

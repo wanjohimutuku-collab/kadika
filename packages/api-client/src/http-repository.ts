@@ -695,6 +695,14 @@ export function createHttpRepository(
     if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
     return runSend(j.eventId, 'failed', 'auto', newKey());
   };
+  impl.sendPledgeReminders = async (eventId, guestIds) => {
+    const r = await call<{ sent: number; failed: number; skipped: number }>(
+      'POST',
+      `/v1/events/${encodeURIComponent(eventId)}/pledges/reminders`,
+      { guestIds },
+    );
+    return { queued: r.sent };
+  };
   impl.listAuditLog = (eventId, before) =>
     call(
       'GET',

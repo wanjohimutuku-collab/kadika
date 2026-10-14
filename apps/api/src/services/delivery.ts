@@ -2,6 +2,7 @@ import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { buildInviteSms, buildReminderSms } from '@harusi/api-client';
+import { pledgeSummaryOf } from './pledges';
 import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
 import type { MessageChannel, MessagingProvider } from '@harusi/messaging';
 import type { Deps } from '../context';
@@ -194,8 +195,9 @@ export class DeliveryService {
     kind: string,
     channels: MessageChannel[],
     daysLeft?: number,
+    built?: { text: string; template: MessageTemplate },
   ): Promise<{ ok: true; channel: MessageChannel } | { ok: false; error: string }> {
-    const { text, template } = await this.text(guest, inv, event, daysLeft);
+    const { text, template } = built ?? (await this.text(guest, inv, event, daysLeft));
     let lastError = 'no provider configured';
     for (const ch of channels) {
       const p = this.provider(ch);
@@ -376,6 +378,67 @@ export class DeliveryService {
       .set({ remindersOptOut: true })
       .where(eq(guests.id, inv.guestId));
     return true;
+  }
+
+  /**
+   * "Your balance is TZS …" to guests who still owe a pledge, with their card link to pay (§7.5).
+   * Committee and owner only. A guest who opted out of reminders, has no phone, owes nothing, or
+   * was already reminded in the last three days is skipped, so nobody is nagged.
+   */
+  async sendPledgeReminders(eventId: string, userId: string, guestIds: string[]) {
+    const role = await this.eventsSvc.role(eventId, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot send reminders');
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    if (!event) throw new ApiError('not_found', 'Event not found');
+    const rows = await this.deps.db
+      .select({ guest: guests, inv: invitations })
+      .from(guests)
+      .innerJoin(invitations, eq(invitations.guestId, guests.id))
+      .where(
+        and(eq(guests.eventId, eventId), isNull(guests.deletedAt), inArray(guests.id, guestIds)),
+      );
+    const since = new Date(this.deps.now().getTime() - 72 * 3_600_000);
+    const recent = new Set(
+      (
+        await this.deps.db
+          .select({ guestId: messageLog.guestId })
+          .from(messageLog)
+          .where(and(eq(messageLog.kind, 'pledge_reminder'), gt(messageLog.createdAt, since)))
+      ).map((r) => r.guestId),
+    );
+    const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
+    const out = { sent: 0, failed: 0, skipped: 0 };
+    for (const { guest, inv } of rows) {
+      const s = await pledgeSummaryOf(this.deps.db, guest.id);
+      if (
+        !guest.phoneE164 ||
+        guest.remindersOptOut ||
+        recent.has(guest.id) ||
+        !s ||
+        s.balanceTzs <= 0
+      ) {
+        out.skipped++;
+        continue;
+      }
+      const tzs = (n: number) => `TZS ${n.toLocaleString('en-US')}`;
+      const link = `${this.deps.config.shortBaseUrl}/s/${await this.cardToken(inv)}`;
+      const sw = guest.language === 'sw';
+      const text = sw
+        ? `Habari ${guest.displayName}, mchango wa harusi ya ${a} & ${b}: ahadi ${tzs(s.amountTzs)}, salio ${tzs(s.balanceTzs)}. Lipa hapa: ${link}`
+        : `Hello ${guest.displayName}, your gift for ${a} & ${b}'s wedding: pledged ${tzs(s.amountTzs)}, balance ${tzs(s.balanceTzs)}. Pay here: ${link}`;
+      const channels: MessageChannel[] =
+        inv.channelLast === 'whatsapp' && this.deps.whatsapp ? ['whatsapp', 'sms'] : ['sms'];
+      const r = await this.dispatch(guest, inv, event, 'pledge_reminder', channels, undefined, {
+        text,
+        template: {
+          kind: 'pledge',
+          locale: guest.language,
+          params: [guest.displayName, `${a} & ${b}`, tzs(s.amountTzs), tzs(s.balanceTzs), link],
+        },
+      });
+      out[r.ok ? 'sent' : 'failed']++;
+    }
+    return out;
   }
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {

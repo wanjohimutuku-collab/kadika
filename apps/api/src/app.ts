@@ -579,6 +579,15 @@ export function createApp(deps: Deps) {
     await privacySvc.eraseGuest(c.req.param('id'), c.get('userId'));
     return c.body(null, 204);
   });
+  app.post('/v1/events/:id/pledges/reminders', async (c) => {
+    const input = parse(
+      z.object({ guestIds: z.array(z.string().uuid()).min(1).max(200) }),
+      await body(c),
+    );
+    return c.json(
+      await deliverySvc.sendPledgeReminders(c.req.param('id'), c.get('userId'), input.guestIds),
+    );
+  });
   app.get('/v1/events/:id/payments', async (c) =>
     c.json(await pledgeSvc.listPayments(c.req.param('id'), c.get('userId'))),
   );

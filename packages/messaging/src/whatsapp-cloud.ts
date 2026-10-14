@@ -14,7 +14,7 @@ export interface WhatsAppCloudOptions {
    * without one the provider sends plain text, which WhatsApp only delivers inside a 24-hour
    * customer window, so first contact will fail.
    */
-  templates?: { invite?: string; reminder?: string };
+  templates?: { invite?: string; reminder?: string; pledge?: string };
   baseUrl?: string;
   fetchImpl?: typeof fetch;
 }

@@ -79,7 +79,8 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ Tests (`pledges.test.ts`, 9 + repository end-to-end; API suite 75 passing): a webhook replayed 5× (and 5 at once) records one payment; balances reconcile with the dashboard; the aggregator's amount wins; forged, unsigned, unknown, failed and late webhooks; expired requests are not money; idempotent pay start; pledges-off closes payments; CSV formula escaping
 - ☑ `HttpRepository` pledges, payments, card pay, status, CSV export, pledge summary (+ mock); mobile Michango tab (totals, progress, filters, record payment, set pledge, CSV share), checked in a browser against the real API
 - ☐ Choose the aggregator (§15.4) and write its adapter; run its sandbox; verify its real webhook format
-- ☐ Policy toggle "require minimum pledge before card" (default OFF) and PDF export; send pledge reminders from the app
+- ☑ Pledge reminders: `POST /v1/events/:id/pledges/reminders` (owner/committee) texts only guests who still owe, with their pledge, balance and card link; skips opt-outs, no phone, nothing owed, and anyone reminded in the last 3 days; WhatsApp template `WHATSAPP_TEMPLATE_PLEDGE`; button on the Michango tab (not checked on a device)
+- ☐ Policy toggle "require minimum pledge before card" (default OFF) and PDF export
 - ☐ Re-check the web card's pay screen against the real API in a browser; Michango tab on a real phone
 
 ## Phase 7 — Hardening and launch

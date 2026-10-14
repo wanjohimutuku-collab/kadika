@@ -20,7 +20,7 @@ export interface Config {
     apiVersion: string;
     verifyToken: string | null;
     appSecret: string | null;
-    templates: { invite?: string; reminder?: string };
+    templates: { invite?: string; reminder?: string; pledge?: string };
   } | null;
   nextSms: { username: string; password: string; senderId: string } | null;
   redisUrl: string | null;
@@ -81,6 +81,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
             templates: {
               invite: env.WHATSAPP_TEMPLATE_INVITE,
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,
+              pledge: env.WHATSAPP_TEMPLATE_PLEDGE,
             },
           }
         : null,

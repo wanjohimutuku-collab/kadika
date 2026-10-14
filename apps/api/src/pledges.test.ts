@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, count, eq } from 'drizzle-orm';
-import { payments } from '@harusi/db';
+import { messageLog, payments } from '@harusi/db';
 import { csvCell } from './services/pledges';
 import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
 
@@ -12,7 +12,8 @@ afterAll(() => ctx.close());
 
 let seq = 0;
 async function setup(opts: { target?: number } = {}) {
-  const owner = await loginAs(ctx, `07880${String(++seq).padStart(5, '0')}`);
+  const phone = `07880${String(++seq).padStart(5, '0')}`;
+  const owner = await loginAs(ctx, phone);
   const t = owner.accessToken;
   const ev = (
     await api(ctx, 'POST', '/v1/events', {
@@ -31,7 +32,7 @@ async function setup(opts: { target?: number } = {}) {
       body: { displayName: 'Bibi Pendo', phone: `0713${String(500000 + seq)}` },
     })
   ).body!;
-  return { t, ev, g: g as { id: string; cardToken: string }, evId: ev.id as string };
+  return { t, phone, ev, g: g as { id: string; cardToken: string }, evId: ev.id as string };
 }
 const pledge = (t: string, gid: string, amountTzs: number, extra: object = {}) =>
   api(ctx, 'POST', `/v1/guests/${gid}/pledges`, { token: t, body: { amountTzs, ...extra } });
@@ -341,6 +342,77 @@ describe('paying from the card', () => {
       ((await r.json()) as { error: { details: { reason: string } } }).error.details.reason,
     ).toBe('payments_disabled');
     expect((await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!.event.pledgesEnabled).toBe(false);
+  });
+});
+
+describe('pledge reminders', () => {
+  const remind = (t: string, evId: string, guestIds: string[]) =>
+    api(ctx, 'POST', `/v1/events/${evId}/pledges/reminders`, { token: t, body: { guestIds } });
+
+  it('texts only guests who still owe, with their balance and a link, and does not nag', async () => {
+    const { t, evId, g } = await setup();
+    const add = async (name: string, phone: string, extra: object = {}) =>
+      (
+        await api(ctx, 'POST', `/v1/events/${evId}/guests`, {
+          token: t,
+          body: { displayName: name, phone, ...extra },
+        })
+      ).body as { id: string; cardToken: string };
+    const owes = g;
+    const paid = await add('Amelipa Yote', '0713990001');
+    const none = await add('Hana Ahadi', '0713990002');
+    const optedOut = await add('Ameacha', '0713990003');
+    const noPhone = await add('Hana Simu', '', { inviteChannelPref: 'print' });
+    for (const x of [owes, paid, optedOut, noPhone]) await pledge(t, x.id, 50_000);
+    await manual(t, { guestId: paid.id, amountTzs: 50_000, method: 'cash' });
+    await manual(t, { guestId: owes.id, amountTzs: 20_000, method: 'cash' });
+    await api(ctx, 'POST', `/v1/c/${optedOut.cardToken}/reminders/opt-out`);
+
+    ctx.whatsapp.sent.length = 0;
+    ctx.sms.sent.length = 0;
+    const res = await remind(t, evId, [owes.id, paid.id, none.id, optedOut.id, noPhone.id]);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ sent: 1, failed: 0, skipped: 4 });
+    const msgs = [...ctx.whatsapp.sent, ...ctx.sms.sent];
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0]!.body).toMatch(/ahadi TZS 50,000, salio TZS 30,000\. Lipa hapa: .*\/s\//);
+    expect(msgs[0]!.body).toContain('Bibi Pendo');
+    // the WhatsApp template (when that provider is used) carries the same numbers
+    const w = ctx.whatsapp.sent[0] ?? ctx.sms.sent[0];
+    if (w?.template)
+      expect(w.template).toMatchObject({
+        kind: 'pledge',
+        params: expect.arrayContaining(['TZS 30,000']),
+      });
+    // asking again straight away sends nothing: no nagging within three days
+    expect(((await remind(t, evId, [owes.id])).body as { skipped: number }).skipped).toBe(1);
+    // three days later (the log row is backdated relative to the test clock)
+    await ctx.db
+      .update(messageLog)
+      .set({ createdAt: new Date(ctx.clock.now - 73 * 3_600_000) })
+      .where(eq(messageLog.kind, 'pledge_reminder'));
+    expect((await remind(t, evId, [owes.id])).body).toMatchObject({ sent: 1 });
+  });
+
+  it('is closed to gate agents and strangers, and rejects an empty or oversized list', async () => {
+    const { t, evId, g } = await setup();
+    await api(ctx, 'POST', `/v1/events/${evId}/members`, {
+      token: t,
+      body: { name: 'Lango', phone: '0788800777', role: 'gate' },
+    });
+    const gate = (await loginAs(ctx, '0788800777')).accessToken;
+    expect((await remind(gate, evId, [g.id])).status).toBe(403);
+    expect((await remind('x'.repeat(30), evId, [g.id])).status).toBe(401);
+    expect((await remind(t, evId, [])).status).toBe(400);
+    expect(
+      (
+        await remind(
+          t,
+          evId,
+          Array.from({ length: 201 }, () => g.id),
+        )
+      ).status,
+    ).toBe(400);
   });
 });
 

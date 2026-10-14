@@ -15,6 +15,7 @@
     "@harusi/api-client": "workspace:*",
     "@harusi/crypto": "workspace:*",
     "@harusi/db": "workspace:*",
+    "@harusi/gate": "workspace:*",
     "@harusi/messaging": "workspace:*",
     "@harusi/schemas": "workspace:*",
     "@harusi/ui-tokens": "workspace:*",

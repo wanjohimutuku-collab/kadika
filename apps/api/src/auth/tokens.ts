@@ -47,3 +47,49 @@ export function newRefreshToken(deps: Pick<Deps, 'random'>): { token: string; ha
   const token = generateGuestToken(deps.random);
   return { token, hash: hashGuestToken(token) };
 }
+
+// ---- gate tokens: issued to a gate agent after link + PIN, scoped to one event and one device
+
+const GATE_TTL_S = 24 * 3600;
+
+export interface GateClaims {
+  eventId: string;
+  linkId: string;
+  deviceId: string;
+}
+
+export async function signGateToken(
+  deps: Pick<Deps, 'config' | 'now'>,
+  claims: GateClaims,
+): Promise<{ token: string; expiresAt: Date }> {
+  const iat = Math.floor(deps.now().getTime() / 1000);
+  const token = await new SignJWT({
+    typ: 'gate',
+    evt: claims.eventId,
+    lnk: claims.linkId,
+    dev: claims.deviceId,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt(iat)
+    .setExpirationTime(iat + GATE_TTL_S)
+    .sign(key(deps.config.jwtSecret));
+  return { token, expiresAt: new Date((iat + GATE_TTL_S) * 1000) };
+}
+
+/** Returns the claims for a gate token, or null when the token is anything else (or invalid). */
+export async function verifyGateToken(
+  deps: Pick<Deps, 'config' | 'now'>,
+  token: string,
+): Promise<GateClaims | null> {
+  try {
+    const { payload } = await jwtVerify(token, key(deps.config.jwtSecret), {
+      algorithms: ['HS256'],
+      currentDate: deps.now(),
+    });
+    if (payload.typ !== 'gate') return null;
+    const { evt, lnk, dev } = payload as { evt?: string; lnk?: string; dev?: string };
+    return evt && lnk && dev ? { eventId: evt, linkId: lnk, deviceId: dev } : null;
+  } catch {
+    return null;
+  }
+}

@@ -17,7 +17,7 @@ import type { HealthResponse } from '@harusi/schemas';
 import type { Deps } from './context';
 import { ApiError } from './errors';
 import { AuthService } from './auth/service';
-import { verifyAccessToken } from './auth/tokens';
+import { verifyAccessToken, verifyGateToken, type GateClaims } from './auth/tokens';
 import { EventService } from './services/events';
 import { GuestService } from './services/guests';
 import { MemberService } from './services/members';
@@ -25,9 +25,10 @@ import { idempotent } from './idempotency';
 import { CardService } from './services/cards';
 import { DeliveryService } from './services/delivery';
 import { PrintService } from './services/print';
+import { GateService, type GateActor } from './services/gate';
 import { RateLimiter } from './rate-limit';
 
-type Env = { Variables: { userId: string } };
+type Env = { Variables: { userId: string; gate?: GateClaims } };
 
 function parse<T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> {
   const r = schema.safeParse(data);
@@ -91,6 +92,8 @@ export function createApp(deps: Deps) {
   const cardsSvc = new CardService(deps);
   const deliverySvc = new DeliveryService(deps, eventsSvc);
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
+  const gateSvc = new GateService(deps, eventsSvc);
+  const gateJoins = new RateLimiter(deps.now, 20, 60_000);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
   const cardReads = new RateLimiter(deps.now, 120, 60_000);
   const cardWrites = new RateLimiter(deps.now, 20, 60_000);
@@ -109,6 +112,28 @@ export function createApp(deps: Deps) {
       throw new ApiError('forbidden', 'Account suspended', { reason: 'suspended' });
     c.set('userId', claims.userId);
     await next();
+  };
+
+  /**
+   * Gate agents carry a token scoped to one event (issued after link + PIN). It is only accepted on
+   * that event's `/gate/` routes; everything else needs a normal user token.
+   */
+  const gateOrUser: MiddlewareHandler<Env> = async (c, next) => {
+    const h = c.req.header('authorization');
+    const m = /^\/v1\/events\/([^/]+)\/gate\//.exec(c.req.path);
+    if (m && h?.startsWith('Bearer ')) {
+      const claims = await verifyGateToken(deps, h.slice(7));
+      if (claims) {
+        if (claims.eventId !== m[1]) throw new ApiError('forbidden', 'Wrong event');
+        c.set('gate', claims);
+        return next();
+      }
+    }
+    return requireAuth(c, next);
+  };
+  const actorOf = (c: Context<Env>): GateActor => {
+    const claims = c.get('gate');
+    return claims ? { kind: 'gate', claims } : { kind: 'user', userId: c.get('userId') };
   };
 
   app.get('/health', (c) => {
@@ -141,9 +166,10 @@ export function createApp(deps: Deps) {
   app.use('/v1/*', async (c, next) =>
     c.req.path.startsWith('/v1/auth/') ||
     c.req.path.startsWith('/v1/c/') ||
-    c.req.path.startsWith('/v1/webhooks/')
+    c.req.path.startsWith('/v1/webhooks/') ||
+    c.req.path === '/v1/gate/join'
       ? next()
-      : requireAuth(c, next),
+      : gateOrUser(c, next),
   );
   // Idempotency-Key (§8) on the endpoints where a retry would otherwise duplicate or rotate things.
   const once = idempotent(deps);
@@ -275,6 +301,67 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await eventsSvc.update(c.req.param('id'), c.get('userId'), patch));
+  });
+  // ---- gate (§7.6): join with link + PIN, offline bundle, scan sync
+  app.post('/v1/gate/join', async (c) => {
+    gateJoins.check(`ip:${client(c)}`);
+    const input = parse(
+      z.object({
+        code: z.string().min(4).max(20),
+        pin: z.string().regex(/^\d{4,8}$/),
+        deviceId: z.string().min(8).max(100),
+        deviceName: z.string().max(60).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(await gateSvc.join(input));
+  });
+  app.post('/v1/events/:id/gate-links', async (c) =>
+    c.json(await gateSvc.createLink(c.req.param('id'), c.get('userId')), 201),
+  );
+  app.delete('/v1/events/:id/gate-links', async (c) => {
+    await gateSvc.revokeLinks(c.req.param('id'), c.get('userId'));
+    return c.json({ ok: true });
+  });
+  app.get('/v1/events/:id/gate/bundle', async (c) => {
+    const { body: bundle, etag } = await gateSvc.bundle(c.req.param('id'), actorOf(c));
+    if (c.req.header('if-none-match') === etag) return c.body(null, 304, { etag });
+    c.header('etag', etag);
+    return c.json(bundle);
+  });
+  app.get('/v1/events/:id/gate/admitted', async (c) =>
+    c.json(await gateSvc.admitted(c.req.param('id'), actorOf(c))),
+  );
+  app.post('/v1/events/:id/gate/scans/sync', async (c) => {
+    const input = parse(
+      z.object({
+        deviceId: z.string().min(8).max(100),
+        scans: z
+          .array(
+            z.object({
+              clientId: z.string().min(8).max(100),
+              guestId: z.string().uuid().nullish(),
+              result: z.enum([
+                'ok',
+                'duplicate',
+                'invalid_sig',
+                'wrong_event',
+                'not_found',
+                'manual_ok',
+                'manual_denied',
+              ]),
+              partyAdmitted: z.number().int().min(0).max(99),
+              scannedAt: z.coerce.date(),
+              offline: z.boolean(),
+              override: z.boolean().optional(),
+              reason: z.string().max(200).nullish(),
+            }),
+          )
+          .max(500),
+      }),
+      await body(c),
+    );
+    return c.json(await gateSvc.sync(c.req.param('id'), actorOf(c), input));
   });
   app.get('/v1/events/:id/public-key', async (c) => {
     await eventsSvc.role(c.req.param('id'), c.get('userId'));

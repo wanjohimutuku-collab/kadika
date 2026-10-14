@@ -57,6 +57,13 @@
       "when": 1791971425788,
       "tag": "0007_delivery_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791975994678,
+      "tag": "0008_gate",
+      "breakpoints": true
     }
   ]
 }

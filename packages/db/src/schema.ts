@@ -267,9 +267,57 @@ export const scanLog = pgTable(
     scannedAt: timestamp('scanned_at', { withTimezone: true }).notNull(), // device time
     syncedAt: timestamp('synced_at', { withTimezone: true }),
     offline: boolean('offline').notNull().default(false),
+    /** The device's own id for this scan; makes sync idempotent (a retry never double-counts). */
+    clientId: text('client_id'),
+    /** What the device said at scan time. `result` is what the server decides after ordering all devices. */
+    reportedResult: scanResultEnum('reported_result'),
+    /** A committee/owner admitted a guest who was already in (never reordered or flipped). */
+    override: boolean('override').notNull().default(false),
+    reason: text('reason'),
     ...timestamps,
   },
-  (t) => [index('scan_log_event_guest_idx').on(t.eventId, t.guestId)],
+  (t) => [
+    index('scan_log_event_guest_idx').on(t.eventId, t.guestId),
+    uniqueIndex('scan_log_event_client_uq').on(t.eventId, t.clientId),
+  ],
+);
+
+/** Gate link + PIN (§7.6): how a gate agent without an account joins an event. */
+export const gateLinks = pgTable(
+  'gate_links',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    code: text('code').notNull(),
+    /** scrypt(pin) as `salt:hash` hex; the PIN itself is shown once and never stored. */
+    pinHash: text('pin_hash').notNull(),
+    createdBy: uuid('created_by').references(() => users.id),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    failedAttempts: integer('failed_attempts').notNull().default(0),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('gate_links_code_uq').on(t.code), index('gate_links_event_idx').on(t.eventId)],
+);
+
+/** Registered gate devices (§9): one row per event + device id, with the last time it was seen. */
+export const gateDevices = pgTable(
+  'gate_devices',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    linkId: uuid('link_id').references(() => gateLinks.id),
+    deviceId: text('device_id').notNull(),
+    name: text('name'),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('gate_devices_event_device_uq').on(t.eventId, t.deviceId)],
 );
 
 export const signingKeys = pgTable('signing_keys', {

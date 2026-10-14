@@ -221,7 +221,7 @@ describe('HttpRepository against the real API', () => {
   it('rejects not-yet-built features with not_implemented', async () => {
     const r = repo();
     await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });
-    await expect(r.listPayments('x')).rejects.toMatchObject({ code: 'not_implemented' });
+    await expect(r.listScans('x')).rejects.toMatchObject({ code: 'not_implemented' });
   });
 
   it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {
@@ -288,5 +288,106 @@ describe('HttpRepository against the real API', () => {
     const pdf = await r.requestCardsPdf(ev.id, { format: 'A6', layout: 'single' });
     expect(pdf.type).toBe('application/pdf');
     expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe('%PDF-');
+  });
+
+  it('runs pledges and payments through the repository: pledge, cash, pay from the card, webhook, export', async () => {
+    const tokens = memoryTokenStore();
+    const r = repo(tokens);
+    await login(r, '0712 100 120');
+    const ev = await r.createEvent({
+      title: 'Harusi',
+      partnerA: 'Asha',
+      partnerB: 'Juma',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTargetTzs: 500_000,
+    });
+    const g = await r.createGuest(ev.id, {
+      displayName: 'Bibi Pendo',
+      phone: '0712 100 121',
+      partySizeAllowed: 2,
+      inviteChannelPref: 'sms',
+      hasSmartphone: false,
+      language: 'sw',
+      notes: '',
+    });
+    const guest = await r.upsertPledge(g.id, 50_000, 'ahadi');
+    expect(guest.pledge).toMatchObject({
+      amountTzs: 50_000,
+      paidTzs: 0,
+      balanceTzs: 50_000,
+      status: 'pledged',
+    });
+
+    const cash = await r.recordManualPayment(
+      ev.id,
+      { guestId: g.id, amountTzs: 10_000, method: 'cash', reference: 'RCPT-77', note: '' },
+      'manual-key-0001',
+    );
+    expect(cash).toMatchObject({
+      amountTzs: 10_000,
+      method: 'cash',
+      status: 'success',
+      guestName: 'Bibi Pendo',
+    });
+    expect((await r.getGuest(g.id)).pledge).toMatchObject({
+      paidTzs: 10_000,
+      balanceTzs: 40_000,
+      status: 'partial',
+    });
+
+    // the guest pays from the card
+    const reissue = await ctx.app.request(`/v1/guests/${g.id}/reissue`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${tokens.get()!.accessToken}` },
+    });
+    const token = ((await reissue.json()) as { cardToken: string }).cardToken;
+    expect((await r.getCard(token)).pledge).toMatchObject({ balanceTzs: 40_000 });
+    const start = await r.startPayment(
+      token,
+      { amountTzs: 40_000, phoneE164: '+255712345678', method: 'mixx' },
+      'card-pay-key-01',
+    );
+    expect(await r.getPaymentStatus(start.reference)).toMatchObject({ status: 'pending' });
+    const wh = ctx.payments.webhookBody({
+      reference: start.reference,
+      status: 'success',
+      amountTzs: 40_000,
+    });
+    const res = await ctx.app.request('/v1/payments/webhook/fake', {
+      method: 'POST',
+      headers: wh.headers,
+      body: wh.raw,
+    });
+    expect(res.status).toBe(200);
+    expect(await r.getPaymentStatus(start.reference)).toMatchObject({
+      status: 'success',
+      newBalanceTzs: 0,
+    });
+
+    const summary = await r.getPledgeSummary(ev.id);
+    expect(summary.totals).toMatchObject({
+      targetTzs: 500_000,
+      pledgedTzs: 50_000,
+      collectedTzs: 50_000,
+      balanceTzs: 0,
+      guestsWithBalance: 0,
+    });
+    expect((await r.listPayments(ev.id)).map((p) => p.amountTzs).sort((a, b) => a - b)).toEqual([
+      10_000, 40_000,
+    ]);
+    expect((await r.getEvent(ev.id)).stats).toMatchObject({
+      pledgedTzs: 50_000,
+      collectedTzs: 50_000,
+    });
+    const csv = await (await r.exportCsv(ev.id, 'payments')).text();
+    expect(csv).toContain('"Bibi Pendo"');
+    await expect(r.exportCsv(ev.id, 'scans')).rejects.toMatchObject({ code: 'not_implemented' });
   });
 });

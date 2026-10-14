@@ -48,6 +48,7 @@ import type {
   Payment,
   PaymentStart,
   PaymentStatusView,
+  PledgeSummaryView,
   ScanEntry,
   SendJob,
   SendPreview,
@@ -1517,6 +1518,39 @@ export class MockRepository implements Repository {
         return out;
       }),
     );
+  }
+
+  getPledgeSummary(eventId: string): Promise<PledgeSummaryView> {
+    return this.run('read', 'pledge-summary', () => {
+      const paid = this.paidByGuest(eventId);
+      const guests = this.state.guests
+        .filter((g) => g.eventId === eventId && !g.deletedAt)
+        .map((g) => {
+          const view = this.toGuest(g, paid, this.lastMessageByGuest(eventId));
+          const p = view.pledge;
+          return {
+            guestId: g.id,
+            displayName: g.displayName,
+            groupLabel: g.groupLabel || null,
+            shortCode: g.shortCode,
+            amountTzs: p?.amountTzs ?? 0,
+            paidTzs: p?.paidTzs ?? 0,
+            balanceTzs: p?.balanceTzs ?? 0,
+            status: p?.status ?? null,
+            note: null,
+          };
+        });
+      return {
+        totals: {
+          targetTzs: this.state.events.find((e) => e.id === eventId)?.contributionTargetTzs ?? 0,
+          pledgedTzs: guests.reduce((n, r) => n + r.amountTzs, 0),
+          collectedTzs: guests.reduce((n, r) => n + r.paidTzs, 0),
+          balanceTzs: guests.reduce((n, r) => n + r.balanceTzs, 0),
+          guestsWithBalance: guests.filter((r) => r.balanceTzs > 0).length,
+        },
+        guests,
+      };
+    });
   }
 
   listPayments(eventId: string): Promise<Payment[]> {

@@ -159,6 +159,29 @@ export interface MessageLogEntry {
   createdAt: ISODate;
 }
 
+export interface PledgeRow {
+  guestId: string;
+  displayName: string;
+  groupLabel: string | null;
+  shortCode: string;
+  amountTzs: number;
+  paidTzs: number;
+  balanceTzs: number;
+  status: PledgeStatus | null;
+  note: string | null;
+}
+
+export interface PledgeSummaryView {
+  totals: {
+    targetTzs: number;
+    pledgedTzs: number;
+    collectedTzs: number;
+    balanceTzs: number;
+    guestsWithBalance: number;
+  };
+  guests: PledgeRow[];
+}
+
 export interface Payment {
   id: string;
   guestId: string;

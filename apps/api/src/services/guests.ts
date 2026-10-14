@@ -14,6 +14,7 @@ import { normalizeTzPhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import type { EventService } from './events';
+import { pledgeSummaryOf } from './pledges';
 
 export interface GuestInput {
   displayName: string;
@@ -208,6 +209,7 @@ export class GuestService {
   /** One guest with their invitation state (status, answer, last channel) for the detail screen. */
   async detail(guestId: string, userId: string) {
     const g = await this.get(guestId, userId);
+    const role = await this.eventsSvc.role(g.eventId, userId);
     const [inv] = await this.deps.db
       .select({
         status: invitations.status,
@@ -221,6 +223,8 @@ export class GuestService {
       status: inv?.status ?? 'created',
       rsvpPartySize: inv?.rsvpPartySize ?? null,
       channelLast: inv?.channelLast ?? null,
+      // money stays out of what a gate agent can read (§2)
+      pledge: role === 'gate' ? null : await pledgeSummaryOf(this.deps.db, guestId),
     };
   }
 

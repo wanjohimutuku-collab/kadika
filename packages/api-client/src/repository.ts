@@ -21,6 +21,7 @@ import type {
   Payment,
   PaymentStart,
   PaymentStatusView,
+  PledgeSummaryView,
   ScanEntry,
   SendJob,
   SendPreview,
@@ -127,6 +128,8 @@ export interface Repository {
     idempotencyKey: string,
   ): Promise<Payment>;
   listPayments(eventId: string): Promise<Payment[]>;
+  /** Every guest's pledge, paid and balance plus the event totals (committee and owner only). */
+  getPledgeSummary(eventId: string): Promise<PledgeSummaryView>;
   sendPledgeReminders(eventId: string, guestIds: string[]): Promise<{ queued: number }>;
 
   // Reports

@@ -10,6 +10,9 @@ import type {
   ImportResult,
   ImportRowInput,
   Member,
+  Payment,
+  PaymentStart,
+  PaymentStatusView,
   SendJob,
   Session,
   WeddingEvent,
@@ -70,6 +73,7 @@ interface ApiEvent {
   venueMapUrl: string | null;
   dressCode: string | null;
   committeePhone?: string | null;
+  pledgesEnabled?: boolean;
   senderName?: string | null;
   greeting?: string | null;
   languageDefault: 'sw' | 'en';
@@ -99,6 +103,7 @@ interface ApiGuest {
   notes: string | null;
   status?: Guest['status'];
   channelLast?: Guest['channelLast'];
+  pledge?: Guest['pledge'];
   rsvpPartySize?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -113,6 +118,9 @@ interface ApiStats {
   failedMessages: number;
   headcountConfirmed?: number;
   featurePhoneGuests?: number;
+  pledgedTzs?: number;
+  collectedTzs?: number;
+  guestsWithBalance?: number;
 }
 
 /** Funnel counts are cumulative: a guest who opened the card also counts as sent and delivered. */
@@ -129,9 +137,9 @@ function mapStats(s: ApiStats | null): WeddingEvent['stats'] {
     attended: n('checked_in'),
     headcountConfirmed: s?.headcountConfirmed ?? 0,
     headcountAttended: 0,
-    pledgedTzs: 0,
-    collectedTzs: 0,
-    guestsWithBalance: 0,
+    pledgedTzs: s?.pledgedTzs ?? 0,
+    collectedTzs: s?.collectedTzs ?? 0,
+    guestsWithBalance: s?.guestsWithBalance ?? 0,
     failedMessages: s?.failedMessages ?? 0,
     featurePhoneGuests: s?.featurePhoneGuests ?? 0,
   };
@@ -162,7 +170,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     contributionTargetTzs: e.contributionTargetTzs ?? 0,
     senderName: e.senderName || `Kamati ya Harusi ya ${e.coupleNames}`,
     committeePhone: e.committeePhone ?? '',
-    pledgesEnabled: true,
+    pledgesEnabled: e.pledgesEnabled ?? true,
     requirePledgeBeforeCard: false,
     greeting: e.greeting ?? '',
     extraNote: '',
@@ -180,17 +188,12 @@ interface ApiCard {
   event:
     | (Omit<
         NonNullable<CardView['event']>,
-        | 'partnerA'
-        | 'partnerB'
-        | 'pledgesEnabled'
-        | 'extraNote'
-        | 'themeId'
-        | 'coverGradient'
-        | 'palette'
+        'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
       > & { brandTheme: Record<string, unknown> | null })
     | null;
   guest: CardView['guest'];
   qrPayload: string | null;
+  pledge?: CardView['pledge'];
   rsvp: CardView['rsvp'];
   rsvpOpen: boolean;
   eventPassed: boolean;
@@ -223,7 +226,7 @@ function mapCard(token: string, c: ApiCard): CardView {
           rsvpDeadline: e.rsvpDeadline,
           senderName: e.senderName || `Kamati ya Harusi ya ${e.coupleNames}`,
           committeePhone: e.committeePhone ?? '',
-          pledgesEnabled: false,
+          pledgesEnabled: e.pledgesEnabled ?? false,
           greeting: e.greeting ?? '',
           extraNote: '',
           timezone: 'Africa/Dar_es_Salaam',
@@ -232,7 +235,7 @@ function mapCard(token: string, c: ApiCard): CardView {
     guest: c.guest,
     qrPayload: c.qrPayload,
     rsvp: c.rsvp,
-    pledge: null,
+    pledge: c.pledge ?? null,
     rsvpOpen: c.rsvpOpen,
     eventPassed: c.eventPassed,
     isMock: false,
@@ -260,7 +263,7 @@ function mapGuest(g: ApiGuest): Guest {
     lastMessageFailed: false,
     checkedInAt: null,
     partyAdmitted: 0,
-    pledge: null,
+    pledge: g.pledge ?? null,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
   };
@@ -691,6 +694,70 @@ export function createHttpRepository(
     const j = sendJobs.get(jobId);
     if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
     return runSend(j.eventId, 'failed', 'auto', newKey());
+  };
+  impl.getPledgeSummary = (eventId) =>
+    call('GET', `/v1/events/${encodeURIComponent(eventId)}/pledges`);
+  impl.upsertPledge = async (guestId, amountTzs, note) => {
+    await call('POST', `/v1/guests/${encodeURIComponent(guestId)}/pledges`, {
+      amountTzs,
+      note: note || null,
+    });
+    return impl.getGuest!(guestId);
+  };
+  impl.recordManualPayment = (eventId, input, idempotencyKey) =>
+    call(
+      'POST',
+      '/v1/payments/manual',
+      {
+        guestId: input.guestId,
+        amountTzs: input.amountTzs,
+        method: input.method,
+        reference: input.reference || undefined,
+        note: input.note || undefined,
+      },
+      { 'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey() },
+    );
+  impl.listPayments = async (eventId) =>
+    (await call<{ items: Payment[] }>('GET', `/v1/events/${encodeURIComponent(eventId)}/payments`))
+      .items;
+  impl.startPayment = async (token, input, idempotencyKey) => {
+    const r = await raw(
+      'POST',
+      `/v1/c/${encodeURIComponent(token)}/pay`,
+      { amountTzs: input.amountTzs, phone: input.phoneE164, method: input.method },
+      { 'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey() },
+      false,
+    );
+    if (r.status >= 400) return fail(r.status, r.json as never);
+    return r.json as unknown as PaymentStart;
+  };
+  impl.getPaymentStatus = async (reference) => {
+    const r = await raw(
+      'GET',
+      `/v1/payments/${encodeURIComponent(reference)}/status`,
+      undefined,
+      {},
+      false,
+    );
+    if (r.status >= 400) return fail(r.status, r.json as never);
+    return r.json as unknown as PaymentStatusView;
+  };
+  impl.exportCsv = async (eventId, kind) => {
+    if (kind !== 'pledges' && kind !== 'payments')
+      throw new RepositoryError('not_implemented', 'That export is not available yet');
+    const send = () =>
+      doFetch(`${baseUrl}/v1/events/${encodeURIComponent(eventId)}/exports/${kind}.csv`, {
+        headers: tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {},
+      });
+    let res: Response;
+    try {
+      res = await send();
+      if (res.status === 401 && tokens.get() && (await refreshTokens())) res = await send();
+    } catch {
+      throw new RepositoryError('offline', 'No network');
+    }
+    if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
+    return res.blob();
   };
   impl.requestCardsPdf = async (eventId, opts) => {
     const format =

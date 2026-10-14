@@ -14,7 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import type { CardView } from '@harusi/api-client';
-import { GuestCard } from '@/components/card/guest-card';
+import { renderCard, renderProblem } from '@/lib/light-card/render';
 import { ErrorState } from '@/components/console/query-state';
 import { Button } from '@/components/ui/button';
 import { Banner, EmptyState, Skeleton } from '@/components/ui/display';
@@ -228,22 +228,30 @@ export function StatesGallery({ card }: { card: CardView }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {(
               [
-                ['live', card, 'live'],
-                ['offline', card, 'cached'],
-                ['loading', null, 'loading'],
-                ['error', null, 'error'],
-                ['reissued', reissued, 'live'],
-                ['invalid', invalid, 'live'],
-                ['passed', passed, 'live'],
-                ['rsvp closed', closed, 'live'],
+                ['live', card],
+                ['error', 'error'],
+                ['reissued', 'reissued'],
+                ['invalid', 'invalid'],
+                ['passed', passed],
+                ['rsvp closed', closed],
               ] as const
-            ).map(([label, view, demo]) => (
+            ).map(([label, view]) => (
               <Frame key={label} title={label}>
-                <div className="h-[560px] overflow-y-auto rounded-md border border-border bg-bg">
-                  <TinyIntlProvider locale={locale} messages={allMessages}>
-                    <GuestCard token={card.token} initial={view} demo={demo} />
-                  </TinyIntlProvider>
-                </div>
+                <iframe
+                  title={`/c/[token] ${label}`}
+                  className="h-[560px] w-full rounded-md border border-border bg-bg"
+                  srcDoc={
+                    typeof view === 'string'
+                      ? renderProblem(view, { locale, domain: 'harusipass.example' })
+                      : renderCard(view, {
+                          token: card.token,
+                          locale,
+                          domain: 'harusipass.example',
+                          mode: 'mock',
+                          apiUrl: '',
+                        })
+                  }
+                />
               </Frame>
             ))}
           </div>

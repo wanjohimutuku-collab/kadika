@@ -25,7 +25,8 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ `/s/<token>` redirects to the card in real mode; short codes need `/k` (ADR 016)
 - ☑ API card now returns sender name, committee phone, greeting (new `events` columns, migration 0005, test in `card.test.ts`)
 - ☐ API card still lacks pledge summary and `pledgesEnabled` (Phase 6)
-- ☐ Push `feat/light-guest-card`; delete unused React `GuestCard` once `/dev/states` stops needing it
+- ☑ React `GuestCard` removed; `/dev/states` renders the static card in iframes
+- ☐ Push `feat/light-guest-card` (waiting for your go-ahead)
 
 ## Phase 3 — Delivery
 - ☐ WhatsApp + SMS adapters, BullMQ, retries, webhooks, WhatsApp→SMS fallback, reminders, message log

@@ -18,6 +18,7 @@ import { MemberService } from './services/members';
 import { idempotent } from './idempotency';
 import { CardService } from './services/cards';
 import { DeliveryService } from './services/delivery';
+import { PrintService } from './services/print';
 import { RateLimiter } from './rate-limit';
 
 type Env = { Variables: { userId: string } };
@@ -83,6 +84,7 @@ export function createApp(deps: Deps) {
   const membersSvc = new MemberService(deps, eventsSvc);
   const cardsSvc = new CardService(deps);
   const deliverySvc = new DeliveryService(deps, eventsSvc);
+  const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
   const cardReads = new RateLimiter(deps.now, 120, 60_000);
   const cardWrites = new RateLimiter(deps.now, 20, 60_000);
@@ -335,6 +337,21 @@ export function createApp(deps: Deps) {
       return c.json({ queued: true, jobId }, 202);
     }
     return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
+  });
+  app.post('/v1/events/:id/cards/pdf', async (c) => {
+    const input = parse(
+      z.object({
+        format: z.enum(['a6', 'a5', 'a4x4', 'test']),
+        guestIds: z.array(z.string().uuid()).min(1).max(1000).optional(),
+      }),
+      await body(c),
+    );
+    const { bytes, filename } = await printSvc.pdf(c.req.param('id'), c.get('userId'), input);
+    return c.body(bytes as unknown as ArrayBuffer, 200, {
+      'content-type': 'application/pdf',
+      'content-disposition': `attachment; filename="${filename}"`,
+      'cache-control': 'no-store',
+    });
   });
   app.get('/v1/events/:id/invitations/stats', async (c) =>
     c.json(await deliverySvc.stats(c.req.param('id'), c.get('userId'))),

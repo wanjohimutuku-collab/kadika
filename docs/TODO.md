@@ -35,7 +35,9 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ Delivery webhooks (Evolution `messages.update`, SMS report polling), WhatsApp→SMS fallback after N hours (once per guest)
 - ☑ Reminders T-14/T-7/T-1 with opt-out (`POST /v1/c/:token/reminders/opt-out`), daytime only, once per milestone
 - ☐ Opt-out button on the guest card page (API ready)
-- ☐ Print PDF batch (A6/A5, A4 4-up, test sheet) with §6.4 assertions; `docs/qa/print-test.md`
+- ☑ Print PDF batch: A6, A5 (3 mm bleed, crop marks), A4 4-up cut-and-collate, test sheet 20/25/30 mm; generator refuses QR < 25 mm or modules < 0.8 mm (`print.test.ts`, `POST /v1/events/:id/cards/pdf`)
+- ☐ Printed test sheet scanned on ≥ 3 phones — checklist in `docs/qa/print-test.md` (manual, needs a printer)
+- ☐ Console “Kadi” page: call the real PDF endpoint instead of the mock; embed a custom font (standard PDF fonts used now)
 - ☑ 500-guest send test with simulated failures (`delivery.test.ts`)
 
 ## Phase 4 — Organizer mobile app (Expo)

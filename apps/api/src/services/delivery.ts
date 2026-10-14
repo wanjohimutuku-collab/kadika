@@ -57,7 +57,7 @@ export interface SendSummary {
   failures: { guestId: string; error: string }[];
 }
 
-function dateText(d: Date, locale: 'sw' | 'en'): string {
+export function dateText(d: Date, locale: 'sw' | 'en'): string {
   const t = new Date(d.getTime() + TZ_OFFSET_MS);
   const months = locale === 'sw' ? MONTHS_SW : MONTHS_EN;
   return `${t.getUTCDate()} ${months[t.getUTCMonth()]} ${t.getUTCFullYear()}`;

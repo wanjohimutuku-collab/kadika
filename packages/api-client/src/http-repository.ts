@@ -465,6 +465,14 @@ export function createHttpRepository(
     },
     archiveEvent: (id) => impl.updateEvent!(id, { status: 'archived' }),
 
+    async createGateLink(eventId) {
+      const r = await call<{ code: string; pin: string; url: string; expiresAt: string }>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/gate-links`,
+      );
+      return { code: r.code, pin: r.pin, url: r.url, expiresAt: r.expiresAt };
+    },
+
     async listMembers(eventId) {
       const r = await call<{
         members: {

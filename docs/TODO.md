@@ -53,7 +53,15 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Lango (Phase 5) and Michango (Phase 6) tabs are placeholders
 
 ## Phase 5 — Gate scanner (offline-first)
-- ☐ Gate bundle endpoint, SQLite, offline verify, fallbacks, sync + conflict rule, multi-device test
+- ☑ Server: gate link + PIN with lockout, event-scoped gate tokens, device registration, bundle (ETag, last-4 phones), admissions, idempotent scan sync with earliest-wins ordering (ADR 022)
+- ☑ `@harusi/gate` engine: offline QR verify, card-number/name/last-4 lookup, duplicate and override rules, sync queue with backoff, reissue via bundle refresh
+- ☑ Tests: 200 mixed scans offline → correct results, zero lost after reconnect, server log matches; two devices on one guest → one admit + one duplicate; forged / wrong-event / revoked; lockout; override rules
+- ☑ App: scanner UI, search, typed number, result overlay (AAA colours), sync sheet, camera-denied fallback, Lango tab, gate-join + kiosk, owner creates link and PIN; verified in a browser against the real API (typed-number admit, duplicate overlay, background sync)
+- ☐ Run on real Android: camera decode, torch, haptics, SQLite across restarts, overlay ≤ 100 ms
+- ☐ Two physical phones scanning one guest; 200-scan airplane-mode run on a device
+- ☐ Usability check: a first-time gate agent joins and scans with no instructions (3 people)
+- ☐ Sound feedback; sound/vibration persisted setting; gate token refresh
+- ☐ Update CLAUDE.md §17.2 gate fills to the AAA values (ADR 006/022)
 
 ## Phase 6 — Pledges and payments
 - ☐ Pledge CRUD, manual payments, aggregator sandbox, webhook idempotency, exports

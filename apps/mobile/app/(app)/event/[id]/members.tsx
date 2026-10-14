@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { normalizeTzPhone, formatTzPhone } from '@harusi/schemas/phone';
 import { useInviteMember, useMembers, useRevokeMember } from '../../../../src/lib/queries';
@@ -20,7 +21,8 @@ import {
   Skeleton,
   Txt,
 } from '../../../../src/ui/kit';
-import type { Member } from '@harusi/api-client';
+import type { GateLink, Member } from '@harusi/api-client';
+import { getRepository } from '../../../../src/lib/repo';
 
 export default function Members() {
   const { id } = useGlobalSearchParams<{ id: string }>();
@@ -36,6 +38,8 @@ export default function Members() {
   const [err, setErr] = useState<string | null>(null);
   const [target, setTarget] = useState<Member | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [link, setLink] = useState<GateLink | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
 
   const send = async () => {
     const p = normalizeTzPhone(phone);
@@ -56,7 +60,28 @@ export default function Members() {
   return (
     <View style={{ flex: 1 }}>
       <AppHeader title={t('team.title')} onBack={() => router.back()} />
-      <Screen footer={<Button label={t('team.invite')} onPress={() => setOpen(true)} />}>
+      <Screen
+        footer={
+          <View style={{ gap: 8 }}>
+            <Button label={t('team.invite')} onPress={() => setOpen(true)} />
+            <Button
+              variant="secondary"
+              label={t('gateApp.createLink')}
+              loading={linkBusy}
+              onPress={async () => {
+                setLinkBusy(true);
+                try {
+                  setLink(await getRepository().createGateLink(id));
+                } catch {
+                  setDone(t('states.errorBody'));
+                } finally {
+                  setLinkBusy(false);
+                }
+              }}
+            />
+          </View>
+        }
+      >
         {done ? <Banner tone="success" text={done} /> : null}
         {q.isPending ? (
           <Skeleton />
@@ -107,6 +132,33 @@ export default function Members() {
           {t(`team.roleHelp.${role}`)}
         </Txt>
         <Button label={t('team.send')} loading={invite.isPending} onPress={send} />
+      </Sheet>
+      <Sheet open={!!link} onClose={() => setLink(null)} title={t('gateApp.createLink')}>
+        <Banner tone="warning" text={t('gateApp.linkShown')} />
+        <Txt size={14} color={c.muted}>
+          {t('gateApp.linkCode')}
+        </Txt>
+        <Txt size={28} bold>
+          {link?.code}
+        </Txt>
+        <Txt size={14} color={c.muted}>
+          {t('gateApp.linkPin')}
+        </Txt>
+        <Txt size={36} bold>
+          {link?.pin}
+        </Txt>
+        <Txt size={14} color={c.muted}>
+          {link?.url}
+        </Txt>
+        <Button
+          variant="secondary"
+          label={t('common.copy')}
+          onPress={async () => {
+            await Clipboard.setStringAsync(`${link?.url}  PIN ${link?.pin}`);
+            setDone(t('common.copied'));
+          }}
+        />
+        <Button label={t('common.done')} onPress={() => setLink(null)} />
       </Sheet>
       <ConfirmSheet
         open={!!target}

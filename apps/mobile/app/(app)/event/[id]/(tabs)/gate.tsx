@@ -1,15 +1,30 @@
-import { Banner, Screen, Txt } from '../../../../../src/ui/kit';
-import { useT } from '../../../../../src/lib/i18n';
+import { useGlobalSearchParams } from 'expo-router';
+import { View } from 'react-native';
+import { getAccessToken, getRepository } from '../../../../../src/lib/repo';
+import { useEvent } from '../../../../../src/lib/queries';
+import { GateScreen } from '../../../../../src/gate/GateScreen';
+import { ErrorState, Skeleton } from '../../../../../src/ui/kit';
 
-/** Phase 5 builds the offline scanner here; until then this tab says so plainly. */
+/** Gate tab: any owner, committee member or gate-role member can run the gate from their phone (P11). */
 export default function Gate() {
-  const t = useT();
+  const { id } = useGlobalSearchParams<{ id: string }>();
+  const q = useEvent(id);
+  if (q.isPending)
+    return (
+      <View style={{ padding: 16 }}>
+        <Skeleton height={120} />
+      </View>
+    );
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
+  const role = q.data.myRole ?? 'owner';
   return (
-    <Screen>
-      <Txt size={20} bold>
-        {t('nav.gate')}
-      </Txt>
-      <Banner text={t('mobile.gateSoon')} />
-    </Screen>
+    <GateScreen
+      eventId={id}
+      role={role}
+      token={getAccessToken}
+      refresh={async () => {
+        await getRepository().getSession(); // refreshes the access token when it has expired
+      }}
+    />
   );
 }

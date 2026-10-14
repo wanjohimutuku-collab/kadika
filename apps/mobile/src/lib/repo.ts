@@ -31,6 +31,8 @@ const tokens: TokenStore = {
   },
 };
 
+export const getAccessToken = (): string | null => cache?.accessToken ?? null;
+
 let repo: Repository | null = null;
 export function getRepository(): Repository {
   repo ??= createHttpRepository(API_URL, { tokens, newKey: () => Crypto.randomUUID() });

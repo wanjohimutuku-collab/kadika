@@ -82,3 +82,13 @@ describe('palette customisation', () => {
     expect(mixHex('#FFFFFF', '#000000', 0.5)).toBe('#808080');
   });
 });
+
+import { gateColorsAaa } from './colors';
+import { contrastRatio as ratio } from './contrast';
+
+describe('gate result fills (AAA)', () => {
+  it('white text reaches 7:1 on every darkened gate fill', () => {
+    for (const fill of Object.values(gateColorsAaa))
+      expect(ratio('#FFFFFF', fill)).toBeGreaterThanOrEqual(7);
+  });
+});

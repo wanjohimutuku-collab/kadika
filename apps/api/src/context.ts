@@ -6,6 +6,10 @@ import type { Config } from './config';
 export interface Deps {
   db: Db;
   sms: MessagingProvider;
+  /** WhatsApp Cloud API adapter (primary channel, §7.2). Optional: without it everything goes by SMS. */
+  whatsapp?: MessagingProvider;
+  /** Waits between delivery retries; tests pass a no-op. */
+  sleep?: (ms: number) => Promise<void>;
   config: Config;
   now: () => Date;
   random: (n: number) => Uint8Array;

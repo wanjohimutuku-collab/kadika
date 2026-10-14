@@ -1,6 +1,6 @@
 import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
 import { guests, invitations, newId, retiredCardTokens, shortOf, signingKeys } from '@harusi/db';
-import { decryptSecret } from '../crypto-at-rest';
+import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { generateGuestToken, hashGuestToken, signQrToken } from '@harusi/crypto';
 import {
   buildPreview,
@@ -129,7 +129,12 @@ export class GuestService {
         .returning();
       await tx
         .insert(invitations)
-        .values({ id: newId(), guestId: ids.id, tokenHash: hashGuestToken(token) });
+        .values({
+          id: newId(),
+          guestId: ids.id,
+          tokenHash: hashGuestToken(token),
+          tokenEnc: await encryptSecret(token, this.deps.config.keyEncSecret),
+        });
       return { ...guest!, cardToken: token };
     });
   }
@@ -280,7 +285,10 @@ export class GuestService {
       }
       await tx
         .update(invitations)
-        .set({ tokenHash: hashGuestToken(token) })
+        .set({
+          tokenHash: hashGuestToken(token),
+          tokenEnc: await encryptSecret(token, this.deps.config.keyEncSecret),
+        })
         .where(eq(invitations.guestId, guestId));
       return u!;
     });

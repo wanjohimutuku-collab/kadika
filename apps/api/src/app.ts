@@ -14,6 +14,7 @@ import { GuestService } from './services/guests';
 import { MemberService } from './services/members';
 import { idempotent } from './idempotency';
 import { CardService } from './services/cards';
+import { DeliveryService } from './services/delivery';
 import { RateLimiter } from './rate-limit';
 
 type Env = { Variables: { userId: string } };
@@ -78,6 +79,7 @@ export function createApp(deps: Deps) {
   const guestsSvc = new GuestService(deps, eventsSvc);
   const membersSvc = new MemberService(deps, eventsSvc);
   const cardsSvc = new CardService(deps);
+  const deliverySvc = new DeliveryService(deps, eventsSvc);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
   const cardReads = new RateLimiter(deps.now, 120, 60_000);
   const cardWrites = new RateLimiter(deps.now, 20, 60_000);
@@ -135,6 +137,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/events/:id/guests', once);
   app.post('/v1/events/:id/guests/import', once);
   app.post('/v1/guests/:id/reissue', once);
+  app.post('/v1/events/:id/invitations/send', once);
 
   app.get('/v1/me', async (c) => {
     const [u] = await deps.db
@@ -267,6 +270,23 @@ export function createApp(deps: Deps) {
     );
     return c.json(await guestsSvc.import(c.req.param('id'), c.get('userId'), input));
   });
+  app.post('/v1/events/:id/invitations/send', async (c) => {
+    const input = parse(
+      z.object({
+        target: z.union([
+          z.enum(['remaining', 'failed']),
+          z.object({ guestIds: z.array(z.string().uuid()).min(1).max(1000) }),
+          z.object({ group: z.string().min(1).max(40) }),
+        ]),
+        channel: z.enum(['auto', 'whatsapp', 'sms']).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
+  });
+  app.get('/v1/events/:id/invitations/stats', async (c) =>
+    c.json(await deliverySvc.stats(c.req.param('id'), c.get('userId'))),
+  );
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.get(c.req.param('id'), c.get('userId'))),
   );

@@ -178,6 +178,8 @@ export const invitations = pgTable(
       .notNull()
       .references(() => guests.id, { onDelete: 'cascade' }),
     tokenHash: text('token_hash').notNull(),
+    /** AES-GCM copy of the card token so the delivery service can rebuild the link (ADR 017). */
+    tokenEnc: text('token_enc'),
     status: invitationStatusEnum('status').notNull().default('created'),
     sentAt: timestamp('sent_at', { withTimezone: true }),
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),

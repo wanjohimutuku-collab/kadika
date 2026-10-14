@@ -29,9 +29,13 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Push `feat/light-guest-card` (waiting for your go-ahead)
 
 ## Phase 3 — Delivery
-- ☐ WhatsApp + SMS adapters, BullMQ, retries, webhooks, WhatsApp→SMS fallback, reminders, message log
+- ☑ Send service: per-guest WhatsApp/SMS choice, retries with backoff, WhatsApp→SMS fallback on failure, `message_log`, retry-failed, stats endpoint, idempotent send (ADR 017, `delivery.test.ts`)
+- ☐ BullMQ + Redis worker around the send service
+- ☐ Real WhatsApp Cloud API and SMS gateway adapters (decisions §15.2–15.3)
+- ☐ Delivery webhooks (delivered/read) and WhatsApp→SMS fallback after N hours undelivered
+- ☐ Reminder scheduler (T-14/T-7/T-1, opt-out)
 - ☐ Print PDF batch (A6/A5, A4 4-up, test sheet) with §6.4 assertions; `docs/qa/print-test.md`
-- ☐ 500-guest send test with simulated failures
+- ☑ 500-guest send test with simulated failures (`delivery.test.ts`)
 
 ## Phase 4 — Organizer mobile app (Expo)
 - ☐ Not started (`apps/mobile` is not scaffolded)

@@ -22,7 +22,9 @@ const sms =
         },
       }
     : fake;
-const app = createApp({ db, sms, config, now: () => new Date(), random: systemRandom });
+// WhatsApp Cloud API adapter is not chosen yet (§15.2); the fake stands in (ADR 017).
+const whatsapp = new FakeMessagingProvider('whatsapp');
+const app = createApp({ db, sms, whatsapp, config, now: () => new Date(), random: systemRandom });
 
 serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {
   console.log(JSON.stringify({ level: 'info', msg: 'api listening', port: info.port }));

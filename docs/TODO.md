@@ -61,7 +61,8 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Two physical phones scanning one guest; 200-scan airplane-mode run on a device
 - ☐ Usability check: a first-time gate agent joins and scans with no instructions (3 people)
 - ☑ Gate token lasts until its link expires (no mid-event expiry); vibration setting is remembered
-- ☐ Sound feedback
+- ☑ Sound feedback: generated tones (rising two-tone admit, beep duplicate, low buzz deny) with a remembered toggle; tone generator unit-tested, playback unverified on a device
+- ☑ Android Hermes bundle builds (`expo export --platform android`, 3.4 MB) so every native import resolves
 - ☐ Update CLAUDE.md §17.2 gate fills to the AAA values (ADR 006/022)
 
 ## Phase 6 — Pledges and payments

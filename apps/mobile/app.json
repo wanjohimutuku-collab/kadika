@@ -19,7 +19,8 @@
           "cameraPermission": "Harusi Pass inahitaji kamera kuskani QR za kadi."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-audio"
     ],
     "experiments": {},
     "web": {

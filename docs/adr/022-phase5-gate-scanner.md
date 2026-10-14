@@ -14,7 +14,7 @@ Status: accepted
 - **Gate result colours are darkened** to ADMIT `#075E20`, DUPLICATE `#7A4A00`, DENY `#8C1D17` (`gateColorsAaa`), because the §17.2 fills only reach 4.2–6.5:1 and §17.14 asks for AAA. A test asserts ≥ 7:1 with white. CLAUDE.md §17.2 still lists the old values; the spec owner should update it.
 - **Search is an in-memory scan of the bundle**, not SQLite FTS (§6.2 mentions FTS). For a few thousand guests it is instant and avoids an FTS dependency; revisit above ~10,000 guests.
 - **A typed card number is logged as `manual_ok`** (reason `code`): there is no signature to check, so it is not a verified scan.
-- **No sound.** Haptics and a visual result only; audio feedback is not implemented.
+- **Sound** is generated in code (sine-tone WAVs written to the cache and played with `expo-audio`): rising two-tone for admit, one beep for duplicate, a long low buzz for deny, with a remembered on/off toggle. The generator is unit-tested; playback has not been heard on a device.
 - **Gate tokens last until their link expires (event day + 2), capped at 3 days, so they do not expire mid-event.** If one is revoked or expires the agent must join again; scans already on the phone are kept and sync after re-joining.
 - Revoked and forged cards both log as `invalid_sig` on the server (the enum has no separate value); the device shows the specific reason.
 
@@ -24,4 +24,4 @@ API integration tests (real routes, PGlite, real engine): lockout and scoped tok
 
 ## Not verified
 
-No Android device or emulator: camera scanning, torch, haptics, SQLite persistence across restarts, keep-awake, the 100 ms overlay target, usability with three first-time agents and the 2 GB RAM check are all untested. Multi-device behaviour was tested through the API, not with two physical phones.
+The Android bundle compiles (`expo export --platform android`), but nothing has run on Android. No Android device or emulator: camera scanning, torch, haptics, SQLite persistence across restarts, keep-awake, the 100 ms overlay target, usability with three first-time agents and the 2 GB RAM check are all untested. Multi-device behaviour was tested through the API, not with two physical phones.

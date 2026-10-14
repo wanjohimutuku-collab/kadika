@@ -10,6 +10,7 @@ import { useT } from '../lib/i18n';
 import { useColors } from '../lib/theme';
 import { Banner, Button, Field, Sheet, Txt } from '../ui/kit';
 import { store } from '../lib/storage';
+import { playResult } from './sound';
 import { gateLabel } from './device';
 import { useGate } from './use-gate';
 
@@ -38,6 +39,15 @@ export function GateScreen(p: Props) {
   useEffect(() => {
     void store.get('harusi.gate.haptics').then((v) => v !== null && setHaptics(v === '1'));
   }, []);
+  const [sound, setSound] = useState(true);
+  useEffect(() => {
+    void store.get('harusi.gate.sound').then((v) => v !== null && setSound(v === '1'));
+  }, []);
+  const toggleSound = () =>
+    setSound((x) => {
+      void store.set('harusi.gate.sound', x ? '0' : '1');
+      return !x;
+    });
   const toggleHaptics = () =>
     setHaptics((x) => {
       void store.set('harusi.gate.haptics', x ? '0' : '1');
@@ -69,11 +79,12 @@ export function GateScreen(p: Props) {
               : Haptics.NotificationFeedbackType.Error,
         );
       }
+      if (sound) void playResult(o.kind === 'deny' ? 'deny' : o.kind);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(dismiss, OVERLAY_MS);
       void g.refreshStats();
     },
-    [dismiss, g, haptics],
+    [dismiss, g, haptics, sound],
   );
 
   useEffect(
@@ -209,6 +220,7 @@ export function GateScreen(p: Props) {
           onPress={() => setSheet('code')}
           style={{ flex: 1 }}
         />
+        <Button label={sound ? '🔊' : '🔇'} variant="secondary" onPress={toggleSound} />
         <Button label={`${haptics ? '📳' : '🔕'}`} variant="secondary" onPress={toggleHaptics} />
       </View>
       <Pressable

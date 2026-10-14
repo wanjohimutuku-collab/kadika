@@ -16,7 +16,7 @@ Everything here was run once on a Galaxy A17 except the items marked OPEN. Repea
 |---|---|---|---|
 | 1 | Scan a valid QR | green KARIBU NDANI, name, party, one vibration and a rising two-tone | done |
 | 2 | Scan it again | amber TAYARI AMEINGIA with the time and gate of the first scan, single beep, no override button for a gate agent | done |
-| 3 | Scan a tampered QR (flip one character) and another wedding's QR | red KADI SI HALALI with the right reason, long low buzz | OPEN on device (engine-tested) |
+| 3 | Scan a tampered QR (flip one character) and another wedding's QR | red KADI SI HALALI with the right reason, long low buzz | done on the Galaxy A17 by camera: refused 3× each, deny feedback fired, nobody admitted |
 | 4 | Typed card number and name / last-4 search | admits as manual; unknown number is denied | done |
 | 5 | Airplane mode or `kill -STOP` the API, scan, restore | scan accepted offline, header shows pending, syncs after restore | done |
 | 6 | Force-stop the app and reopen it with no network | opens straight into the gate with the saved list and admissions | done |

@@ -52,6 +52,7 @@ const optionalDate = z.coerce.date().nullish();
 const eventBase = z.object({
   title: z.string().trim().min(2).max(80),
   eventKind: z.string().trim().max(40).nullish(),
+  country: z.enum(['TZ', 'KE']).optional(),
   coupleNames: z.string().trim().min(2).max(120),
   dateStart: z.coerce.date(),
   venueName: z.string().trim().max(120).nullish(),
@@ -352,6 +353,7 @@ export function createApp(deps: Deps) {
   app.patch('/v1/events/:id', async (c) => {
     const patch = parse(
       eventBase
+        .omit({ country: true })
         .partial()
         .extend({ status: z.enum(['draft', 'active', 'completed', 'archived']).optional() }),
       await body(c),

@@ -595,6 +595,9 @@ export class MockRepository implements Repository {
     return this.run('write', 'Harusi mpya', () => {
       const u = this.requireSession();
       const v = eventInputSchema.parse(input);
+      // The demo backend only models Tanzania (ADR 025); Kenya needs the real API with the flag on.
+      if (v.country !== 'TZ')
+        throw new RepositoryError('validation', 'Country is not available', { field: 'country' });
       const now = iso(this.now());
       const e: EventRecord = {
         id: this.rng.uuid(),
@@ -608,6 +611,8 @@ export class MockRepository implements Repository {
         venueMapUrl: v.venueMapUrl,
         dressCode: v.dressCode,
         languageDefault: v.languageDefault,
+        country: 'TZ',
+        currency: 'TZS',
         timezone: 'Africa/Dar_es_Salaam',
         status: 'active',
         themeId: v.themeId,
@@ -1772,6 +1777,8 @@ export class MockRepository implements Repository {
         pledgesEnabled: e.pledgesEnabled,
         greeting: e.greeting,
         extraNote: e.extraNote,
+        country: e.country,
+        currency: e.currency,
         timezone: e.timezone,
       },
       guest: {

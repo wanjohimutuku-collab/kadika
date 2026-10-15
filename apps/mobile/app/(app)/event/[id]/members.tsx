@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useGlobalSearchParams } from 'expo-router';
-import { normalizeTzPhone, formatTzPhone } from '@harusi/schemas/phone';
+import { formatPhone } from '@harusi/schemas/phone';
 import { useInviteMember, useMembers, useRevokeMember } from '../../../../src/lib/queries';
 import { useT } from '../../../../src/lib/i18n';
 import { useColors } from '../../../../src/lib/theme';
@@ -23,12 +23,14 @@ import {
 } from '../../../../src/ui/kit';
 import type { GateLink, Member } from '@harusi/api-client';
 import { getRepository } from '../../../../src/lib/repo';
+import { parsePhone, useEventLocale } from '../../../../src/lib/country';
 
 export default function Members() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const t = useT();
   const c = useColors();
   const q = useMembers(id);
+  const { country } = useEventLocale(id);
   const invite = useInviteMember(id);
   const revoke = useRevokeMember(id);
   const [open, setOpen] = useState(false);
@@ -42,7 +44,7 @@ export default function Members() {
   const [linkBusy, setLinkBusy] = useState(false);
 
   const send = async () => {
-    const p = normalizeTzPhone(phone);
+    const p = parsePhone(phone, country);
     if (name.trim().length < 2) return setErr(t('validation.name.too_short'));
     if (!p.ok) return setErr(t(`validation.phone.${p.error}`));
     setErr(null);
@@ -95,9 +97,9 @@ export default function Members() {
               label={m.name}
             >
               <View style={{ flex: 1 }}>
-                <Txt bold>{m.name || formatTzPhone(m.phoneE164)}</Txt>
+                <Txt bold>{m.name || formatPhone(m.phoneE164, country)}</Txt>
                 <Txt size={14} color={c.muted}>
-                  {formatTzPhone(m.phoneE164)} · {t(`team.role.${m.role}`)}
+                  {formatPhone(m.phoneE164, country)} · {t(`team.role.${m.role}`)}
                 </Txt>
               </View>
               <Pill

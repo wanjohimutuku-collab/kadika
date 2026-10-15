@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { EVENT_KIND_SUGGESTIONS, eventInputSchema } from '@harusi/schemas';
+import { COUNTRIES, type Country } from '@harusi/schemas/country';
+import { KENYA_ENABLED } from '../../../src/lib/country';
 import { useCreateEvent } from '../../../src/lib/queries';
 import { useLocale, useT } from '../../../src/lib/i18n';
 import { AppHeader } from '../../../src/ui/header';
@@ -9,7 +11,7 @@ import { Button, Chip, Field, Screen, Segmented, Txt } from '../../../src/ui/kit
 
 const THEMES = ['emerald-gold', 'navy-silver', 'terracotta', 'rose-sage'] as const;
 
-/** Date as `YYYY-MM-DD` and time as `HH:MM`, interpreted in Dar es Salaam time (UTC+3). */
+/** Date as `YYYY-MM-DD` and time as `HH:MM`, in East Africa Time (UTC+3: Dar es Salaam and Nairobi). */
 function toIso(date: string, time: string): string | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
   const tm = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
@@ -21,6 +23,7 @@ export default function NewEvent() {
   const t = useT();
   const { locale } = useLocale();
   const create = useCreateEvent();
+  const [country, setCountry] = useState<Country>('TZ');
   const [kind, setKind] = useState<string>(EVENT_KIND_SUGGESTIONS[0]);
   const [a, setA] = useState('');
   const [b, setB] = useState('');
@@ -37,6 +40,7 @@ export default function NewEvent() {
     const parsed = eventInputSchema.safeParse({
       title: `${kind.trim() || 'Mwaliko'} ya ${[a.trim(), b.trim()].filter(Boolean).join(' & ')}`,
       eventKind: kind,
+      country,
       partnerA: a,
       partnerB: b,
       dateStart: iso ?? '',
@@ -70,6 +74,18 @@ export default function NewEvent() {
       <Screen
         footer={<Button label={t('common.save')} loading={create.isPending} onPress={submit} />}
       >
+        {KENYA_ENABLED ? (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {COUNTRIES.map((c) => (
+              <Chip
+                key={c}
+                label={t(`common.countries.${c}`)}
+                active={country === c}
+                onPress={() => setCountry(c)}
+              />
+            ))}
+          </View>
+        ) : null}
         <Field
           label={t('wizard.kind')}
           hint={t('wizard.kindHint')}

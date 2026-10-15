@@ -190,6 +190,8 @@ function baseEvent(
     venueMapUrl: '',
     dressCode: '',
     languageDefault: 'sw',
+    country: 'TZ',
+    currency: 'TZS',
     timezone: 'Africa/Dar_es_Salaam',
     status: 'active',
     themeId: 'emerald-gold',

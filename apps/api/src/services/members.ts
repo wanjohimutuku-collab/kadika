@@ -4,7 +4,9 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
 import type { EventService } from './events';
+import { allowedCountries } from '@harusi/schemas/country';
 import { parsePhone } from '../auth/service';
+import { eventCountry } from './events';
 
 export class MemberService {
   constructor(
@@ -54,7 +56,11 @@ export class MemberService {
     input: { name: string; phone: string; role: 'committee' | 'gate' },
   ) {
     await this.requireOwner(eventId, userId);
-    const phone = parsePhone(input.phone);
+    const phone = parsePhone(
+      input.phone,
+      await eventCountry(this.deps.db, eventId),
+      allowedCountries(this.deps.config.kenyaEnabled),
+    );
     const [user] = await this.deps.db.select().from(users).where(eq(users.phoneE164, phone));
     if (user) {
       const [exists] = await this.deps.db

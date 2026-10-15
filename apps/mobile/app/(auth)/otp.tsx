@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { formatTzPhone } from '@harusi/schemas/phone';
+import { formatPhone } from '@harusi/schemas/phone';
 import { getRepository } from '../../src/lib/repo';
 import { useSession } from '../../src/lib/session';
 import { useT } from '../../src/lib/i18n';
@@ -89,7 +89,7 @@ export default function Otp() {
       <Txt size={24} bold>
         {t('auth.otpTitle')}
       </Txt>
-      <Txt>{t('auth.otpSent', { phone: formatTzPhone(phone ?? '') })}</Txt>
+      <Txt>{t('auth.otpSent', { phone: formatPhone(phone ?? '', 'TZ') })}</Txt>
       <Field
         label={t('auth.otpLabel')}
         value={code}

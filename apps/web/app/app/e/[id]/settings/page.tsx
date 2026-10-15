@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
 import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { parsePhone, useCurrency, usePhoneCountry } from '@/lib/country';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,8 @@ function toForm(e: WeddingEvent): FormState {
 }
 
 export default function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
+  const country = usePhoneCountry();
+  const cur = useCurrency();
   const { id } = use(params);
   const t = useTranslations('settings');
   const tw = useTranslations('wizard');
@@ -123,7 +125,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
     if (form.partnerB.trim() && form.partnerB.trim().length < 2)
       errs.partnerB = tv('name.too_short');
     if (form.venueName.trim().length < 2) errs.venueName = tv('venue.required');
-    const phone = normalizeTzPhone(form.committeePhone);
+    const phone = parsePhone(form.committeePhone, country);
     if (!phone.ok) errs.committeePhone = tv(`phone.${phone.error}`);
     if (form.venueMapUrl && !/^https?:\/\//.test(form.venueMapUrl))
       errs.venueMapUrl = tv('url.invalid');
@@ -213,7 +215,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                   />
                   <TextField
                     label={tw('target')}
-                    prefix="TZS"
+                    prefix={cur}
                     inputMode="numeric"
                     value={String(form.contributionTargetTzs)}
                     onChange={(ev) =>
@@ -298,7 +300,12 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                       { value: 'en', label: tl('en') },
                     ]}
                   />
-                  <TextField label={t('timezone')} value={t('timezoneValue')} readOnly disabled />
+                  <TextField
+                    label={t('timezone')}
+                    value={event.data?.timezone ?? t('timezoneValue')}
+                    readOnly
+                    disabled
+                  />
                 </div>
               </Card>
               <Card title={t('danger')} titleId="dz-h" className="border-danger/40">

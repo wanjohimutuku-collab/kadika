@@ -1,5 +1,7 @@
 import type {
   ChannelPref,
+  Country,
+  Currency,
   InvitationStatus,
   Language,
   MemberRole,
@@ -91,7 +93,10 @@ export interface WeddingEvent {
   venueMapUrl: string;
   dressCode: string;
   languageDefault: Language;
-  timezone: 'Africa/Dar_es_Salaam';
+  /** Country, currency and time zone of the event (ADR 025). `*Tzs` amounts are in `currency`. */
+  country: Country;
+  currency: Currency;
+  timezone: string;
   status: EventStatus;
   themeId: ThemeId;
   coverGradient: string;
@@ -305,6 +310,8 @@ export interface CardView {
     | 'greeting'
     | 'extraNote'
     | 'timezone'
+    | 'country'
+    | 'currency'
   > | null;
   guest: {
     displayName: string;

@@ -37,6 +37,8 @@ export interface CardView {
     brandTheme: Record<string, unknown> | null;
     pledgesEnabled: boolean;
     rsvpDeadline: Date | null;
+    country: 'TZ' | 'KE';
+    currency: 'TZS' | 'KES';
     timezone: string;
   } | null;
   guest: {
@@ -116,6 +118,8 @@ export class CardService {
         brandTheme: event.brandTheme,
         pledgesEnabled: event.pledgesEnabled,
         rsvpDeadline: event.rsvpDeadline,
+        country: event.country,
+        currency: event.currency,
         timezone: event.timezone,
       },
       guest: {

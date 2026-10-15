@@ -13,7 +13,9 @@ import type { Deps } from '../context';
 export const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
 
 /** Real SQL (PGlite, in-process Postgres) + migrations + fake SMS: no Docker needed in unit tests. */
-export async function createTestContext(opts: { now?: () => Date } = {}) {
+export async function createTestContext(
+  opts: { now?: () => Date; env?: Record<string, string> } = {},
+) {
   const client = new PGlite();
   const db = drizzle(client, { schema }) as unknown as Db;
   await migrate(db as never, {
@@ -51,6 +53,7 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
       WEBHOOK_SECRET: 'hook-secret-for-tests',
       PAYMENT_WEBHOOK_SECRET: 'pay-secret-for-tests',
       LOG_REQUESTS: '0',
+      ...opts.env,
       WHATSAPP_TOKEN: 'cloud-token',
       WHATSAPP_PHONE_ID: '1234567890',
       WHATSAPP_VERIFY_TOKEN: 'verify-me',

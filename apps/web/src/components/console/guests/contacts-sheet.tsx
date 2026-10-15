@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ShieldAlert } from 'lucide-react';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { parsePhone, usePhoneCountry } from '@/lib/country';
 import { BottomSheet } from '@/components/ui/overlay';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
@@ -51,6 +51,7 @@ export function ContactsSheet({
   const ts = useTranslations('states');
   const tc = useTranslations('common');
   const toast = useToast();
+  const country = usePhoneCountry();
   const [contacts, setContacts] = useState<Contact[] | null>(null);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [denied, setDenied] = useState(false);
@@ -80,7 +81,7 @@ export function ContactsSheet({
       const rows = [...picked]
         .map((i) => list[i]!)
         .map((c) => {
-          const p = normalizeTzPhone(c.tel);
+          const p = parsePhone(c.tel, country);
           return {
             displayName: c.name,
             phoneRaw: c.tel,
@@ -145,7 +146,7 @@ export function ContactsSheet({
           ) : null}
           <ul className="flex flex-col divide-y divide-border">
             {list.map((c, i) => {
-              const p = normalizeTzPhone(c.tel);
+              const p = parsePhone(c.tel, country);
               return (
                 <li key={`${c.name}-${i}`}>
                   <label className="flex min-h-14 cursor-pointer items-center gap-3 py-2">

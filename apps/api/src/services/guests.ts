@@ -11,10 +11,11 @@ import {
   type ImportField,
 } from '@harusi/schemas/import';
 import { generateShortCode } from '@harusi/schemas/short-code';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { allowedCountries, type Country } from '@harusi/schemas/country';
+import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
-import type { EventService } from './events';
+import { eventCountry, type EventService } from './events';
 import { pledgeSummaryOf } from './pledges';
 import { recordAudit } from './audit';
 
@@ -86,9 +87,9 @@ export class GuestService {
     throw new ApiError('conflict', 'Could not allocate a guest id');
   }
 
-  private normalizePhone(phone: string | null | undefined): string | null {
+  private normalizePhone(phone: string | null | undefined, country: Country): string | null {
     if (!phone?.trim()) return null;
-    const r = normalizeTzPhone(phone);
+    const r = normalizePhone(phone, country, allowedCountries(this.deps.config.kenyaEnabled));
     if (!r.ok)
       throw new ApiError('validation', 'Invalid phone number', { field: 'phone', reason: r.error });
     return r.e164;
@@ -96,7 +97,7 @@ export class GuestService {
 
   async create(eventId: string, userId: string, input: GuestInput) {
     await this.canManage(eventId, userId);
-    const phone = this.normalizePhone(input.phone);
+    const phone = this.normalizePhone(input.phone, await eventCountry(this.deps.db, eventId));
     return this.deps.db.transaction(async (tx) => {
       if (phone) {
         const [dupe] = await tx
@@ -236,7 +237,7 @@ export class GuestService {
     const set: Partial<typeof guests.$inferInsert> = {};
     if (patch.displayName !== undefined) set.displayName = patch.displayName.trim();
     if (patch.phone !== undefined) {
-      const phone = this.normalizePhone(patch.phone);
+      const phone = this.normalizePhone(patch.phone, await eventCountry(this.deps.db, g.eventId));
       if (phone && phone !== g.phoneE164) {
         const [dupe] = await this.deps.db
           .select({ id: guests.id })
@@ -364,7 +365,11 @@ export class GuestService {
     await this.canManage(eventId, userId);
     const rows = parseCsv(input.csv);
     if (!rows.length) throw new ApiError('validation', 'No rows found');
-    const { mapping, hasHeader } = guessMapping(rows[0]!);
+    const phone = {
+      country: await eventCountry(this.deps.db, eventId),
+      allowed: allowedCountries(this.deps.config.kenyaEnabled),
+    };
+    const { mapping, hasHeader } = guessMapping(rows[0]!, phone);
     const width = Math.max(...rows.map((r) => r.length));
     const fullMapping: ImportField[] = Array.from(
       { length: width },
@@ -379,6 +384,7 @@ export class GuestService {
       existingPhones: existing.map((e) => e.phone).filter((p): p is string => !!p),
       existingNames: existing.map((e) => e.name),
       defaultGroup: input.defaultGroup,
+      phone,
     });
     const summary = summarizePreview(preview);
     if (input.dryRun)

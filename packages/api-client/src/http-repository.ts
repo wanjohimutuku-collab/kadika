@@ -1,5 +1,12 @@
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
-import { defaultSender, hostNames, type EventInput, type GuestInput } from '@harusi/schemas';
+import {
+  defaultSender,
+  hostNames,
+  type Country,
+  type Currency,
+  type EventInput,
+  type GuestInput,
+} from '@harusi/schemas';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
@@ -78,6 +85,8 @@ interface ApiEvent {
   senderName?: string | null;
   greeting?: string | null;
   languageDefault: 'sw' | 'en';
+  country?: Country;
+  currency?: Currency;
   timezone: string;
   status: WeddingEvent['status'];
   rsvpDeadline: string | null;
@@ -162,7 +171,9 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     venueMapUrl: e.venueMapUrl ?? '',
     dressCode: e.dressCode ?? '',
     languageDefault: e.languageDefault,
-    timezone: 'Africa/Dar_es_Salaam',
+    country: e.country ?? 'TZ',
+    currency: e.currency ?? 'TZS',
+    timezone: e.timezone || 'Africa/Dar_es_Salaam',
     status: e.status,
     themeId: ((e.brandTheme as { themeId?: WeddingEvent['themeId'] } | null)?.themeId ??
       'emerald-gold') as WeddingEvent['themeId'],
@@ -232,7 +243,9 @@ function mapCard(token: string, c: ApiCard): CardView {
           pledgesEnabled: e.pledgesEnabled ?? false,
           greeting: e.greeting ?? '',
           extraNote: '',
-          timezone: 'Africa/Dar_es_Salaam',
+          country: e.country ?? 'TZ',
+          currency: e.currency ?? 'TZS',
+          timezone: e.timezone || 'Africa/Dar_es_Salaam',
         }
       : null,
     guest: c.guest,
@@ -426,6 +439,7 @@ export function createHttpRepository(
       const created = await call<ApiEvent>('POST', '/v1/events', {
         title: input.title,
         eventKind: input.eventKind || null,
+        country: input.country,
         coupleNames: [input.partnerA, input.partnerB].filter(Boolean).join(' & '),
         dateStart: input.dateStart,
         venueName: input.venueName,

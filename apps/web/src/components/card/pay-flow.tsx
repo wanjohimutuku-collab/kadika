@@ -5,17 +5,17 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-react';
 import type { CardView, PaymentStart, PaymentStatusView } from '@harusi/api-client';
 import type { PaymentMethod } from '@harusi/schemas';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { paymentMethodsFor } from '@harusi/schemas/country';
+import { parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Banner, Skeleton } from '@/components/ui/display';
 import { PhoneField, TextField } from '@/components/ui/form';
-import { formatDateTimeShort, formatPhone, formatTzs } from '@/lib/format';
+import { formatDateTimeShort, formatMoney, formatPhone } from '@/lib/format';
 import { themeStyle } from '@/lib/theme';
 import { readCachedCard } from '@/lib/card-cache';
 import { cn } from '@/lib/cn';
 
-const PROVIDERS: PaymentMethod[] = ['mpesa', 'mixx', 'airtel', 'halopesa'];
 const MIN_AMOUNT = 1000;
 const WAIT_SECONDS = 60;
 
@@ -34,6 +34,8 @@ export function PayFlow({ token }: { token: string }) {
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const [card, setCard] = useState<CardView | null>(null);
+  const currency = card?.event?.currency ?? 'TZS';
+  const country = card?.event?.country ?? 'TZ';
   const [loadError, setLoadError] = useState(false);
   const [step, setStep] = useState<Step>({ kind: 'form' });
   const [amount, setAmount] = useState('');
@@ -111,8 +113,10 @@ export function PayFlow({ token }: { token: string }) {
     const n = Number(amount.replace(/[^\d]/g, ''));
     if (!amount.trim() || !Number.isFinite(n)) next.amount = tv('amount.invalid');
     else if (n < MIN_AMOUNT)
-      next.amount = tv('amount.min', { min: formatTzs(MIN_AMOUNT).replace('TZS ', '') });
-    const p = normalizeTzPhone(phone);
+      next.amount = tv('amount.min', {
+        min: formatMoney(MIN_AMOUNT, currency).replace(`${currency} `, ''),
+      });
+    const p = parsePhone(phone, country);
     if (!p.ok) next.phone = tv(`phone.${p.error}`);
     setErrors(next);
     if (next.amount || next.phone || !p.ok) return;
@@ -195,18 +199,19 @@ export function PayFlow({ token }: { token: string }) {
             <TextField
               label={t('amount')}
               inputMode="numeric"
-              prefix="TZS"
+              prefix={currency}
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^\d,]/g, ''))}
               hint={
                 card.pledge?.balanceTzs
-                  ? t('amountHelp', { balance: formatTzs(card.pledge.balanceTzs) })
+                  ? t('amountHelp', { balance: formatMoney(card.pledge.balanceTzs, currency) })
                   : undefined
               }
               error={errors.amount}
               name="amount"
             />
             <PhoneField
+              country={country}
               label={t('phone')}
               value={phone}
               onChange={setPhone}
@@ -217,7 +222,7 @@ export function PayFlow({ token }: { token: string }) {
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-1 text-sm font-semibold">{t('provider')}</legend>
               <div className="grid grid-cols-2 gap-2">
-                {PROVIDERS.map((m) => (
+                {paymentMethodsFor(country).map((m) => (
                   <label
                     key={m}
                     className={cn(
@@ -268,7 +273,7 @@ export function PayFlow({ token }: { token: string }) {
             </h1>
             <p>
               {t('waitingBody', {
-                amount: formatTzs(step.start.amountTzs),
+                amount: formatMoney(step.start.amountTzs, currency),
                 phone: formatPhone(step.start.phoneE164),
                 provider: providerName(step.start.method),
               })}
@@ -318,7 +323,7 @@ export function PayFlow({ token }: { token: string }) {
               <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none">
                 {t('successTitle')}
               </h1>
-              <p>{t('successBody', { amount: formatTzs(step.status.amountTzs) })}</p>
+              <p>{t('successBody', { amount: formatMoney(step.status.amountTzs, currency) })}</p>
             </div>
             <dl className="grid grid-cols-1 gap-3 rounded-card border border-border p-4">
               <p className="font-semibold">{t('receipt')}</p>
@@ -341,7 +346,9 @@ export function PayFlow({ token }: { token: string }) {
               {step.status.newBalanceTzs !== null ? (
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted">{t('newBalance')}</dt>
-                  <dd className="font-semibold">{formatTzs(step.status.newBalanceTzs)}</dd>
+                  <dd className="font-semibold">
+                    {formatMoney(step.status.newBalanceTzs, currency)}
+                  </dd>
                 </div>
               ) : null}
             </dl>

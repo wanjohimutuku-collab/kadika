@@ -11,14 +11,14 @@ vendor and press pages, not primary sources; each must be confirmed in the Phase
 
 ## 1. How big is the change (measured in this repo)
 
-| Area | Footprint today | Notes |
-|---|---|---|
-| Phone numbers | `normalizeTzPhone` is called in 22 source files across API, web, mobile and shared packages; error code `not_tanzanian` | Also drives login OTP, guest import, pledge payer phone, gate lookup by last 4 digits |
-| Money | `Tzs` / `_tzs` appears in 47 source files; DB columns `contribution_target_tzs`, `cost_tzs`, `amount_tzs` (x2) | Whole units everywhere; M-Pesa STK takes whole shillings, so no minor-unit change is needed |
-| Timezone | `events.timezone` exists (default `Africa/Dar_es_Salaam`); the string is hardcoded in 15 files | Nairobi and Dar es Salaam are both UTC+3 with no daylight saving, so this is correctness and labelling, not a behaviour change |
-| Payments | `PaymentProvider` interface and a fake; methods `mpesa, mixx, airtel, halopesa` | A Kenya adapter fits the existing interface; the TZ method list is not valid for Kenya |
-| Messaging | `MessagingProvider` interface; NextSMS (TZ SMS), WhatsApp Cloud and Evolution | Cost fields are TZS; templates take `{{1..n}}` params |
-| Copy | Swahili and English, Tanzanian vocabulary (Mixx by Yas, HaloPesa) | Kenya needs `en-KE` wording and different wallet names |
+| Area          | Footprint today                                                                                                         | Notes                                                                                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Phone numbers | `normalizeTzPhone` is called in 22 source files across API, web, mobile and shared packages; error code `not_tanzanian` | Also drives login OTP, guest import, pledge payer phone, gate lookup by last 4 digits                                          |
+| Money         | `Tzs` / `_tzs` appears in 47 source files; DB columns `contribution_target_tzs`, `cost_tzs`, `amount_tzs` (x2)          | Whole units everywhere; M-Pesa STK takes whole shillings, so no minor-unit change is needed                                    |
+| Timezone      | `events.timezone` exists (default `Africa/Dar_es_Salaam`); the string is hardcoded in 15 files                          | Nairobi and Dar es Salaam are both UTC+3 with no daylight saving, so this is correctness and labelling, not a behaviour change |
+| Payments      | `PaymentProvider` interface and a fake; methods `mpesa, mixx, airtel, halopesa`                                         | A Kenya adapter fits the existing interface; the TZ method list is not valid for Kenya                                         |
+| Messaging     | `MessagingProvider` interface; NextSMS (TZ SMS), WhatsApp Cloud and Evolution                                           | Cost fields are TZS; templates take `{{1..n}}` params                                                                          |
+| Copy          | Swahili and English, Tanzanian vocabulary (Mixx by Yas, HaloPesa)                                                       | Kenya needs `en-KE` wording and different wallet names                                                                         |
 
 ## 2. Design decisions to make first (write as ADR 025 to 027)
 
@@ -44,7 +44,7 @@ vendor and press pages, not primary sources; each must be confirmed in the Phase
    - **C. A licensed aggregator** (the same pattern as `PaymentProvider` for Tanzania) that offers M-Pesa
      Kenya collection and handles settlement and compliance. Recommended first: smallest regulatory
      surface, fits the existing interface, and works for Airtel Money too.
-   Decide with counsel before Phase 3 starts.
+     Decide with counsel before Phase 3 starts.
 5. **SMS and sender identity**: one SMS provider with Kenyan routes and an approved sender ID (candidates:
    Africa's Talking, Infobip; compare price, delivery reports and Safaricom/Airtel coverage). Keep the
    `MessagingProvider` interface; pick provider by event country.
@@ -75,6 +75,15 @@ vendor and press pages, not primary sources; each must be confirmed in the Phase
 Exit: written decisions, vendor accounts opened, lawyer's memo received.
 
 ### Phase 1: country foundation (about 2 to 3 weeks; no new external provider)
+
+**Status (2026-10-15): done except the column rename, see ADR 025 and Phase 1b below.** Delivered:
+`events.country/currency` (migration 0012), `COUNTRY_INFO`, `normalizePhone` with a golden test against the
+old Tanzanian behaviour, `formatMoney`, per-country payment methods, event-timezone reminders and dates,
+the `KENYA_ENABLED` flag in API, web and mobile, and Kenya tests.
+
+**Phase 1b (not done):** rename `*_tzs` columns and `*Tzs` API fields to currency-neutral names with
+compatibility aliases. Until then those fields mean "amount in the event's currency", and Kenyan events
+must stay behind the flag and out of production.
 
 Behind a feature flag (`KENYA_ENABLED`, off by default) so Tanzania is untouched.
 
@@ -163,21 +172,21 @@ Phase 3 is the longest and least predictable because onboarding depends on a thi
 
 ## 5. Risks
 
-| # | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|---|
-| 1 | Holding or moving committee funds makes us a regulated payment provider | Medium | High | Prefer an aggregator (model C); get counsel's memo in Phase 0; do not take custody before it |
-| 2 | Safaricom or aggregator onboarding takes longer than planned | High | High | Start KYC in Phase 0; keep Phase 1 and 2 independent; ship Kenya without payments first (pledges recorded, payments manual) if needed |
-| 3 | Sender ID approval delays, or invitations classed as promotional and limited | Medium | Medium | File early; ask the provider for written guidance; use a shortcode or numeric sender if required; stay inside sending hours |
-| 4 | Data protection non-compliance (registration, transfers, consent) | Medium | High | Lawyer in Phase 0; register before launch if required; update notices; minimise data |
-| 5 | Regressions in Tanzania from the phone and money refactor | Medium | High | Feature flag; golden tests that pin current TZ outputs; staged rollout; migration rehearsal on a copy of production |
-| 6 | Old mobile app versions break when API field names change | Medium | Medium | Keep deprecated aliases for at least one release; version the API; force-upgrade check in the app |
-| 7 | Kenyan guests distrust a `.co.tz` link | Medium | Medium | Kenyan domain or neutral domain; verified-sender strip already shows committee name and phone |
-| 8 | Phone-range rules change (Kenya added `01` mobile ranges) and valid numbers are rejected | Medium | Medium | Table-driven rules, loose length check, unit tests with real examples; log rejects (masked) to tune |
-| 9 | STK push failures (timeouts, wrong PIN, user cancels) create duplicate or lost payments | High | Medium | Idempotent references, pending-state UI with timeout, reconciliation job, clear guest messages |
-| 10 | Mixed-country events (diaspora guests) behave oddly in cost, time zones or currency | Medium | Low | Currency is per event; guest numbers any valid E.164; show event-local time with zone name |
-| 11 | WhatsApp template rejection or country pricing surprise | Medium | Medium | Submit templates early; keep SMS fallback; cost table per country |
-| 12 | Copy and tradition errors in Kenyan content | Medium | Medium | Native review; wording that defers to family elders; no stats without sources |
-| 13 | Scope creep to other countries before Kenya works | Medium | Medium | Country table is data-driven, but only TZ and KE are in scope for this plan |
+| #   | Risk                                                                                     | Likelihood | Impact | Mitigation                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Holding or moving committee funds makes us a regulated payment provider                  | Medium     | High   | Prefer an aggregator (model C); get counsel's memo in Phase 0; do not take custody before it                                          |
+| 2   | Safaricom or aggregator onboarding takes longer than planned                             | High       | High   | Start KYC in Phase 0; keep Phase 1 and 2 independent; ship Kenya without payments first (pledges recorded, payments manual) if needed |
+| 3   | Sender ID approval delays, or invitations classed as promotional and limited             | Medium     | Medium | File early; ask the provider for written guidance; use a shortcode or numeric sender if required; stay inside sending hours           |
+| 4   | Data protection non-compliance (registration, transfers, consent)                        | Medium     | High   | Lawyer in Phase 0; register before launch if required; update notices; minimise data                                                  |
+| 5   | Regressions in Tanzania from the phone and money refactor                                | Medium     | High   | Feature flag; golden tests that pin current TZ outputs; staged rollout; migration rehearsal on a copy of production                   |
+| 6   | Old mobile app versions break when API field names change                                | Medium     | Medium | Keep deprecated aliases for at least one release; version the API; force-upgrade check in the app                                     |
+| 7   | Kenyan guests distrust a `.co.tz` link                                                   | Medium     | Medium | Kenyan domain or neutral domain; verified-sender strip already shows committee name and phone                                         |
+| 8   | Phone-range rules change (Kenya added `01` mobile ranges) and valid numbers are rejected | Medium     | Medium | Table-driven rules, loose length check, unit tests with real examples; log rejects (masked) to tune                                   |
+| 9   | STK push failures (timeouts, wrong PIN, user cancels) create duplicate or lost payments  | High       | Medium | Idempotent references, pending-state UI with timeout, reconciliation job, clear guest messages                                        |
+| 10  | Mixed-country events (diaspora guests) behave oddly in cost, time zones or currency      | Medium     | Low    | Currency is per event; guest numbers any valid E.164; show event-local time with zone name                                            |
+| 11  | WhatsApp template rejection or country pricing surprise                                  | Medium     | Medium | Submit templates early; keep SMS fallback; cost table per country                                                                     |
+| 12  | Copy and tradition errors in Kenyan content                                              | Medium     | Medium | Native review; wording that defers to family elders; no stats without sources                                                         |
+| 13  | Scope creep to other countries before Kenya works                                        | Medium     | Medium | Country table is data-driven, but only TZ and KE are in scope for this plan                                                           |
 
 ## 6. Out of scope
 

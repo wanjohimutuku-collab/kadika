@@ -5,7 +5,8 @@ import type { SendJob } from '@harusi/api-client';
 import { buildInviteSms, estimateSmsCost } from '@harusi/api-client';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
-import { formatDate, formatTzs } from '../../../../../src/lib/format';
+import { formatDate, formatMoney } from '../../../../../src/lib/format';
+import { useEventLocale } from '../../../../../src/lib/country';
 import { useOnline } from '../../../../../src/lib/network';
 import { useColors } from '../../../../../src/lib/theme';
 import { Icon } from '../../../../../src/ui/icons';
@@ -25,6 +26,7 @@ type Channel = 'auto' | 'whatsapp' | 'sms';
 
 export default function Send() {
   const { id } = useGlobalSearchParams<{ id: string }>();
+  const { currency } = useEventLocale(id);
   const t = useT();
   const c = useColors();
   const { locale } = useLocale();
@@ -198,7 +200,7 @@ export default function Send() {
         <Tile
           icon="sms"
           label={t('channel.sms')}
-          hint={`${withPhone.length} · ${formatTzs(estimateSmsCost(sample, withPhone.length).costTzs)}`}
+          hint={`${withPhone.length} · ${formatMoney(estimateSmsCost(sample, withPhone.length).costTzs, currency)}`}
           selected={channel === 'sms'}
           onPress={() => setChannel('sms')}
         />
@@ -225,7 +227,7 @@ export default function Send() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name="sms" size={14} color={c.muted} />
         <Txt size={13} color={c.muted}>
-          {t('send.smsCost', { cost: formatTzs(cost.costTzs) })}
+          {t('send.smsCost', { cost: formatMoney(cost.costTzs, currency) })}
         </Txt>
       </View>
 
@@ -255,7 +257,7 @@ export default function Send() {
           whatsapp: waCount,
           sms: smsCount,
           print: targets.length - withPhone.length,
-          cost: formatTzs(cost.costTzs),
+          cost: formatMoney(cost.costTzs, currency),
         })}
         confirmLabel={t('send.sendNow')}
         onClose={() => setConfirm(false)}

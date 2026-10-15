@@ -22,7 +22,9 @@ import { PageHeader } from '@/components/console/page-header';
 import { CardPreview } from '@/components/console/card-preview';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
+import { COUNTRIES, currencyOf } from '@harusi/schemas/country';
 import { Select, TextField } from '@/components/ui/form';
+import { KENYA_ENABLED } from '@/lib/country';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { qk } from '@/lib/queries';
@@ -35,6 +37,7 @@ const STEPS = ['names', 'venue', 'style', 'review'] as const;
 type Step = (typeof STEPS)[number];
 const STEP_FIELDS: Record<Step, (keyof EventInput)[]> = {
   names: [
+    'country',
     'eventKind',
     'partnerA',
     'partnerB',
@@ -58,6 +61,7 @@ const COVERS = [
 const EMPTY: EventInput = {
   title: '',
   eventKind: 'Harusi',
+  country: 'TZ',
   partnerA: '',
   partnerB: '',
   dateStart: '',
@@ -241,6 +245,13 @@ export default function NewEventPage() {
 
           {step === 'names' ? (
             <>
+              {KENYA_ENABLED ? (
+                <Select
+                  label={tc('country')}
+                  {...register('country')}
+                  options={COUNTRIES.map((c) => ({ value: c, label: tc(`countries.${c}`) }))}
+                />
+              ) : null}
               <TextField
                 label={t('kind')}
                 hint={t('kindHint')}
@@ -293,7 +304,7 @@ export default function NewEventPage() {
                 <TextField
                   label={t('target')}
                   inputMode="numeric"
-                  prefix="TZS"
+                  prefix={currencyOf(values.country ?? 'TZ')}
                   optionalLabel={tc('optional')}
                   {...register('contributionTargetTzs')}
                   error={fieldError(formState.errors.contributionTargetTzs)}

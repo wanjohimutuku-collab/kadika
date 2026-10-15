@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useGlobalSearchParams } from 'expo-router';
-import { formatTzPhone } from '@harusi/schemas/phone';
+import { formatPhone } from '@harusi/schemas/phone';
 import { useDeleteGuest, useGuest, useReissue } from '../../../../../src/lib/queries';
 import { useT } from '../../../../../src/lib/i18n';
+import { useEventLocale } from '../../../../../src/lib/country';
 import { statusKey } from '../../../../../src/lib/format';
 import { useColors } from '../../../../../src/lib/theme';
 import { AppHeader } from '../../../../../src/ui/header';
@@ -37,6 +38,7 @@ export default function GuestDetail() {
   const t = useT();
   const c = useColors();
   const q = useGuest(gid);
+  const { country } = useEventLocale(id);
   const reissue = useReissue(id);
   const del = useDeleteGuest(id);
   const [confirm, setConfirm] = useState<'reissue' | 'delete' | null>(null);
@@ -72,7 +74,7 @@ export default function GuestDetail() {
                   }}
                 />
               </View>
-              <Txt>{g!.phoneE164 ? formatTzPhone(g!.phoneE164) : t('guests.noPhone')}</Txt>
+              <Txt>{g!.phoneE164 ? formatPhone(g!.phoneE164, country) : t('guests.noPhone')}</Txt>
               {g!.groupLabel ? (
                 <Txt color={c.muted}>
                   {t('guestDetail.group')}: {g!.groupLabel}

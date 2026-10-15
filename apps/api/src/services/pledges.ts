@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { events, guests, newId, payments, pledges, users } from '@harusi/db';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { hashGuestToken } from '@harusi/crypto';
 import { invitations } from '@harusi/db';
-import type { EventService } from './events';
+import { allowedCountries, paymentMethodsFor } from '@harusi/schemas/country';
+import { eventCountry, type EventService } from './events';
 import { recordAudit } from './audit';
 
 export type PledgeStatus = 'pledged' | 'partial' | 'paid' | 'waived';
@@ -126,7 +127,7 @@ export class PledgeService {
     const g = await this.guestEvent(guestId);
     await this.canManage(g.eventId, userId);
     if (!Number.isInteger(input.amountTzs) || input.amountTzs < 0 || input.amountTzs > MAX_TZS)
-      throw new ApiError('validation', 'Amount must be a whole number of TZS', {
+      throw new ApiError('validation', 'Amount must be a whole number', {
         field: 'amountTzs',
       });
     const [existing] = await this.deps.db
@@ -248,8 +249,17 @@ export class PledgeService {
   ) {
     const g = await this.guestEvent(input.guestId);
     await this.canManage(g.eventId, userId);
+    if (
+      input.method !== 'cash' &&
+      input.method !== 'bank' &&
+      !paymentMethodsFor(await eventCountry(this.deps.db, g.eventId)).includes(input.method)
+    )
+      throw new ApiError('validation', 'Payment method is not available for this event', {
+        field: 'method',
+        reason: 'method.not_available',
+      });
     if (!Number.isInteger(input.amountTzs) || input.amountTzs < 1 || input.amountTzs > MAX_TZS)
-      throw new ApiError('validation', 'Amount must be a whole number of TZS', {
+      throw new ApiError('validation', 'Amount must be a whole number', {
         field: 'amountTzs',
       });
     const ref = input.reference?.trim();
@@ -376,7 +386,16 @@ export class PledgeService {
         field: 'amountTzs',
         min: MIN_ONLINE_TZS,
       });
-    const phone = normalizeTzPhone(input.phone);
+    if (!paymentMethodsFor(event.country).includes(input.method))
+      throw new ApiError('validation', 'Payment method is not available for this event', {
+        field: 'method',
+        reason: 'method.not_available',
+      });
+    const phone = normalizePhone(
+      input.phone,
+      event.country,
+      allowedCountries(this.deps.config.kenyaEnabled),
+    );
     if (!phone.ok) throw new ApiError('validation', 'Invalid phone number', { field: 'phone' });
     if (idempotencyKey.length < 8 || idempotencyKey.length > 128)
       throw new ApiError('validation', 'Idempotency-Key must be 8–128 characters');

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
 import { useCreateGuest } from '../../../../../src/lib/queries';
+import { parsePhone, useEventLocale } from '../../../../../src/lib/country';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { AppHeader } from '../../../../../src/ui/header';
 import { Banner, Button, Field, Screen, Stepper, Txt } from '../../../../../src/ui/kit';
@@ -13,6 +13,7 @@ export default function NewGuest() {
   const t = useT();
   const { locale } = useLocale();
   const create = useCreateGuest(id);
+  const { country } = useEventLocale(id);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [group, setGroup] = useState('');
@@ -25,7 +26,7 @@ export default function NewGuest() {
     if (name.trim().length < 2) e.name = t('validation.name.too_short');
     let normalized = '';
     if (phone.trim()) {
-      const p = normalizeTzPhone(phone);
+      const p = parsePhone(phone, country);
       if (!p.ok) e.phone = t(`validation.phone.${p.error}`);
       else normalized = p.e164;
     }

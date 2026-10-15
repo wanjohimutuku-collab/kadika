@@ -13,7 +13,8 @@ import { TextField } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { eventScopedKeys, qk } from '@/lib/queries';
-import { formatTzs } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
+import { useCurrency } from '@/lib/country';
 import { cn } from '@/lib/cn';
 
 const METHODS: PaymentMethod[] = ['mpesa', 'mixx', 'airtel', 'cash', 'bank'];
@@ -41,6 +42,7 @@ export function RecordPaymentSheet({
   const tc = useTranslations('common');
   const ts = useTranslations('states');
   const toast = useToast();
+  const cur = useCurrency();
   const queryClient = useQueryClient();
   const guests = useQuery({
     queryKey: qk.guests(eventId),
@@ -105,7 +107,7 @@ export function RecordPaymentSheet({
     onSuccess: async (p) => {
       toast({
         tone: 'success',
-        title: t('saved', { amount: formatTzs(p.amountTzs), name: p.guestName }),
+        title: t('saved', { amount: formatMoney(p.amountTzs, cur), name: p.guestName }),
       });
       onOpenChange(false);
       reset();
@@ -155,7 +157,9 @@ export function RecordPaymentSheet({
               <p className="font-semibold">{chosen.displayName}</p>
               <p className="text-sm text-muted">
                 {chosen.shortCode}
-                {chosen.pledge ? ` · ${t('balance')} ${formatTzs(chosen.pledge.balanceTzs)}` : ''}
+                {chosen.pledge
+                  ? ` · ${t('balance')} ${formatMoney(chosen.pledge.balanceTzs, cur)}`
+                  : ''}
               </p>
             </div>
             {!preselected ? (
@@ -195,7 +199,7 @@ export function RecordPaymentSheet({
                       <span className="block font-medium">{g.displayName}</span>
                       <span className="text-sm text-muted">
                         {g.shortCode}
-                        {g.pledge ? ` · ${formatTzs(g.pledge.balanceTzs)}` : ''}
+                        {g.pledge ? ` · ${formatMoney(g.pledge.balanceTzs, cur)}` : ''}
                       </span>
                     </span>
                   </button>
@@ -206,7 +210,7 @@ export function RecordPaymentSheet({
         )}
         <TextField
           label={t('amount')}
-          prefix="TZS"
+          prefix={cur}
           inputMode="numeric"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}

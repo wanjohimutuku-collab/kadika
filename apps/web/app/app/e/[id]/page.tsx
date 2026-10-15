@@ -28,8 +28,14 @@ import { buttonClasses } from '@/components/ui/button';
 import { Card, KpiTile, ProgressBar, Skeleton } from '@/components/ui/display';
 import { FunnelBar } from '@/components/ui/data';
 import { getRepository } from '@/lib/repo';
-import { qk, useEvent, useSession } from '@/lib/queries';
-import { formatDate, formatRelative, formatTime, formatTzs, formatTzsCompact } from '@/lib/format';
+import { qk, useEvent, useSession, useEventCurrency } from '@/lib/queries';
+import {
+  formatDate,
+  formatRelative,
+  formatTime,
+  formatMoney,
+  formatMoneyCompact,
+} from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
 import { cn } from '@/lib/cn';
 
@@ -72,6 +78,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
   const ts = useTranslations('status');
   const locale = useLocale() as Locale;
   const event = useEvent(id);
+  const cur = useEventCurrency(id);
   const session = useSession();
   const activity = useQuery({
     queryKey: qk.activity(id),
@@ -181,10 +188,12 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
               {session.data?.role !== 'gate' ? (
                 <KpiTile
                   label={t('kpiPledges')}
-                  value={formatTzsCompact(s.collectedTzs)}
+                  value={formatMoneyCompact(s.collectedTzs, cur)}
                   sub={
                     e.contributionTargetTzs
-                      ? t('kpiOfTarget', { target: formatTzsCompact(e.contributionTargetTzs) })
+                      ? t('kpiOfTarget', {
+                          target: formatMoneyCompact(e.contributionTargetTzs, cur),
+                        })
                       : undefined
                   }
                   icon={<HandCoins className="size-4" />}
@@ -304,8 +313,8 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                     <p className="flex justify-between text-sm font-semibold">
                       <span>
                         {t('pledgeProgress', {
-                          collected: formatTzsCompact(s.collectedTzs),
-                          target: formatTzsCompact(e.contributionTargetTzs),
+                          collected: formatMoneyCompact(s.collectedTzs, cur),
+                          target: formatMoneyCompact(e.contributionTargetTzs, cur),
                         })}
                       </span>
                       <span className="tabular">{Math.round(pledgePct * 100)}%</span>
@@ -313,7 +322,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                     <ProgressBar
                       value={pledgePct}
                       label={t('kpiPledges')}
-                      valueText={`${formatTzs(s.collectedTzs)} / ${formatTzs(e.contributionTargetTzs)}`}
+                      valueText={`${formatMoney(s.collectedTzs, cur)} / ${formatMoney(e.contributionTargetTzs, cur)}`}
                       tone="accent"
                     />
                   </div>
@@ -337,7 +346,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                               {t(`act.${a.kind}`, {
                                 name: a.guestName ?? '',
                                 count: a.count ?? 1,
-                                amount: formatTzs(a.amountTzs ?? 0),
+                                amount: formatMoney(a.amountTzs ?? 0, cur),
                               })}
                             </span>
                             <span className="text-sm text-muted">

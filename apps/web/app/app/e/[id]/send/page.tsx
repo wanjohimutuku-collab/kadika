@@ -35,9 +35,9 @@ import { ConfirmSheet } from '@/components/ui/overlay';
 import { TextField } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
-import { eventScopedKeys, qk, useEvent } from '@/lib/queries';
+import { eventScopedKeys, qk, useEvent, useEventCurrency } from '@/lib/queries';
 import { useNetworkStatus } from '@/lib/use-mock-controls';
-import { formatDateShort, formatDateTimeShort, formatTzs, fromLocalInput } from '@/lib/format';
+import { formatDateShort, formatDateTimeShort, formatMoney, fromLocalInput } from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
 import { SELECTED_GUESTS_KEY } from '@/lib/download';
 import { APP_DOMAIN } from '@/lib/env';
@@ -66,6 +66,7 @@ function SendInner({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const net = useNetworkStatus();
   const event = useEvent(id);
+  const cur = useEventCurrency(id);
   const groups = useQuery({
     queryKey: qk.groups(id),
     queryFn: () => getRepository().listGroups(id),
@@ -528,7 +529,7 @@ function SendInner({ id }: { id: string }) {
                         {p.byChannel.print}
                       </p>
                       <p className="font-medium">
-                        {t('smsCost', { cost: formatTzs(p.estimatedSmsCostTzs) })}
+                        {t('smsCost', { cost: formatMoney(p.estimatedSmsCostTzs, cur) })}
                       </p>
                       {p.withoutPhone ? (
                         <p className="text-sm text-muted">
@@ -578,7 +579,7 @@ function SendInner({ id }: { id: string }) {
                       whatsapp: p?.byChannel.whatsapp ?? 0,
                       sms: p?.byChannel.sms ?? 0,
                       print: p?.byChannel.print ?? 0,
-                      cost: formatTzs(p?.estimatedSmsCostTzs ?? 0),
+                      cost: formatMoney(p?.estimatedSmsCostTzs ?? 0, cur),
                     })}
                   </p>
                   {when === 'later' && scheduleAt ? (

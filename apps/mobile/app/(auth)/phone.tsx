@@ -1,18 +1,21 @@
 import { useState } from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { COUNTRIES, type Country } from '@harusi/schemas/country';
 import { getRepository } from '../../src/lib/repo';
+import { ALLOWED_COUNTRIES, KENYA_ENABLED, parsePhone } from '../../src/lib/country';
 import { useT } from '../../src/lib/i18n';
-import { Banner, Button, Field, Screen, Txt } from '../../src/ui/kit';
+import { Banner, Button, Chip, Field, Screen, Txt } from '../../src/ui/kit';
 
 export default function Phone() {
   const t = useT();
   const [raw, setRaw] = useState('');
+  const [country, setCountry] = useState<Country>('TZ');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    const p = normalizeTzPhone(raw);
+    const p = parsePhone(raw, country);
     if (!p.ok) return setError(t(`validation.phone.${p.error}`));
     setError(null);
     setBusy(true);
@@ -39,6 +42,18 @@ export default function Phone() {
         {t('auth.title')}
       </Txt>
       <Txt>{t('auth.subtitle')}</Txt>
+      {KENYA_ENABLED ? (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {COUNTRIES.filter((c) => ALLOWED_COUNTRIES.includes(c)).map((c) => (
+            <Chip
+              key={c}
+              label={t(`common.countries.${c}`)}
+              active={country === c}
+              onPress={() => setCountry(c)}
+            />
+          ))}
+        </View>
+      ) : null}
       <Field
         label={t('auth.phone')}
         hint={t('auth.phoneHint')}

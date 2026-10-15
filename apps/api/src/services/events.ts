@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { allowedCountries, currencyOf, timezoneOf, type Country } from '@harusi/schemas/country';
 import { eventMembers, events, newId, signingKeys } from '@harusi/db';
 import { generateEventKeyPair } from '@harusi/crypto';
 import {
@@ -14,6 +15,8 @@ export type MemberRole = 'owner' | 'committee' | 'gate';
 
 export interface EventInput {
   title: string;
+  /** Defaults to Tanzania. Kenya needs `KENYA_ENABLED` (ADR 025). */
+  country?: Country;
   eventKind?: string | null;
   coupleNames: string;
   dateStart: Date;
@@ -55,11 +58,26 @@ export function mergeBrandTheme(
   return merged;
 }
 
+/** The event's country, defaulting to Tanzania when the row is missing. */
+export async function eventCountry(db: Deps['db'], eventId: string): Promise<Country> {
+  const [row] = await db
+    .select({ country: events.country })
+    .from(events)
+    .where(eq(events.id, eventId));
+  return row?.country ?? 'TZ';
+}
+
 export class EventService {
   constructor(private deps: Deps) {}
 
   /** Creates the event, its owner membership and its Ed25519 signing key in one transaction. */
   async create(ownerId: string, input: EventInput) {
+    const country = input.country ?? 'TZ';
+    if (!allowedCountries(this.deps.config.kenyaEnabled).includes(country))
+      throw new ApiError('validation', 'Country is not available', {
+        field: 'country',
+        reason: 'country.disabled',
+      });
     const keys = generateEventKeyPair(this.deps.random);
     const encrypted = await encryptSecret(keys.privateKey, this.deps.config.keyEncSecret);
     return this.deps.db.transaction(async (tx) => {
@@ -71,6 +89,9 @@ export class EventService {
           id: eventId,
           ownerId,
           ...input,
+          country,
+          currency: currencyOf(country),
+          timezone: timezoneOf(country),
           brandTheme: mergeBrandTheme(null, input.brandTheme),
         })
         .returning();

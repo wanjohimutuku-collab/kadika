@@ -45,7 +45,12 @@
     "skipToContent": "Ruka hadi maudhui",
     "errorCode": "Namba ya hitilafu: {code}",
     "draft": "Rasimu",
-    "mockNotice": "Toleo la majaribio — data zote ni za kubuni"
+    "mockNotice": "Toleo la majaribio — data zote ni za kubuni",
+    "country": "Nchi",
+    "countries": {
+      "TZ": "Tanzania",
+      "KE": "Kenya"
+    }
   },
   "validation": {
     "phone": {
@@ -53,7 +58,8 @@
       "invalid_chars": "Tumia tarakimu tu, mfano 0712 345 678",
       "wrong_length": "Namba haijakamilika — inapaswa kuwa tarakimu 10, mfano 0712 345 678",
       "not_tanzanian": "Tumia namba ya Tanzania (+255)",
-      "not_mobile": "Hii si namba ya simu ya mkononi"
+      "not_mobile": "Hii si namba ya simu ya mkononi",
+      "unsupported_country": "Tumia namba ya +255 (Tanzania) au +254 (Kenya)"
     },
     "otp": {
       "invalid": "Weka tarakimu 6"

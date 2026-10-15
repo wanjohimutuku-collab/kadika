@@ -13,7 +13,8 @@ import {
 } from '../../../../../src/lib/queries';
 import { getRepository } from '../../../../../src/lib/repo';
 import { useT } from '../../../../../src/lib/i18n';
-import { formatTzs } from '../../../../../src/lib/format';
+import { formatMoney } from '../../../../../src/lib/format';
+import { useEventLocale } from '../../../../../src/lib/country';
 import { useColors } from '../../../../../src/lib/theme';
 import {
   Banner,
@@ -48,6 +49,7 @@ const TONE = { paid: 'success', partial: 'warning', pledged: 'neutral', waived: 
 /** Michango (§17.4): totals, who owes what, record a payment, export. Hidden from gate agents. */
 export default function Pledges() {
   const { id } = useGlobalSearchParams<{ id: string }>();
+  const { currency } = useEventLocale(id);
   const t = useT();
   const c = useColors();
   const ev = useEvent(id);
@@ -116,7 +118,7 @@ export default function Pledges() {
         note: note.trim(),
         key,
       });
-      setMsg(t('pledges.saved', { amount: formatTzs(n), name: picked.displayName }));
+      setMsg(t('pledges.saved', { amount: formatMoney(n, currency), name: picked.displayName }));
       reset();
     } catch (e) {
       setErr(
@@ -133,7 +135,7 @@ export default function Pledges() {
     if (!Number.isInteger(n) || n < 0) return setErr(t('validation.amount.invalid'));
     try {
       await setPledge.mutateAsync({ guestId: picked.guestId, amountTzs: n });
-      setMsg(`${t('pledges.pledged')}: ${formatTzs(n)} · ${picked.displayName}`);
+      setMsg(`${t('pledges.pledged')}: ${formatMoney(n, currency)} · ${picked.displayName}`);
       reset();
     } catch {
       setErr(t('states.errorBody'));
@@ -195,12 +197,12 @@ export default function Pledges() {
               {t('pledges.collected')}
             </Txt>
             <Txt size={28} bold>
-              {formatTzs(total!.collectedTzs)}
+              {formatMoney(total!.collectedTzs, currency)}
             </Txt>
             <Txt size={14} color={c.muted}>
-              {t('pledges.target')}: {formatTzs(total!.targetTzs)} · {t('pledges.pledged')}:{' '}
-              {formatTzs(total!.pledgedTzs)} · {t('pledges.balance')}:{' '}
-              {formatTzs(total!.balanceTzs)}
+              {t('pledges.target')}: {formatMoney(total!.targetTzs, currency)} ·{' '}
+              {t('pledges.pledged')}: {formatMoney(total!.pledgedTzs, currency)} ·{' '}
+              {t('pledges.balance')}: {formatMoney(total!.balanceTzs, currency)}
             </Txt>
             <FunnelBar
               steps={[
@@ -243,10 +245,10 @@ export default function Pledges() {
                     {r.displayName}
                   </Txt>
                   <Txt size={14} color={c.muted}>
-                    {t('pledges.pledged')} {formatTzs(r.amountTzs)} · {t('pledges.paid')}{' '}
-                    {formatTzs(r.paidTzs)}
+                    {t('pledges.pledged')} {formatMoney(r.amountTzs, currency)} ·{' '}
+                    {t('pledges.paid')} {formatMoney(r.paidTzs, currency)}
                     {r.balanceTzs > 0
-                      ? ` · ${t('pledges.balance')} ${formatTzs(r.balanceTzs)}`
+                      ? ` · ${t('pledges.balance')} ${formatMoney(r.balanceTzs, currency)}`
                       : ''}
                   </Txt>
                 </View>
@@ -304,7 +306,9 @@ export default function Pledges() {
                   <Txt bold>{m.displayName}</Txt>
                   <Txt size={14} color={c.muted}>
                     {m.shortCode}
-                    {m.balanceTzs ? ` · ${t('pledges.balance')} ${formatTzs(m.balanceTzs)}` : ''}
+                    {m.balanceTzs
+                      ? ` · ${t('pledges.balance')} ${formatMoney(m.balanceTzs, currency)}`
+                      : ''}
                   </Txt>
                 </View>
               </Row>

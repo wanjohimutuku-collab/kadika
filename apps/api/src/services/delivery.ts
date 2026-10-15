@@ -1,7 +1,7 @@
 import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
-import { eventKindLabel, hostNames } from '@harusi/schemas';
+import { eventKindLabel, formatMoney, hostNames, toZoned } from '@harusi/schemas';
 import { buildInviteSms, buildReminderSms } from '@harusi/api-client';
 import { pledgeSummaryOf } from './pledges';
 import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
@@ -41,7 +41,6 @@ const MONTHS_EN = [
 ];
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
-const TZ_OFFSET_MS = 3 * 3_600_000; // Africa/Dar_es_Salaam is UTC+3 all year
 
 export type SendTarget = 'remaining' | 'failed' | { guestIds: string[] } | { group: string };
 export interface SendInput {
@@ -59,8 +58,8 @@ export interface SendSummary {
   failures: { guestId: string; error: string }[];
 }
 
-export function dateText(d: Date, locale: 'sw' | 'en'): string {
-  const t = new Date(d.getTime() + TZ_OFFSET_MS);
+export function dateText(d: Date, locale: 'sw' | 'en', timeZone = 'Africa/Dar_es_Salaam'): string {
+  const t = toZoned(d, timeZone);
   const months = locale === 'sw' ? MONTHS_SW : MONTHS_EN;
   return `${t.getUTCDate()} ${months[t.getUTCMonth()]} ${t.getUTCFullYear()}`;
 }
@@ -168,7 +167,7 @@ export class DeliveryService {
       partnerA: a,
       partnerB: b,
       kind: event.eventKind,
-      dateText: dateText(event.dateStart, guest.language),
+      dateText: dateText(event.dateStart, guest.language, event.timezone),
       shortLink: `${this.deps.config.shortBaseUrl}/s/${token}`,
       code: guest.shortCode,
     };
@@ -296,14 +295,14 @@ export class DeliveryService {
    */
   async sendReminders(): Promise<{ sent: number; failed: number }> {
     const now = this.deps.now();
-    const dayOf = (d: Date) => Math.floor((d.getTime() + TZ_OFFSET_MS) / 86_400_000);
-    // Only between 08:00 and 20:00 Dar es Salaam time: nobody wants a reminder at night.
-    const localHour = new Date(now.getTime() + TZ_OFFSET_MS).getUTCHours();
-    if (localHour < 8 || localHour >= 20) return { sent: 0, failed: 0 };
+    const dayOf = (d: Date, tz: string) => Math.floor(toZoned(d, tz).getTime() / 86_400_000);
     const evs = await this.deps.db.select().from(events).where(eq(events.status, 'active'));
     const out = { sent: 0, failed: 0 };
     for (const event of evs) {
-      const daysLeft = dayOf(event.dateStart) - dayOf(now);
+      // Only between 08:00 and 20:00 in the event's own time zone: nobody wants a reminder at night.
+      const localHour = toZoned(now, event.timezone).getUTCHours();
+      if (localHour < 8 || localHour >= 20) continue;
+      const daysLeft = dayOf(event.dateStart, event.timezone) - dayOf(now, event.timezone);
       if (![14, 7, 1].includes(daysLeft)) continue;
       const kind = `reminder_${daysLeft}`;
       const rows = await this.deps.db
@@ -422,7 +421,7 @@ export class DeliveryService {
         out.skipped++;
         continue;
       }
-      const tzs = (n: number) => `TZS ${n.toLocaleString('en-US')}`;
+      const tzs = (n: number) => formatMoney(n, event.currency);
       const link = `${this.deps.config.shortBaseUrl}/s/${await this.cardToken(inv)}`;
       const sw = guest.language === 'sw';
       const kind = eventKindLabel(event.eventKind, guest.language).toLowerCase();

@@ -1,4 +1,12 @@
-import { normalizeTzPhone, type PhoneError } from './phone';
+import type { Country } from './country';
+import { normalizePhone, type PhoneError } from './phone';
+
+/** How phone numbers are read: local formats in `country`, international forms of any `allowed`. */
+export interface PhoneRules {
+  country: Country;
+  allowed: readonly Country[];
+}
+const TZ_ONLY: PhoneRules = { country: 'TZ', allowed: ['TZ'] };
 import type { ChannelPref } from './domain';
 
 /** Minimal RFC 4180 CSV parser (quotes, escaped quotes, CRLF, `,` or `;` delimiter auto-detected). */
@@ -64,14 +72,18 @@ const HEADER_HINTS: Record<Exclude<ImportField, 'ignore'>, RegExp> = {
 };
 
 /** Guesses a column mapping from the header row; falls back to positional name, phone, group. */
-export function guessMapping(header: string[]): { mapping: ImportField[]; hasHeader: boolean } {
+export function guessMapping(
+  header: string[],
+  phone: PhoneRules = TZ_ONLY,
+): { mapping: ImportField[]; hasHeader: boolean } {
   const mapping = header.map((h): ImportField => {
     for (const [field, re] of Object.entries(HEADER_HINTS))
       if (re.test(h.trim())) return field as ImportField;
     return 'ignore';
   });
   const hasHeader =
-    mapping.some((m) => m !== 'ignore') && !header.some((h) => normalizeTzPhone(h).ok);
+    mapping.some((m) => m !== 'ignore') &&
+    !header.some((h) => normalizePhone(h, phone.country, phone.allowed).ok);
   if (hasHeader) return { mapping, hasHeader };
   const positional: ImportField[] = ['name', 'phone', 'group', 'party'];
   return { mapping: header.map((_, i) => positional[i] ?? 'ignore'), hasHeader: false };
@@ -112,6 +124,8 @@ export function buildPreview(
     existingPhones?: Iterable<string>;
     existingNames?: Iterable<string>;
     defaultGroup?: string;
+    /** Defaults to Tanzania only (ADR 025). */
+    phone?: PhoneRules;
   },
 ): PreviewRow[] {
   const col = (r: string[], f: ImportField) => {
@@ -139,6 +153,7 @@ export function buildPreview(
       existingPhones,
       existingNames,
       seenPhones,
+      opts.phone,
     );
   });
 }
@@ -152,12 +167,13 @@ export function validateRow(
   existingPhones: Set<string>,
   existingNames: Set<string>,
   seenPhones: Map<string, number>,
+  phone: PhoneRules = TZ_ONLY,
 ): PreviewRow {
   const issues: RowIssue[] = [];
   if (r.displayName.trim().length < 2) issues.push({ kind: 'name' });
   let phoneE164: string | null = null;
   if (r.phoneRaw.trim()) {
-    const p = normalizeTzPhone(r.phoneRaw);
+    const p = normalizePhone(r.phoneRaw, phone.country, phone.allowed);
     if (p.ok) {
       phoneE164 = p.e164;
       if (existingPhones.has(p.e164)) issues.push({ kind: 'duplicate', of: 'existing' });

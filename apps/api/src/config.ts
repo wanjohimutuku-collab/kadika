@@ -5,6 +5,8 @@ export interface Config {
   keyEncSecret: string;
   appBaseUrl: string;
   shortBaseUrl: string;
+  /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
+  kenyaEnabled: boolean;
   smsProvider: string;
   whatsappProvider: string;
   paymentProvider: string;
@@ -57,6 +59,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     keyEncSecret,
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
+    kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     smsProvider: env.SMS_PROVIDER ?? 'fake',
     whatsappProvider: env.WHATSAPP_PROVIDER ?? 'fake',
     paymentProvider: env.PAYMENT_PROVIDER ?? 'fake',

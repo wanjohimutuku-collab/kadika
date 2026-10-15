@@ -41,7 +41,12 @@
     "skipToContent": "Skip to content",
     "errorCode": "Error code: {code}",
     "draft": "Draft",
-    "mockNotice": "Demo build — all data is fictional"
+    "mockNotice": "Demo build — all data is fictional",
+    "country": "Country",
+    "countries": {
+      "TZ": "Tanzania",
+      "KE": "Kenya"
+    }
   },
   "validation": {
     "phone": {
@@ -49,7 +54,8 @@
       "invalid_chars": "Use digits only, e.g. 0712 345 678",
       "wrong_length": "Number is incomplete — it should be 10 digits, e.g. 0712 345 678",
       "not_tanzanian": "Use a Tanzanian number (+255)",
-      "not_mobile": "This is not a mobile number"
+      "not_mobile": "This is not a mobile number",
+      "unsupported_country": "Use a +255 (Tanzania) or +254 (Kenya) number"
     },
     "otp": {
       "invalid": "Enter 6 digits"

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { normalizeTzPhone } from './phone';
+import { countrySchema, type Country } from './country';
+import { normalizePhone, normalizeTzPhone } from './phone';
 import { SHORT_CODE_PATTERN } from './short-code';
 
 export const languageSchema = z.enum(['sw', 'en']);
@@ -66,6 +67,17 @@ export const tzPhoneSchema = z.string().transform((value, ctx) => {
   return r.e164;
 });
 
+/** Phone schema for an event: local formats use `country`, international forms any of `allowed`. */
+export const phoneSchemaFor = (country: Country, allowed: readonly Country[] = [country]) =>
+  z.string().transform((value, ctx) => {
+    const r = normalizePhone(value, country, allowed);
+    if (!r.ok) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `phone.${r.error}` });
+      return z.NEVER;
+    }
+    return r.e164;
+  });
+
 export const optionalTzPhoneSchema = z
   .string()
   .optional()
@@ -128,6 +140,8 @@ export const eventKindSchema = z.string().trim().max(40, 'name.too_long');
 export const eventInputSchema = z.object({
   title: z.string().trim().min(2, 'name.too_short').max(80),
   eventKind: eventKindSchema.optional().default(''),
+  /** Defaults to Tanzania; Kenya only when the deployment enables it (ADR 025). */
+  country: countrySchema.optional().default('TZ'),
   partnerA: z.string().trim().min(2, 'name.too_short').max(40),
   partnerB: z.string().trim().max(40).optional().default(''),
   dateStart: z.string().min(1, 'date.required'), // ISO date-time (local Africa/Dar_es_Salaam)

@@ -11,7 +11,7 @@ import {
   formatDateShort,
   formatPhone,
   formatTime,
-  formatTzs,
+  formatMoney,
   formatWeekday,
   swahiliTime,
 } from '../format';
@@ -210,6 +210,7 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   };
   const t = m.card;
   const event = view.event!;
+  const cur = event.currency ?? 'TZS';
   const guest = view.guest!;
   const people = (n: number) => fmt(m.common.people!, { count: n });
   const answered = view.rsvp.status !== 'pending';
@@ -272,7 +273,7 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
     event.pledgesEnabled && !view.eventPassed
       ? `<section class="no-print"><h2>${esc(t.pledgeTitle)}</h2>${
           view.pledge && view.pledge.amountTzs > 0
-            ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatTzs(view.pledge.amountTzs), paid: formatTzs(view.pledge.paidTzs), balance: formatTzs(view.pledge.balanceTzs) }))}</p>`
+            ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatMoney(view.pledge.amountTzs, cur), paid: formatMoney(view.pledge.paidTzs, cur), balance: formatMoney(view.pledge.balanceTzs, cur) }))}</p>`
             : `<p class="muted">${esc(t.pledgeNone)}</p>`
         }${
           view.pledge && view.pledge.amountTzs > 0 && view.pledge.balanceTzs === 0

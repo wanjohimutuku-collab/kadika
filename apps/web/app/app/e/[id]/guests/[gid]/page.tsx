@@ -32,7 +32,8 @@ import { QrBlock } from '@/components/ui/qr-block';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { eventScopedKeys, qk, useSession } from '@/lib/queries';
-import { formatDateTimeShort, formatPhone, formatTzs } from '@/lib/format';
+import { formatDateTimeShort, formatPhone, formatMoney } from '@/lib/format';
+import { useCurrency } from '@/lib/country';
 import { downloadBlob } from '@/lib/download';
 
 const STAGES: InvitationStatus[] = [
@@ -83,6 +84,7 @@ export default function GuestDetailPage({
   params: Promise<{ id: string; gid: string }>;
 }) {
   const { id, gid } = use(params);
+  const cur = useCurrency();
   const t = useTranslations('guestDetail');
   const tg = useTranslations('guests');
   const tp = useTranslations('pledges');
@@ -341,9 +343,13 @@ export default function GuestDetailPage({
                   >
                     {g.pledge && g.pledge.amountTzs > 0 ? (
                       <dl className="grid grid-cols-3 gap-2">
-                        <KeyValue label={tp('pledged')}>{formatTzs(g.pledge.amountTzs)}</KeyValue>
-                        <KeyValue label={tp('paid')}>{formatTzs(g.pledge.paidTzs)}</KeyValue>
-                        <KeyValue label={tp('balance')}>{formatTzs(g.pledge.balanceTzs)}</KeyValue>
+                        <KeyValue label={tp('pledged')}>
+                          {formatMoney(g.pledge.amountTzs, cur)}
+                        </KeyValue>
+                        <KeyValue label={tp('paid')}>{formatMoney(g.pledge.paidTzs, cur)}</KeyValue>
+                        <KeyValue label={tp('balance')}>
+                          {formatMoney(g.pledge.balanceTzs, cur)}
+                        </KeyValue>
                       </dl>
                     ) : (
                       <p className="text-muted">{t('pledgeNone')}</p>
@@ -385,7 +391,7 @@ export default function GuestDetailPage({
                               ) : null}
                               <p className="text-sm text-muted">
                                 {fmt(m.createdAt)}
-                                {m.costTzs ? ` · ${formatTzs(m.costTzs)}` : ''}
+                                {m.costTzs ? ` · ${formatMoney(m.costTzs, cur)}` : ''}
                               </p>
                             </div>
                           </li>
@@ -532,7 +538,7 @@ export default function GuestDetailPage({
             >
               <TextField
                 label={t('pledgeAmount')}
-                prefix="TZS"
+                prefix={cur}
                 inputMode="numeric"
                 value={pledgeAmount}
                 onChange={(e) => setPledgeAmount(e.target.value.replace(/[^\d]/g, ''))}

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
 import { useEvent, useUpdateEvent } from '../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../src/lib/i18n';
+import { parsePhone, useEventLocale } from '../../../../src/lib/country';
 import { AppHeader } from '../../../../src/ui/header';
 import { Banner, Button, Field, Screen, Segmented, Txt } from '../../../../src/ui/kit';
 
@@ -12,6 +12,7 @@ export default function Settings() {
   const t = useT();
   const { locale, setLocale } = useLocale();
   const q = useEvent(id);
+  const { country } = useEventLocale(id);
   const update = useUpdateEvent(id);
   const [sender, setSender] = useState('');
   const [phone, setPhone] = useState('');
@@ -29,7 +30,7 @@ export default function Settings() {
   const save = async () => {
     let committeePhone = '';
     if (phone.trim()) {
-      const p = normalizeTzPhone(phone);
+      const p = parsePhone(phone, country);
       if (!p.ok) return setErr(t(`validation.phone.${p.error}`));
       committeePhone = p.e164;
     }

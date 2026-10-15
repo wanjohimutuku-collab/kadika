@@ -64,7 +64,7 @@ export class PrintService {
         guestName: g.displayName,
         shortCode: g.shortCode,
         qrToken: token,
-        dateText: dateText(event.dateStart, g.language),
+        dateText: dateText(event.dateStart, g.language, event.timezone),
         venue: event.venueName ?? '',
         dressCode: event.dressCode ?? '',
         committeePhone: event.committeePhone ?? '',

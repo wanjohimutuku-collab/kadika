@@ -10,7 +10,7 @@ import { QueryState } from '@/components/console/query-state';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState, Skeleton, StatusPill } from '@/components/ui/display';
 import { useEvents } from '@/lib/queries';
-import { formatDate, formatTzsCompact } from '@/lib/format';
+import { formatDate, formatMoneyCompact } from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
 import { themeStyle } from '@/lib/theme';
 
@@ -98,7 +98,10 @@ export default function EventsPage() {
                         <div className="rounded-input bg-bg p-2">
                           <dt className="text-xs text-muted">{t('statCollected')}</dt>
                           <dd className="tabular text-lg font-bold">
-                            {formatTzsCompact(e.stats.collectedTzs).replace('TZS ', '')}
+                            {formatMoneyCompact(e.stats.collectedTzs, e.currency).replace(
+                              `${e.currency} `,
+                              '',
+                            )}
                           </dd>
                         </div>
                       </dl>

@@ -32,6 +32,8 @@ export const globalRoleEnum = pgEnum('global_role', ['user', 'admin']);
 export const staffRoleEnum = pgEnum('staff_role', ['support', 'billing', 'admin']);
 export const userStatusEnum = pgEnum('user_status', ['active', 'suspended']);
 export const eventStatusEnum = pgEnum('event_status', ['draft', 'active', 'completed', 'archived']);
+export const countryEnum = pgEnum('country', ['TZ', 'KE']);
+export const currencyEnum = pgEnum('currency', ['TZS', 'KES']);
 export const eventPlanEnum = pgEnum('event_plan', ['free', 'paid']);
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'committee', 'gate']);
 export const languageEnum = pgEnum('language', ['sw', 'en']);
@@ -95,6 +97,9 @@ export const events = pgTable('events', {
   senderName: text('sender_name'),
   greeting: text('greeting'),
   languageDefault: languageEnum('language_default').notNull().default('sw'),
+  /** Country, currency and time zone of the event (ADR 025). Amount columns are in `currency`. */
+  country: countryEnum('country').notNull().default('TZ'),
+  currency: currencyEnum('currency').notNull().default('TZS'),
   timezone: text('timezone').notNull().default('Africa/Dar_es_Salaam'),
   status: eventStatusEnum('status').notNull().default('draft'),
   // Logical reference to signing_keys.id; no FK to avoid a circular dependency (see ADR 002).

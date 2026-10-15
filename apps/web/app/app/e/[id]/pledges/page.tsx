@@ -28,8 +28,13 @@ import { Switch, TabPanel, Tabs } from '@/components/ui/navigation';
 import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
-import { eventScopedKeys, qk, useEvent, useSession } from '@/lib/queries';
-import { formatDateShort, formatDateTimeShort, formatTzs, formatTzsCompact } from '@/lib/format';
+import { eventScopedKeys, qk, useEvent, useSession, useEventCurrency } from '@/lib/queries';
+import {
+  formatDateShort,
+  formatDateTimeShort,
+  formatMoney,
+  formatMoneyCompact,
+} from '@/lib/format';
 import { downloadBlob } from '@/lib/download';
 
 type Tab = 'all' | 'paid' | 'partial' | 'unpaid' | 'history';
@@ -52,6 +57,7 @@ function PledgesInner({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const session = useSession();
   const event = useEvent(id);
+  const cur = useEventCurrency(id);
   const guests = useQuery({
     queryKey: qk.guests(id),
     queryFn: () => getRepository().listGuests(id, { sort: { by: 'balance', dir: 'desc' } }),
@@ -161,17 +167,20 @@ function PledgesInner({ id }: { id: string }) {
                   <span className="text-xs text-muted">{t('target')}</span>
                 </Ring>
                 <div className="grid w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
-                  <KpiTile label={t('target')} value={formatTzsCompact(target)} />
+                  <KpiTile label={t('target')} value={formatMoneyCompact(target, cur)} />
                   <KpiTile
                     label={t('collected')}
-                    value={formatTzsCompact(collected)}
+                    value={formatMoneyCompact(collected, cur)}
                     tone="success"
                     icon={<HandCoins className="size-4" />}
                   />
-                  <KpiTile label={t('pledged')} value={formatTzsCompact(e.stats.pledgedTzs)} />
+                  <KpiTile
+                    label={t('pledged')}
+                    value={formatMoneyCompact(e.stats.pledgedTzs, cur)}
+                  />
                   <KpiTile
                     label={t('balance')}
-                    value={formatTzsCompact(Math.max(0, e.stats.pledgedTzs - collected))}
+                    value={formatMoneyCompact(Math.max(0, e.stats.pledgedTzs - collected), cur)}
                     sub={t('count', { count: e.stats.guestsWithBalance })}
                     tone="warning"
                   />
@@ -257,7 +266,8 @@ function PledgesInner({ id }: { id: string }) {
                                   {g.displayName}
                                 </Link>
                                 <p className="tabular text-sm text-muted">
-                                  {formatTzs(g.pledge!.paidTzs)} / {formatTzs(g.pledge!.amountTzs)}
+                                  {formatMoney(g.pledge!.paidTzs, cur)} /{' '}
+                                  {formatMoney(g.pledge!.amountTzs, cur)}
                                 </p>
                               </div>
                               <div className="flex flex-col items-end gap-1">
@@ -301,7 +311,7 @@ function PledgesInner({ id }: { id: string }) {
                         <BarChart
                           caption={tr('collections')}
                           data={weekly}
-                          formatValue={(n) => formatTzsCompact(n).replace('TZS ', '')}
+                          formatValue={(n) => formatMoneyCompact(n, cur).replace(`${cur} `, '')}
                         />
                         <ul
                           className="mt-3 flex flex-col divide-y divide-border rounded-card border border-border bg-surface"
@@ -323,7 +333,7 @@ function PledgesInner({ id }: { id: string }) {
                                 </p>
                               </div>
                               <span className="tabular font-semibold">
-                                {formatTzs(p.amountTzs)}
+                                {formatMoney(p.amountTzs, cur)}
                               </span>
                             </li>
                           ))}

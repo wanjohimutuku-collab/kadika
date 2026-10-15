@@ -1028,6 +1028,23 @@ export class MockRepository implements Repository {
     kind: SendRequest['kind'],
   ): GuestRecord[] {
     const all = this.guestsOf(eventId);
+    if (kind === 'reminder') {
+      // Like the API: only invitation cards that went out; "unsent" means "not answered yet" here (ADR 030).
+      const open = (g: GuestRecord) => ['sent', 'delivered', 'opened'].includes(g.status);
+      const invited = all.filter((g) => g.cardKind === 'invitation');
+      switch (a.kind) {
+        case 'unsent':
+          return invited.filter(open);
+        case 'group':
+          return invited.filter((g) => g.groupLabel === a.group && open(g));
+        case 'selected': {
+          const ids = new Set(a.guestIds);
+          return invited.filter((g) => ids.has(g.id) && (open(g) || g.status === 'confirmed'));
+        }
+        default:
+          return invited.filter((g) => open(g) || g.status === 'confirmed');
+      }
+    }
     switch (a.kind) {
       case 'unsent':
         return all.filter((g) =>
@@ -1181,6 +1198,12 @@ export class MockRepository implements Repository {
 
   /** Applies messages whose simulated time has passed, then projects counters. */
   private jobView(job: JobRecord): SendJob {
+    // A scheduled send whose time has come starts now, like the API's scheduler does (ADR 030).
+    if (job.scheduledFor && Date.parse(job.scheduledFor) <= this.now()) {
+      job.startedAt = this.now();
+      job.scheduledFor = null;
+      this.persist();
+    }
     if (job.scheduledFor) {
       return {
         ...this.jobBase(job),
@@ -1265,6 +1288,30 @@ export class MockRepository implements Repository {
 
   getSendJob(jobId: string): Promise<SendJob> {
     return this.run('local', 'job', () => this.jobView(this.job(jobId)));
+  }
+
+  listScheduledSends(eventId: string): Promise<SendJob[]> {
+    return this.run('local', 'scheduled', () => {
+      this.requireSession();
+      const mine = this.state.jobs.filter((j) => j.eventId === eventId && j.scheduledFor);
+      return mine
+        .map((j) => this.jobView(j))
+        .filter((j) => j.status === 'scheduled')
+        .sort((a, b) => Date.parse(a.scheduledFor!) - Date.parse(b.scheduledFor!));
+    });
+  }
+
+  cancelScheduledSend(eventId: string, jobId: string): Promise<void> {
+    return this.run('send', 'cancel-scheduled', () => {
+      this.requireSession();
+      const job = this.job(jobId);
+      this.jobView(job); // may start it if its time has come
+      if (job.eventId !== eventId) throw new RepositoryError('not_found', 'Job not found');
+      if (!job.scheduledFor)
+        throw new RepositoryError('conflict', 'This send has already started or finished');
+      this.state.jobs = this.state.jobs.filter((j) => j.id !== jobId);
+      this.persist();
+    });
   }
 
   retryFailed(jobId: string): Promise<SendJob> {

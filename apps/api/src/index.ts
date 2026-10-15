@@ -20,6 +20,7 @@ import { Redis } from 'ioredis';
 import { RedisRateStore } from './rate-limit';
 import { initObservability } from './observability';
 import { startWorker } from './worker';
+import { startScheduler } from './scheduler';
 
 const config = loadConfig();
 const { db } = createDb(config.databaseUrl);
@@ -161,6 +162,8 @@ if (config.redisUrl) {
     }),
   );
 }
+// Scheduled invitations and reminders (ADR 030) run with or without Redis.
+startScheduler(deps);
 const app = createApp(deps);
 
 serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {

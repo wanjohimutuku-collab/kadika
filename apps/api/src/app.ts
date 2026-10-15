@@ -26,6 +26,7 @@ import { MemberService } from './services/members';
 import { idempotent } from './idempotency';
 import { CardService } from './services/cards';
 import { DeliveryService } from './services/delivery';
+import { ScheduledSendService } from './services/scheduled';
 import { PrintService } from './services/print';
 import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
@@ -72,6 +73,17 @@ const eventBase = z.object({
   pledgesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
   cardContent: cardContentSchema.optional(),
+});
+/** Who a send goes to (ADR 030); whether the audience fits the kind is checked by the service. */
+const sendTargetSchema = z.union([
+  z.enum(['remaining', 'failed', 'unanswered', 'all']),
+  z.object({ guestIds: z.array(z.string().uuid()).min(1).max(1000) }),
+  z.object({ group: z.string().min(1).max(40) }),
+]);
+const sendInputSchema = z.object({
+  target: sendTargetSchema,
+  channel: z.enum(['auto', 'whatsapp', 'sms']).optional(),
+  kind: z.enum(['invite', 'reminder']).optional(),
 });
 const guestBase = z.object({
   displayName: z.string().trim().min(2).max(80),
@@ -146,6 +158,7 @@ export function createApp(deps: Deps) {
   const membersSvc = new MemberService(deps, eventsSvc);
   const cardsSvc = new CardService(deps);
   const deliverySvc = new DeliveryService(deps, eventsSvc);
+  const scheduledSvc = new ScheduledSendService(deps, eventsSvc, deliverySvc);
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
@@ -255,6 +268,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/events/:id/guests/import', once);
   app.post('/v1/guests/:id/reissue', once);
   app.post('/v1/events/:id/invitations/send', once);
+  app.post('/v1/events/:id/scheduled-sends', once);
   app.post('/v1/payments/manual', once);
 
   app.get('/v1/me', async (c) => {
@@ -543,17 +557,7 @@ export function createApp(deps: Deps) {
     return c.json(await guestsSvc.import(c.req.param('id'), c.get('userId'), input));
   });
   app.post('/v1/events/:id/invitations/send', async (c) => {
-    const input = parse(
-      z.object({
-        target: z.union([
-          z.enum(['remaining', 'failed']),
-          z.object({ guestIds: z.array(z.string().uuid()).min(1).max(1000) }),
-          z.object({ group: z.string().min(1).max(40) }),
-        ]),
-        channel: z.enum(['auto', 'whatsapp', 'sms']).optional(),
-      }),
-      await body(c),
-    );
+    const input = parse(sendInputSchema, await body(c));
     if (new URL(c.req.url).searchParams.get('async') === '1' && deps.enqueueSend) {
       await eventsSvc.role(c.req.param('id'), c.get('userId')); // members only
       const jobId = await deps.enqueueSend({
@@ -565,6 +569,27 @@ export function createApp(deps: Deps) {
     }
     return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
   });
+  app.post('/v1/events/:id/scheduled-sends', async (c) => {
+    const input = parse(
+      sendInputSchema.extend({ scheduledFor: z.string().datetime({ offset: true }) }),
+      await body(c),
+    );
+    return c.json(
+      await scheduledSvc.create(c.req.param('id'), c.get('userId'), {
+        kind: input.kind ?? 'invite',
+        target: input.target,
+        channel: input.channel,
+        scheduledFor: new Date(input.scheduledFor),
+      }),
+      201,
+    );
+  });
+  app.get('/v1/events/:id/scheduled-sends', async (c) =>
+    c.json({ items: await scheduledSvc.list(c.req.param('id'), c.get('userId')) }),
+  );
+  app.delete('/v1/events/:id/scheduled-sends/:sid', async (c) =>
+    c.json(await scheduledSvc.cancel(c.req.param('id'), c.req.param('sid'), c.get('userId'))),
+  );
   app.post('/v1/events/:id/cards/pdf', async (c) => {
     const input = parse(
       z.object({

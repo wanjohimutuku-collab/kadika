@@ -281,9 +281,38 @@ describe('HttpRepository against the real API', () => {
       sent: 2,
       failedMessages: 0,
     });
-    await expect(
-      r.sendInvitations(ev.id, { ...req, scheduleAt: '2027-01-01T08:00:00Z' }),
-    ).rejects.toMatchObject({ code: 'not_implemented' });
+    // a reminder goes to guests who were invited and have not answered
+    const reminder = await r.sendInvitations(ev.id, {
+      ...req,
+      kind: 'reminder',
+      idempotencyKey: 'send-key-0002',
+    });
+    expect(reminder).toMatchObject({
+      kind: 'reminder',
+      status: 'done',
+      total: 2,
+      counts: { sent: 2, failed: 0 },
+    });
+    // a send for later waits, can be listed, looked up again and cancelled
+    const later = await r.sendInvitations(ev.id, {
+      ...req,
+      kind: 'reminder',
+      scheduleAt: '2027-03-10T08:00:00Z',
+      idempotencyKey: 'send-key-0003',
+    });
+    expect(later).toMatchObject({
+      kind: 'reminder',
+      status: 'scheduled',
+      scheduledFor: '2027-03-10T08:00:00.000Z',
+      total: 2,
+    });
+    expect((await r.getSendJob(later.id)).status).toBe('scheduled');
+    expect(await r.listScheduledSends(ev.id)).toEqual([expect.objectContaining({ id: later.id })]);
+    await r.cancelScheduledSend(ev.id, later.id);
+    expect(await r.listScheduledSends(ev.id)).toEqual([]);
+    await expect(r.cancelScheduledSend(ev.id, later.id)).rejects.toMatchObject({
+      code: 'conflict',
+    });
 
     const pdf = await r.requestCardsPdf(ev.id, { format: 'A6', layout: 'single' });
     expect(pdf.type).toBe('application/pdf');

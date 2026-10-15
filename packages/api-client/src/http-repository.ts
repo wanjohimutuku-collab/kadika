@@ -25,6 +25,7 @@ import type {
   PaymentStart,
   PaymentStatusView,
   SendJob,
+  SendRequest,
   Session,
   WeddingEvent,
 } from './types';
@@ -686,11 +687,12 @@ export function createHttpRepository(
     target: unknown,
     channel: 'auto' | 'whatsapp' | 'sms',
     key: string,
+    kind: 'invite' | 'reminder' = 'invite',
   ): Promise<SendJob> {
     const sum = await call<ApiSendSummary>(
       'POST',
       `/v1/events/${encodeURIComponent(eventId)}/invitations/send`,
-      { target, channel },
+      { target, channel, kind },
       { 'idempotency-key': key.length >= 8 ? key : newKey() },
     );
     const names = new Map<string, string>();
@@ -699,7 +701,7 @@ export function createHttpRepository(
     const job: SendJob = {
       id: newKey(),
       eventId,
-      kind: 'invite',
+      kind,
       total: sum.total,
       counts: { queued: 0, sent: sum.sent, delivered: 0, failed: sum.failed },
       byChannel: { whatsapp: sum.byChannel.whatsapp, sms: sum.byChannel.sms, print: 0 },
@@ -716,31 +718,115 @@ export function createHttpRepository(
     sendJobs.set(job.id, job);
     return job;
   }
-  impl.sendInvitations = (eventId, req) => {
-    if (req.kind !== 'invite')
-      return Promise.reject(new RepositoryError('not_implemented', 'Only invitations can be sent'));
-    if (req.scheduleAt)
-      return Promise.reject(
-        new RepositoryError('not_implemented', 'Scheduled sends are not available'),
-      );
-    if (req.channel === 'print')
-      return Promise.reject(new RepositoryError('validation', 'Print cards are made as a PDF'));
-    const a = req.audience;
-    const target =
-      a.kind === 'selected'
-        ? { guestIds: a.guestIds }
-        : a.kind === 'group'
-          ? { group: a.group }
+  // ---- Scheduled sends (ADR 030): the API stores a rule and sends when it comes due.
+  interface ApiScheduledSend {
+    id: string;
+    eventId: string;
+    kind: 'invite' | 'reminder';
+    scheduledFor: string;
+    status: 'scheduled' | 'running' | 'done' | 'cancelled';
+    recipientCount: number;
+    summary: (ApiSendSummary & { error?: string }) | null;
+    createdAt: string;
+  }
+  async function jobFromScheduled(s: ApiScheduledSend): Promise<SendJob> {
+    const sum = s.summary;
+    const names = new Map<string, string>();
+    if (sum && sum.failures.length > 0)
+      for (const g of await impl.listGuests!(s.eventId)) names.set(g.id, g.displayName);
+    return {
+      id: s.id,
+      eventId: s.eventId,
+      kind: s.kind,
+      total: sum ? sum.total : s.recipientCount,
+      counts: {
+        queued: s.status === 'scheduled' || s.status === 'running' ? s.recipientCount : 0,
+        sent: sum?.sent ?? 0,
+        delivered: 0,
+        failed: sum?.failed ?? 0,
+      },
+      byChannel: { whatsapp: sum?.byChannel.whatsapp ?? 0, sms: sum?.byChannel.sms ?? 0, print: 0 },
+      failures: (sum?.failures ?? []).map((f) => ({
+        guestId: f.guestId,
+        guestName: names.get(f.guestId) ?? '',
+        channel: 'sms' as const,
+        error: f.error,
+      })),
+      status: s.status === 'scheduled' ? 'scheduled' : s.status === 'running' ? 'running' : 'done',
+      scheduledFor: s.status === 'scheduled' ? s.scheduledFor : null,
+      createdAt: s.createdAt,
+    };
+  }
+  /** Which wedding each scheduled send belongs to, so a job id can be looked up again. */
+  const scheduledEvent = new Map<string, string>();
+  /** The API's audience words differ by kind: an invitation goes to those not yet invited, a reminder to those who have not answered. */
+  const apiTarget = (a: SendRequest['audience'], kind: 'invite' | 'reminder') =>
+    a.kind === 'selected'
+      ? { guestIds: a.guestIds }
+      : a.kind === 'group'
+        ? { group: a.group }
+        : kind === 'reminder'
+          ? a.kind === 'all'
+            ? 'all'
+            : 'unanswered'
           : 'remaining';
-    return runSend(eventId, target, req.channel, req.idempotencyKey);
+  impl.sendInvitations = async (eventId, req) => {
+    if (req.kind === 'thank_you')
+      throw new RepositoryError('not_implemented', 'Thank-you messages are not available yet');
+    if (req.channel === 'print')
+      throw new RepositoryError('validation', 'Print cards are made as a PDF');
+    const target = apiTarget(req.audience, req.kind);
+    if (req.scheduleAt) {
+      const s = await call<ApiScheduledSend>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends`,
+        { kind: req.kind, target, channel: req.channel, scheduledFor: req.scheduleAt },
+        { 'idempotency-key': req.idempotencyKey.length >= 8 ? req.idempotencyKey : newKey() },
+      );
+      scheduledEvent.set(s.id, eventId);
+      return jobFromScheduled(s);
+    }
+    return runSend(eventId, target, req.channel, req.idempotencyKey, req.kind);
   };
-  impl.getSendJob = (jobId) => {
+  impl.getSendJob = async (jobId) => {
     const j = sendJobs.get(jobId);
-    return j ? Promise.resolve(j) : Promise.reject(new RepositoryError('not_found', 'Unknown job'));
+    if (j) return j;
+    const eventId = scheduledEvent.get(jobId);
+    const found = eventId
+      ? (await impl.listScheduledSends!(eventId)).find((x) => x.id === jobId)
+      : undefined;
+    if (found) return found;
+    throw new RepositoryError('not_found', 'Unknown job');
+  };
+  impl.listScheduledSends = async (eventId) => {
+    const r = await call<{ items: ApiScheduledSend[] }>(
+      'GET',
+      `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends`,
+    );
+    const items = r.items.filter((s) => s.status !== 'cancelled');
+    for (const s of items) scheduledEvent.set(s.id, eventId);
+    // waiting ones first, soonest first; then what already ran, newest first
+    const waiting = items.filter((s) => s.status === 'scheduled').reverse();
+    const rest = items.filter((s) => s.status !== 'scheduled');
+    return Promise.all([...waiting, ...rest].map(jobFromScheduled));
+  };
+  impl.cancelScheduledSend = async (eventId, jobId) => {
+    await call(
+      'DELETE',
+      `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends/${encodeURIComponent(jobId)}`,
+    );
+    scheduledEvent.delete(jobId);
   };
   impl.retryFailed = (jobId) => {
     const j = sendJobs.get(jobId);
     if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
+    // "failed" is an invitation audience; a reminder is retried for the guests it failed for.
+    if (j.kind === 'reminder') {
+      const guestIds = j.failures.map((f) => f.guestId);
+      if (guestIds.length === 0)
+        return Promise.reject(new RepositoryError('validation', 'Nothing failed'));
+      return runSend(j.eventId, { guestIds }, 'auto', newKey(), 'reminder');
+    }
     return runSend(j.eventId, 'failed', 'auto', newKey());
   };
   impl.sendPledgeReminders = async (eventId, guestIds) => {

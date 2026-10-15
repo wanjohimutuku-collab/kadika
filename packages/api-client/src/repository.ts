@@ -105,6 +105,10 @@ export interface Repository {
   sendInvitations(eventId: string, req: SendRequest): Promise<SendJob>;
   getSendJob(jobId: string): Promise<SendJob>;
   retryFailed(jobId: string): Promise<SendJob>;
+  /** Sends that wait for their time or recently ran, soonest first (ADR 030). Same shape as a job. */
+  listScheduledSends(eventId: string): Promise<SendJob[]>;
+  /** Stops a send that has not started. Rejects with `conflict` once it is running or done. */
+  cancelScheduledSend(eventId: string, jobId: string): Promise<void>;
   sendTestMessage(eventId: string, channel: 'whatsapp' | 'sms'): Promise<{ to: string }>;
   listActivity(eventId: string, limit?: number): Promise<Activity[]>;
 

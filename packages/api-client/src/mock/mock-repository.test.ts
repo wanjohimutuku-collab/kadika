@@ -176,6 +176,63 @@ describe('MockRepository', () => {
     expect(unsent.every((g) => failedIds.has(g.id) || !g.phoneE164)).toBe(true);
   });
 
+  it('keeps a scheduled send waiting, lists it, starts it when its time comes and cannot cancel it then', async () => {
+    const ev = (await repo.listEvents())[0]!;
+    repo.controls.set({ failureRate: 0 });
+    const at = new Date(clock + 3_600_000).toISOString();
+    const req = {
+      audience: { kind: 'unsent' as const },
+      channel: 'auto' as const,
+      whatsappFallbackToSms: true,
+      kind: 'reminder' as const,
+    };
+    const job = await repo.sendInvitations(ev.id, {
+      ...req,
+      scheduleAt: at,
+      idempotencyKey: 'sc1',
+    });
+    expect(job).toMatchObject({ status: 'scheduled', kind: 'reminder', scheduledFor: at });
+    expect(job.total).toBeGreaterThan(0);
+    expect(await repo.listScheduledSends(ev.id)).toEqual([expect.objectContaining({ id: job.id })]);
+
+    // one that is cancelled while waiting is gone
+    const other = await repo.sendInvitations(ev.id, {
+      ...req,
+      scheduleAt: new Date(clock + 7_200_000).toISOString(),
+      idempotencyKey: 'sc2',
+    });
+    await repo.cancelScheduledSend(ev.id, other.id);
+    expect((await repo.listScheduledSends(ev.id)).map((j) => j.id)).toEqual([job.id]);
+
+    // when the time comes it starts like any send, leaves the waiting list and cannot be cancelled
+    clock += 3_600_000 + 1000;
+    expect(await repo.listScheduledSends(ev.id)).toEqual([]);
+    await expect(repo.cancelScheduledSend(ev.id, job.id)).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    clock += 120_000;
+    const done = await repo.getSendJob(job.id);
+    expect(done).toMatchObject({ status: 'done', scheduledFor: null });
+    expect(done.counts.delivered + done.counts.failed).toBe(done.total);
+  });
+
+  it('sends reminders only to invitation cards that went out and have no answer yet', async () => {
+    const ev = (await repo.listEvents())[0]!;
+    repo.controls.set({ failureRate: 0 });
+    const job = await repo.sendInvitations(ev.id, {
+      audience: { kind: 'unsent' },
+      channel: 'auto',
+      whatsappFallbackToSms: true,
+      scheduleAt: null,
+      kind: 'reminder',
+      idempotencyKey: 'rm1',
+    });
+    const guests = await repo.listGuests(ev.id);
+    const open = guests.filter((g) => ['sent', 'delivered', 'opened'].includes(g.status));
+    expect(job.total).toBe(open.length);
+    expect(guests.some((g) => g.status === 'confirmed')).toBe(true); // they are left alone
+  });
+
   it('records a manual payment once per idempotency key and updates the balance', async () => {
     const ev = (await repo.listEvents())[0]!;
     const g = (await repo.listGuests(ev.id)).find((x) => x.pledge && x.pledge.balance >= 20_000)!;

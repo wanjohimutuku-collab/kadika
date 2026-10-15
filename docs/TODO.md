@@ -42,7 +42,11 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ “Acha kunikumbusha / Stop reminders” button on the guest card (axe + 412 px specs pass)
 - ☑ Print PDF batch: A6, A5 (3 mm bleed, crop marks), A4 4-up cut-and-collate, test sheet 20/25/30 mm; generator refuses QR < 25 mm or modules < 0.8 mm (`print.test.ts`, `POST /v1/events/:id/cards/pdf`)
 - ☐ Printed test sheet scanned on ≥ 3 phones — checklist in `docs/qa/print-test.md` (manual, needs a printer)
-- ☑ Web `HttpRepository` now sends invitations, retries failures and downloads the print PDF through the real API (tested end to end in `http-repository.test.ts`); scheduled sends and reminders/thank-you broadcasts from the console stay `not_implemented`
+- ☑ Web `HttpRepository` now sends invitations, retries failures and downloads the print PDF through the real API (tested end to end in `http-repository.test.ts`); thank-you broadcasts from the console stay `not_implemented`
+- ☑ Organiser-asked reminders (`kind: reminder`, audiences `unanswered` / `all` / ids / group): only invited, unanswered invitation cards; never opted-out, declined, contribution-only or uninvited guests; 12-hour cooldown per guest; refused once the event has started (ADR 030, `scheduled-sends.test.ts`)
+- ☑ Scheduled invitations and reminders: `POST/GET/DELETE /v1/events/:id/scheduled-sends`, audience resolved at send time, run by a one-minute scheduler (works without Redis, safe on several instances), missed after 24 h, stuck runs recovered, audited; `HttpRepository` + mock `listScheduledSends` / `cancelScheduledSend`; web send page lists what is waiting with Cancel
+- ☐ Scheduling and reminders in the mobile app; thank-you broadcasts through the API; run the scheduler against a real Redis/provider
+- ☐ Card-content editor screens (console and mobile): the API, schema, card rendering and `content.*` strings exist, no UI yet (ADR 029)
 - ☐ Embed a custom font in the print PDF (standard PDF fonts used now)
 - ☑ 500-guest send test with simulated failures (`delivery.test.ts`)
 

@@ -85,7 +85,13 @@ function Blocks({ blocks }: { blocks: Block[] }) {
             );
           case 'table':
             return (
-              <div key={i} className="overflow-x-auto rounded-card border border-border bg-surface">
+              <div
+                key={i}
+                className="overflow-x-auto rounded-card border border-border bg-surface"
+                role="region"
+                aria-label={b.head.join(', ')}
+                tabIndex={0}
+              >
                 <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
                   <thead>
                     <tr className="border-b border-border bg-bg">

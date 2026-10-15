@@ -134,7 +134,7 @@ ADR 029 arrived with PR #10 (`e478361`); the code below was already on `main`.
 - ☑ SMS wording: organiser templates for the invitation, reminder, contribution and pledge-reminder texts, built in one place (`composeSms` in `services/messages.ts`); `{link}` is required, at most 480 characters. WhatsApp keeps the Meta-approved wording
 - ☑ Tests: `card-content.test.ts` in the API (9) and schemas (8), `render-content.test.ts` for the web card (11)
 - ☐ Editor screens in the console and the mobile app: the API accepts `cardContent` and the `content.*` strings exist, but no screen uses them
-- ☐ Native review of the new Swahili strings (`content.*` and `send.scheduled.*`)
+- ☐ Native review of the new Swahili strings (`content.*` and `send.scheduled.*`); one known nit: the accessible label `send.scheduled.cancelLabel` uses "ya" for every kind ("Ghairi vikumbusho ya 1 Des"), but the plural "vikumbusho" takes "vya"
 - ☐ Write the WhatsApp template for contribution cards (`WHATSAPP_TEMPLATE_CONTRIBUTION` and `_KE` are read from the environment) and submit it with the others; `docs/ops/whatsapp-templates-kenya.md` covers only invite, reminder and pledge
 - ☐ Cover photo upload (the API and schema have no cover-photo field; it needs S3 and image optimisation) and per-section reordering
 
@@ -146,7 +146,7 @@ ADR 030 and the web waiting-list screen arrived with PR #10 (`e478361`); the API
 - ☑ Scheduled invitations and reminders (migration 0016): `POST/GET/DELETE /v1/events/:id/scheduled-sends`; the audience is resolved when the time comes; at least a minute ahead and before the event starts; at most 20 waiting per event; gate agents cannot schedule or list; creating, cancelling and each run are audited
 - ☑ Runner: `startScheduler` checks every minute with a plain interval, so it needs no Redis; each row is claimed by a conditional update, so several API instances never run one twice; a run stuck for 30 minutes is put back in line; a send more than 24 hours late is recorded as `missed`; a failure is recorded, not retried
 - ☑ `HttpRepository` and the mock implement `listScheduledSends` and `cancelScheduledSend`; `scheduled-sends.test.ts` (13 tests, PGlite and fake providers) and two mock-repository tests (PR #10)
-- ◐ Web console: a "Waiting to be sent" card on the send page lists scheduled invitations and reminders, each with a Cancel button (`scheduled-sends.tsx`, PR #10); no e2e spec or story covers it and it has not been checked in a browser
+- ☑ Web console: a "Waiting to be sent" card on the send page lists scheduled invitations and reminders, each with a Cancel button (`scheduled-sends.tsx`, PR #10). Checked by hand on the mock backend in Swahili and English, desktop and 375 px (scheduled from "send later", saw it listed, cancelled it; cancel buttons 48 px tall, no horizontal overflow); no e2e spec or story covers it
 - ☐ Scheduling and reminders in the mobile app
 - ☐ Thank-you broadcasts through the real API (`thank_you` is still `not_implemented`); exports other than pledges and payments, such as the post-event report, are also `not_implemented` in `HttpRepository`
 - ☐ Run the scheduler against a real provider and more than one instance

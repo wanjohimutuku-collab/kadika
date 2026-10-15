@@ -78,8 +78,8 @@ storage, 30-day deletion, hashed and encrypted tokens, no ad cookies). A Tanzani
 - **Original data pages** (wedding costs, guest statistics): need real pilot data.
 - **Off-site**: Search Console and Bing Webmaster Tools set-up, press outreach, directory listings,
   Google Business Profile, and a monthly AI-citation check. These need accounts and real-world action.
-- **Kenya pages** (`/ke/...`) wait for the domain decision; these pages are Tanzania-focused
-  (`en_TZ`, TZS-free, Tanzanian mobile money).
+- **Kenya pages**: built under `/ke` (one domain), see `kenya-readiness.md`. The product itself does not
+  yet support Kenyan numbers, KES or Kenyan M-Pesa; the pages say so.
 - **Performance check** on a production build (Lighthouse) before launch.
 
 ## 6. How to measure

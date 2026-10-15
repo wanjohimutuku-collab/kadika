@@ -6,7 +6,7 @@ import { pickMessages, type Locale } from '@harusi/i18n';
 import { LanguageChip } from '@/components/ui/language-chip';
 import { OrnamentBand } from '@/components/card/ornament';
 import { localeUrl } from '@/lib/seo';
-import { pagesIn, textOf } from '@/content';
+import { pagePath, pagesIn, pagesOf, textOf } from '@/content';
 import type { PageGroup } from '@/content/types';
 
 const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
@@ -15,6 +15,7 @@ const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
   { group: 'company', sw: 'Kampuni', en: 'Company' },
   { group: 'legal', sw: 'Sheria', en: 'Legal' },
 ];
+const KENYA_LABEL = { sw: 'Kenya', en: 'Kenya' } as const;
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = (await getLocale()) as Locale;
@@ -44,7 +45,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         <OrnamentBand id="footer-band" />
         <nav
           aria-label="Footer"
-          className="mx-auto grid max-w-5xl gap-6 px-4 pt-8 text-sm sm:grid-cols-2 md:grid-cols-4"
+          className="mx-auto grid max-w-5xl gap-6 px-4 pt-8 text-sm sm:grid-cols-2 md:grid-cols-5"
         >
           {FOOTER_GROUPS.map((g) => (
             <div key={g.group}>
@@ -53,7 +54,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
                 {pagesIn(g.group).map((p) => (
                   <li key={p.slug}>
                     <Link
-                      href={localeUrl(`/${p.slug}`, locale)}
+                      href={localeUrl(pagePath(p), locale)}
                       className="inline-flex min-h-8 items-center underline"
                     >
                       {textOf(p, locale).nav}
@@ -63,6 +64,21 @@ export default async function PublicLayout({ children }: { children: ReactNode }
               </ul>
             </div>
           ))}
+          <div>
+            <p className="mb-2 font-semibold">{KENYA_LABEL[locale]}</p>
+            <ul className="space-y-1">
+              {pagesOf('ke').map((p) => (
+                <li key={p.slug || 'ke'}>
+                  <Link
+                    href={localeUrl(pagePath(p), locale)}
+                    className="inline-flex min-h-8 items-center underline"
+                  >
+                    {textOf(p, locale).nav}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 text-sm md:flex-row md:items-center md:justify-between">
           <p className="text-muted">{tl('footerTagline')}</p>

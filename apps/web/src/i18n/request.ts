@@ -6,8 +6,10 @@ import { defaultLocale, isLocale, LOCALE_COOKIE, messages, type Locale } from '@
 export async function resolveLocale(): Promise<Locale> {
   const fromUrl = (await headers()).get('x-hp-lang');
   if (isLocale(fromUrl)) return fromUrl;
+  const market = (await headers()).get('x-hp-market');
   const fromCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
-  return isLocale(fromCookie) ? fromCookie : defaultLocale;
+  if (isLocale(fromCookie)) return fromCookie;
+  return market === 'ke' ? 'en' : defaultLocale;
 }
 
 export default getRequestConfig(async () => {

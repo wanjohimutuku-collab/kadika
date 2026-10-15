@@ -35,13 +35,20 @@ export interface PageText {
 
 export type PageGroup = 'product' | 'guide' | 'company' | 'legal';
 
+export type Market = 'tz' | 'ke';
+
 export interface ContentPageDef {
-  /** Swahili-first URL slug, used for both languages (`?lang=en` switches). */
+  /** Market the page targets; Tanzania is the default. Kenya pages live under `/ke`. */
+  market?: Market;
+  /** Same-topic page in the other market, for cross-market hreflang. */
+  counterpart?: { market: Market; slug: string };
+  /** URL slug, used for both languages (`?lang=sw` switches). Empty for the market home. */
   slug: string;
   group: PageGroup;
   schema: 'Article' | 'WebPage';
   /** ISO date; shown on the page, in structured data and in the sitemap. */
   updated: string;
+  /** Slugs in the same market, or `tz:slug` / `ke:slug` to link across markets. */
   related: string[];
   /** Legal drafts show a banner until a lawyer has reviewed them. */
   draft?: boolean;

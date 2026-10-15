@@ -4,7 +4,7 @@ import { buttonClasses } from '@/components/ui/button';
 import { SeoLinks } from '@/components/public/seo-links';
 import { formatDate } from '@/lib/format';
 import { SITE_URL, absoluteLocaleUrl, localeUrl } from '@/lib/seo';
-import { ALL_PAGES, getPage, textOf } from '@/content';
+import { ALL_PAGES, counterpartOf, marketOf, pagePath, resolveRelated, textOf } from '@/content';
 import type { Block, ContentPageDef } from '@/content/types';
 
 const UI = {
@@ -20,6 +20,9 @@ const UI = {
     cta: 'Anza',
     ctaBody: 'Tengeneza kadi ya kwanza bila malipo wakati wa majaribio.',
     ctaCard: 'Nina namba ya kadi',
+    kenya: 'Kenya',
+    ctaKe: 'Unataka huduma hii Kenya? Tuambie.',
+    ctaKeButton: 'Wasiliana nasi',
   },
   en: {
     home: 'Home',
@@ -32,6 +35,9 @@ const UI = {
     cta: 'Get started',
     ctaBody: 'Create your first card free during the pilot.',
     ctaCard: 'I have a card number',
+    kenya: 'Kenya',
+    ctaKe: 'Want this in Kenya? Tell us.',
+    ctaKeButton: 'Contact us',
   },
 } as const;
 
@@ -112,7 +118,9 @@ function Blocks({ blocks }: { blocks: Block[] }) {
 
 function jsonLd(page: ContentPageDef, locale: Locale) {
   const t = textOf(page, locale);
-  const url = absoluteLocaleUrl(`/${page.slug}`, locale);
+  const path = pagePath(page);
+  const market = marketOf(page);
+  const url = absoluteLocaleUrl(path, locale);
   const org = { '@type': 'Organization', name: 'Harusi Pass', url: SITE_URL };
   const graph: Record<string, unknown>[] = [
     {
@@ -122,7 +130,7 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       name: t.title,
       ...(page.schema === 'Article' ? { headline: t.h1 } : {}),
       description: t.description,
-      inLanguage: locale,
+      inLanguage: `${locale}-${market.toUpperCase()}`,
       dateModified: page.updated,
       datePublished: page.updated,
       isPartOf: { '@type': 'WebSite', name: 'Harusi Pass', url: SITE_URL },
@@ -141,7 +149,22 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
           name: UI[locale].home,
           item: absoluteLocaleUrl('/', locale),
         },
-        { '@type': 'ListItem', position: 2, name: t.nav, item: url },
+        ...(market === 'ke' && page.slug
+          ? [
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: UI[locale].kenya,
+                item: absoluteLocaleUrl('/ke', locale),
+              },
+            ]
+          : []),
+        {
+          '@type': 'ListItem',
+          position: market === 'ke' && page.slug ? 3 : 2,
+          name: t.nav,
+          item: url,
+        },
       ],
     },
   ];
@@ -161,10 +184,19 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
 export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Locale }) {
   const t = textOf(page, locale);
   const ui = UI[locale];
-  const related = page.related.map((s) => getPage(s)).filter((p): p is ContentPageDef => !!p);
+  const market = marketOf(page);
+  const path = pagePath(page);
+  const related = page.related
+    .map((s) => resolveRelated(page, s))
+    .filter((p): p is ContentPageDef => !!p);
+  const counterpart = counterpartOf(page);
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8">
-      <SeoLinks path={`/${page.slug}`} locale={locale} />
+      <SeoLinks
+        path={path}
+        locale={locale}
+        counterpartPath={counterpart ? pagePath(counterpart) : undefined}
+      />
       <script
         type="application/ld+json"
         // Static, server-built object; `<` is escaped so the JSON cannot close the tag.
@@ -180,6 +212,16 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
             </Link>
           </li>
           <li aria-hidden="true">›</li>
+          {market === 'ke' && page.slug ? (
+            <>
+              <li>
+                <Link href={localeUrl('/ke', locale)} className="underline">
+                  {ui.kenya}
+                </Link>
+              </li>
+              <li aria-hidden="true">›</li>
+            </>
+          ) : null}
           <li aria-current="page">{t.nav}</li>
         </ol>
       </nav>
@@ -250,18 +292,37 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
       ) : null}
       {page.group !== 'legal' ? (
         <section className="flex flex-col gap-3 rounded-card bg-primary p-6 text-on-primary">
-          <p className="text-lg font-semibold">{ui.ctaBody}</p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/login" className={buttonClasses('secondary', 'lg', 'border-transparent')}>
-              {ui.cta}
-            </Link>
-            <Link
-              href="/k"
-              className={buttonClasses('ghost', 'lg', 'text-on-primary hover:bg-white/10')}
-            >
-              {ui.ctaCard}
-            </Link>
-          </div>
+          {market === 'ke' ? (
+            <>
+              <p className="text-lg font-semibold">{ui.ctaKe}</p>
+              <div className="flex">
+                <Link
+                  href={localeUrl('/mawasiliano', locale)}
+                  className={buttonClasses('secondary', 'lg', 'border-transparent')}
+                >
+                  {ui.ctaKeButton}
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-semibold">{ui.ctaBody}</p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/login"
+                  className={buttonClasses('secondary', 'lg', 'border-transparent')}
+                >
+                  {ui.cta}
+                </Link>
+                <Link
+                  href="/k"
+                  className={buttonClasses('ghost', 'lg', 'text-on-primary hover:bg-white/10')}
+                >
+                  {ui.ctaCard}
+                </Link>
+              </div>
+            </>
+          )}
         </section>
       ) : null}
       {related.length ? (
@@ -271,7 +332,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
             {related.map((r) => (
               <li key={r.slug}>
                 <Link
-                  href={localeUrl(`/${r.slug}`, locale)}
+                  href={localeUrl(pagePath(r), locale)}
                   className="flex min-h-12 items-center rounded-card border border-border bg-surface px-4 font-medium underline-offset-2 hover:underline"
                 >
                   {textOf(r, locale).nav}

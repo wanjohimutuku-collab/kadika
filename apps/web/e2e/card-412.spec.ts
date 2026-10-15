@@ -20,8 +20,6 @@ test.describe('guest card at 412 px', () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
     const { violations } = await new AxeBuilder({ page }).analyze();
-    expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual(
-      [],
-    );
+    expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
   });
 });

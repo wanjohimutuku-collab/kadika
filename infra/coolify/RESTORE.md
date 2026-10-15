@@ -35,6 +35,6 @@ A backup you have never restored is a hope, not a backup. Run this drill once be
 
 ## Drill log
 
-| Date | Dump used | Restored OK | Counts matched | QR verified | By |
-|---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| Date | Dump used | Restored OK | Counts matched | QR verified | By  |
+| ---- | --------- | ----------- | -------------- | ----------- | --- |
+|      |           |             |                |             |     |

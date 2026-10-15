@@ -15,7 +15,7 @@ considered and set aside: they need ticket sales, inventory and manifests, which
 - It is display only. It does not change any behaviour, so there is no enum, no presets and no
   per-type feature switches. Pledges stay governed by the existing `pledges_enabled` flag.
 - The second host name (`partnerB`) is optional so a send-off or a single host works. The host names
-  are still stored in `events.couple_names`, joined with ` & `. Renaming that column would touch ~40
+  are still stored in `events.couple_names`, joined with `&`. Renaming that column would touch ~40
   files for no behavioural gain.
 - The default "sent by" line is `Kamati ya {kind} ya {hosts}` and falls back to `Kamati ya {hosts}`.
 

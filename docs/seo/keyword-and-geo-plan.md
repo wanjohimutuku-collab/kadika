@@ -27,12 +27,12 @@ weddings, send-offs, engagement parties and other celebrations (ADR 024).
 
 ## 1. Where to compete (priorities)
 
-| Priority | Market and language | Why |
-|---|---|---|
-| 1 | Kenya, English (and Sheng-light Swahili) | No local competitor found; high WhatsApp and M-Pesa use |
-| 2 | Tanzania, Swahili | Competitors exist, but Swahili content is thin |
-| 3 | Tanzania, English | Expats, diaspora and corporate buyers |
-| 4 | Diaspora searching "from abroad" | They pay for cards and contribute by M-Pesa |
+| Priority | Market and language                      | Why                                                     |
+| -------- | ---------------------------------------- | ------------------------------------------------------- |
+| 1        | Kenya, English (and Sheng-light Swahili) | No local competitor found; high WhatsApp and M-Pesa use |
+| 2        | Tanzania, Swahili                        | Competitors exist, but Swahili content is thin          |
+| 3        | Tanzania, English                        | Expats, diaspora and corporate buyers                   |
+| 4        | Diaspora searching "from abroad"         | They pay for cards and contribute by M-Pesa             |
 
 Use hreflang (`sw-TZ`, `sw-KE`, `en-KE`, `en-TZ`) with separate Kenya and Tanzania landing pages. Do not
 copy one page to both; shillings (KES vs TZS), mobile money names (M-Pesa, Airtel Money, Mixx by Yas,
@@ -41,6 +41,7 @@ HaloPesa) and the event vocabulary differ.
 ## 2. Keyword clusters (hypotheses to validate)
 
 **A. Product intent (convert, low volume, high value)**
+
 - sw: kadi ya harusi mtandaoni, kadi ya mwaliko wa harusi ya kidigitali, kadi ya harusi WhatsApp, kadi ya
   harusi yenye QR, programu ya kadi za harusi, app ya harusi Tanzania
 - en (TZ): digital wedding card Tanzania, online wedding invitation Tanzania, wedding RSVP app Tanzania
@@ -48,6 +49,7 @@ HaloPesa) and the event vocabulary differ.
   RSVP WhatsApp Kenya, wedding QR code check-in Kenya, wedding guest list app Kenya
 
 **B. Michango and committee (the differentiator)**
+
 - sw: michango ya harusi, jinsi ya kukusanya michango ya harusi, kamati ya harusi, kadi ya mchango,
   mchango kwa M-Pesa, mchango Tigo Pesa / Mixx by Yas / Airtel Money, ahadi na michango, orodha ya michango
 - en (KE): wedding contributions Kenya, wedding fundraiser M-Pesa, wedding committee Kenya, harambee
@@ -55,18 +57,21 @@ HaloPesa) and the event vocabulary differ.
 - Competitor-compare: M-Changa alternative for weddings, OneKitty vs wedding app
 
 **C. Event types**
+
 - sw: kadi ya send-off, mwaliko wa send-off, kadi ya uchumba / mwaliko wa uchumba, kitchen party mwaliko,
   maneno ya kuandika kwenye kadi ya harusi, sampuli ya kadi ya mwaliko
 - en: send-off invitation Tanzania, engagement party invitation Kenya (ruracio, introduction ceremony,
   kitchen party, bridal shower), what is a send-off party in Tanzania
 
 **D. Problem and trust queries (good for AI answers)**
+
 - sw: kadi ya harusi ya mtandaoni ni ya kweli?, jinsi ya kuthibitisha kadi ya harusi, wageni wasio na
   simu janja, kadi ya harusi bila internet
 - en: is a digital wedding invitation a scam, how to check guests in at a wedding, how to stop gate
   crashers at a wedding, wedding QR code not scanning, forwarded wedding card
 
 **E. Informational (top of funnel, backlinks, AI citations)**
+
 - how much does a wedding cost in Tanzania / Kenya (shillings, by tier), wedding budget template
   (committee version), how to write a wedding invitation in Swahili, wedding RSVP wording, how many
   guests to invite, wedding day gate plan, harambee etiquette for guests, how to say no to a wedding

@@ -14,10 +14,10 @@ Automated checks (`apps/api/src/print.test.ts`) prove the PDF generator refuses 
 ## Result log
 
 | Date | Printer / paper | Phone | 20 mm | 25 mm | 30 mm | Card size | Real card |
-|---|---|---|---|---|---|---|---|
-|  |  |  |  |  |  |  |  |
-|  |  |  |  |  |  |  |  |
-|  |  |  |  |  |  |  |  |
+| ---- | --------------- | ----- | ----- | ----- | ----- | --------- | --------- |
+|      |                 |       |       |       |       |           |           |
+|      |                 |       |       |       |       |           |           |
+|      |                 |       |       |       |       |           |           |
 
 ## Print shop settings
 

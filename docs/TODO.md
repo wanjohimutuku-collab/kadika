@@ -3,13 +3,16 @@
 Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 2026-10-14. Node 22 + pnpm installed to ~/.local/node (add `~/.local/node/bin` to PATH).
 
 ## Phase 0 — Foundations
+
 - ☑ Monorepo, tooling, CI, compose, Drizzle schema, seed, health, `.env.example`
 
 ## Phase 1 — Core API + crypto
+
 - ☑ Phone-OTP auth, events, members, guests (CRUD, import, dedupe), signing keys, Ed25519 QR (commit e760834)
 - ☑ Cursor pagination + Idempotency-Key (14a52ea)
 
 ## Phase 2 — Guest card web
+
 - ☑ `/c/:token` as static HTML route, ~30 KB, no framework JS (ADR 014)
 - ☑ Trust strip, map, dress code, RSVP + party stepper, QR inline SVG (EC M, 4-module quiet zone), short code, brightness hint
 - ☑ `.ics`, QR PNG download, print/"Save as PDF", PWA manifest, service worker (`public/sw.js`), OG image
@@ -29,6 +32,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Push `feat/light-guest-card` (waiting for your go-ahead)
 
 ## Phase 3 — Delivery
+
 - ☑ Send service: per-guest WhatsApp/SMS choice, retries with backoff, WhatsApp→SMS fallback on failure, `message_log`, retry-failed, stats endpoint, idempotent send (ADR 017, `delivery.test.ts`)
 - ◐ BullMQ worker (`worker.ts`): 15-minute tick + async send. Typechecked; not run against a live Redis
 - ◐ WhatsApp: both the official Cloud API and Evolution API, chosen by `WHATSAPP_PROVIDER` (ADR 018/020), plus NextSMS; unit tests against fake HTTP, signature-checked Meta webhook; verify against live accounts
@@ -43,6 +47,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ 500-guest send test with simulated failures (`delivery.test.ts`)
 
 ## Phase 4 — Organizer mobile app (Expo)
+
 - ☑ Expo Router app on the real API: auth (phone → OTP → name), wedding list + create, five tabs, guest detail with reissue/delete, paste import (preview then confirm), send with confirm/result/retry, team invite/revoke, settings, print-PDF share (ADR 021)
 - ☑ Verified in a browser at 375×812 against the real API (sign-in, create, import, send, overview, detail, team); typecheck, eslint, 5 unit tests incl. a Swahili/English key-coverage check
 - ☑ API: guest detail now carries invitation status; list carries last channel; events carry `myRole` and funnel stats (headcount, feature-phone count)
@@ -53,6 +58,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Lango (Phase 5) and Michango (Phase 6) tabs are placeholders
 
 ## Phase 5 — Gate scanner (offline-first)
+
 - ☑ Server: gate link + PIN with lockout, event-scoped gate tokens, device registration, bundle (ETag, last-4 phones), admissions, idempotent scan sync with earliest-wins ordering (ADR 022)
 - ☑ `@harusi/gate` engine: offline QR verify, card-number/name/last-4 lookup, duplicate and override rules, sync queue with backoff, reissue via bundle refresh
 - ☑ Tests: 200 mixed scans offline → correct results, zero lost after reconnect, server log matches; two devices on one guest → one admit + one duplicate; forged / wrong-event / revoked; lockout; override rules
@@ -74,6 +80,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☑ CLAUDE.md §17.2 gate fills updated to the AAA values (ADR 006/022); revert that line if you prefer the original colours
 
 ## Phase 6 — Pledges and payments
+
 - ☑ `@harusi/payments`: `PaymentProvider` interface, HMAC helpers, fake provider (ADR 023)
 - ☑ Server: migration 0009, pledge status math, manual payments, pay-from-card with idempotent reference, status polling, atomic webhook, CSV exports, pledge on the public card, dashboard money in event stats; gate agents never see money
 - ☑ Tests (`pledges.test.ts`, 9 + repository end-to-end; API suite 75 passing): a webhook replayed 5× (and 5 at once) records one payment; balances reconcile with the dashboard; the aggregator's amount wins; forged, unsigned, unknown, failed and late webhooks; expired requests are not money; idempotent pay start; pledges-off closes payments; CSV formula escaping
@@ -84,6 +91,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started. Last checked 202
 - ☐ Re-check the web card's pay screen against the real API in a browser; Michango tab on a real phone
 
 ## Phase 7 — Hardening and launch
+
 - ☑ API security headers (HSTS, nosniff, frame deny, CSP `default-src 'none'`, no referrer) on every response, `/ready` DB readiness probe, one JSON log line per request with the route pattern only (never tokens, PINs, OTPs or phones); tested
 - ☑ Audit trail: `audit_log.event_id` (migration 0010); reissue, delete, erase, export, member add/invite/remove, gate link create/revoke, pledges, manual payments and payment webhooks are recorded; owner-only `GET /v1/events/:id/audit` (newest first, no secrets); tested
 - ☑ PDPA: owner-only `GET /v1/guests/:id/export` (everything held about a guest) and `POST /v1/guests/:id/erase` (name, phone, notes removed; payment amounts kept for the books; card dies); both audited; tested

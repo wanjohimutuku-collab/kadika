@@ -10,24 +10,24 @@
 
 ## Tasks (read aloud, one at a time)
 
-1. "You are working the gate at a wedding. Open this link and get ready to scan guests." (link opened on the phone, PIN on paper) — *time to first scan screen*
-2. "A guest shows you this QR on a screen. Let them in." — *time from camera ready to result*
+1. "You are working the gate at a wedding. Open this link and get ready to scan guests." (link opened on the phone, PIN on paper) — _time to first scan screen_
+2. "A guest shows you this QR on a screen. Let them in." — _time from camera ready to result_
 3. "The same guest comes back. What happens, and what would you tell them?"
 4. "This guest's card does not work. Find them another way." (the guest's name is on paper)
 5. "The signal is gone. Keep letting guests in." (airplane mode on)
 
 ## Record for each participant
 
-| Measure | P1 | P2 | P3 |
-|---|---|---|---|
-| Age, role, Swahili/English used, phone model |  |  |  |
-| Task 1 completed unaided (Y/N), seconds |  |  |  |
-| Task 2 completed unaided, seconds to result |  |  |  |
-| Task 3: said the guest was already in (Y/N) |  |  |  |
-| Task 4: found the guest by name or number (Y/N), seconds |  |  |  |
-| Task 5: understood nothing is lost offline (Y/N) |  |  |  |
-| Hesitations, wrong taps, quotes |  |  |  |
-| Could read the result in daylight at arm's length (Y/N) |  |  |  |
+| Measure                                                  | P1  | P2  | P3  |
+| -------------------------------------------------------- | --- | --- | --- |
+| Age, role, Swahili/English used, phone model             |     |     |     |
+| Task 1 completed unaided (Y/N), seconds                  |     |     |     |
+| Task 2 completed unaided, seconds to result              |     |     |     |
+| Task 3: said the guest was already in (Y/N)              |     |     |     |
+| Task 4: found the guest by name or number (Y/N), seconds |     |     |     |
+| Task 5: understood nothing is lost offline (Y/N)         |     |     |     |
+| Hesitations, wrong taps, quotes                          |     |     |     |
+| Could read the result in daylight at arm's length (Y/N)  |     |     |     |
 
 ## Pass criteria
 

@@ -12,7 +12,7 @@ export interface SendResult {
  * business-initiated messages). Providers that send free text ignore it.
  */
 export interface MessageTemplate {
-  kind: 'invite' | 'reminder' | 'pledge';
+  kind: 'invite' | 'reminder' | 'pledge' | 'contribution';
   locale: 'sw' | 'en';
   /** Event country (`TZ`, `KE`): picks the approved template and its parameter layout (ADR 026). */
   country?: string;
@@ -20,7 +20,7 @@ export interface MessageTemplate {
    * Positional values for {{1}}…{{n}}. Tanzania: invite = A, B, date, link, code; reminder = A, B, days,
    * link, code; pledge = name, A & B, pledged, balance, link. Kenya (one host field, so a single host
    * works): invite = hosts, date, link, code; reminder = hosts, days, link, code; pledge = name, hosts,
-   * pledged, balance, link.
+   * pledged, balance, link. A contribution card (both countries): hosts, sender, link.
    */
   params: string[];
 }

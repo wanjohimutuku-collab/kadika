@@ -1,5 +1,6 @@
 import {
   generateShortCode,
+  type CardKind,
   type InvitationStatus,
   type MemberRole,
   type MessageChannel,
@@ -39,6 +40,7 @@ export type EventRecord = Omit<WeddingEvent, 'stats'> & { deletedAt: string | nu
 export interface GuestRecord {
   id: string;
   eventId: string;
+  cardKind: CardKind;
   displayName: string;
   phoneE164: string | null;
   hasSmartphone: boolean;
@@ -93,7 +95,7 @@ export interface JobRecord extends Omit<SendJob, 'counts' | 'failures' | 'status
 
 export interface MockState {
   /** Bumped when the shape changes; older saved states are re-seeded. */
-  version: 4;
+  version: 5;
   seedDay: string;
   users: User[];
   sessionUserId: string | null;
@@ -184,6 +186,7 @@ function baseEvent(
 ): EventRecord {
   return {
     title: `Harusi ya ${partial.partnerA} & ${partial.partnerB}`,
+    cardContent: {},
     eventKind: 'Harusi',
     coupleNames: `${partial.partnerA} & ${partial.partnerB}`,
     venueName: '',
@@ -296,6 +299,7 @@ function addGuest(
   const g: GuestRecord = {
     id,
     eventId,
+    cardKind: 'invitation',
     displayName: name,
     phoneE164: noPhone ? null : phoneFor(rng),
     hasSmartphone,
@@ -431,7 +435,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
   const today = startOfDayEAT(now);
   const rng = new Rng(mulberry32(opts.seed ?? 20_261_013));
   const state: MockState = {
-    version: 4,
+    version: 5,
     seedDay: iso(today),
     users: [],
     sessionUserId: null,

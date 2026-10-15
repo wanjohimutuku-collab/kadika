@@ -29,6 +29,7 @@ import { DeliveryService } from './services/delivery';
 import { PrintService } from './services/print';
 import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
+import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content';
 import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
@@ -70,12 +71,14 @@ const eventBase = z.object({
   contributionTarget: z.number().int().min(0).nullish(),
   pledgesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
+  cardContent: cardContentSchema.optional(),
 });
 const guestBase = z.object({
   displayName: z.string().trim().min(2).max(80),
   phone: phone.nullish().or(z.literal('')),
   groupLabel: z.string().trim().max(40).nullish(),
   partySizeAllowed: z.number().int().min(1).max(10).optional(),
+  cardKind: cardKindSchema.optional(),
   hasSmartphone: z.boolean().nullish(),
   language: z.enum(['sw', 'en']).optional(),
   inviteChannelPref: z.enum(['whatsapp', 'sms', 'print', 'mixed']).optional(),
@@ -505,6 +508,7 @@ export function createApp(deps: Deps) {
             'checked_in',
           ])
           .optional(),
+        cardKind: cardKindSchema.optional(),
         limit: z.coerce.number().int().min(1).max(200).optional(),
         cursor: z.string().max(400).optional(),
       }),
@@ -514,6 +518,7 @@ export function createApp(deps: Deps) {
       await guestsSvc.list(c.req.param('id'), c.get('userId'), {
         search: q.q,
         status: q.status,
+        cardKind: q.cardKind,
         limit: q.limit,
         cursor: q.cursor,
       }),
@@ -531,6 +536,7 @@ export function createApp(deps: Deps) {
         csv: z.string().min(1).max(2_000_000),
         dryRun: z.boolean().optional(),
         defaultGroup: z.string().max(40).optional(),
+        defaultCardKind: cardKindSchema.optional(),
       }),
       await body(c),
     );

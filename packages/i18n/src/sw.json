@@ -223,7 +223,22 @@
     "installHint": "Fungua menyu ya kivinjari kisha chagua \"Ongeza kwenye skrini ya mwanzo\".",
     "openedOffline": "Kadi hii itaonekana hata bila mtandao.",
     "groupLabel": "Kikundi: {group}",
-    "dearGuest": "Mpendwa {guest}"
+    "dearGuest": "Mpendwa {guest}",
+    "trustContactPhone": "Simu ya mawasiliano: {phone}",
+    "callContact": "Piga simu {phone}",
+    "footerContactGeneric": "Mawasiliano",
+    "programmeTitle": "Ratiba",
+    "contribEyebrow": "Mchango wa {kind}",
+    "contribGreeting": "Habari {guest}. Tunakuomba uchangie {kind} yetu.",
+    "contribMessage": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha siku hii. Asante kwa kuwa nasi.",
+    "contribTarget": "Lengo la michango: {target}",
+    "contribProgress": "Imekusanywa {collected} kati ya {target}",
+    "contribDeadline": "Mwisho wa kuchangia: {date}",
+    "contribSuggested": "Chagua kiasi",
+    "contribWhen": "Tukio: {date}, {venue}",
+    "contribMeta": "Mchango wa {kind} ya {couple}",
+    "contribMetaDescription": "Changia kwa simu. {sender}.",
+    "contribClosed": "Michango haipokelewi kwa sasa kupitia kadi hii."
   },
   "pay": {
     "title": "Lipa mchango",
@@ -303,7 +318,8 @@
     "ownerOnly": "Sehemu hii ni kwa mwenye harusi tu.",
     "gateNoConsole": "Walinda lango hutumia programu ya simu ya Harusi Pass. Dashibodi hii ni kwa wenye harusi na kamati.",
     "gateNoConsoleTitle": "Huna ruhusa ya dashibodi",
-    "opsLink": "Dashibodi ya wafanyakazi"
+    "opsLink": "Dashibodi ya wafanyakazi",
+    "content": "Maandishi ya kadi"
   },
   "auth": {
     "title": "Ingia kwenye Harusi Pass",
@@ -659,7 +675,11 @@
     "contactsTitle": "Chagua kutoka kwenye anwani",
     "contactsMock": "Anwani za mfano (kivinjari hiki hakiruhusu kusoma anwani za simu).",
     "contactsAdd": "Ongeza {count, plural, one {#} other {#}}",
-    "contactsAdded": "{count, plural, one {Mgeni # ameongezwa} other {Wageni # wameongezwa}}"
+    "contactsAdded": "{count, plural, one {Mgeni # ameongezwa} other {Wageni # wameongezwa}}",
+    "cardKindContribution": "Kadi ya michango",
+    "filter": {
+      "contribution": "Kadi za michango"
+    }
   },
   "guestForm": {
     "title": "Ongeza mgeni",
@@ -681,7 +701,13 @@
     "saved": "{name} amehifadhiwa",
     "duplicatePhone": "Namba hii tayari ni ya mgeni mwingine",
     "decrease": "Punguza idadi",
-    "increase": "Ongeza idadi"
+    "increase": "Ongeza idadi",
+    "cardKind": "Aina ya kadi",
+    "cardKinds": {
+      "invitation": "Kadi ya mwaliko (jibu na QR)",
+      "contribution": "Kadi ya michango (inaomba mchango tu)"
+    },
+    "cardKindHelp": "Kadi ya michango haina vitufe vya kujibu wala QR, na mtu huyo haingizwi langoni."
   },
   "import": {
     "title": "Ingiza orodha ya wageni",
@@ -739,7 +765,8 @@
     "goGuests": "Ona wageni",
     "goSend": "Tuma kadi",
     "rowsLabel": "Mistari ya hakiki",
-    "empty": "Hakuna mistari iliyopatikana. Hakikisha kila mgeni yuko kwenye mstari wake."
+    "empty": "Hakuna mistari iliyopatikana. Hakikisha kila mgeni yuko kwenye mstari wake.",
+    "defaultCardKind": "Tuma hizi kama"
   },
   "guestDetail": {
     "back": "Rudi kwa wageni",
@@ -1499,5 +1526,131 @@
     "linkPin": "PIN",
     "linkUrl": "Kiungo",
     "openGate": "Fungua kiskana"
+  },
+  "content": {
+    "title": "Maandishi ya kadi na ujumbe",
+    "intro": "Badilisha maneno, vichwa na sehemu za kadi na ujumbe wako. Usichoandika kinatumia maneno yetu ya kawaida, kwa hiyo unaandika tu unachotaka kubadilisha.",
+    "tabs": {
+      "sender": "Mtumaji",
+      "invitation": "Kadi ya mwaliko",
+      "contribution": "Kadi ya michango",
+      "messages": "Ujumbe (SMS)"
+    },
+    "save": "Hifadhi mabadiliko",
+    "saved": "Imehifadhiwa",
+    "saveFailed": "Haikuhifadhiwa. Angalia sehemu zilizoonyeshwa.",
+    "unsaved": "Una mabadiliko ambayo hayajahifadhiwa",
+    "langSw": "Kiswahili",
+    "langEn": "English",
+    "optional": "si lazima",
+    "standard": "Maneno ya kawaida yanatumika kama hapa pako wazi",
+    "sender": {
+      "intro": "Mialiko mara nyingi hutumwa na familia. Chagua mgeni aone nani ni mtumaji.",
+      "kind": "Nani anatuma?",
+      "kinds": {
+        "family": "Familia",
+        "committee": "Kamati",
+        "couple": "Wanandoa",
+        "host": "Mwenyeji",
+        "custom": "Mtu mwingine"
+      },
+      "name": "Jina la mtumaji",
+      "nameHint": "Linaonekana kama “Mwaliko huu umetumwa na …”. Kwa mfano “Familia ya Mzee Mwinyi”.",
+      "phone": "Namba ya simu ambayo wageni wanaweza kupiga",
+      "phoneHint": "Inaonekana kwenye kadi na kwenye ujumbe. Ikiwa wazi, namba ya mawasiliano ya mipangilio ya tukio inatumika.",
+      "trustLine": "Badilisha sentensi nzima ya “imetumwa na”",
+      "trustHint": "Tumia {sender} mahali jina linapotakiwa kuonekana."
+    },
+    "invitation": {
+      "intro": "Wanachokiona wageni kwenye kadi ya mwaliko.",
+      "eyebrow": "Mstari juu ya majina",
+      "eyebrowHint": "Kwa mfano “Karibu kwenye harusi ya”. Kawaida: “Harusi ya”.",
+      "greeting": "Salamu kwa mgeni",
+      "greetingHint": "Unaweza kutumia {guest} kwa jina lake.",
+      "body": "Ujumbe mkuu",
+      "bodyHint": "Mistari michache kutoka kwa familia. Mstari mpya unaanza aya mpya.",
+      "programme": "Ratiba",
+      "programmeAdd": "Ongeza mstari",
+      "programmeTime": "Saa",
+      "programmeTitle": "Kinachofanyika",
+      "programmeRemove": "Ondoa mstari huu",
+      "venueNote": "Maelezo kuhusu ukumbi",
+      "venueNoteHint": "Maelekezo, maegesho, alama za kutambua.",
+      "dressNote": "Maelezo kuhusu mavazi",
+      "rsvpQuestion": "Swali juu ya vitufe vya jibu",
+      "rsvpYes": "Kitufe cha “Ndiyo”",
+      "rsvpNo": "Kitufe cha “Hapana”",
+      "closing": "Ujumbe wa mwisho",
+      "footerNote": "Maelezo madogo chini",
+      "show": "Sehemu zinazoonekana kwenye kadi",
+      "showMap": "Kitufe cha ramani",
+      "showDress": "Mavazi",
+      "showCalendar": "Kitufe cha kuongeza kwenye kalenda",
+      "showQr": "QR na namba ya kadi",
+      "showRsvp": "Vitufe vya kujibu",
+      "showPledge": "Sehemu ya michango",
+      "qrWarning": "Bila QR, wageni hawana cha kuonyesha langoni isipokuwa namba ya kadi."
+    },
+    "contribution": {
+      "intro": "Kadi ya michango inamwomba mtu mmoja achangie. Haina vitufe vya kujibu wala QR, na mtu huyo hahesabiwi kama mgeni langoni. Itumie kwa ndugu na marafiki ambao hawawezi kuhudhuria, au unaotaka kuwaomba mchango tu.",
+      "eyebrow": "Mstari juu ya majina",
+      "title": "Kichwa cha sehemu ya michango",
+      "greeting": "Salamu",
+      "message": "Ujumbe wa kuomba mchango",
+      "payNote": "Maneno kuhusu kulipa",
+      "payNoteHint": "Kwa mfano jinsi unavyotaka watu wahifadhi ujumbe wa uthibitisho.",
+      "thanks": "Ujumbe wa shukrani",
+      "closing": "Ujumbe wa mwisho",
+      "amounts": "Viasi vinavyopendekezwa",
+      "amountsHint": "Namba nzima zikitenganishwa na koma, kwa mfano 10000, 20000, 50000. Wageni wanaweza kuandika kiasi kingine.",
+      "amountsInvalid": "Tumia namba nzima zikitenganishwa na koma",
+      "deadline": "Siku ya mwisho ya kuchangia",
+      "show": "Kinachoonekana kwenye kadi",
+      "showTarget": "Lengo la michango",
+      "showProgress": "Kiasi kilichokusanywa hadi sasa",
+      "showProgressHint": "Kila mwenye kadi ya michango ataona jumla. Imezimwa hadi uchague.",
+      "showEvent": "Tarehe na mahali pa tukio"
+    },
+    "messages": {
+      "intro": "Maneno ya ujumbe wa SMS. Maneno yako yanabadilisha yetu; acha wazi kubaki na yetu.",
+      "inviteSms": "SMS ya mwaliko",
+      "reminderSms": "SMS ya ukumbusho",
+      "contributionSms": "SMS ya michango",
+      "pledgeReminderSms": "SMS ya ukumbusho wa ahadi",
+      "whatsappNote": "Ujumbe wa WhatsApp unatumia maneno yaliyoidhinishwa na WhatsApp. Maneno yako yanatumika kwa SMS, ambayo pia inawafikia wageni wasio na WhatsApp.",
+      "insert": "Weka",
+      "count": "Herufi {n}, takriban SMS {segments}",
+      "mustLink": "Weka {link} kwenye ujumbe ili wageni wafungue kadi.",
+      "preview": "Utakavyosomeka"
+    },
+    "vars": {
+      "guest": "Jina la mgeni",
+      "hosts": "Majina ya wenyeji",
+      "kind": "Aina ya tukio",
+      "date": "Tarehe ya tukio",
+      "time": "Saa ya kuanza",
+      "venue": "Ukumbi",
+      "link": "Kiungo cha kadi",
+      "code": "Namba ya kadi",
+      "sender": "Jina la mtumaji",
+      "phone": "Simu ya mtumaji",
+      "days": "Siku zilizobaki",
+      "target": "Lengo la michango",
+      "deadline": "Mwisho wa kuchangia",
+      "pledged": "Kiasi cha ahadi",
+      "balance": "Salio"
+    },
+    "preview": {
+      "title": "Hakiki",
+      "invitation": "Kadi ya mwaliko",
+      "contribution": "Kadi ya michango",
+      "language": "Lugha",
+      "note": "Mgeni na QR wa mfano wanaonyeshwa. Mabadiliko yako ambayo hayajahifadhiwa yanaonekana hapa."
+    },
+    "errors": {
+      "placeholder_unknown": "{name} haipatikani kwenye ujumbe huu",
+      "link_required": "Ujumbe lazima uwe na {link}",
+      "invalid": "Hii si sahihi"
+    }
   }
 }

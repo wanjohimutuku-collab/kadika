@@ -1,4 +1,6 @@
 import type {
+  CardContent,
+  CardKind,
   ChannelPref,
   Country,
   Currency,
@@ -82,6 +84,8 @@ export interface WeddingEvent {
   myRole?: 'owner' | 'committee' | 'gate';
   id: string;
   title: string;
+  /** Organiser-written texts, labels and toggles for the cards and messages (ADR 029). */
+  cardContent: CardContent;
   /** Free-text kind of invitation the organiser chose (Harusi, Send-off, Uchumba, or their own words). */
   eventKind: string;
   partnerA: string;
@@ -130,6 +134,8 @@ export interface PledgeSummary {
 export interface Guest {
   id: string;
   eventId: string;
+  /** `contribution` guests get a contribution card only: no RSVP, no QR, not admitted. */
+  cardKind: CardKind;
   displayName: string;
   phoneE164: string | null;
   hasSmartphone: boolean;
@@ -289,6 +295,8 @@ export type CardState = 'ok' | 'reissued' | 'invalid';
 export interface CardView {
   token: string;
   state: CardState;
+  /** `contribution` cards ask for a contribution only: no RSVP, no QR (ADR 029). */
+  cardKind: CardKind;
   event: Pick<
     WeddingEvent,
     | 'id'
@@ -312,6 +320,8 @@ export interface CardView {
     | 'timezone'
     | 'country'
     | 'currency'
+    | 'cardContent'
+    | 'contributionTarget'
   > | null;
   guest: {
     displayName: string;
@@ -320,6 +330,8 @@ export interface CardView {
     groupLabel: string;
     language: Language;
   } | null;
+  /** Raised so far, only when the organiser chose to show progress on contribution cards. */
+  contributionCollected?: number | null;
   /** Signed QR payload (§6.1). In mocks: `v1.….MOCKSIG`. */
   qrPayload: string | null;
   rsvp: { status: 'pending' | 'confirmed' | 'declined'; partySize: number | null };
@@ -374,6 +386,7 @@ export interface SendPreview {
 
 export interface GuestQuery {
   search?: string;
+  cardKind?: CardKind;
   filter?: GuestFilter;
   group?: string;
   sort?: { by: 'name' | 'status' | 'group' | 'updated' | 'balance'; dir: 'asc' | 'desc' };

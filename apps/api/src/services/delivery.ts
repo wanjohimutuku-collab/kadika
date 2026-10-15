@@ -1,9 +1,9 @@
 import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
-import { eventKindLabel, formatMoney, hostNames, toZoned } from '@harusi/schemas';
-import { buildInviteSms, buildReminderSms } from '@harusi/api-client';
+import { formatMoney, hostNames, toZoned } from '@harusi/schemas';
 import { pledgeSummaryOf } from './pledges';
+import { composeSms, dateText, senderOf } from './messages';
 import type { Country } from '@harusi/schemas/country';
 import { routeCountry, shortBaseFor, smsFor } from '../sms-routing';
 import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
@@ -13,42 +13,35 @@ import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import type { EventService } from './events';
 
-const MONTHS_SW = [
-  'Jan',
-  'Feb',
-  'Machi',
-  'Apr',
-  'Mei',
-  'Juni',
-  'Julai',
-  'Ago',
-  'Sep',
-  'Okt',
-  'Nov',
-  'Des',
-];
-const MONTHS_EN = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
 
-export type SendTarget = 'remaining' | 'failed' | { guestIds: string[] } | { group: string };
+/**
+ * Who a send goes to. `remaining` and `failed` fit invitations; `unanswered` (invited, no reply yet) and
+ * `all` (everyone invited who has not declined) fit reminders; ids and a group fit both (ADR 030).
+ */
+export type SendTarget =
+  'remaining' | 'failed' | 'unanswered' | 'all' | { guestIds: string[] } | { group: string };
+export type SendKind = 'invite' | 'reminder';
 export interface SendInput {
   target: SendTarget;
   /** `auto` follows each guest's channel preference (WhatsApp, falling back to SMS). */
   channel?: 'auto' | 'whatsapp' | 'sms';
+  /** `invite` (the default) is the first message; `reminder` nudges guests already invited. */
+  kind?: SendKind;
+}
+
+/** A guest who was reminded in this window is not reminded again, so a double tap or a re-run is safe. */
+export const REMINDER_COOLDOWN_MS = 12 * 3_600_000;
+const REMINDER_KINDS = ['reminder', 'reminder_14', 'reminder_7', 'reminder_1'];
+const OPEN_INVITATION = ['sent', 'delivered', 'opened'] as const;
+
+/** Rejects an audience that makes no sense for the kind, e.g. "unanswered" for a first invitation. */
+export function assertTargetFits(kind: SendKind, t: SendTarget): void {
+  if (typeof t !== 'string') return;
+  const fits =
+    kind === 'invite' ? t === 'remaining' || t === 'failed' : t === 'unanswered' || t === 'all';
+  if (!fits) throw new ApiError('validation', `The audience "${t}" does not fit a ${kind}`);
 }
 export interface SendSummary {
   total: number;
@@ -60,11 +53,7 @@ export interface SendSummary {
   failures: { guestId: string; error: string }[];
 }
 
-export function dateText(d: Date, locale: 'sw' | 'en', timeZone = 'Africa/Dar_es_Salaam'): string {
-  const t = toZoned(d, timeZone);
-  const months = locale === 'sw' ? MONTHS_SW : MONTHS_EN;
-  return `${t.getUTCDate()} ${months[t.getUTCMonth()]} ${t.getUTCFullYear()}`;
-}
+export { dateText } from './messages';
 
 /**
  * Invitation delivery (§7.2, ADR 017). Queue-agnostic: each guest is one unit of work, so a BullMQ
@@ -170,18 +159,26 @@ export class DeliveryService {
     daysLeft?: number,
   ): Promise<{ text: string; template: MessageTemplate }> {
     const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
-    const token = await this.cardToken(inv);
-    const base = {
-      locale: guest.language,
-      partnerA: a,
-      partnerB: b,
-      kind: event.eventKind,
-      dateText: dateText(event.dateStart, guest.language, event.timezone),
-      shortLink: `${shortBaseFor(this.deps.config, event.country)}/s/${token}`,
-      code: guest.shortCode,
-    };
+    const link = `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}`;
     const hosts = hostNames(a, b);
-    const when = daysLeft === undefined ? base.dateText : String(daysLeft);
+    const input = { event, guest, link, daysLeft };
+    // A contribution card asks for a contribution only; an invitation card invites (ADR 029).
+    if (guest.cardKind === 'contribution') {
+      const sender = senderOf(event, guest.language).name;
+      return {
+        text: composeSms('contribution', input),
+        template: {
+          kind: 'contribution',
+          locale: guest.language,
+          country: event.country,
+          params: [hosts, sender, link],
+        },
+      };
+    }
+    const when =
+      daysLeft === undefined
+        ? dateText(event.dateStart, guest.language, event.timezone)
+        : String(daysLeft);
     const template: MessageTemplate = {
       kind: daysLeft === undefined ? 'invite' : 'reminder',
       locale: guest.language,
@@ -189,13 +186,10 @@ export class DeliveryService {
       // Kenyan templates take one host field so a single host works (ADR 026).
       params:
         event.country === 'KE'
-          ? [hosts, when, base.shortLink, base.code]
-          : [a, b, when, base.shortLink, base.code],
+          ? [hosts, when, link, guest.shortCode]
+          : [a, b, when, link, guest.shortCode],
     };
-    return {
-      text: daysLeft === undefined ? buildInviteSms(base) : buildReminderSms({ ...base, daysLeft }),
-      template,
-    };
+    return { text: composeSms(daysLeft === undefined ? 'invite' : 'reminder', input), template };
   }
 
   /** Tries each channel in order; logs every attempt; marks the invitation sent on the first success. */
@@ -338,6 +332,7 @@ export class DeliveryService {
             eq(guests.eventId, event.id),
             isNull(guests.deletedAt),
             eq(guests.remindersOptOut, false),
+            eq(guests.cardKind, 'invitation'),
             inArray(invitations.status, ['sent', 'delivered', 'opened']),
           ),
         );
@@ -432,6 +427,7 @@ export class DeliveryService {
       ).map((r) => r.guestId),
     );
     const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
+    const hosts = hostNames(a, b);
     const out = { sent: 0, failed: 0, skipped: 0 };
     for (const { guest, inv } of rows) {
       const s = await pledgeSummaryOf(this.deps.db, guest.id);
@@ -447,12 +443,12 @@ export class DeliveryService {
       }
       const money = (n: number) => formatMoney(n, event.currency);
       const link = `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}`;
-      const sw = guest.language === 'sw';
-      const kind = eventKindLabel(event.eventKind, guest.language).toLowerCase();
-      const hosts = hostNames(a, b);
-      const text = sw
-        ? `Habari ${guest.displayName}, mchango wa ${kind} ya ${hosts}: ahadi ${money(s.amount)}, salio ${money(s.balance)}. Lipa hapa: ${link}`
-        : `Hello ${guest.displayName}, your gift for the ${kind} of ${hosts}: pledged ${money(s.amount)}, balance ${money(s.balance)}. Pay here: ${link}`;
+      const text = composeSms('pledge', {
+        event,
+        guest,
+        link,
+        pledge: { amount: s.amount, balance: s.balance },
+      });
       const channels: MessageChannel[] =
         inv.channelLast === 'whatsapp' && this.deps.whatsapp ? ['whatsapp', 'sms'] : ['sms'];
       const r = await this.dispatch(guest, inv, event, 'pledge_reminder', channels, undefined, {
@@ -471,6 +467,13 @@ export class DeliveryService {
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {
     await this.assertCanSend(eventId, userId);
+    return this.run(eventId, input);
+  }
+
+  /** The guests an audience matches, with the event; nothing is sent. */
+  private async pick(eventId: string, input: SendInput) {
+    const kind = input.kind ?? 'invite';
+    assertTargetFits(kind, input.target);
     const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
     if (!event) throw new ApiError('not_found', 'Event not found');
 
@@ -481,6 +484,21 @@ export class DeliveryService {
       .where(and(eq(guests.eventId, eventId), isNull(guests.deletedAt)));
 
     const t = input.target;
+    if (kind === 'reminder') {
+      // A reminder goes to an invitation card that was sent; contribution cards have pledge reminders.
+      const open = (s: string) => (OPEN_INVITATION as readonly string[]).includes(s);
+      const picked = rows.filter(({ guest, inv }) => {
+        if (guest.cardKind !== 'invitation') return false;
+        if (t === 'unanswered') return open(inv.status);
+        if (t === 'all') return open(inv.status) || inv.status === 'confirmed';
+        if (typeof t === 'string') return false;
+        if ('guestIds' in t)
+          return t.guestIds.includes(guest.id) && (open(inv.status) || inv.status === 'confirmed');
+        return guest.groupLabel === t.group && open(inv.status);
+      });
+      return { event, kind, picked };
+    }
+
     const failedIds =
       t === 'failed'
         ? new Set(
@@ -495,9 +513,54 @@ export class DeliveryService {
     const picked = rows.filter(({ guest, inv }) => {
       if (t === 'remaining') return inv.status === 'created';
       if (t === 'failed') return inv.status === 'created' && failedIds!.has(guest.id);
+      if (typeof t === 'string') return false;
       if ('guestIds' in t) return t.guestIds.includes(guest.id);
       return guest.groupLabel === t.group && inv.status === 'created';
     });
+    return { event, kind, picked };
+  }
+
+  /** How many guests an audience matches right now (a scheduled send stores this as its estimate). */
+  async countAudience(eventId: string, input: SendInput): Promise<number> {
+    return (await this.pick(eventId, input)).picked.length;
+  }
+
+  /**
+   * Sends to an audience with no user check: the caller has already authorised it, either a member
+   * who asked just now or a scheduled send whose creator asked earlier (ADR 030).
+   */
+  async run(eventId: string, input: SendInput): Promise<SendSummary> {
+    const { event, kind, picked } = await this.pick(eventId, input);
+    const now = this.deps.now();
+
+    // Reminders only make sense before the day, and only once in a while per guest.
+    let reminded = new Set<string>();
+    let daysLeft: number | undefined;
+    if (kind === 'reminder') {
+      if (event.dateStart.getTime() <= now.getTime())
+        throw new ApiError('conflict', 'The event has already happened');
+      const dayOf = (d: Date) => Math.floor(toZoned(d, event.timezone).getTime() / 86_400_000);
+      daysLeft = Math.max(0, dayOf(event.dateStart) - dayOf(now));
+      if (picked.length > 0)
+        reminded = new Set(
+          (
+            await this.deps.db
+              .select({ guestId: messageLog.guestId })
+              .from(messageLog)
+              .where(
+                and(
+                  inArray(
+                    messageLog.guestId,
+                    picked.map((p) => p.guest.id),
+                  ),
+                  inArray(messageLog.kind, REMINDER_KINDS),
+                  eq(messageLog.status, 'sent'),
+                  gt(messageLog.createdAt, new Date(now.getTime() - REMINDER_COOLDOWN_MS)),
+                ),
+              )
+          ).map((r) => r.guestId),
+        );
+    }
 
     const summary: SendSummary = {
       total: picked.length,
@@ -509,11 +572,15 @@ export class DeliveryService {
     };
     for (const { guest, inv } of picked) {
       const channels = this.channelsFor(guest, input.channel ?? 'auto');
-      if (channels.length === 0) {
+      // A guest who asked to stop reminders is never reminded, even when picked by hand.
+      const skip =
+        channels.length === 0 ||
+        (kind === 'reminder' && (guest.remindersOptOut || reminded.has(guest.id)));
+      if (skip) {
         summary.skipped++;
         continue;
       }
-      const r = await this.dispatch(guest, inv, event, 'invite', channels);
+      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft);
       if (r.ok) {
         summary.sent++;
         summary.byChannel[r.channel === 'whatsapp' ? 'whatsapp' : 'sms']++;
@@ -532,7 +599,13 @@ export class DeliveryService {
       .select({ status: invitations.status, n: sql<number>`count(*)::int` })
       .from(invitations)
       .innerJoin(guests, eq(guests.id, invitations.guestId))
-      .where(and(eq(guests.eventId, eventId), isNull(guests.deletedAt)))
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          eq(guests.cardKind, 'invitation'),
+        ),
+      )
       .groupBy(invitations.status);
     const byStatus: Record<string, number> = {};
     for (const r of rows) byStatus[r.status] = r.n;
@@ -557,6 +630,7 @@ export class DeliveryService {
         and(
           eq(guests.eventId, eventId),
           isNull(guests.deletedAt),
+          eq(guests.cardKind, 'invitation'),
           inArray(invitations.status, ['confirmed', 'checked_in']),
         ),
       );
@@ -566,9 +640,21 @@ export class DeliveryService {
       .where(
         and(eq(guests.eventId, eventId), isNull(guests.deletedAt), eq(guests.hasSmartphone, false)),
       );
+    const [contrib] = await this.deps.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(guests)
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          eq(guests.cardKind, 'contribution'),
+        ),
+      );
     return {
       total,
       byStatus,
+      /** Guests who only receive a contribution card (not counted in the invitation funnel). */
+      contributionGuests: contrib?.n ?? 0,
       failedMessages: failedGuests.length,
       headcountConfirmed: people?.n ?? 0,
       featurePhoneGuests: feature?.n ?? 0,

@@ -55,6 +55,7 @@ export function applyGuestQuery(list: Guest[], query: GuestQuery = {}): Guest[] 
   let out = list.filter(
     (g) =>
       matchesFilter(g, query.filter ?? 'all') &&
+      (!query.cardKind || g.cardKind === query.cardKind) &&
       matchesSearch(g, query.search ?? '') &&
       (!query.group || g.groupLabel === query.group),
   );

@@ -2,7 +2,12 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { MessageTemplate, MessagingProvider, SendResult } from './index';
 import type { DeliveryState } from './evolution';
 
-export type TemplateNames = { invite?: string; reminder?: string; pledge?: string };
+export type TemplateNames = {
+  invite?: string;
+  reminder?: string;
+  pledge?: string;
+  contribution?: string;
+};
 
 export interface WhatsAppCloudOptions {
   /** Permanent system-user access token. Never log it. */

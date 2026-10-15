@@ -106,6 +106,20 @@
       "when": 1792062109847,
       "tag": "0014_message_network",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792067991474,
+      "tag": "0015_card_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792076879681,
+      "tag": "0016_scheduled_sends",
+      "breakpoints": true
     }
   ]
 }

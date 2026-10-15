@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import type { CardContent } from '@harusi/schemas/card-content';
 import { allowedCountries, currencyOf, timezoneOf, type Country } from '@harusi/schemas/country';
 import { eventMembers, events, newId, signingKeys } from '@harusi/db';
 import { generateEventKeyPair } from '@harusi/crypto';
@@ -31,6 +32,8 @@ export interface EventInput {
   contributionTarget?: number | null;
   pledgesEnabled?: boolean;
   brandTheme?: Record<string, unknown> | null;
+  /** Validated by the route; new events default to family-sent cards (ADR 029). */
+  cardContent?: CardContent;
 }
 
 /**
@@ -93,6 +96,7 @@ export class EventService {
           currency: currencyOf(country),
           timezone: timezoneOf(country),
           brandTheme: mergeBrandTheme(null, input.brandTheme),
+          cardContent: input.cardContent ?? { sender: { kind: 'family' } },
         })
         .returning();
       await tx

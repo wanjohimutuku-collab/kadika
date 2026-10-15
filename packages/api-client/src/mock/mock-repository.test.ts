@@ -467,6 +467,6 @@ describe('saved demo state from before the money rename', () => {
     const events = await r2.listEvents();
     expect(events.length).toBeGreaterThan(0);
     for (const e of events) expect(Number.isFinite(e.stats.collected)).toBe(true);
-    expect(JSON.parse(storage.getItem('harusi.mock.v1')!).version).toBe(4);
+    expect(JSON.parse(storage.getItem('harusi.mock.v1')!).version).toBe(5);
   });
 });

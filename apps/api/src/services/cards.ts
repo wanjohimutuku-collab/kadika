@@ -1,5 +1,5 @@
-import { and, eq, isNull } from 'drizzle-orm';
-import { events, guests, invitations, retiredCardTokens, signingKeys } from '@harusi/db';
+import { and, eq, isNull, sql } from 'drizzle-orm';
+import { events, guests, invitations, payments, retiredCardTokens, signingKeys } from '@harusi/db';
 import { hashGuestToken } from '@harusi/crypto';
 import { signQrTokenFast as signQrToken } from '../qr-sign';
 import type { Deps } from '../context';
@@ -23,6 +23,8 @@ const EVENT_OVER_MS = 12 * 3_600_000;
 
 export interface CardView {
   state: 'ok' | 'reissued' | 'invalid';
+  /** `contribution` cards ask for a contribution only: no RSVP, no QR, no admission. */
+  cardKind: 'invitation' | 'contribution';
   event: {
     id: string;
     eventKind: string | null;
@@ -34,6 +36,9 @@ export interface CardView {
     committeePhone: string | null;
     senderName: string | null;
     greeting: string | null;
+    /** Organiser-written texts, labels and toggles (ADR 029). */
+    cardContent: Record<string, unknown>;
+    contributionTarget: number | null;
     brandTheme: Record<string, unknown> | null;
     pledgesEnabled: boolean;
     rsvpDeadline: Date | null;
@@ -48,6 +53,8 @@ export interface CardView {
     groupLabel: string | null;
     language: 'sw' | 'en';
   } | null;
+  /** Raised so far; only filled when the organiser shows progress on contribution cards. */
+  contributionCollected: number | null;
   qrPayload: string | null;
   pledge: PledgeSummary | null;
   rsvp: { status: 'pending' | 'confirmed' | 'declined'; partySize: number | null };
@@ -57,8 +64,10 @@ export interface CardView {
 
 const EMPTY = (state: 'reissued' | 'invalid'): CardView => ({
   state,
+  cardKind: 'invitation',
   event: null,
   guest: null,
+  contributionCollected: null,
   qrPayload: null,
   pledge: null,
   rsvp: { status: 'pending', partySize: null },
@@ -88,6 +97,7 @@ export class CardService {
     row: NonNullable<Awaited<ReturnType<CardService['find']>>['row']>,
     qrPayload: string,
     pledge: PledgeSummary | null = null,
+    collected: number | null = null,
   ): CardView {
     const { guest, invitation, event } = row;
     const now = this.deps.now().getTime();
@@ -102,8 +112,10 @@ export class CardService {
         : invitation.status === 'declined'
           ? 'declined'
           : 'pending';
+    const contribution = guest.cardKind === 'contribution';
     return {
       state: 'ok',
+      cardKind: guest.cardKind,
       event: {
         id: event.id,
         eventKind: event.eventKind,
@@ -115,6 +127,8 @@ export class CardService {
         committeePhone: event.committeePhone,
         senderName: event.senderName,
         greeting: event.greeting,
+        cardContent: event.cardContent,
+        contributionTarget: event.contributionTarget,
         brandTheme: event.brandTheme,
         pledgesEnabled: event.pledgesEnabled,
         rsvpDeadline: event.rsvpDeadline,
@@ -129,16 +143,33 @@ export class CardService {
         groupLabel: guest.groupLabel,
         language: guest.language,
       },
+      contributionCollected: collected,
       qrPayload,
       pledge,
       rsvp: { status: answered, partySize: invitation.rsvpPartySize },
       rsvpOpen:
+        !contribution &&
         !eventPassed &&
         !deadlinePassed &&
         invitation.status !== 'checked_in' &&
         event.status !== 'archived',
       eventPassed,
     };
+  }
+
+  /** Total confirmed contributions for the event, but only if the organiser chose to show progress. */
+  private async collectedFor(
+    row: NonNullable<Awaited<ReturnType<CardService['find']>>['row']>,
+  ): Promise<number | null> {
+    const show = (row.event.cardContent as { contribution?: { show?: { progress?: boolean } } })
+      .contribution?.show?.progress;
+    if (!show || !row.event.contributionTarget) return null;
+    const [r] = await this.deps.db
+      .select({ n: sql<number>`coalesce(sum(${payments.amount}), 0)::int` })
+      .from(payments)
+      .innerJoin(guests, eq(guests.id, payments.guestId))
+      .where(and(eq(guests.eventId, row.event.id), eq(payments.status, 'success')));
+    return r?.n ?? 0;
   }
 
   /**
@@ -183,7 +214,12 @@ export class CardService {
   async preview(token: string): Promise<CardView> {
     const { row } = await this.find(token);
     return row
-      ? this.view(row, '', await pledgeSummaryOf(this.deps.db, row.guest.id))
+      ? this.view(
+          row,
+          '',
+          await pledgeSummaryOf(this.deps.db, row.guest.id),
+          await this.collectedFor(row),
+        )
       : EMPTY('invalid');
   }
 
@@ -204,7 +240,12 @@ export class CardService {
         .where(eq(invitations.id, row.invitation.id));
       row.invitation.status = 'opened';
     }
-    return this.view(row, await this.qr(row), await pledgeSummaryOf(this.deps.db, row.guest.id));
+    return this.view(
+      row,
+      row.guest.cardKind === 'contribution' ? '' : await this.qr(row),
+      await pledgeSummaryOf(this.deps.db, row.guest.id),
+      await this.collectedFor(row),
+    );
   }
 
   /** Idempotent: answering the same way again changes nothing; a changed answer replaces the old one. */
@@ -221,6 +262,10 @@ export class CardService {
         retired ? { reason: 'reissued' } : undefined,
       );
     }
+    if (row.guest.cardKind === 'contribution')
+      throw new ApiError('conflict', 'This card does not take replies', {
+        reason: 'not_applicable',
+      });
     const open = this.view(row, '').rsvpOpen;
     if (!open) throw new ApiError('conflict', 'Replies are closed', { reason: 'rsvp_closed' });
     const party = input.attending

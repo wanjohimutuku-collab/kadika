@@ -41,6 +41,8 @@ describe('tiny ICU formatter', () => {
       n: 2,
       group: 'Marafiki',
       kind: 'Harusi',
+      target: 'TZS 1,000,000',
+      collected: 'TZS 250,000',
       failed: 3,
       total: 120,
     };

@@ -32,6 +32,7 @@ export const globalRoleEnum = pgEnum('global_role', ['user', 'admin']);
 export const staffRoleEnum = pgEnum('staff_role', ['support', 'billing', 'admin']);
 export const userStatusEnum = pgEnum('user_status', ['active', 'suspended']);
 export const eventStatusEnum = pgEnum('event_status', ['draft', 'active', 'completed', 'archived']);
+export const cardKindEnum = pgEnum('card_kind', ['invitation', 'contribution']);
 export const countryEnum = pgEnum('country', ['TZ', 'KE']);
 export const currencyEnum = pgEnum('currency', ['TZS', 'KES']);
 export const eventPlanEnum = pgEnum('event_plan', ['free', 'paid']);
@@ -105,6 +106,8 @@ export const events = pgTable('events', {
   // Logical reference to signing_keys.id; no FK to avoid a circular dependency (see ADR 002).
   signingKeyId: uuid('signing_key_id'),
   brandTheme: jsonb('brand_theme').$type<Record<string, unknown>>(),
+  /** Organiser-written texts, labels and toggles for the cards and messages (ADR 029). Validated on write. */
+  cardContent: jsonb('card_content').$type<Record<string, unknown>>().notNull().default({}),
   rsvpDeadline: timestamp('rsvp_deadline', { withTimezone: true }),
   contributionTarget: integer('contribution_target'),
   /** Whether guests may pledge and pay from their card (§7.3). */
@@ -161,6 +164,8 @@ export const guests = pgTable(
     phoneE164: text('phone_e164'),
     hasSmartphone: boolean('has_smartphone'),
     groupLabel: text('group_label'),
+    /** `invitation`: the full card with RSVP and QR. `contribution`: only asks for a contribution (ADR 029). */
+    cardKind: cardKindEnum('card_kind').notNull().default('invitation'),
     partySizeAllowed: integer('party_size_allowed').notNull().default(1),
     shortCode: text('short_code').notNull(),
     // Last 8 hex characters of the guest id: the on-card id inside the signed QR (ADR 013).
@@ -214,7 +219,10 @@ export const messageLog = pgTable(
       .notNull()
       .references(() => guests.id, { onDelete: 'cascade' }),
     channel: messageChannelEnum('channel').notNull(),
-    /** invite | fallback | reminder_14 | reminder_7 | reminder_1 — dedupes automatic sends. */
+    /**
+     * invite | fallback | reminder | reminder_14 | reminder_7 | reminder_1 | pledge_reminder.
+     * The `reminder_N` kinds dedupe the automatic sends; `reminder` is one the organiser asked for.
+     */
     kind: text('kind').notNull().default('invite'),
     provider: text('provider').notNull(),
     providerMsgId: text('provider_msg_id'),
@@ -405,6 +413,47 @@ export const idempotencyKeys = pgTable(
     ...timestamps,
   },
   (t) => [uniqueIndex('idempotency_user_key_uq').on(t.userId, t.key)],
+);
+
+export const sendKindEnum = pgEnum('send_kind', ['invite', 'reminder']);
+export const scheduledSendStatusEnum = pgEnum('scheduled_send_status', [
+  'scheduled',
+  'running',
+  'done',
+  'cancelled',
+]);
+
+/**
+ * Invitations and reminders the organiser asked to go out later (ADR 030). A guest never needs an
+ * account: the audience is stored as a rule (everyone unanswered, a group, picked guests) and turned
+ * into phone numbers only when the time comes, so guests added in between are included.
+ */
+export const scheduledSends = pgTable(
+  'scheduled_sends',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id),
+    kind: sendKindEnum('kind').notNull(),
+    /** `remaining` | `unanswered` | `all` | `{ guestIds }` | `{ group }` (see `SendTarget`). */
+    target: jsonb('target').$type<string | Record<string, unknown>>().notNull(),
+    channel: text('channel').notNull().default('auto'),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
+    status: scheduledSendStatusEnum('status').notNull().default('scheduled'),
+    /** Guests the audience matched when it was scheduled; the real outcome is in `summary`. */
+    recipientCount: integer('recipient_count').notNull().default(0),
+    /** The `SendSummary` of the run, once it has happened. */
+    summary: jsonb('summary'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('scheduled_sends_due_idx').on(t.status, t.scheduledFor),
+    index('scheduled_sends_event_idx').on(t.eventId, t.scheduledFor),
+  ],
 );
 
 /** Card tokens replaced by a reissue: their links show "kadi imebadilishwa" instead of "invalid". */

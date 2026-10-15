@@ -207,7 +207,14 @@ export class GateService {
     const rows = await this.deps.db
       .select()
       .from(guests)
-      .where(and(eq(guests.eventId, eventId), isNull(guests.deletedAt)))
+      // Contribution-only guests have no QR and are never admitted at the gate (ADR 029).
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          eq(guests.cardKind, 'invitation'),
+        ),
+      )
       .orderBy(asc(guests.displayName), asc(guests.id));
     const body = {
       event: {

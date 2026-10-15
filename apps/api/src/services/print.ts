@@ -40,6 +40,7 @@ export class PrintService {
         and(
           eq(guests.eventId, eventId),
           isNull(guests.deletedAt),
+          eq(guests.cardKind, 'invitation'),
           input.guestIds ? inArray(guests.id, input.guestIds) : undefined,
         ),
       )

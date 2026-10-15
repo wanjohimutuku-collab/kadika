@@ -1,4 +1,11 @@
 import { eventKindLabel } from '@harusi/schemas';
+import {
+  flag,
+  pick,
+  renderTemplate,
+  senderKindOf,
+  type CardContent,
+} from '@harusi/schemas/card-content';
 import { messages, pickMessages, type Locale } from '@harusi/i18n';
 import { lightColors } from '@harusi/ui-tokens/colors';
 import { mixHex, resolvePalette, type Palette } from '@harusi/ui-tokens/palette';
@@ -122,6 +129,13 @@ footer nav a{min-height:40px;display:inline-flex;align-items:center}
 .lang{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .lang button{min-height:40px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
 .lang button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.msg{display:flex;flex-direction:column;gap:8px}
+.prog{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.prog li{display:flex;gap:12px}
+.prog b{min-width:5.5ch}
+.bar{height:10px;border-radius:999px;background:var(--border);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--hp-primary)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media print{.no-print{display:none!important}.card{border:0;margin:0}}
 `;
@@ -216,16 +230,51 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const t = m.card;
   const cur = event.currency ?? 'TZS';
   const guest = view.guest!;
+  const isContribution = view.cardKind === 'contribution';
+
+  // What the organiser wrote (ADR 029). Every piece falls back to the built-in wording.
+  const content = (event.cardContent ?? {}) as CardContent;
+  const inv = content.invitation ?? {};
+  const con = content.contribution ?? {};
+  const L = (v?: { sw?: string; en?: string }) => pick(v, locale);
+  const kindName = eventKindLabel(event.eventKind, locale);
+  const kindLower = kindName.toLowerCase();
+  const senderKind = senderKindOf(content);
+  const sender = content.sender?.name?.trim() || event.senderName;
+  const phoneRaw = content.sender?.phone?.trim() || event.committeePhone || '';
+  const phone = formatPhone(phoneRaw, event.country ?? 'TZ');
+  const telHref = phoneRaw.replace(/[^\d+]/g, '');
+  const vars = {
+    guest: guest.displayName,
+    hosts: event.coupleNames,
+    kind: kindLower,
+    sender,
+    phone,
+    venue: event.venueName,
+    date: formatDate(event.dateStart, locale),
+  };
+  const say = (tpl: string) => renderTemplate(tpl, vars);
+  const paras = (text: string, cls = '') =>
+    text
+      .split(/\n+/)
+      .filter((p) => p.trim())
+      .map((p) => `<p${cls}>${esc(say(p))}</p>`)
+      .join('');
+  const shown = (
+    flags: Record<string, boolean | undefined> | undefined,
+    key: string,
+    fallback = true,
+  ) => flag(flags, key, fallback);
+
   const people = (n: number) => fmt(m.common.people!, { count: n });
   const answered = view.rsvp.status !== 'pending';
   const rsvpOpen = view.rsvpOpen && !view.eventPassed;
   const partyMax = Math.max(1, guest.partySizeAllowed);
   const partyShown = Math.max(1, view.rsvp.partySize || partyMax);
 
-  const qr = view.qrPayload ? qrMatrix(view.qrPayload) : null;
+  const qr = view.qrPayload && !isContribution ? qrMatrix(view.qrPayload) : null;
   const qrDim = qr ? qr.size + QR_QUIET_ZONE * 2 : 0;
   const qrD = qr ? qrPath(qr) : '';
-  const phone = formatPhone(event.committeePhone);
   const mapHref =
     event.venueMapUrl ||
     `https://www.openstreetmap.org/search?query=${encodeURIComponent(event.venueName)}`;
@@ -238,8 +287,12 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
       ? `Saa ${swahiliTime(event.dateStart)} (${formatClock(event.dateStart)})`
       : formatTime(event.dateStart, locale);
 
-  const qrSection = qr
-    ? `<section class="qr" id="hp-qr" aria-labelledby="qr-title"${view.rsvp.status === 'declined' ? ' hidden' : ''}>
+  const calendarButton = shown(inv.show, 'calendar')
+    ? `<button type="button" class="btn" id="hp-cal">${esc(t.addCalendar)}</button>\n`
+    : '';
+  const qrSection =
+    qr && shown(inv.show, 'qr')
+      ? `<section class="qr" id="hp-qr" aria-labelledby="qr-title"${view.rsvp.status === 'declined' ? ' hidden' : ''}>
 <h2 id="qr-title">${esc(t.qrTitle)}</h2>
 <div class="qrbox" data-testid="qr-block"><svg role="img" aria-label="${esc(fmt(t.qrAlt!, { code: guest.shortCode }))}" viewBox="0 0 ${qrDim} ${qrDim}" shape-rendering="crispEdges"><rect width="${qrDim}" height="${qrDim}" fill="#FFFFFF"/><path d="${qrD}" fill="#000000"/></svg></div>
 <p><span class="muted" style="font-size:14px;display:block">${esc(t.codeLabel)}</span><span class="code" data-testid="short-code">${esc(guest.shortCode)}</span></p>
@@ -248,16 +301,18 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
 ${view.isMock ? `<p class="muted" style="font-size:12px">${esc(t.mockToken)}</p>` : ''}
 <div class="actions no-print">
 <button type="button" class="btn" id="hp-dl-qr" data-testid="download-qr">${esc(t.downloadQr)}</button>
-<button type="button" class="btn" id="hp-cal">${esc(t.addCalendar)}</button>
-<button type="button" class="btn" id="hp-install">${esc(t.addHome)}</button>
+${calendarButton}<button type="button" class="btn" id="hp-install">${esc(t.addHome)}</button>
 <button type="button" class="btn" id="hp-print">${esc(t.savePdf)}</button>
 </div><p id="hp-install-hint" class="muted" style="font-size:14px" role="status" hidden>${esc(t.installHint)}</p>
 </section>`
-    : '';
+      : '';
 
+  const rsvpQuestion = L(inv.rsvpQuestion) ?? t.rsvpQuestion!;
+  const rsvpYes = L(inv.rsvpYesLabel) ?? t.rsvpYes!;
+  const rsvpNo = L(inv.rsvpNoLabel) ?? t.rsvpNo!;
   const rsvpBody = view.eventPassed
     ? `<div class="banner info"><b>${esc(t.eventPassedTitle)}</b><br>${esc(t.eventPassedBody)}</div>`
-    : `<h2 id="rsvp-title">${esc(t.rsvpQuestion)}</h2>
+    : `<h2 id="rsvp-title">${esc(say(rsvpQuestion))}</h2>
 <div id="hp-rsvp-banner" class="banner" hidden></div>
 <p id="hp-saving" class="muted mt" role="status" hidden>${esc(t.rsvpSaving)}</p>
 <div id="hp-rsvp-summary" class="summary mt" data-testid="rsvp-summary"${answered ? '' : ' hidden'}>
@@ -270,48 +325,122 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
 <div class="stepper"><span id="hp-party-label">${esc(t.partySize)}<br><span class="muted" style="font-size:14px">${esc(fmt(t.partySizeHelp!, { max: partyMax }))}</span></span>
 <span class="stepper"><button type="button" class="btn" id="hp-dec" aria-label="${esc(t.decrease)}">−</button><b id="hp-party-count" aria-live="polite">${partyShown}</b><button type="button" class="btn" id="hp-inc" aria-label="${esc(t.increase)}">+</button></span></div>
 <button type="button" class="btn primary lg block" id="hp-send" data-testid="rsvp-submit">${esc(t.sendAnswer)}</button></div>
-<div id="hp-answer-row" class="grid2"><button type="button" class="btn primary lg" id="hp-yes" data-testid="rsvp-yes">${esc(t.rsvpYes)}</button><button type="button" class="btn accent lg" id="hp-no" data-testid="rsvp-no">${esc(t.rsvpNo)}</button></div>
+<div id="hp-answer-row" class="grid2"><button type="button" class="btn primary lg" id="hp-yes" data-testid="rsvp-yes">${esc(say(rsvpYes))}</button><button type="button" class="btn accent lg" id="hp-no" data-testid="rsvp-no">${esc(say(rsvpNo))}</button></div>
 </div>`;
 
+  const payHref = `/c/${encodeURIComponent(view.token)}/pay`;
+  const pledgeSummary =
+    view.pledge && view.pledge.amount > 0
+      ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatMoney(view.pledge.amount, cur), paid: formatMoney(view.pledge.paid, cur), balance: formatMoney(view.pledge.balance, cur) }))}</p>`
+      : `<p class="muted">${esc(t.pledgeNone)}</p>`;
+  const paidInFull = !!view.pledge && view.pledge.amount > 0 && view.pledge.balance === 0;
+  const payButton = paidInFull
+    ? `<p class="mt"><b>✔ ${esc(t.pledgePaidInFull)}</b></p>`
+    : `<a class="btn primary block mt" href="${payHref}" data-testid="pay-link">${esc(t.pay)}</a>`;
+
+  // The invitation card can carry a contribution section; the contribution card is built around it.
   const pledge =
-    event.pledgesEnabled && !view.eventPassed
-      ? `<section class="no-print"><h2>${esc(t.pledgeTitle)}</h2>${
-          view.pledge && view.pledge.amount > 0
-            ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatMoney(view.pledge.amount, cur), paid: formatMoney(view.pledge.paid, cur), balance: formatMoney(view.pledge.balance, cur) }))}</p>`
-            : `<p class="muted">${esc(t.pledgeNone)}</p>`
-        }${
-          view.pledge && view.pledge.amount > 0 && view.pledge.balance === 0
-            ? `<p class="mt"><b>✔ ${esc(t.pledgePaidInFull)}</b></p>`
-            : `<a class="btn primary block mt" href="/c/${encodeURIComponent(view.token)}/pay" data-testid="pay-link">${esc(t.pay)}</a>`
-        }</section>`
+    !isContribution && event.pledgesEnabled && shown(inv.show, 'pledge') && !view.eventPassed
+      ? `<section class="no-print"><h2>${esc(t.pledgeTitle)}</h2>${pledgeSummary}${payButton}</section>`
       : '';
 
-  const trust = `<section id="hp-trust-section" style="padding-top:16px"><div class="trust" data-testid="trust-strip"><div>${icon('shield')}<div><p><b>${esc(fmt(t.trustSender!, { sender: event.senderName }))}</b></p><p>${esc(fmt(t.trustCommitteePhone!, { phone }))}</p><p class="muted">${esc(fmt(t.trustDomain!, { domain: o.domain }))}</p><p class="muted" style="margin-top:4px">${esc(t.trustNever)}</p></div></div>
-<a class="btn block" href="tel:${esc(event.committeePhone)}" aria-label="${esc(fmt(t.callCommittee!, { phone }))}">${icon('phone').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.call)}</a></div></section>`;
+  const target = event.contributionTarget ?? 0;
+  const collected = view.contributionCollected ?? null;
+  const suggested = (con.suggestedAmounts ?? []).filter((n) => n > 0);
+  const contributionSection = isContribution
+    ? `<section class="no-print" data-testid="contribution-section"><h2>${esc(L(con.title) ? say(L(con.title)!) : t.pledgeTitle)}</h2>${
+        event.pledgesEnabled
+          ? `${shown(con.show, 'target') && target > 0 ? `<p class="mt" data-testid="contribution-target"><b>${esc(fmt(t.contribTarget!, { target: formatMoney(target, cur) }))}</b></p>` : ''}${
+              shown(con.show, 'progress', false) && target > 0 && collected !== null
+                ? `<div class="bar mt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((collected / target) * 100))}" aria-label="${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}"><span style="width:${Math.min(100, Math.round((collected / target) * 100))}%"></span></div><p class="muted" style="font-size:14px">${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}</p>`
+                : ''
+            }${con.deadline ? `<p class="muted mt" style="font-size:14px">${esc(fmt(t.contribDeadline!, { date: formatDateShort(`${con.deadline}T12:00:00Z`, locale) }))}</p>` : ''}${pledgeSummary.replace('<p ', '<p class="mt" ')}${
+              suggested.length && !paidInFull
+                ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>`).join('')}</div>`
+                : ''
+            }${payButton}${L(con.payNote) ? paras(L(con.payNote)!, ' class="muted mt"') : ''}`
+          : `<div class="banner warning mt">${esc(t.contribClosed)}</div>`
+      }</section>`
+    : '';
+
+  const hasPhone = !!phoneRaw;
+  const fromCommittee = senderKind === 'committee';
+  const trustLine = L(content.sender?.trustLine);
+  const trust = `<section id="hp-trust-section" style="padding-top:16px"><div class="trust" data-testid="trust-strip"><div>${icon('shield')}<div><p><b>${esc(trustLine ? renderTemplate(trustLine, { sender }) : fmt(t.trustSender!, { sender }))}</b></p>${hasPhone ? `<p>${esc(fmt(fromCommittee ? t.trustCommitteePhone! : t.trustContactPhone!, { phone }))}</p>` : ''}<p class="muted">${esc(fmt(t.trustDomain!, { domain: o.domain }))}</p><p class="muted" style="margin-top:4px">${esc(t.trustNever)}</p></div></div>
+${hasPhone ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(fmt(fromCommittee ? t.callCommittee! : t.callContact!, { phone }))}">${icon('phone').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.call)}</a>` : ''}</div></section>`;
 
   const confirmed = view.rsvp.status === 'confirmed';
-  const rsvpSection = `<section id="hp-rsvp-section" aria-labelledby="rsvp-title">${rsvpBody}</section>`;
+  const rsvpSection =
+    !isContribution && shown(inv.show, 'rsvp')
+      ? `<section id="hp-rsvp-section" aria-labelledby="rsvp-title">${rsvpBody}</section>`
+      : '';
+
+  const eyebrow = isContribution
+    ? L(con.eyebrow)
+      ? say(L(con.eyebrow)!)
+      : fmt(t.contribEyebrow!, { kind: kindLower })
+    : L(inv.eyebrow)
+      ? say(L(inv.eyebrow)!)
+      : fmt(t.weddingOf!, { kind: kindName });
+  const showWhen = !isContribution || shown(con.show, 'eventDetails');
+  const lead = isContribution
+    ? `<p class="lead">${esc(L(con.greeting) ? say(L(con.greeting)!) : fmt(t.contribGreeting!, { guest: guest.displayName, kind: kindLower }))}</p>`
+    : L(inv.greeting)
+      ? `<p class="lead">${esc(say(L(inv.greeting)!))}</p>`
+      : event.greeting
+        ? `<p class="lead">${esc(event.greeting)}.<span><b>${esc(fmt(t.dearGuest!, { guest: guest.displayName }))}</b></span></p>`
+        : `<p class="lead">${esc(fmt(t.invitesYou!, { guest: guest.displayName }))}</p>`;
+  const message = isContribution
+    ? `<section class="msg">${paras(L(con.message) ?? t.contribMessage!)}</section>`
+    : L(inv.body)
+      ? `<section class="msg">${paras(L(inv.body)!)}</section>`
+      : '';
+  const programme =
+    !isContribution && inv.programme?.length
+      ? `<section><h2>${esc(t.programmeTitle)}</h2><ul class="prog" data-testid="programme">${inv.programme.map((p) => `<li><b>${esc(p.time)}</b><span>${esc(say(p.title))}</span></li>`).join('')}</ul></section>`
+      : '';
+  const venueNote = L(inv.venueNote) ?? event.extraNote;
+  const venueSection = isContribution
+    ? shown(con.show, 'eventDetails')
+      ? `<section><p class="row">${icon('pin')}<span>${esc(fmt(t.contribWhen!, { date: formatDate(event.dateStart, locale), venue: event.venueName }))}</span></p></section>`
+      : ''
+    : `<section><div class="row">${icon('pin')}<div><p class="muted" style="font-size:14px">${esc(t.venue)}</p><p style="font-size:18px;font-weight:600">${esc(event.venueName)}</p></div></div>
+${shown(inv.show, 'map') ? `<a class="btn block mt" href="${esc(mapHref)}" target="_blank" rel="noopener noreferrer">${esc(t.openMap)}</a>` : ''}
+${event.dressCode && shown(inv.show, 'dressCode') ? `<p class="row mt">${icon('shirt')}<span>${esc(fmt(t.dressCode!, { dressCode: event.dressCode }))}</span></p>` : ''}
+${L(inv.dressNote) ? paras(L(inv.dressNote)!, ' class="muted mt"') : ''}
+${venueNote ? paras(venueNote, ' class="muted mt"') : ''}</section>`;
+  const closing = isContribution
+    ? [L(con.thanks), L(con.closing)]
+        .filter(Boolean)
+        .map((x) => paras(x!))
+        .join('')
+    : L(inv.closing)
+      ? paras(L(inv.closing)!)
+      : '';
+  const closingSection = closing
+    ? `<section class="msg" data-testid="closing">${closing}</section>`
+    : '';
+  const footerNote =
+    !isContribution && L(inv.footerNote) ? paras(L(inv.footerNote)!, ' class="muted"') : '';
+  const privacyHref = event.country === 'KE' ? '/ke/privacy' : '/privacy';
 
   const body = `<div id="hp-offline" class="offline-bar" role="status" hidden>${esc(m.states.offlineCached)}</div>
-<main class="card" data-testid="guest-card">
-<header class="cover"${cover}><div><p class="eyebrow">${esc(fmt(t.weddingOf!, { kind: eventKindLabel(event.eventKind, locale) }))}</p>
+<main class="card" data-testid="guest-card" data-card-kind="${isContribution ? 'contribution' : 'invitation'}">
+<header class="cover"${cover}><div><p class="eyebrow">${esc(eyebrow)}</p>
 <h1 class="names">${esc(event.partnerA)}${event.partnerB ? ` <small>&amp;</small> ${esc(event.partnerB)}` : ''}</h1>
-<p class="when">${esc(formatWeekday(event.dateStart, locale))} ${esc(formatDate(event.dateStart, locale))}</p><p>${esc(time)}</p></div></header><div class="band" aria-hidden="true"></div>
-${
-  event.greeting
-    ? `<p class="lead">${esc(event.greeting)}.<span><b>${esc(fmt(t.dearGuest!, { guest: guest.displayName }))}</b></span></p>`
-    : `<p class="lead">${esc(fmt(t.invitesYou!, { guest: guest.displayName }))}</p>`
-}
+${showWhen ? `<p class="when">${esc(formatWeekday(event.dateStart, locale))} ${esc(formatDate(event.dateStart, locale))}</p><p>${esc(time)}</p>` : ''}</div></header><div class="band" aria-hidden="true"></div>
+${lead}
+${message}
 ${trust}
 ${confirmed ? qrSection : ''}
-<section><div class="row">${icon('pin')}<div><p class="muted" style="font-size:14px">${esc(t.venue)}</p><p style="font-size:18px;font-weight:600">${esc(event.venueName)}</p></div></div>
-<a class="btn block mt" href="${esc(mapHref)}" target="_blank" rel="noopener noreferrer">${esc(t.openMap)}</a>
-${event.dressCode ? `<p class="row mt">${icon('shirt')}<span>${esc(fmt(t.dressCode!, { dressCode: event.dressCode }))}</span></p>` : ''}
-${event.extraNote ? `<p class="muted mt">${esc(event.extraNote)}</p>` : ''}</section>
+${venueSection}
+${programme}
 ${rsvpSection}
 ${confirmed ? '' : qrSection}
 ${pledge}
-<footer class="no-print">${langChip(locale)}<nav><a href="/privacy">${esc(t.privacyLink)}</a><a href="tel:${esc(event.committeePhone)}">${esc(t.footerContact)} · ${esc(phone)}</a></nav><p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
+${contributionSection}
+${closingSection}
+<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).
@@ -325,6 +454,7 @@ ${pledge}
       mode: o.mode,
       api: o.apiUrl,
       sw: true,
+      cardKind: isContribution ? 'contribution' : 'invitation',
       partyShown,
       partyMax,
       rsvpOpen,
@@ -340,14 +470,15 @@ ${pledge}
     },
   };
 
-  const title = fmt(t.metaTitle!, {
-    couple: event.coupleNames,
-    kind: eventKindLabel(event.eventKind, locale),
-  });
-  const description = fmt(t.metaDescription!, {
-    date: formatDate(event.dateStart, locale),
-    venue: event.venueName,
-  });
+  const title = isContribution
+    ? fmt(t.contribMeta!, { couple: event.coupleNames, kind: kindLower })
+    : fmt(t.metaTitle!, { couple: event.coupleNames, kind: kindName });
+  const description = isContribution
+    ? fmt(t.contribMetaDescription!, { sender })
+    : fmt(t.metaDescription!, {
+        date: formatDate(event.dateStart, locale),
+        venue: event.venueName,
+      });
   const enc = encodeURIComponent(view.token);
   return shell({
     locale,

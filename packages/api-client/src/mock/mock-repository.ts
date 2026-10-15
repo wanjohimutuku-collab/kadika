@@ -1,4 +1,5 @@
 import {
+  cardContentSchema,
   eventInputSchema,
   guestInputSchema,
   manualPaymentSchema,
@@ -79,7 +80,7 @@ import { buildInviteSms, estimateSmsCostFor } from '../domain/sms';
 import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
 import { MockControls } from './controls';
-import { renameLegacyMoneyKeys } from './migrate';
+import { addCardFields, renameLegacyMoneyKeys } from './migrate';
 import { Rng } from './prng';
 import {
   createSeedState,
@@ -185,10 +186,12 @@ export class MockRepository implements Repository {
       const raw = this.storage?.getItem(STATE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as { version?: number };
-      if (parsed.version === 4) return parsed as MockState;
-      // v3 predates the currency-neutral money names (ADR 025, Phase 1b).
+      if (parsed.version === 5) return parsed as MockState;
+      // v4 predates card kinds and card content (ADR 029); v3 also the currency-neutral money names
+      // (ADR 025, Phase 1b). Both are upgraded in place so a returning visitor keeps their demo data.
+      if (parsed.version === 4) return addCardFields(parsed as unknown as MockState);
       if (parsed.version === 3)
-        return { ...(renameLegacyMoneyKeys(parsed) as MockState), version: 4 };
+        return addCardFields(renameLegacyMoneyKeys(parsed) as unknown as MockState);
       return null;
     } catch {
       return null;
@@ -346,7 +349,8 @@ export class MockRepository implements Repository {
   }
 
   private stats(eventId: string): EventStats {
-    const guests = this.guestsOf(eventId);
+    // The invitation funnel counts invitation cards only; contribution cards are not attendees (ADR 029).
+    const guests = this.guestsOf(eventId).filter((g) => g.cardKind === 'invitation');
     const funnel = funnelCounts(guests.map((g) => g.status));
     const paid = this.paidByGuest(eventId);
     const last = this.lastMessageByGuest(eventId);
@@ -609,6 +613,7 @@ export class MockRepository implements Repository {
       const e: EventRecord = {
         id: this.rng.uuid(),
         title: v.title,
+        cardContent: v.cardContent ?? { sender: { kind: 'family' } },
         eventKind: v.eventKind,
         partnerA: v.partnerA,
         partnerB: v.partnerB,
@@ -666,6 +671,11 @@ export class MockRepository implements Repository {
       const { stats: _s, id: _i, timezone: _tz, createdAt: _c, ...allowed } = patch;
       if (patch.palette !== undefined)
         allowed.palette = checkedPalette(patch.themeId ?? e.themeId, patch.palette);
+      if (patch.cardContent !== undefined) {
+        const ok = cardContentSchema.safeParse(patch.cardContent);
+        if (!ok.success)
+          throw new RepositoryError('validation', 'Invalid card content', { field: 'cardContent' });
+      }
       Object.assign(e, allowed, { updatedAt: iso(this.now()) });
       if (patch.partnerA || patch.partnerB)
         e.coupleNames = [e.partnerA, e.partnerB].filter(Boolean).join(' & ');
@@ -791,6 +801,7 @@ export class MockRepository implements Repository {
     return {
       id: this.rng.uuid(),
       eventId,
+      cardKind: v.cardKind ?? 'invitation',
       displayName: v.displayName,
       phoneE164: v.phone,
       hasSmartphone: v.hasSmartphone,
@@ -840,6 +851,7 @@ export class MockRepository implements Repository {
         phone: g.phoneE164 ?? '',
         groupLabel: g.groupLabel,
         partySizeAllowed: g.partySizeAllowed,
+        cardKind: g.cardKind,
         inviteChannelPref: g.inviteChannelPref,
         hasSmartphone: g.hasSmartphone,
         language: g.language,
@@ -859,6 +871,7 @@ export class MockRepository implements Repository {
         phoneE164: merged.phone,
         groupLabel: merged.groupLabel,
         partySizeAllowed: merged.partySizeAllowed,
+        cardKind: merged.cardKind ?? g.cardKind,
         inviteChannelPref: merged.phone ? merged.inviteChannelPref : 'print',
         hasSmartphone: merged.hasSmartphone,
         language: merged.language,
@@ -1741,6 +1754,7 @@ export class MockRepository implements Repository {
     const empty = (state: CardView['state']): CardView => ({
       token,
       state,
+      cardKind: 'invitation',
       event: null,
       guest: null,
       qrPayload: null,
@@ -1759,9 +1773,11 @@ export class MockRepository implements Repository {
     const eventPassed = now > start + 12 * HOUR;
     const deadlinePassed = e.rsvpDeadline ? now > Date.parse(e.rsvpDeadline) + DAY : false;
     const paid = this.paidByGuest(e.id).get(g.id) ?? 0;
+    const contribution = g.cardKind === 'contribution';
     return {
       token,
       state: 'ok',
+      cardKind: g.cardKind,
       event: {
         id: e.id,
         eventKind: e.eventKind,
@@ -1781,6 +1797,8 @@ export class MockRepository implements Repository {
         pledgesEnabled: e.pledgesEnabled,
         greeting: e.greeting,
         extraNote: e.extraNote,
+        cardContent: e.cardContent,
+        contributionTarget: e.contributionTarget,
         country: e.country,
         currency: e.currency,
         timezone: e.timezone,
@@ -1793,7 +1811,9 @@ export class MockRepository implements Repository {
         language: g.language,
       },
       // The signed party size is the allowed maximum (§6.1); RSVP changes never require a new signature.
-      qrPayload: mockQrPayload(e.id, g.id, g.partySizeAllowed, g.tokenVersion),
+      qrPayload: contribution
+        ? null
+        : mockQrPayload(e.id, g.id, g.partySizeAllowed, g.tokenVersion),
       rsvp: {
         status:
           g.status === 'confirmed' || g.status === 'checked_in'
@@ -1811,7 +1831,11 @@ export class MockRepository implements Repository {
             : null
         : null,
       rsvpOpen:
-        !eventPassed && !deadlinePassed && g.status !== 'checked_in' && e.status !== 'archived',
+        !contribution &&
+        !eventPassed &&
+        !deadlinePassed &&
+        g.status !== 'checked_in' &&
+        e.status !== 'archived',
       eventPassed,
       isMock: true,
     };

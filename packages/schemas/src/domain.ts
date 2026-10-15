@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cardContentSchema, cardKindSchema } from './card-content';
 import { countrySchema, type Country } from './country';
 import { normalizePhone, normalizeTzPhone } from './phone';
 import { SHORT_CODE_PATTERN } from './short-code';
@@ -107,6 +108,8 @@ export const guestInputSchema = z.object({
   phone: optionalTzPhoneSchema,
   groupLabel: z.string().trim().max(40).optional().default(''),
   partySizeAllowed: z.coerce.number().int().min(1, 'party.min').max(10, 'party.max'),
+  /** `contribution`: the guest only receives a contribution card (ADR 029). */
+  cardKind: cardKindSchema.optional(),
   inviteChannelPref: channelPrefSchema,
   hasSmartphone: z.boolean(),
   language: languageSchema,
@@ -130,8 +133,16 @@ export function hostNames(a: string, b?: string | null): string {
 }
 
 /** Default "sent by" line; names the kind of event when the organiser wrote one. */
-export function defaultSender(kind: string | null | undefined, hosts: string): string {
+export function defaultSender(
+  kind: string | null | undefined,
+  hosts: string,
+  senderKind: 'family' | 'committee' | 'couple' | 'host' | 'custom' = 'committee',
+  locale: 'sw' | 'en' = 'sw',
+): string {
   const k = kind?.trim();
+  if (senderKind === 'family')
+    return locale === 'sw' ? `Familia ya ${hosts}` : `The ${hosts} family`;
+  if (senderKind === 'couple' || senderKind === 'host' || senderKind === 'custom') return hosts;
   return k ? `Kamati ya ${k} ya ${hosts}` : `Kamati ya ${hosts}`;
 }
 
@@ -154,6 +165,8 @@ export const eventInputSchema = z.object({
   palette: paletteOverridesSchema.optional(),
   rsvpDeadline: z.string().optional().default(''),
   contributionTarget: z.coerce.number().int().min(0).optional().default(0),
+  /** Texts, labels and toggles for the cards and messages; new events start family-sent (ADR 029). */
+  cardContent: cardContentSchema.optional(),
 });
 export type EventInput = z.input<typeof eventInputSchema>;
 

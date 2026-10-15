@@ -1,6 +1,9 @@
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import {
   defaultSender,
+  senderKindOf,
+  type CardContent,
+  type CardKind,
   hostNames,
   type Country,
   type Currency,
@@ -75,6 +78,7 @@ interface ApiUser {
 interface ApiEvent {
   id: string;
   title: string;
+  cardContent?: CardContent | null;
   eventKind?: string | null;
   coupleNames: string;
   dateStart: string;
@@ -102,6 +106,7 @@ interface ApiEvent {
 interface ApiGuest {
   id: string;
   eventId: string;
+  cardKind?: CardKind;
   displayName: string;
   phoneE164: string | null;
   hasSmartphone: boolean | null;
@@ -163,6 +168,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     id: e.id,
     myRole: e.myRole,
     title: e.title,
+    cardContent: e.cardContent ?? {},
     eventKind: e.eventKind ?? '',
     partnerA: a,
     partnerB: b,
@@ -182,7 +188,8 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     palette: sanitizeOverrides((e.brandTheme as { palette?: unknown } | null)?.palette),
     rsvpDeadline: e.rsvpDeadline,
     contributionTarget: e.contributionTarget ?? 0,
-    senderName: e.senderName || defaultSender(e.eventKind, e.coupleNames),
+    senderName:
+      e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
     requirePledgeBeforeCard: false,
@@ -199,6 +206,8 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
 
 interface ApiCard {
   state: CardView['state'];
+  cardKind?: CardKind;
+  contributionCollected?: number | null;
   event:
     | (Omit<
         NonNullable<CardView['event']>,
@@ -224,6 +233,8 @@ function mapCard(token: string, c: ApiCard): CardView {
   return {
     token,
     state: c.state,
+    cardKind: c.cardKind ?? 'invitation',
+    contributionCollected: c.contributionCollected ?? null,
     event: e
       ? {
           id: e.id,
@@ -239,9 +250,13 @@ function mapCard(token: string, c: ApiCard): CardView {
           coverGradient: theme.coverGradient ?? '',
           palette: sanitizeOverrides(theme.palette),
           rsvpDeadline: e.rsvpDeadline,
-          senderName: e.senderName || defaultSender(e.eventKind, e.coupleNames),
+          senderName:
+            e.senderName ||
+            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
           committeePhone: e.committeePhone ?? '',
           pledgesEnabled: e.pledgesEnabled ?? false,
+          cardContent: e.cardContent ?? {},
+          contributionTarget: e.contributionTarget ?? 0,
           greeting: e.greeting ?? '',
           extraNote: '',
           country: e.country ?? 'TZ',
@@ -263,6 +278,7 @@ function mapGuest(g: ApiGuest): Guest {
   return {
     id: g.id,
     eventId: g.eventId,
+    cardKind: g.cardKind ?? 'invitation',
     displayName: g.displayName,
     phoneE164: g.phoneE164,
     hasSmartphone: g.hasSmartphone ?? true,
@@ -448,6 +464,7 @@ export function createHttpRepository(
         title: input.title,
         eventKind: input.eventKind || null,
         country: input.country,
+        cardContent: input.cardContent,
         coupleNames: [input.partnerA, input.partnerB].filter(Boolean).join(' & '),
         dateStart: input.dateStart,
         venueName: input.venueName,
@@ -471,6 +488,7 @@ export function createHttpRepository(
       else if (patch.partnerA !== undefined || patch.partnerB !== undefined)
         body.coupleNames = hostNames(patch.partnerA ?? '', patch.partnerB);
       if (patch.eventKind !== undefined) body.eventKind = patch.eventKind || null;
+      if (patch.cardContent !== undefined) body.cardContent = patch.cardContent;
       if (patch.dateStart !== undefined) body.dateStart = patch.dateStart;
       if (patch.venueName !== undefined) body.venueName = patch.venueName;
       if (patch.venueMapUrl !== undefined) body.venueMapUrl = patch.venueMapUrl || null;
@@ -592,6 +610,7 @@ export function createHttpRepository(
           phone: input.phone || null,
           groupLabel: input.groupLabel,
           partySizeAllowed: Number(input.partySizeAllowed ?? 1),
+          cardKind: input.cardKind,
           hasSmartphone: input.hasSmartphone,
           language: input.language,
           inviteChannelPref: input.inviteChannelPref,

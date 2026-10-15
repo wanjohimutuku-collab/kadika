@@ -7,7 +7,8 @@ export const CLIENT_SCRIPT = String.raw`
 (function () {
   var D = JSON.parse(document.getElementById('hp-data').textContent);
   var T = D.t, S = D.s;
-  var $ = function (s, r) { return (r || document).querySelector(s); };
+  // A missing element (a contribution card has no QR or RSVP) gets a throw-away one, so the rest still runs.
+  var $ = function (s, r) { return (r || document).querySelector(s) || document.createElement('div'); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   function fmt(tpl, v) { return String(tpl).replace(/\{(\w+)\}/g, function (_, k) { return v && v[k] != null ? v[k] : ''; }); }
   function people(n) { return n === 1 ? T.people1 : fmt(T.peopleN, { n: n }); }
@@ -163,7 +164,7 @@ export const CLIENT_SCRIPT = String.raw`
   // ---- start
   var st = adapter.sync();
   if (st && st.state === 'reissued') { location.replace(location.pathname + '?state=reissued'); return; }
-  if (st && st.state === 'ok') show(st);
+  if (st && st.state === 'ok' && S.cardKind !== 'contribution') show(st);
   flush();
   root.setAttribute('data-ready', 'true');
 })();

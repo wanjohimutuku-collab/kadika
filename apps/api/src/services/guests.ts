@@ -24,6 +24,8 @@ export interface GuestInput {
   phone?: string | null;
   groupLabel?: string | null;
   partySizeAllowed?: number;
+  /** `contribution`: the guest only gets a contribution card (no RSVP, no QR, not admitted). */
+  cardKind?: 'invitation' | 'contribution';
   hasSmartphone?: boolean | null;
   language?: 'sw' | 'en';
   inviteChannelPref?: 'whatsapp' | 'sms' | 'print' | 'mixed';
@@ -125,6 +127,7 @@ export class GuestService {
           hasSmartphone: input.hasSmartphone ?? null,
           groupLabel: input.groupLabel?.trim() || null,
           partySizeAllowed: input.partySizeAllowed ?? 1,
+          cardKind: input.cardKind ?? 'invitation',
           shortCode: await this.uniqueShortCode(eventId, tx as Deps['db']),
           language: input.language ?? 'sw',
           inviteChannelPref: phone ? (input.inviteChannelPref ?? 'mixed') : 'print',
@@ -148,7 +151,13 @@ export class GuestService {
   async list(
     eventId: string,
     userId: string,
-    q: { search?: string; status?: string; limit?: number; cursor?: string } = {},
+    q: {
+      search?: string;
+      status?: string;
+      cardKind?: 'invitation' | 'contribution';
+      limit?: number;
+      cursor?: string;
+    } = {},
   ) {
     await this.eventsSvc.role(eventId, userId);
     const limit = Math.min(200, Math.max(1, Math.floor(q.limit ?? 50)));
@@ -159,6 +168,7 @@ export class GuestService {
         or(ilike(guests.displayName, s), ilike(guests.phoneE164, s), ilike(guests.shortCode, s))!,
       );
     }
+    if (q.cardKind) where.push(eq(guests.cardKind, q.cardKind));
     if (q.status)
       where.push(eq(invitations.status, q.status as typeof invitations.$inferSelect.status));
     if (q.cursor) {
@@ -260,6 +270,7 @@ export class GuestService {
     for (const k of [
       'groupLabel',
       'partySizeAllowed',
+      'cardKind',
       'hasSmartphone',
       'language',
       'inviteChannelPref',
@@ -360,7 +371,12 @@ export class GuestService {
   async import(
     eventId: string,
     userId: string,
-    input: { csv: string; dryRun?: boolean; defaultGroup?: string },
+    input: {
+      csv: string;
+      dryRun?: boolean;
+      defaultGroup?: string;
+      defaultCardKind?: 'invitation' | 'contribution';
+    },
   ) {
     await this.canManage(eventId, userId);
     const rows = parseCsv(input.csv);
@@ -398,6 +414,7 @@ export class GuestService {
         partySizeAllowed: r.partySizeAllowed,
         hasSmartphone: r.hasSmartphone,
         inviteChannelPref: r.inviteChannelPref,
+        cardKind: input.defaultCardKind,
       });
       created++;
     }

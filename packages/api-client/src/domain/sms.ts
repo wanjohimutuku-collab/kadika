@@ -92,3 +92,22 @@ export function buildReminderSms(i: InviteTextInput & { daysLeft: number }): str
     ? `Kumbukumbu: ${kind} ya ${hosts} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
     : `Reminder: the ${kind} of ${hosts} is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
 }
+
+export interface ContributionTextInput {
+  locale: 'sw' | 'en';
+  partnerA: string;
+  partnerB: string;
+  kind?: string | null;
+  /** Who is asking, for example "Familia ya Asha & Juma". */
+  sender: string;
+  shortLink: string;
+}
+
+/** Default SMS for a contribution card (ADR 029): who asks, for which event, and the link to give. */
+export function buildContributionSms(i: ContributionTextInput): string {
+  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const hosts = hostNames(i.partnerA, i.partnerB);
+  return i.locale === 'sw'
+    ? `${i.sender} wanakuomba mchango kwa ${kind} ya ${hosts}. Changia hapa: ${i.shortLink}`
+    : `${i.sender} invite you to contribute to the ${kind} of ${hosts}. Contribute here: ${i.shortLink}`;
+}

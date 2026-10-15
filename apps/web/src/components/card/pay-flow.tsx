@@ -55,7 +55,10 @@ export function PayFlow({ token }: { token: string }) {
       const { getRepository } = await loadRepo();
       const v = await getRepository().getCard(token);
       setCard(v);
-      if (v.pledge?.balance) setAmount(String(v.pledge.balance));
+      // A suggested amount on the card links here with `?amount=`; otherwise offer the open balance.
+      const asked = Number(new URLSearchParams(window.location.search).get('amount'));
+      if (Number.isInteger(asked) && asked > 0) setAmount(String(asked));
+      else if (v.pledge?.balance) setAmount(String(v.pledge.balance));
     } catch {
       const cached = readCachedCard(token);
       if (cached) setCard(cached.view);

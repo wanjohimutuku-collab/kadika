@@ -219,7 +219,22 @@
     "installHint": "Open your browser menu and choose \"Add to home screen\".",
     "openedOffline": "This card will show even without a network.",
     "groupLabel": "Group: {group}",
-    "dearGuest": "Dear {guest}"
+    "dearGuest": "Dear {guest}",
+    "trustContactPhone": "Contact phone: {phone}",
+    "callContact": "Call {phone}",
+    "footerContactGeneric": "Contact",
+    "programmeTitle": "Programme",
+    "contribEyebrow": "Contribution for the {kind}",
+    "contribGreeting": "Hello {guest}. We invite you to contribute to our {kind}.",
+    "contribMessage": "Your contribution, small or large, helps us make this day possible. Thank you for being with us.",
+    "contribTarget": "Contribution goal: {target}",
+    "contribProgress": "{collected} raised of {target}",
+    "contribDeadline": "Contribute by: {date}",
+    "contribSuggested": "Choose an amount",
+    "contribWhen": "The event: {date}, {venue}",
+    "contribMeta": "Contribution for the {kind} of {couple}",
+    "contribMetaDescription": "Contribute by phone. {sender}.",
+    "contribClosed": "Contributions are not being taken through this card right now."
   },
   "pay": {
     "title": "Pay contribution",
@@ -299,7 +314,8 @@
     "ownerOnly": "This section is for the owner only.",
     "gateNoConsole": "Gate agents use the Harusi Pass phone app. This dashboard is for owners and committee members.",
     "gateNoConsoleTitle": "No dashboard access",
-    "opsLink": "Staff dashboard"
+    "opsLink": "Staff dashboard",
+    "content": "Card text"
   },
   "auth": {
     "title": "Sign in to Harusi Pass",
@@ -655,7 +671,11 @@
     "contactsTitle": "Choose from contacts",
     "contactsMock": "Sample contacts (this browser does not allow reading phone contacts).",
     "contactsAdd": "Add {count}",
-    "contactsAdded": "{count, plural, one {# guest added} other {# guests added}}"
+    "contactsAdded": "{count, plural, one {# guest added} other {# guests added}}",
+    "cardKindContribution": "Contribution card",
+    "filter": {
+      "contribution": "Contribution cards"
+    }
   },
   "guestForm": {
     "title": "Add guest",
@@ -677,7 +697,13 @@
     "saved": "{name} saved",
     "duplicatePhone": "This number already belongs to another guest",
     "decrease": "Decrease number",
-    "increase": "Increase number"
+    "increase": "Increase number",
+    "cardKind": "Card type",
+    "cardKinds": {
+      "invitation": "Invitation card (reply and QR)",
+      "contribution": "Contribution card (asks for a contribution only)"
+    },
+    "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate."
   },
   "import": {
     "title": "Import guest list",
@@ -735,7 +761,8 @@
     "goGuests": "See guests",
     "goSend": "Send cards",
     "rowsLabel": "Preview rows",
-    "empty": "No rows found. Make sure each guest is on their own line."
+    "empty": "No rows found. Make sure each guest is on their own line.",
+    "defaultCardKind": "Send these as"
   },
   "guestDetail": {
     "back": "Back to guests",
@@ -1495,5 +1522,131 @@
     "linkPin": "PIN",
     "linkUrl": "Link",
     "openGate": "Open the scanner"
+  },
+  "content": {
+    "title": "Card text and messages",
+    "intro": "Change the words, labels and sections of your cards and messages. Anything you leave empty uses our standard wording, so you only write what you want to change.",
+    "tabs": {
+      "sender": "Sender",
+      "invitation": "Invitation card",
+      "contribution": "Contribution card",
+      "messages": "Messages (SMS)"
+    },
+    "save": "Save changes",
+    "saved": "Saved",
+    "saveFailed": "Could not save. Check the highlighted fields.",
+    "unsaved": "You have changes that are not saved yet",
+    "langSw": "Kiswahili",
+    "langEn": "English",
+    "optional": "optional",
+    "standard": "Standard wording is used when this is empty",
+    "sender": {
+      "intro": "Invitations are usually sent by the family. Choose who the guest should see as the sender.",
+      "kind": "Who is sending?",
+      "kinds": {
+        "family": "The family",
+        "committee": "The committee",
+        "couple": "The couple",
+        "host": "The host",
+        "custom": "Someone else"
+      },
+      "name": "Name shown as sender",
+      "nameHint": "Shown as “This invitation was sent by …”. For example “Familia ya Mzee Mwinyi”.",
+      "phone": "Phone number guests can call",
+      "phoneHint": "Shown on the card and in messages. If empty, the contact phone from the event settings is used.",
+      "trustLine": "Replace the whole “sent by” sentence",
+      "trustHint": "Use {sender} where the name should appear."
+    },
+    "invitation": {
+      "intro": "What guests see on the invitation card.",
+      "eyebrow": "Line above the names",
+      "eyebrowHint": "For example “Karibu kwenye harusi ya”. Standard: “Harusi ya”.",
+      "greeting": "Greeting to the guest",
+      "greetingHint": "You can use {guest} for their name.",
+      "body": "Main message",
+      "bodyHint": "A few lines from the family. A new line starts a new paragraph.",
+      "programme": "Programme",
+      "programmeAdd": "Add a line",
+      "programmeTime": "Time",
+      "programmeTitle": "What happens",
+      "programmeRemove": "Remove this line",
+      "venueNote": "Note about the venue",
+      "venueNoteHint": "Directions, parking, landmarks.",
+      "dressNote": "Note about what to wear",
+      "rsvpQuestion": "Question above the reply buttons",
+      "rsvpYes": "“Yes” button",
+      "rsvpNo": "“No” button",
+      "closing": "Closing message",
+      "footerNote": "Small note at the bottom",
+      "show": "Sections on the card",
+      "showMap": "Map button",
+      "showDress": "Dress code",
+      "showCalendar": "Add to calendar button",
+      "showQr": "QR code and card number",
+      "showRsvp": "Reply buttons",
+      "showPledge": "Contribution section",
+      "qrWarning": "Without the QR code, guests have nothing to show at the gate except the card number."
+    },
+    "contribution": {
+      "intro": "A contribution card asks one person to contribute. It has no reply buttons and no QR code, and the person is not counted as a guest at the gate. Use it for relatives and friends who cannot attend, or who you only want to ask for a contribution.",
+      "eyebrow": "Line above the names",
+      "title": "Heading of the contribution section",
+      "greeting": "Greeting",
+      "message": "Message asking for a contribution",
+      "payNote": "Words about paying",
+      "payNoteHint": "For example how you would like people to keep their confirmation message.",
+      "thanks": "Thank-you message",
+      "closing": "Closing message",
+      "amounts": "Suggested amounts",
+      "amountsHint": "Whole numbers separated by commas, for example 10000, 20000, 50000. Guests can still type another amount.",
+      "amountsInvalid": "Use whole numbers separated by commas",
+      "deadline": "Last day to contribute",
+      "show": "Show on the card",
+      "showTarget": "The contribution goal",
+      "showProgress": "How much has been raised so far",
+      "showProgressHint": "Everyone with a contribution card will see the total. Off unless you choose it.",
+      "showEvent": "Date and place of the event"
+    },
+    "messages": {
+      "intro": "The text of the SMS messages. Your wording replaces ours; leave a box empty to keep ours.",
+      "inviteSms": "Invitation SMS",
+      "reminderSms": "Reminder SMS",
+      "contributionSms": "Contribution SMS",
+      "pledgeReminderSms": "Pledge reminder SMS",
+      "whatsappNote": "WhatsApp messages use the wording approved by WhatsApp. Your text is used for SMS, which also covers guests without WhatsApp.",
+      "insert": "Insert",
+      "count": "{n} characters, about {segments} SMS",
+      "mustLink": "Keep {link} in the message so guests can open the card.",
+      "preview": "How it will read"
+    },
+    "vars": {
+      "guest": "Guest name",
+      "hosts": "Names of the hosts",
+      "kind": "Kind of event",
+      "date": "Event date",
+      "time": "Start time",
+      "venue": "Venue",
+      "link": "Card link",
+      "code": "Card number",
+      "sender": "Sender name",
+      "phone": "Sender phone",
+      "days": "Days left",
+      "target": "Contribution goal",
+      "deadline": "Contribution deadline",
+      "pledged": "Amount pledged",
+      "balance": "Balance"
+    },
+    "preview": {
+      "title": "Preview",
+      "invitation": "Invitation card",
+      "contribution": "Contribution card",
+      "language": "Language",
+      "note": "A sample guest and QR code are shown. Your unsaved changes appear here."
+    },
+    "errors": {
+      "placeholder_unknown": "{name} is not available in this message",
+      "link_required": "The message must include {link}",
+      "invalid": "This is not valid"
+    }
   }
 }

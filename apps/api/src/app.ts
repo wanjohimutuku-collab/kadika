@@ -10,6 +10,7 @@ import {
   metaVerifyChallenge,
   parseCloudStatuses,
   parseEvolutionUpdate,
+  parseAfricasTalkingStatus,
   parseNextSmsStatus,
   verifyMetaSignature,
 } from '@harusi/messaging';
@@ -344,6 +345,22 @@ export function createApp(deps: Deps) {
       String(p.messageId),
       parseNextSmsStatus(p.status),
     );
+    return c.json({ ok: true, known });
+  });
+  // Africa's Talking delivery reports are form-encoded callbacks and cannot carry custom headers, so
+  // the shared secret rides in the query string (never logged: the route pattern is logged, not the URL).
+  app.post('/v1/webhooks/sms/africastalking', async (c) => {
+    const want = deps.config.webhookSecret;
+    if (!want) throw new ApiError('forbidden', 'Webhooks are not configured');
+    const a = Buffer.from(c.req.query('secret') ?? '');
+    const b = Buffer.from(want);
+    if (a.length !== b.length || !timingSafeEqual(a, b))
+      throw new ApiError('unauthorized', 'Bad webhook secret');
+    const form = await c.req.parseBody();
+    const id = typeof form.id === 'string' ? form.id : '';
+    if (!id) throw new ApiError('validation', 'Missing message id');
+    const status = typeof form.status === 'string' ? form.status : undefined;
+    const known = await deliverySvc.recordDelivery(id, parseAfricasTalkingStatus(status));
     return c.json({ ok: true, known });
   });
   app.post('/v1/c/:token/rsvp', async (c) => {

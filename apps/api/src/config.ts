@@ -1,3 +1,5 @@
+import type { Country } from '@harusi/schemas/country';
+
 export interface Config {
   databaseUrl: string;
   jwtSecret: string;
@@ -7,6 +9,11 @@ export interface Config {
   shortBaseUrl: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
+  /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
+  shortBaseUrls: Partial<Record<Country, string>>;
+  /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
+  smsProviderKe: string;
+  africasTalking: { username: string; apiKey: string; senderId?: string; baseUrl?: string } | null;
   smsProvider: string;
   whatsappProvider: string;
   paymentProvider: string;
@@ -23,6 +30,10 @@ export interface Config {
     verifyToken: string | null;
     appSecret: string | null;
     templates: { invite?: string; reminder?: string; pledge?: string };
+    /** Templates approved per country; Kenya's use a one-host-field parameter layout (ADR 026). */
+    templatesByCountry: Partial<
+      Record<Country, { invite?: string; reminder?: string; pledge?: string }>
+    >;
   } | null;
   nextSms: { username: string; password: string; senderId: string } | null;
   redisUrl: string | null;
@@ -60,6 +71,17 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
+    shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
+    smsProviderKe: env.SMS_PROVIDER_KE ?? 'fake',
+    africasTalking:
+      env.AT_USERNAME && env.AT_API_KEY
+        ? {
+            username: env.AT_USERNAME,
+            apiKey: env.AT_API_KEY,
+            senderId: env.AT_SENDER_ID || undefined,
+            baseUrl: env.AT_BASE_URL || undefined,
+          }
+        : null,
     smsProvider: env.SMS_PROVIDER ?? 'fake',
     whatsappProvider: env.WHATSAPP_PROVIDER ?? 'fake',
     paymentProvider: env.PAYMENT_PROVIDER ?? 'fake',
@@ -86,6 +108,18 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,
               pledge: env.WHATSAPP_TEMPLATE_PLEDGE,
             },
+            templatesByCountry:
+              env.WHATSAPP_TEMPLATE_INVITE_KE ||
+              env.WHATSAPP_TEMPLATE_REMINDER_KE ||
+              env.WHATSAPP_TEMPLATE_PLEDGE_KE
+                ? {
+                    KE: {
+                      invite: env.WHATSAPP_TEMPLATE_INVITE_KE,
+                      reminder: env.WHATSAPP_TEMPLATE_REMINDER_KE,
+                      pledge: env.WHATSAPP_TEMPLATE_PLEDGE_KE,
+                    },
+                  }
+                : {},
           }
         : null,
     nextSms:

@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { createDb } from '@harusi/db';
 import {
+  AfricasTalkingProvider,
   EvolutionWhatsAppProvider,
   WhatsAppCloudProvider,
   FakeMessagingProvider,
@@ -31,6 +32,19 @@ if (config.smsProvider === 'nextsms') {
   sms = next;
   smsReport = (id) => next.report(id);
 }
+// Kenyan numbers need their own SMS route (ADR 026); only built when Kenya is enabled.
+const smsByCountry: Deps['smsByCountry'] = {};
+if (config.kenyaEnabled) {
+  if (config.smsProviderKe === 'africastalking') {
+    if (!config.africasTalking)
+      throw new Error('SMS_PROVIDER_KE=africastalking needs AT_USERNAME and AT_API_KEY');
+    smsByCountry.KE = new AfricasTalkingProvider(config.africasTalking);
+  } else if (config.smsProviderKe === 'fake') {
+    smsByCountry.KE = new FakeMessagingProvider('sms', undefined, 'fake-ke');
+  } else {
+    throw new Error(`Unknown SMS_PROVIDER_KE "${config.smsProviderKe}" (fake | africastalking)`);
+  }
+}
 let whatsapp: MessagingProvider = new FakeMessagingProvider('whatsapp');
 if (config.whatsappProvider === 'evolution') {
   if (!config.evolution)
@@ -53,6 +67,7 @@ if (config.whatsappProvider === 'evolution') {
     phoneNumberId: config.whatsappCloud.phoneNumberId,
     apiVersion: config.whatsappCloud.apiVersion,
     templates: config.whatsappCloud.templates,
+    templatesByCountry: config.whatsappCloud.templatesByCountry,
   });
 } else if (config.whatsappProvider !== 'fake') {
   throw new Error(
@@ -61,15 +76,16 @@ if (config.whatsappProvider === 'evolution') {
 }
 // §12: OTPs are never logged. For local development only, DEV_LOG_OTP=1 prints the SMS body.
 if (process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production') {
-  const inner = sms;
-  sms = {
+  const devLog = (inner: MessagingProvider): MessagingProvider => ({
     name: `${inner.name}-dev`,
     channel: 'sms',
     async send(to, body) {
       console.log(JSON.stringify({ level: 'dev', msg: 'sms (DEV_LOG_OTP)', to, body }));
       return inner.send(to, body);
     },
-  };
+  });
+  sms = devLog(sms);
+  if (smsByCountry.KE) smsByCountry.KE = devLog(smsByCountry.KE);
 }
 
 // Mobile-money aggregator (ADR 023): none is chosen yet, so only the fake exists. It needs a webhook
@@ -91,6 +107,7 @@ const reportError = initObservability(
 const deps: Deps = {
   db,
   sms,
+  smsByCountry,
   whatsapp,
   payments,
   reportError,

@@ -14,7 +14,14 @@ export interface SendResult {
 export interface MessageTemplate {
   kind: 'invite' | 'reminder' | 'pledge';
   locale: 'sw' | 'en';
-  /** Positional values for {{1}}…{{n}}: invite = A, B, date, link, code; reminder = A, B, days, link, code; pledge = name, A & B, pledged, balance, link. */
+  /** Event country (`TZ`, `KE`): picks the approved template and its parameter layout (ADR 026). */
+  country?: string;
+  /**
+   * Positional values for {{1}}…{{n}}. Tanzania: invite = A, B, date, link, code; reminder = A, B, days,
+   * link, code; pledge = name, A & B, pledged, balance, link. Kenya (one host field, so a single host
+   * works): invite = hosts, date, link, code; reminder = hosts, days, link, code; pledge = name, hosts,
+   * pledged, balance, link.
+   */
   params: string[];
 }
 
@@ -45,12 +52,17 @@ export class FakeMessagingProvider implements MessagingProvider {
   constructor(
     readonly channel: MessageChannel = 'sms',
     private readonly failFor: (to: string) => boolean = () => false,
+    /** Message ids look like `<idPrefix>-1`; separate fakes use separate prefixes so ids never collide. */
+    private readonly idPrefix = 'fake',
   ) {}
 
   async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
     if (this.failFor(to)) throw new Error('fake provider failure');
     this.sent.push({ to, body, template, channel: this.channel, at: new Date() });
-    return { providerMsgId: `fake-${++this.counter}`, cost: this.channel === 'sms' ? 25 : 0 };
+    return {
+      providerMsgId: `${this.idPrefix}-${++this.counter}`,
+      cost: this.channel === 'sms' ? 25 : 0,
+    };
   }
 
   /** The last body sent to a number — tests read OTP codes from here. */
@@ -60,4 +72,5 @@ export class FakeMessagingProvider implements MessagingProvider {
 }
 export * from './evolution';
 export * from './nextsms';
+export * from './africastalking';
 export * from './whatsapp-cloud';

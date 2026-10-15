@@ -1,4 +1,4 @@
-import { eventKindLabel, hostNames } from '@harusi/schemas';
+import { eventKindLabel, hostNames, type Currency } from '@harusi/schemas';
 /** GSM 03.38 basic charset (+ extension chars that cost 2 septets). */
 const GSM_BASIC =
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
@@ -43,6 +43,18 @@ export function smsSegments(text: string): SmsSegments {
 
 /** Default SMS price per segment in TZS (Tanzanian SMS only until Kenya pricing exists) (assumption until a gateway is chosen — §15.3, ADR 007). */
 export const SMS_PRICE_PER_SEGMENT_TZS = 25;
+
+/**
+ * SMS price per segment by currency (ADR 026). Assumptions until gateway contracts exist: TZS 25 for
+ * Tanzania; KES 1 for Kenya (listed rates are under a shilling, rounded up to a whole shilling because
+ * amounts are whole currency units). Confirm both with the providers before showing prices to hosts.
+ */
+export const SMS_PRICE_PER_SEGMENT: Record<Currency, number> = { TZS: 25, KES: 1 };
+
+/** Estimated cost of sending `text` to `recipients` people, priced in the event's currency. */
+export function estimateSmsCostFor(text: string, recipients: number, currency: Currency) {
+  return estimateSmsCost(text, recipients, SMS_PRICE_PER_SEGMENT[currency]);
+}
 
 export function estimateSmsCost(
   text: string,

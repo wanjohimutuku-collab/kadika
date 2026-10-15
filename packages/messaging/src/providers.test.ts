@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
+  AfricasTalkingProvider,
   EvolutionWhatsAppProvider,
   NextSmsProvider,
   WhatsAppCloudProvider,
@@ -8,6 +9,8 @@ import {
   parseCloudStatuses,
   verifyMetaSignature,
   parseEvolutionUpdate,
+  parseAfricasTalkingCost,
+  parseAfricasTalkingStatus,
   parseNextSmsStatus,
   toEvolutionNumber,
 } from './index';
@@ -219,5 +222,105 @@ describe('WhatsAppCloudProvider', () => {
       { providerMsgId: 'd', state: 'pending' },
     ]);
     expect(parseCloudStatuses(null)).toEqual([]);
+  });
+});
+
+describe('AfricasTalkingProvider', () => {
+  const ok = (over: Record<string, unknown> = {}) => ({
+    SMSMessageData: {
+      Message: 'Sent to 1/1',
+      Recipients: [
+        {
+          statusCode: 101,
+          number: '+254712345678',
+          cost: 'KES 0.8000',
+          status: 'Success',
+          messageId: 'ATXid_abc',
+          ...over,
+        },
+      ],
+    },
+  });
+
+  it('posts a form with the apiKey header and returns the message id and rounded-up cost', async () => {
+    const { impl, calls } = fakeFetch(201, ok());
+    const p = new AfricasTalkingProvider({
+      username: 'harusi',
+      apiKey: 'k-secret',
+      senderId: 'HARUSIPASS',
+      fetchImpl: impl,
+    });
+    expect(await p.send('+254712345678', 'Karibu')).toEqual({
+      providerMsgId: 'ATXid_abc',
+      cost: 1,
+    });
+    expect(calls[0]!.url).toBe('https://api.africastalking.com/version1/messaging');
+    const h = calls[0]!.init.headers as Record<string, string>;
+    expect(h.apiKey).toBe('k-secret');
+    expect(h['content-type']).toBe('application/x-www-form-urlencoded');
+    const form = new URLSearchParams(calls[0]!.init.body as string);
+    expect(Object.fromEntries(form)).toEqual({
+      username: 'harusi',
+      to: '+254712345678',
+      message: 'Karibu',
+      from: 'HARUSIPASS',
+    });
+  });
+
+  it('treats a rejected recipient as a failure even on HTTP 201', async () => {
+    const { impl } = fakeFetch(201, ok({ statusCode: 403, status: 'InvalidPhoneNumber' }));
+    const p = new AfricasTalkingProvider({ username: 'u', apiKey: 'k', fetchImpl: impl });
+    await expect(p.send('+254712345678', 'x')).rejects.toThrow('africastalking InvalidPhoneNumber');
+  });
+
+  it('fails on HTTP errors without echoing the body', async () => {
+    const { impl } = fakeFetch(401, { error: 'bad key +254712345678' });
+    const p = new AfricasTalkingProvider({ username: 'u', apiKey: 'k', fetchImpl: impl });
+    await expect(p.send('+254712345678', 'x')).rejects.toThrow(/^africastalking 401$/);
+  });
+
+  it('maps delivery report statuses and costs', () => {
+    expect(parseAfricasTalkingStatus('Success')).toBe('delivered');
+    expect(parseAfricasTalkingStatus('Failed')).toBe('failed');
+    expect(parseAfricasTalkingStatus('Rejected')).toBe('failed');
+    expect(parseAfricasTalkingStatus('Sent')).toBe('pending');
+    expect(parseAfricasTalkingStatus(undefined)).toBe('pending');
+    expect(parseAfricasTalkingCost('KES 2.5000')).toBe(3);
+    expect(parseAfricasTalkingCost('')).toBeUndefined();
+  });
+});
+
+describe('WhatsAppCloudProvider templates by country', () => {
+  const body = { messages: [{ id: 'wamid.1' }] };
+  const template = (country?: string) => ({
+    kind: 'invite' as const,
+    locale: 'en' as const,
+    country,
+    params: ['a'],
+  });
+  const make = (impl: typeof fetch) =>
+    new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: '1',
+      fetchImpl: impl,
+      templates: { invite: 'harusi_invite_tz' },
+      templatesByCountry: { KE: { invite: 'harusi_invite_ke' } },
+    });
+  const sentType = (calls: { init: RequestInit }[]) => {
+    const j = JSON.parse(calls[0]!.init.body as string);
+    return j.type === 'template' ? j.template.name : j.type;
+  };
+
+  it('uses the country templates, the base templates for Tanzania, and plain text otherwise', async () => {
+    for (const [country, want] of [
+      ['KE', 'harusi_invite_ke'],
+      ['TZ', 'harusi_invite_tz'],
+      [undefined, 'harusi_invite_tz'],
+      ['UG', 'text'],
+    ] as const) {
+      const { impl, calls } = fakeFetch(200, body);
+      await make(impl).send('+254712345678', 'hi', template(country));
+      expect(sentType(calls), String(country)).toBe(want);
+    }
   });
 });

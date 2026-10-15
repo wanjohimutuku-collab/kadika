@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Switch, Text, View } from 'react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import type { SendJob } from '@harusi/api-client';
-import { buildInviteSms, estimateSmsCost } from '@harusi/api-client';
+import { buildInviteSms, estimateSmsCostFor } from '@harusi/api-client';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { formatDate, formatMoney } from '../../../../../src/lib/format';
@@ -64,7 +64,7 @@ export default function Send() {
       ? 0
       : withPhone.filter((g) => g.hasSmartphone && g.inviteChannelPref !== 'sms').length;
   const smsCount = withPhone.length - waCount;
-  const cost = estimateSmsCost(sample, smsCount);
+  const cost = estimateSmsCostFor(sample, smsCount, currency);
 
   const run = async () => {
     try {
@@ -200,7 +200,7 @@ export default function Send() {
         <Tile
           icon="sms"
           label={t('channel.sms')}
-          hint={`${withPhone.length} · ${formatMoney(estimateSmsCost(sample, withPhone.length).cost, currency)}`}
+          hint={`${withPhone.length} · ${formatMoney(estimateSmsCostFor(sample, withPhone.length, currency).cost, currency)}`}
           selected={channel === 'sms'}
           onPress={() => setChannel('sms')}
         />

@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { MessageTemplate, MessagingProvider, SendResult } from './index';
 import type { DeliveryState } from './evolution';
 
+export type TemplateNames = { invite?: string; reminder?: string; pledge?: string };
+
 export interface WhatsAppCloudOptions {
   /** Permanent system-user access token. Never log it. */
   token: string;
@@ -14,7 +16,9 @@ export interface WhatsAppCloudOptions {
    * without one the provider sends plain text, which WhatsApp only delivers inside a 24-hour
    * customer window, so first contact will fail.
    */
-  templates?: { invite?: string; reminder?: string; pledge?: string };
+  templates?: TemplateNames;
+  /** Templates approved for one country; used instead of `templates` for that country's events. */
+  templatesByCountry?: Record<string, TemplateNames>;
   baseUrl?: string;
   fetchImpl?: typeof fetch;
 }
@@ -32,9 +36,20 @@ export class WhatsAppCloudProvider implements MessagingProvider {
   readonly channel = 'whatsapp' as const;
   constructor(private readonly o: WhatsAppCloudOptions) {}
 
+  /**
+   * A country with its own approved templates uses only those. A country without any (say Kenya,
+   * before its templates are approved) must not borrow Tanzania's: the parameter layout differs and
+   * WhatsApp rejects a wrong count, so it falls back to plain text and then to SMS.
+   */
+  private templateName(t: MessageTemplate): string | undefined {
+    const own = t.country ? this.o.templatesByCountry?.[t.country] : undefined;
+    if (own) return own[t.kind];
+    return t.country && t.country !== 'TZ' ? undefined : this.o.templates?.[t.kind];
+  }
+
   async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
     const f = this.o.fetchImpl ?? fetch;
-    const name = template ? this.o.templates?.[template.kind] : undefined;
+    const name = template ? this.templateName(template) : undefined;
     const payload =
       template && name
         ? {

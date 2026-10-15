@@ -28,6 +28,8 @@ export async function createTestContext(
     pay: (_phone: string) => false,
   };
   const sms = new FakeMessagingProvider('sms', (to) => fail.sms(to));
+  // The Kenyan SMS route (only used for +254 numbers, which need KENYA_ENABLED).
+  const smsKe = new FakeMessagingProvider('sms', (to) => fail.sms(to), 'fake-ke');
   const whatsapp = new FakeMessagingProvider('whatsapp', (to) => fail.wa(to));
   const payments = new FakePaymentProvider('pay-secret-for-tests', (phone) => fail.pay(phone));
   // mulberry32: a real PRNG (a Weyl sequence correlates badly with the short-code generator).
@@ -43,6 +45,7 @@ export async function createTestContext(
   const deps: Deps = {
     db,
     sms,
+    smsByCountry: { KE: smsKe },
     whatsapp,
     payments,
     sleep: async () => {},
@@ -64,7 +67,18 @@ export async function createTestContext(
     random: (n) => Uint8Array.from({ length: n }, () => next() & 255),
   };
   const app = createApp(deps);
-  return { app, deps, sms, whatsapp, payments, fail, clock, db, close: () => client.close() };
+  return {
+    app,
+    deps,
+    sms,
+    smsKe,
+    whatsapp,
+    payments,
+    fail,
+    clock,
+    db,
+    close: () => client.close(),
+  };
 }
 
 export type TestContext = Awaited<ReturnType<typeof createTestContext>>;
@@ -96,7 +110,8 @@ export async function loginAs(ctx: TestContext, phone: string) {
   const req = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone } });
   if (req.status !== 200) throw new Error(`otp request failed: ${JSON.stringify(req.body)}`);
   const e164 = req.body!.phone as string;
-  const code = /(\d{6})/.exec(ctx.sms.lastTo(e164) ?? '')?.[1];
+  const route = e164.startsWith('+254') ? ctx.smsKe : ctx.sms;
+  const code = /(\d{6})/.exec(route.lastTo(e164) ?? '')?.[1];
   if (!code) throw new Error('no code sent');
   const verified = await api(ctx, 'POST', '/v1/auth/otp/verify', { body: { phone, code } });
   if (verified.status !== 200) throw new Error(`verify failed: ${JSON.stringify(verified.body)}`);

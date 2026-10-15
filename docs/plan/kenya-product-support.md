@@ -105,6 +105,12 @@ providers; TZ behaviour byte-for-byte unchanged in tests.
 
 ### Phase 2: messaging for Kenya (about 2 weeks plus approval time)
 
+**Status (2026-10-15): code done behind `KENYA_ENABLED`, see ADR 026.** Per-country SMS routing, sign-in
+codes by number country, an Africa's Talking adapter with delivery-report webhook, per-country link domain,
+per-country WhatsApp templates and cost tables. Still open: sender ID, template approval, a live SMS
+contract and counsel's view on message class and consent (Phase 0 items), and a test on real Safaricom and
+Airtel numbers.
+
 - Provider adapter for the chosen Kenyan SMS gateway behind `MessagingProvider`; delivery webhooks
   (verify signatures, idempotent), cost capture in the event currency.
 - Route by event country: OTP and invitations for KE events through the Kenyan provider and sender ID.

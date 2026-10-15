@@ -4,6 +4,8 @@ import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { eventKindLabel, formatMoney, hostNames, toZoned } from '@harusi/schemas';
 import { buildInviteSms, buildReminderSms } from '@harusi/api-client';
 import { pledgeSummaryOf } from './pledges';
+import type { Country } from '@harusi/schemas/country';
+import { routeCountry, shortBaseFor, smsFor } from '../sms-routing';
 import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
 import type { MessageChannel, MessagingProvider } from '@harusi/messaging';
 import type { Deps } from '../context';
@@ -97,8 +99,15 @@ export class DeliveryService {
     return token;
   }
 
-  private provider(channel: MessageChannel): MessagingProvider | undefined {
-    return channel === 'whatsapp' ? this.deps.whatsapp : this.deps.sms;
+  /** WhatsApp is one route; SMS goes through the route of the number's own country (ADR 026). */
+  private provider(
+    channel: MessageChannel,
+    to: string,
+    eventCountry: Country,
+  ): MessagingProvider | undefined {
+    return channel === 'whatsapp'
+      ? this.deps.whatsapp
+      : smsFor(this.deps, routeCountry(to, eventCountry));
   }
 
   private async attempt(
@@ -168,19 +177,20 @@ export class DeliveryService {
       partnerB: b,
       kind: event.eventKind,
       dateText: dateText(event.dateStart, guest.language, event.timezone),
-      shortLink: `${this.deps.config.shortBaseUrl}/s/${token}`,
+      shortLink: `${shortBaseFor(this.deps.config, event.country)}/s/${token}`,
       code: guest.shortCode,
     };
+    const hosts = hostNames(a, b);
+    const when = daysLeft === undefined ? base.dateText : String(daysLeft);
     const template: MessageTemplate = {
       kind: daysLeft === undefined ? 'invite' : 'reminder',
       locale: guest.language,
-      params: [
-        a,
-        b,
-        daysLeft === undefined ? base.dateText : String(daysLeft),
-        base.shortLink,
-        base.code,
-      ],
+      country: event.country,
+      // Kenyan templates take one host field so a single host works (ADR 026).
+      params:
+        event.country === 'KE'
+          ? [hosts, when, base.shortLink, base.code]
+          : [a, b, when, base.shortLink, base.code],
     };
     return {
       text: daysLeft === undefined ? buildInviteSms(base) : buildReminderSms({ ...base, daysLeft }),
@@ -201,7 +211,7 @@ export class DeliveryService {
     const { text, template } = built ?? (await this.text(guest, inv, event, daysLeft));
     let lastError = 'no provider configured';
     for (const ch of channels) {
-      const p = this.provider(ch);
+      const p = this.provider(ch, guest.phoneE164!, event.country);
       if (!p) continue;
       const r = await this.attempt(p, guest.phoneE164!, text, template);
       await this.log(guest.id, ch, p.name, r, kind);
@@ -422,7 +432,7 @@ export class DeliveryService {
         continue;
       }
       const money = (n: number) => formatMoney(n, event.currency);
-      const link = `${this.deps.config.shortBaseUrl}/s/${await this.cardToken(inv)}`;
+      const link = `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}`;
       const sw = guest.language === 'sw';
       const kind = eventKindLabel(event.eventKind, guest.language).toLowerCase();
       const hosts = hostNames(a, b);
@@ -436,7 +446,8 @@ export class DeliveryService {
         template: {
           kind: 'pledge',
           locale: guest.language,
-          params: [guest.displayName, `${a} & ${b}`, money(s.amount), money(s.balance), link],
+          country: event.country,
+          params: [guest.displayName, hosts, money(s.amount), money(s.balance), link],
         },
       });
       out[r.ok ? 'sent' : 'failed']++;

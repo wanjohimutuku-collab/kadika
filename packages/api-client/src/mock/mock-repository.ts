@@ -73,7 +73,7 @@ import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
 import { pledgeTotals, summarizePledge } from '../domain/pledge';
-import { buildInviteSms, estimateSmsCost } from '../domain/sms';
+import { buildInviteSms, estimateSmsCostFor } from '../domain/sms';
 import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
 import { MockControls } from './controls';
@@ -1068,7 +1068,11 @@ export class MockRepository implements Repository {
       const list = this.audience(eventId, req.audience, req.kind);
       const byChannel: Record<MessageChannel, number> = { whatsapp: 0, sms: 0, print: 0 };
       for (const g of list) byChannel[this.channelFor(g, req)] += 1;
-      const cost = estimateSmsCost(this.sampleSms(e, req.kind, req.body), byChannel.sms);
+      const cost = estimateSmsCostFor(
+        this.sampleSms(e, req.kind, req.body),
+        byChannel.sms,
+        e.currency,
+      );
       return {
         total: list.length,
         byChannel,

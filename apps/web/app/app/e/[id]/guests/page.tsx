@@ -51,7 +51,8 @@ import { TextField } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { eventScopedKeys, qk } from '@/lib/queries';
-import { formatPhone, formatTzs } from '@/lib/format';
+import { formatPhone, formatMoney } from '@/lib/format';
+import { useCurrency } from '@/lib/country';
 import { downloadBlob, SELECTED_GUESTS_KEY as SELECTED_KEY } from '@/lib/download';
 import { cn } from '@/lib/cn';
 
@@ -75,6 +76,7 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 function GuestsInner({ id }: { id: string }) {
+  const cur = useCurrency();
   const t = useTranslations('guests');
   const tc = useTranslations('common');
   const ts = useTranslations('states');
@@ -312,7 +314,7 @@ function GuestsInner({ id }: { id: string }) {
       header: t('col.balance'),
       cell: (c) => (
         <span className="tabular whitespace-nowrap">
-          {c.row.original.pledge ? formatTzs(c.row.original.pledge.balanceTzs) : '—'}
+          {c.row.original.pledge ? formatMoney(c.row.original.pledge.balance, cur) : '—'}
         </span>
       ),
     }),

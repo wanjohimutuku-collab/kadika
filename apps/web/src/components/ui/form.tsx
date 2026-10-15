@@ -14,7 +14,9 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 import { Upload } from 'lucide-react';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import type { Country } from '@harusi/schemas/country';
+import { COUNTRY_INFO } from '@harusi/schemas/country';
+import { dialPrefix, parsePhone, usePhoneCountry } from '@/lib/country';
 import { cn } from '@/lib/cn';
 
 const inputBase =
@@ -259,34 +261,41 @@ export interface PhoneFieldProps extends Omit<
 > {
   value: string;
   onChange: (raw: string) => void;
-  /** Called with E.164 when the value is a valid Tanzanian mobile, else null. */
+  /** Called with E.164 when the value is a valid mobile number, else null. */
   onE164?: (e164: string | null) => void;
+  /** Country local numbers are read in; defaults to the open event's (else Tanzania). */
+  country?: Country;
 }
 
 /**
- * Phone input with a fixed +255 prefix. Accepts 0712…, 712…, +255… or 255…; on blur it shows the
- * national form (712 345 678). Storage is always E.164 (§5).
+ * Phone input with the country's dial-code prefix (+255 by default). Accepts 0712…, 712…, +255… or
+ * 255…; on blur it shows the national form (712 345 678), or the international form for a number
+ * from another allowed country. Storage is always E.164 (§5).
  */
-export function PhoneField({ value, onChange, onE164, onBlur, ...rest }: PhoneFieldProps) {
+export function PhoneField({ value, onChange, onE164, onBlur, country, ...rest }: PhoneFieldProps) {
+  const fromContext = usePhoneCountry();
+  const home = country ?? fromContext;
   const handle = (raw: string) => {
     onChange(raw);
-    const r = normalizeTzPhone(raw);
+    const r = parsePhone(raw, home);
     onE164?.(r.ok ? r.e164 : null);
   };
   return (
     <TextField
       {...rest}
-      prefix="+255"
+      prefix={dialPrefix(home)}
       type="tel"
       inputMode="tel"
       autoComplete="tel-national"
       value={value}
       onChange={(e: ChangeEvent<HTMLInputElement>) => handle(e.target.value)}
       onBlur={(e) => {
-        const r = normalizeTzPhone(value);
+        const r = parsePhone(value, home);
         if (r.ok) {
-          const n = r.e164.slice(4);
-          onChange(`${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`);
+          const dial = COUNTRY_INFO[home].dial;
+          const abroad = !r.e164.startsWith(`+${dial}`);
+          const n = abroad ? r.e164 : r.e164.slice(dial.length + 1);
+          onChange(abroad ? r.e164 : `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`);
         }
         onBlur?.(e);
       }}

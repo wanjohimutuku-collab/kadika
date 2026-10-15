@@ -4,6 +4,13 @@ import { contrastRatio } from './contrast';
 import { tokensCss } from './css';
 import { darkColors, gateColors, lightColors } from './index';
 import { themeContrastIssues, themeIds, themes } from './themes';
+import {
+  mixHex,
+  normalizeHex,
+  paletteContrastIssues,
+  resolvePalette,
+  sanitizeOverrides,
+} from './palette';
 
 describe('ui tokens', () => {
   it('defines the same tokens in light and dark', () => {
@@ -42,5 +49,46 @@ describe('theme contrast guard', () => {
       accent: '#F0E0C0',
     });
     expect(issues.map((i) => i.pair)).toContain('onPrimary/primary');
+  });
+});
+
+describe('palette customisation', () => {
+  it('normalises hex and drops junk overrides', () => {
+    expect(normalizeHex('abc')).toBe('#AABBCC');
+    expect(normalizeHex('#0f5c4d')).toBe('#0F5C4D');
+    expect(normalizeHex('red;background:url(x)')).toBeNull();
+    expect(sanitizeOverrides({ primary: '#123', bogus: '#000000', ink: 'nope' })).toEqual({
+      primary: '#112233',
+    });
+  });
+
+  it('every preset theme is a valid palette', () => {
+    for (const id of themeIds) expect(paletteContrastIssues(resolvePalette(id))).toEqual([]);
+  });
+
+  it('overrides win, and unreadable combinations are reported', () => {
+    const p = resolvePalette('emerald-gold', { bg: '#101820', surface: '#16222E', ink: '#F5F1E8' });
+    expect(p.surface).toBe('#16222E');
+    expect(p.primary).toBe('#0F5C4D');
+    // dark surface with the default emerald primary and muted grey is not readable
+    const issues = paletteContrastIssues(p).map((i) => i.pair);
+    expect(issues).toContain('primary/surface');
+    expect(issues).toContain('muted/surface');
+    const bad = resolvePalette('emerald-gold', { ink: '#EEEEEE' });
+    expect(paletteContrastIssues(bad).map((i) => i.pair)).toContain('ink/surface');
+  });
+
+  it('mixes tints', () => {
+    expect(mixHex('#FFFFFF', '#000000', 0.5)).toBe('#808080');
+  });
+});
+
+import { gateColorsAaa } from './colors';
+import { contrastRatio as ratio } from './contrast';
+
+describe('gate result fills (AAA)', () => {
+  it('white text reaches 7:1 on every darkened gate fill', () => {
+    for (const fill of Object.values(gateColorsAaa))
+      expect(ratio('#FFFFFF', fill)).toBeGreaterThanOrEqual(7);
   });
 });

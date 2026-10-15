@@ -6,7 +6,8 @@ import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
+import { parsePhone, useCurrency, usePhoneCountry } from '@/lib/country';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { qk, useEvent, useSession } from '@/lib/queries';
 import { formatPhone, fromLocalInput, toLocalInput } from '@/lib/format';
 
 interface FormState {
+  eventKind: string;
   partnerA: string;
   partnerB: string;
   title: string;
@@ -33,11 +35,12 @@ interface FormState {
   languageDefault: 'sw' | 'en';
   pledgesEnabled: boolean;
   whatsappFallbackHours: number;
-  contributionTargetTzs: number;
+  contributionTarget: number;
 }
 
 function toForm(e: WeddingEvent): FormState {
   return {
+    eventKind: e.eventKind,
     partnerA: e.partnerA,
     partnerB: e.partnerB,
     title: e.title,
@@ -51,11 +54,13 @@ function toForm(e: WeddingEvent): FormState {
     languageDefault: e.languageDefault,
     pledgesEnabled: e.pledgesEnabled,
     whatsappFallbackHours: e.whatsappFallbackHours,
-    contributionTargetTzs: e.contributionTargetTzs,
+    contributionTarget: e.contributionTarget,
   };
 }
 
 export default function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
+  const country = usePhoneCountry();
+  const cur = useCurrency();
   const { id } = use(params);
   const t = useTranslations('settings');
   const tw = useTranslations('wizard');
@@ -117,15 +122,17 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
     if (!form) return;
     const errs: typeof errors = {};
     if (form.partnerA.trim().length < 2) errs.partnerA = tv('name.too_short');
-    if (form.partnerB.trim().length < 2) errs.partnerB = tv('name.too_short');
+    if (form.partnerB.trim() && form.partnerB.trim().length < 2)
+      errs.partnerB = tv('name.too_short');
     if (form.venueName.trim().length < 2) errs.venueName = tv('venue.required');
-    const phone = normalizeTzPhone(form.committeePhone);
+    const phone = parsePhone(form.committeePhone, country);
     if (!phone.ok) errs.committeePhone = tv(`phone.${phone.error}`);
     if (form.venueMapUrl && !/^https?:\/\//.test(form.venueMapUrl))
       errs.venueMapUrl = tv('url.invalid');
     setErrors(errs);
     if (Object.keys(errs).length || !phone.ok) return;
     save.mutate({
+      eventKind: form.eventKind.trim(),
       partnerA: form.partnerA.trim(),
       partnerB: form.partnerB.trim(),
       title: form.title.trim(),
@@ -139,7 +146,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
       languageDefault: form.languageDefault,
       pledgesEnabled: form.pledgesEnabled,
       whatsappFallbackHours: form.whatsappFallbackHours,
-      contributionTargetTzs: form.contributionTargetTzs,
+      contributionTarget: form.contributionTarget,
     });
   };
 
@@ -167,6 +174,20 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
               <Card title={t('event')} titleId="ev-h">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <TextField
+                    label={tw('kind')}
+                    hint={tw('kindHint')}
+                    list="event-kind-suggestions"
+                    maxLength={40}
+                    value={form.eventKind}
+                    onChange={(ev) => set('eventKind', ev.target.value)}
+                    wrapperClassName="sm:col-span-2"
+                  />
+                  <datalist id="event-kind-suggestions">
+                    {EVENT_KIND_SUGGESTIONS.map((k) => (
+                      <option key={k} value={k} />
+                    ))}
+                  </datalist>
+                  <TextField
                     label={tw('partnerA')}
                     value={form.partnerA}
                     onChange={(ev) => set('partnerA', ev.target.value)}
@@ -174,6 +195,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                   />
                   <TextField
                     label={tw('partnerB')}
+                    optionalLabel={tc('optional')}
                     value={form.partnerB}
                     onChange={(ev) => set('partnerB', ev.target.value)}
                     error={errors.partnerB}
@@ -193,11 +215,11 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                   />
                   <TextField
                     label={tw('target')}
-                    prefix="TZS"
+                    prefix={cur}
                     inputMode="numeric"
-                    value={String(form.contributionTargetTzs)}
+                    value={String(form.contributionTarget)}
                     onChange={(ev) =>
-                      set('contributionTargetTzs', Number(ev.target.value.replace(/\D/g, '')) || 0)
+                      set('contributionTarget', Number(ev.target.value.replace(/\D/g, '')) || 0)
                     }
                   />
                 </div>
@@ -278,7 +300,12 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                       { value: 'en', label: tl('en') },
                     ]}
                   />
-                  <TextField label={t('timezone')} value={t('timezoneValue')} readOnly disabled />
+                  <TextField
+                    label={t('timezone')}
+                    value={event.data?.timezone ?? t('timezoneValue')}
+                    readOnly
+                    disabled
+                  />
                 </div>
               </Card>
               <Card title={t('danger')} titleId="dz-h" className="border-danger/40">

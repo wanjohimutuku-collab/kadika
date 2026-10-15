@@ -5,6 +5,7 @@ import { pickMessages, type Locale } from '@harusi/i18n';
 import { normalizeShortCode } from '@harusi/schemas/short-code';
 import { USE_MOCKS } from '@/lib/env';
 import { peekShortCodeOnServer } from '@/lib/server-mock';
+import { cardTokenFromShortPath } from '@/lib/short-link';
 import { ShortResolver } from '@/components/card/short-resolver';
 
 /** SMS short link (§7.2): `/s/KH-4826` → the guest's card. Works on any phone browser. */
@@ -12,6 +13,9 @@ export default async function ShortLink({ params }: { params: Promise<{ code: st
   const { code: raw } = await params;
   const code = normalizeShortCode(decodeURIComponent(raw)) ?? raw;
   const token = USE_MOCKS ? peekShortCodeOnServer(code) : null;
+  // Real mode (ADR 016): the SMS link carries the card token itself.
+  const cardToken = USE_MOCKS ? null : cardTokenFromShortPath(raw);
+  if (cardToken) redirect(`/c/${cardToken}`);
   if (token) redirect(`/c/${token}`);
   const locale = (await getLocale()) as Locale;
   return (

@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, KeyRound, Link2, ShieldAlert, UserMinus, UserPlus } from 'lucide-react';
 import type { GateLink, Member } from '@harusi/api-client';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { parsePhone, usePhoneCountry } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -21,6 +21,7 @@ import { formatDateShort, formatPhone, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
 export default function TeamPage({ params }: { params: Promise<{ id: string }> }) {
+  const country = usePhoneCountry();
   const { id } = use(params);
   const t = useTranslations('team');
   const tn = useTranslations('nav');
@@ -225,7 +226,7 @@ export default function TeamPage({ params }: { params: Promise<{ id: string }> }
             loading={invite.isPending}
             disabled={name.trim().length < 2}
             onClick={() => {
-              const r = normalizeTzPhone(phone);
+              const r = parsePhone(phone, country);
               if (!r.ok) return setPhoneError(tv(`phone.${r.error}`));
               setPhoneError(undefined);
               invite.mutate(r.e164);

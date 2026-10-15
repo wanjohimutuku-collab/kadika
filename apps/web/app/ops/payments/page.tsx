@@ -51,7 +51,7 @@ export default function OpsPaymentsPage() {
                 <Td muted>{formatDateTimeShort(p.paidAt, locale)}</Td>
                 <Td>{p.coupleNames}</Td>
                 <Td>{p.guestName}</Td>
-                <Td right>{formatTzs(p.amountTzs)}</Td>
+                <Td right>{formatTzs(p.amount)}</Td>
                 <Td>{tp(p.method)}</Td>
                 <Td>
                   <span className="font-mono text-sm">{p.reference}</span>

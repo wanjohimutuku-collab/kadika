@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { fileURLToPath } from 'node:url';
 import { FakeMessagingProvider } from '@harusi/messaging';
+import { FakePaymentProvider } from '@harusi/payments';
 import * as schema from '@harusi/db/schema';
 import type { Db } from '@harusi/db';
 import { createApp } from '../app';
@@ -12,13 +13,31 @@ import type { Deps } from '../context';
 export const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
 
 /** Real SQL (PGlite, in-process Postgres) + migrations + fake SMS: no Docker needed in unit tests. */
-export async function createTestContext(opts: { now?: () => Date } = {}) {
+export async function createTestContext(
+  opts: { now?: () => Date; env?: Record<string, string> } = {},
+) {
   const client = new PGlite();
   const db = drizzle(client, { schema }) as unknown as Db;
   await migrate(db as never, {
     migrationsFolder: fileURLToPath(new URL('../../../../packages/db/drizzle', import.meta.url)),
   });
-  const sms = new FakeMessagingProvider('sms');
+  // Tests flip these to simulate gateway outages for chosen numbers (delivery retries, fallback).
+  const fail = {
+    wa: (_to: string) => false,
+    sms: (_to: string) => false,
+    pay: (_phone: string) => false,
+  };
+  const sms = new FakeMessagingProvider('sms', (to) => fail.sms(to));
+  // The Kenyan SMS route (only used for +254 numbers, which need KENYA_ENABLED).
+  const smsKe = new FakeMessagingProvider('sms', (to) => fail.sms(to), 'fake-ke');
+  const whatsapp = new FakeMessagingProvider('whatsapp', (to) => fail.wa(to));
+  const payments = new FakePaymentProvider('pay-secret-for-tests', (phone) => fail.pay(phone));
+  // The Kenyan mobile-money route (used only by Kenyan events, which need KENYA_ENABLED).
+  const paymentsKe = new FakePaymentProvider(
+    'pay-secret-ke-for-tests',
+    (phone) => fail.pay(phone),
+    'fake-ke',
+  );
   // mulberry32: a real PRNG (a Weyl sequence correlates badly with the short-code generator).
   let seed = 0x9e3779b9;
   const next = () => {
@@ -32,17 +51,42 @@ export async function createTestContext(opts: { now?: () => Date } = {}) {
   const deps: Deps = {
     db,
     sms,
+    smsByCountry: { KE: smsKe },
+    whatsapp,
+    payments,
+    paymentsByCountry: { KE: paymentsKe },
+    sleep: async () => {},
     config: loadConfig({
       DATABASE_URL: 'pglite',
       JWT_SECRET: 'test-secret-at-least-16-chars',
       KEY_ENC_SECRET: TEST_KEY,
+      WEBHOOK_SECRET: 'hook-secret-for-tests',
+      PAYMENT_WEBHOOK_SECRET: 'pay-secret-for-tests',
+      LOG_REQUESTS: '0',
+      ...opts.env,
+      WHATSAPP_TOKEN: 'cloud-token',
+      WHATSAPP_PHONE_ID: '1234567890',
+      WHATSAPP_VERIFY_TOKEN: 'verify-me',
+      WHATSAPP_APP_SECRET: 'meta-app-secret',
     }),
     now: opts.now ?? (() => new Date(clock.now)),
     // Deterministic bytes: tests are reproducible but ids and tokens still differ between calls.
     random: (n) => Uint8Array.from({ length: n }, () => next() & 255),
   };
   const app = createApp(deps);
-  return { app, deps, sms, clock, db, close: () => client.close() };
+  return {
+    app,
+    deps,
+    sms,
+    smsKe,
+    whatsapp,
+    payments,
+    paymentsKe,
+    fail,
+    clock,
+    db,
+    close: () => client.close(),
+  };
 }
 
 export type TestContext = Awaited<ReturnType<typeof createTestContext>>;
@@ -74,7 +118,8 @@ export async function loginAs(ctx: TestContext, phone: string) {
   const req = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone } });
   if (req.status !== 200) throw new Error(`otp request failed: ${JSON.stringify(req.body)}`);
   const e164 = req.body!.phone as string;
-  const code = /(\d{6})/.exec(ctx.sms.lastTo(e164) ?? '')?.[1];
+  const route = e164.startsWith('+254') ? ctx.smsKe : ctx.sms;
+  const code = /(\d{6})/.exec(route.lastTo(e164) ?? '')?.[1];
   if (!code) throw new Error('no code sent');
   const verified = await api(ctx, 'POST', '/v1/auth/otp/verify', { body: { phone, code } });
   if (verified.status !== 200) throw new Error(`verify failed: ${JSON.stringify(verified.body)}`);

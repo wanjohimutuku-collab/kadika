@@ -1,17 +1,19 @@
 import type { Locale } from '@harusi/i18n';
+import { useCurrency } from '@/lib/country';
 import {
   formatDate,
   formatDateShort,
   formatDateTimeShort,
   formatTime,
-  formatTzs,
+  formatMoney,
 } from '@/lib/format';
 
-/** `TZS 1,200,000` with tabular figures. */
+/** `TZS 1,200,000` with tabular figures, in the open event's currency. */
 export function CurrencyText({ amount, className }: { amount: number; className?: string }) {
+  const currency = useCurrency();
   return (
     <span className={['tabular whitespace-nowrap', className].filter(Boolean).join(' ')}>
-      {formatTzs(amount)}
+      {formatMoney(amount, currency)}
     </span>
   );
 }

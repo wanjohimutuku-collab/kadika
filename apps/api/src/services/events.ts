@@ -1,6 +1,13 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import type { CardContent } from '@harusi/schemas/card-content';
+import { allowedCountries, currencyOf, timezoneOf, type Country } from '@harusi/schemas/country';
 import { eventMembers, events, newId, signingKeys } from '@harusi/db';
 import { generateEventKeyPair } from '@harusi/crypto';
+import {
+  paletteContrastIssues,
+  resolvePalette,
+  sanitizeOverrides,
+} from '@harusi/ui-tokens/palette';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { encryptSecret } from '../crypto-at-rest';
@@ -9,15 +16,58 @@ export type MemberRole = 'owner' | 'committee' | 'gate';
 
 export interface EventInput {
   title: string;
+  /** Defaults to Tanzania. Kenya needs `KENYA_ENABLED` (ADR 025). */
+  country?: Country;
+  eventKind?: string | null;
   coupleNames: string;
   dateStart: Date;
   venueName?: string | null;
   venueMapUrl?: string | null;
   dressCode?: string | null;
+  committeePhone?: string | null;
+  senderName?: string | null;
+  greeting?: string | null;
   languageDefault?: 'sw' | 'en';
   rsvpDeadline?: Date | null;
-  contributionTargetTzs?: number | null;
+  contributionTarget?: number | null;
+  pledgesEnabled?: boolean;
   brandTheme?: Record<string, unknown> | null;
+  /** Validated by the route; new events default to family-sent cards (ADR 029). */
+  cardContent?: CardContent;
+}
+
+/**
+ * `brand_theme` holds `{ themeId, coverGradient, palette }`. A patch only replaces the keys it
+ * sends, and the resulting palette must stay readable (WCAG contrast, ADR 015) or the call fails.
+ */
+export function mergeBrandTheme(
+  current: Record<string, unknown> | null,
+  patch: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | undefined {
+  if (!patch) return current ?? undefined;
+  const merged: Record<string, unknown> = { ...(current ?? {}) };
+  for (const [k, v] of Object.entries(patch)) if (v !== undefined) merged[k] = v;
+  const themeId = typeof merged.themeId === 'string' ? merged.themeId : undefined;
+  if ('palette' in merged) {
+    const palette = sanitizeOverrides(merged.palette);
+    const issues = paletteContrastIssues(resolvePalette(themeId, palette));
+    if (issues.length)
+      throw new ApiError('validation', 'Palette is not readable', {
+        reason: 'palette.contrast',
+        pairs: issues.map((i) => i.pair),
+      });
+    merged.palette = palette;
+  }
+  return merged;
+}
+
+/** The event's country, defaulting to Tanzania when the row is missing. */
+export async function eventCountry(db: Deps['db'], eventId: string): Promise<Country> {
+  const [row] = await db
+    .select({ country: events.country })
+    .from(events)
+    .where(eq(events.id, eventId));
+  return row?.country ?? 'TZ';
 }
 
 export class EventService {
@@ -25,6 +75,12 @@ export class EventService {
 
   /** Creates the event, its owner membership and its Ed25519 signing key in one transaction. */
   async create(ownerId: string, input: EventInput) {
+    const country = input.country ?? 'TZ';
+    if (!allowedCountries(this.deps.config.kenyaEnabled).includes(country))
+      throw new ApiError('validation', 'Country is not available', {
+        field: 'country',
+        reason: 'country.disabled',
+      });
     const keys = generateEventKeyPair(this.deps.random);
     const encrypted = await encryptSecret(keys.privateKey, this.deps.config.keyEncSecret);
     return this.deps.db.transaction(async (tx) => {
@@ -32,7 +88,16 @@ export class EventService {
       const keyId = newId();
       const [event] = await tx
         .insert(events)
-        .values({ id: eventId, ownerId, ...input, brandTheme: input.brandTheme ?? undefined })
+        .values({
+          id: eventId,
+          ownerId,
+          ...input,
+          country,
+          currency: currencyOf(country),
+          timezone: timezoneOf(country),
+          brandTheme: mergeBrandTheme(null, input.brandTheme),
+          cardContent: input.cardContent ?? { sender: { kind: 'family' } },
+        })
         .returning();
       await tx
         .insert(signingKeys)
@@ -83,9 +148,17 @@ export class EventService {
     const role = await this.role(eventId, userId);
     if (role !== 'owner')
       throw new ApiError('forbidden', 'Only the owner can change event settings');
+    let brandTheme: Record<string, unknown> | undefined;
+    if (patch.brandTheme) {
+      const [current] = await this.deps.db
+        .select({ brandTheme: events.brandTheme })
+        .from(events)
+        .where(eq(events.id, eventId));
+      brandTheme = mergeBrandTheme(current?.brandTheme ?? null, patch.brandTheme);
+    }
     const [updated] = await this.deps.db
       .update(events)
-      .set({ ...patch, brandTheme: patch.brandTheme ?? undefined })
+      .set({ ...patch, brandTheme })
       .where(eq(events.id, eventId))
       .returning();
     if (!updated) throw new ApiError('not_found');

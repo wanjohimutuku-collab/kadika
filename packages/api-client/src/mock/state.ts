@@ -1,5 +1,6 @@
 import {
   generateShortCode,
+  type CardKind,
   type InvitationStatus,
   type MemberRole,
   type MessageChannel,
@@ -39,6 +40,7 @@ export type EventRecord = Omit<WeddingEvent, 'stats'> & { deletedAt: string | nu
 export interface GuestRecord {
   id: string;
   eventId: string;
+  cardKind: CardKind;
   displayName: string;
   phoneE164: string | null;
   hasSmartphone: boolean;
@@ -56,7 +58,7 @@ export interface GuestRecord {
   channelLast: MessageChannel | null;
   checkedInAt: string | null;
   partyAdmitted: number;
-  pledgeAmountTzs: number | null;
+  pledgeAmount: number | null;
   pledgeWaived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -67,7 +69,7 @@ export interface PendingPayment {
   reference: string;
   guestId: string;
   eventId: string;
-  amountTzs: number;
+  amount: number;
   phoneE164: string;
   method: PaymentMethod;
   outcome: 'success' | 'declined' | 'timeout' | 'duplicate_webhook';
@@ -93,7 +95,7 @@ export interface JobRecord extends Omit<SendJob, 'counts' | 'failures' | 'status
 
 export interface MockState {
   /** Bumped when the shape changes; older saved states are re-seeded. */
-  version: 3;
+  version: 5;
   seedDay: string;
   users: User[];
   sessionUserId: string | null;
@@ -184,17 +186,22 @@ function baseEvent(
 ): EventRecord {
   return {
     title: `Harusi ya ${partial.partnerA} & ${partial.partnerB}`,
+    cardContent: {},
+    eventKind: 'Harusi',
     coupleNames: `${partial.partnerA} & ${partial.partnerB}`,
     venueName: '',
     venueMapUrl: '',
     dressCode: '',
     languageDefault: 'sw',
+    country: 'TZ',
+    currency: 'TZS',
     timezone: 'Africa/Dar_es_Salaam',
     status: 'active',
     themeId: 'emerald-gold',
     coverGradient: 'linear-gradient(135deg,#0F5C4D 0%,#1E7D6A 55%,#B8893B 100%)',
+    palette: {},
     rsvpDeadline: null,
-    contributionTargetTzs: 0,
+    contributionTarget: 0,
     senderName: '',
     committeePhone: '',
     pledgesEnabled: true,
@@ -292,6 +299,7 @@ function addGuest(
   const g: GuestRecord = {
     id,
     eventId,
+    cardKind: 'invitation',
     displayName: name,
     phoneE164: noPhone ? null : phoneFor(rng),
     hasSmartphone,
@@ -309,7 +317,7 @@ function addGuest(
     channelLast,
     checkedInAt,
     partyAdmitted,
-    pledgeAmountTzs: pledged ? rng.pick(PLEDGE_AMOUNTS) : null,
+    pledgeAmount: pledged ? rng.pick(PLEDGE_AMOUNTS) : null,
     pledgeWaived: false,
     createdAt: iso(created),
     updatedAt: iso(t),
@@ -331,7 +339,7 @@ function addGuest(
         kind: 'invite',
         status: 'failed',
         error: 'not_on_whatsapp',
-        costTzs: 0,
+        cost: 0,
         createdAt: iso(sentAt),
       });
       ctx.state.messages.push({
@@ -343,7 +351,7 @@ function addGuest(
         kind: 'invite',
         status: rank >= STATUS_RANK.delivered ? 'delivered' : 'sent',
         error: null,
-        costTzs: 25,
+        cost: 25,
         createdAt: iso(sentAt + 6 * HOUR),
       });
       g.channelLast = 'sms';
@@ -362,7 +370,7 @@ function addGuest(
               ? 'delivered'
               : 'sent',
         error: null,
-        costTzs: channelLast === 'sms' ? 25 : 0,
+        cost: channelLast === 'sms' ? 25 : 0,
         createdAt: iso(sentAt),
       });
     }
@@ -377,16 +385,16 @@ function addGuest(
       kind: 'invite',
       status: 'failed',
       error: rng.pick(['invalid_number', 'provider_timeout', 'not_on_whatsapp']),
-      costTzs: 0,
+      cost: 0,
       createdAt: timeline.queued ?? iso(created),
     });
   }
 
   // Payments against the pledge.
-  if (g.pledgeAmountTzs) {
+  if (g.pledgeAmount) {
     const r = rng.next();
     const paidShare = r < 0.4 ? 1 : r < 0.65 ? rng.pick([0.25, 0.5, 0.6]) : 0;
-    let remaining = Math.round((g.pledgeAmountTzs * paidShare) / 5000) * 5000;
+    let remaining = Math.round((g.pledgeAmount * paidShare) / 5000) * 5000;
     let at = created + rng.int(3, 20) * DAY;
     while (remaining > 0) {
       const part =
@@ -398,7 +406,7 @@ function addGuest(
         eventId,
         guestId: id,
         guestName: g.displayName,
-        amountTzs: part,
+        amount: part,
         method,
         status: 'success',
         reference:
@@ -427,7 +435,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
   const today = startOfDayEAT(now);
   const rng = new Rng(mulberry32(opts.seed ?? 20_261_013));
   const state: MockState = {
-    version: 3,
+    version: 5,
     seedDay: iso(today),
     users: [],
     sessionUserId: null,
@@ -500,7 +508,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
     venueMapUrl: 'https://www.openstreetmap.org/?mlat=-6.7667&mlon=38.9167#map=16/-6.7667/38.9167',
     dressCode: 'Kijani na dhahabu',
     rsvpDeadline: iso(upcomingDate - 14 * DAY),
-    contributionTargetTzs: 20_000_000,
+    contributionTarget: 20_000_000,
     senderName: 'Kamati ya Harusi ya Asha & Juma',
     committeePhone: committee.phoneE164,
     greeting: 'Kwa furaha kubwa, familia za Mwinyi na Mrisho zinakualika',
@@ -536,7 +544,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
     themeId: 'terracotta',
     coverGradient: 'linear-gradient(135deg,#9A3B1F 0%,#C26A3F 60%,#E2B07A 100%)',
     rsvpDeadline: iso(pastDate - 14 * DAY),
-    contributionTargetTzs: 8_000_000,
+    contributionTarget: 8_000_000,
     senderName: 'Kamati ya Harusi ya Rehema & Daudi',
     committeePhone: committee.phoneE164,
     greeting: 'Familia za Said na Kimaro zinayo furaha kukualika',
@@ -732,7 +740,7 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
       themeId: o.theme,
       plan: o.plan,
       status: o.status ?? 'active',
-      contributionTargetTzs: 5_000_000,
+      contributionTarget: 5_000_000,
       senderName: `Kamati ya Harusi ya ${o.partnerA} & ${o.partnerB}`,
       committeePhone: o.user.phoneE164,
       createdAt: iso(created),

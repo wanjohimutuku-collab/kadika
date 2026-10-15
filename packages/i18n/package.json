@@ -8,7 +8,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./sw.json": "./src/sw.json",
-    "./en.json": "./src/en.json"
+    "./en.json": "./src/en.json",
+    "./icu": "./src/icu.ts",
+    "./variants": "./src/variants.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

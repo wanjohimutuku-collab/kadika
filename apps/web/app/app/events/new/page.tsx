@@ -8,7 +8,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ImagePlus } from 'lucide-react';
-import { eventInputSchema, type EventInput } from '@harusi/schemas';
+import { EVENT_KIND_SUGGESTIONS, eventInputSchema, type EventInput } from '@harusi/schemas';
 import {
   contrastRatio,
   lightColors,
@@ -22,7 +22,9 @@ import { PageHeader } from '@/components/console/page-header';
 import { CardPreview } from '@/components/console/card-preview';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
+import { COUNTRIES, currencyOf } from '@harusi/schemas/country';
 import { Select, TextField } from '@/components/ui/form';
+import { KENYA_ENABLED } from '@/lib/country';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { qk } from '@/lib/queries';
@@ -34,7 +36,16 @@ const DRAFT_KEY = 'harusi.draft.event';
 const STEPS = ['names', 'venue', 'style', 'review'] as const;
 type Step = (typeof STEPS)[number];
 const STEP_FIELDS: Record<Step, (keyof EventInput)[]> = {
-  names: ['partnerA', 'partnerB', 'title', 'dateStart', 'rsvpDeadline', 'contributionTargetTzs'],
+  names: [
+    'country',
+    'eventKind',
+    'partnerA',
+    'partnerB',
+    'title',
+    'dateStart',
+    'rsvpDeadline',
+    'contributionTarget',
+  ],
   venue: ['venueName', 'venueMapUrl', 'dressCode', 'languageDefault'],
   style: ['themeId', 'coverGradient'],
   review: [],
@@ -49,6 +60,8 @@ const COVERS = [
 
 const EMPTY: EventInput = {
   title: '',
+  eventKind: 'Harusi',
+  country: 'TZ',
   partnerA: '',
   partnerB: '',
   dateStart: '',
@@ -59,7 +72,7 @@ const EMPTY: EventInput = {
   themeId: 'emerald-gold',
   coverGradient: '',
   rsvpDeadline: '',
-  contributionTargetTzs: 0,
+  contributionTarget: 0,
 };
 
 function readDraft(): { values: EventInput; step: Step } | null {
@@ -118,8 +131,14 @@ export default function NewEventPage() {
   const titleTouched = formState.dirtyFields.title;
   useEffect(() => {
     if (!titleTouched && (values.partnerA || values.partnerB))
-      setValue('title', `Harusi ya ${values.partnerA ?? ''} & ${values.partnerB ?? ''}`.trim());
-  }, [values.partnerA, values.partnerB, titleTouched, setValue]);
+      setValue(
+        'title',
+        `${values.eventKind?.trim() || 'Mwaliko'} ya ${[values.partnerA, values.partnerB]
+          .map((n) => n?.trim())
+          .filter(Boolean)
+          .join(' & ')}`,
+      );
+  }, [values.eventKind, values.partnerA, values.partnerB, titleTouched, setValue]);
 
   const create = useMutation({
     mutationFn: (input: EventInput) =>
@@ -226,15 +245,37 @@ export default function NewEventPage() {
 
           {step === 'names' ? (
             <>
+              {KENYA_ENABLED ? (
+                <Select
+                  label={tc('country')}
+                  {...register('country')}
+                  options={COUNTRIES.map((c) => ({ value: c, label: tc(`countries.${c}`) }))}
+                />
+              ) : null}
+              <TextField
+                label={t('kind')}
+                hint={t('kindHint')}
+                list="event-kind-suggestions"
+                maxLength={40}
+                autoComplete="off"
+                {...register('eventKind')}
+                error={fieldError(formState.errors.eventKind)}
+              />
+              <datalist id="event-kind-suggestions">
+                {EVENT_KIND_SUGGESTIONS.map((k) => (
+                  <option key={k} value={k} />
+                ))}
+              </datalist>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
-                  label={t('partnerA')}
+                  label={t('hostA')}
                   autoComplete="off"
                   {...register('partnerA')}
                   error={fieldError(formState.errors.partnerA)}
                 />
                 <TextField
-                  label={t('partnerB')}
+                  label={t('hostB')}
+                  optionalLabel={tc('optional')}
                   autoComplete="off"
                   {...register('partnerB')}
                   error={fieldError(formState.errors.partnerB)}
@@ -263,10 +304,10 @@ export default function NewEventPage() {
                 <TextField
                   label={t('target')}
                   inputMode="numeric"
-                  prefix="TZS"
+                  prefix={currencyOf(values.country ?? 'TZ')}
                   optionalLabel={tc('optional')}
-                  {...register('contributionTargetTzs')}
-                  error={fieldError(formState.errors.contributionTargetTzs)}
+                  {...register('contributionTarget')}
+                  error={fieldError(formState.errors.contributionTarget)}
                 />
               </div>
             </>
@@ -404,8 +445,9 @@ export default function NewEventPage() {
             <dl className="flex flex-col divide-y divide-border">
               {(
                 [
-                  ['names', t('partnerA'), values.partnerA],
-                  ['names', t('partnerB'), values.partnerB],
+                  ['names', t('kind'), values.eventKind || '—'],
+                  ['names', t('hostA'), values.partnerA],
+                  ['names', t('hostB'), values.partnerB || '—'],
                   ['names', t('date'), values.dateStart?.replace('T', ' ')],
                   ['venue', t('venueName'), values.venueName],
                   ['venue', t('dressCode'), values.dressCode || '—'],
@@ -460,6 +502,7 @@ export default function NewEventPage() {
               themeId: values.themeId ?? 'emerald-gold',
               coverGradient: values.coverGradient ?? '',
               venueName: values.venueName ?? '',
+              eventKind: values.eventKind ?? '',
               partnerA: values.partnerA ?? '',
               partnerB: values.partnerB ?? '',
               dateStart: preview.dateStart,

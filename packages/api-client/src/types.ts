@@ -1,5 +1,9 @@
 import type {
+  CardContent,
+  CardKind,
   ChannelPref,
+  Country,
+  Currency,
   InvitationStatus,
   Language,
   MemberRole,
@@ -10,6 +14,7 @@ import type {
   ScanResult,
 } from '@harusi/schemas';
 import type { ThemeId } from '@harusi/ui-tokens/themes';
+import type { PaletteOverrides } from '@harusi/ui-tokens/palette';
 
 export type { ThemeId };
 export type ISODate = string;
@@ -64,8 +69,8 @@ export interface EventStats {
   attended: number;
   headcountConfirmed: number;
   headcountAttended: number;
-  pledgedTzs: number;
-  collectedTzs: number;
+  pledged: number;
+  collected: number;
   /** Guests whose pledge still has a balance. */
   guestsWithBalance: number;
   failedMessages: number;
@@ -75,9 +80,16 @@ export interface EventStats {
 export type EventStatus = 'draft' | 'active' | 'completed' | 'archived';
 
 export interface WeddingEvent {
+  /** The signed-in user's role in this event (the API returns it; mocks omit it = owner). */
+  myRole?: 'owner' | 'committee' | 'gate';
   id: string;
   title: string;
+  /** Organiser-written texts, labels and toggles for the cards and messages (ADR 029). */
+  cardContent: CardContent;
+  /** Free-text kind of invitation the organiser chose (Harusi, Send-off, Uchumba, or their own words). */
+  eventKind: string;
   partnerA: string;
+  /** Second host; empty for single-host events. */
   partnerB: string;
   coupleNames: string;
   dateStart: ISODate;
@@ -85,12 +97,17 @@ export interface WeddingEvent {
   venueMapUrl: string;
   dressCode: string;
   languageDefault: Language;
-  timezone: 'Africa/Dar_es_Salaam';
+  /** Country, currency and time zone of the event (ADR 025). Money amounts are in `currency`. */
+  country: Country;
+  currency: Currency;
+  timezone: string;
   status: EventStatus;
   themeId: ThemeId;
   coverGradient: string;
+  /** Colour overrides on top of the theme; empty = the preset as is. */
+  palette: PaletteOverrides;
   rsvpDeadline: ISODate | null;
-  contributionTargetTzs: number;
+  contributionTarget: number;
   /** Shown on the trust strip (§7.2): who sent the invitation and how to call them. */
   senderName: string;
   committeePhone: string;
@@ -108,15 +125,17 @@ export interface WeddingEvent {
 }
 
 export interface PledgeSummary {
-  amountTzs: number;
-  paidTzs: number;
-  balanceTzs: number;
+  amount: number;
+  paid: number;
+  balance: number;
   status: PledgeStatus;
 }
 
 export interface Guest {
   id: string;
   eventId: string;
+  /** `contribution` guests get a contribution card only: no RSVP, no QR, not admitted. */
+  cardKind: CardKind;
   displayName: string;
   phoneE164: string | null;
   hasSmartphone: boolean;
@@ -150,15 +169,54 @@ export interface MessageLogEntry {
   kind: 'invite' | 'reminder' | 'thank_you' | 'test';
   status: MessageStatus;
   error: string | null;
-  costTzs: number;
+  cost: number;
   createdAt: ISODate;
+}
+
+export interface PledgeRow {
+  guestId: string;
+  displayName: string;
+  groupLabel: string | null;
+  shortCode: string;
+  amount: number;
+  paid: number;
+  balance: number;
+  status: PledgeStatus | null;
+  note: string | null;
+}
+
+export interface PledgeSummaryView {
+  totals: {
+    targetAmount: number;
+    pledged: number;
+    collected: number;
+    balance: number;
+    guestsWithBalance: number;
+  };
+  guests: PledgeRow[];
+}
+
+export interface AuditItem {
+  id: string;
+  at: ISODate;
+  /** A name if the person gave one, otherwise the last four digits of their phone. */
+  actor: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  diff: Record<string, unknown> | null;
+}
+
+export interface AuditPage {
+  items: AuditItem[];
+  nextBefore: string | null;
 }
 
 export interface Payment {
   id: string;
   guestId: string;
   guestName: string;
-  amountTzs: number;
+  amount: number;
   method: PaymentMethod;
   status: PaymentStatus;
   reference: string;
@@ -219,7 +277,7 @@ export interface Activity {
   kind: ActivityKind;
   guestId: string | null;
   guestName: string | null;
-  amountTzs?: number;
+  amount?: number;
   count?: number;
 }
 
@@ -237,9 +295,12 @@ export type CardState = 'ok' | 'reissued' | 'invalid';
 export interface CardView {
   token: string;
   state: CardState;
+  /** `contribution` cards ask for a contribution only: no RSVP, no QR (ADR 029). */
+  cardKind: CardKind;
   event: Pick<
     WeddingEvent,
     | 'id'
+    | 'eventKind'
     | 'partnerA'
     | 'partnerB'
     | 'coupleNames'
@@ -249,6 +310,7 @@ export interface CardView {
     | 'dressCode'
     | 'themeId'
     | 'coverGradient'
+    | 'palette'
     | 'rsvpDeadline'
     | 'senderName'
     | 'committeePhone'
@@ -256,6 +318,10 @@ export interface CardView {
     | 'greeting'
     | 'extraNote'
     | 'timezone'
+    | 'country'
+    | 'currency'
+    | 'cardContent'
+    | 'contributionTarget'
   > | null;
   guest: {
     displayName: string;
@@ -264,6 +330,8 @@ export interface CardView {
     groupLabel: string;
     language: Language;
   } | null;
+  /** Raised so far, only when the organiser chose to show progress on contribution cards. */
+  contributionCollected?: number | null;
   /** Signed QR payload (§6.1). In mocks: `v1.….MOCKSIG`. */
   qrPayload: string | null;
   rsvp: { status: 'pending' | 'confirmed' | 'declined'; partySize: number | null };
@@ -312,12 +380,13 @@ export interface SendPreview {
   total: number;
   byChannel: Record<MessageChannel, number>;
   smsSegments: number;
-  estimatedSmsCostTzs: number;
+  estimatedSmsCost: number;
   withoutPhone: number;
 }
 
 export interface GuestQuery {
   search?: string;
+  cardKind?: CardKind;
   filter?: GuestFilter;
   group?: string;
   sort?: { by: 'name' | 'status' | 'group' | 'updated' | 'balance'; dir: 'asc' | 'desc' };
@@ -349,7 +418,7 @@ export interface ImportResult {
 
 export interface PaymentStart {
   reference: string;
-  amountTzs: number;
+  amount: number;
   phoneE164: string;
   method: PaymentMethod;
   expiresAt: ISODate;
@@ -358,11 +427,11 @@ export interface PaymentStart {
 export interface PaymentStatusView {
   reference: string;
   status: 'pending' | 'success' | 'failed' | 'expired';
-  amountTzs: number;
+  amount: number;
   method: PaymentMethod;
   paidAt: ISODate | null;
   duplicateWebhook: boolean;
-  newBalanceTzs: number | null;
+  newBalance: number | null;
   failureReason: string | null;
 }
 
@@ -378,12 +447,12 @@ export interface EventReport {
   stats: EventStats;
   channels: ChannelPerformance[];
   arrivalsByHour: { hour: string; count: number }[];
-  collectionsByWeek: { week: string; amountTzs: number }[];
+  collectionsByWeek: { week: string; amount: number }[];
   pledgeReconciliation: {
-    pledgedTzs: number;
-    collectedTzs: number;
-    outstandingTzs: number;
-    overpaidTzs: number;
+    pledged: number;
+    collected: number;
+    outstanding: number;
+    overpaid: number;
     guestsPaid: number;
     guestsPartial: number;
     guestsUnpaid: number;
@@ -420,9 +489,9 @@ export interface OpsOverview {
   events: Record<EventStatus, number> & { total: number };
   guests: number;
   messages30d: { whatsapp: number; sms: number; failed: number; total: number };
-  smsCostTzs30d: number;
+  smsCost30d: number;
   failureRate30d: number;
-  contributions30d: { count: number; amountTzs: number };
+  contributions30d: { count: number; amount: number };
   paidPlans: number;
   messagesByDay: { day: ISODate; sent: number; failed: number }[];
   openDataRequests: number;
@@ -453,8 +522,8 @@ export interface OpsEvent {
   sent: number;
   failedMessages: number;
   confirmed: number;
-  collectedTzs: number;
-  smsCostTzs: number;
+  collected: number;
+  smsCost: number;
 }
 
 export interface OpsUsage {
@@ -463,7 +532,7 @@ export interface OpsUsage {
     sent: number;
     delivered: number;
     failed: number;
-    costTzs: number;
+    cost: number;
   }[];
   byDay: { day: ISODate; whatsapp: number; sms: number; failed: number }[];
   topEvents: {
@@ -472,7 +541,7 @@ export interface OpsUsage {
     whatsapp: number;
     sms: number;
     failed: number;
-    costTzs: number;
+    cost: number;
   }[];
   failureReasons: { reason: string; count: number }[];
 }

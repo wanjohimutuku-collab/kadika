@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import type { Locale } from '@harusi/i18n';
+import { SeoLinks } from '@/components/public/seo-links';
+import { SITE_URL, absoluteLocaleUrl, localeUrl } from '@/lib/seo';
 import {
   ChevronDown,
   DoorOpen,
@@ -19,7 +22,19 @@ import { OrnamentDiamond } from '@/components/card/ornament';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('landing');
-  return { title: { absolute: t('metaTitle') }, description: t('heroBody') };
+  const locale = (await getLocale()) as Locale;
+  return {
+    title: { absolute: t('metaTitle') },
+    description: t('metaDescription'),
+    openGraph: {
+      type: 'website',
+      siteName: 'Harusi Pass',
+      title: t('metaTitle'),
+      description: t('metaDescription'),
+      locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
+      url: absoluteLocaleUrl('/', locale),
+    },
+  };
 }
 
 const STEP_ICONS = [UserPlus, Send, HandCoins, DoorOpen] as const;
@@ -29,8 +44,45 @@ export default async function Landing() {
   const t = await getTranslations('landing');
   const steps = ['1', '2', '3', '4'] as const;
   const faqs = ['1', '2', '3', '4', '5', '6'] as const;
+  const tc = await getTranslations('common');
+  const events = ['wedding', 'sendoff', 'engagement', 'michango'] as const;
+  const eventHref = {
+    wedding: '/kadi-ya-harusi-mtandaoni',
+    sendoff: '/kadi-ya-send-off',
+    engagement: '/kadi-ya-uchumba',
+    michango: '/michango-ya-harusi',
+  } as const;
+  const locale = (await getLocale()) as Locale;
+  const organization = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: tc('appName'),
+    url: SITE_URL,
+    logo: `${SITE_URL}/icons/512.png`,
+    description: tc('tagline'),
+    areaServed: 'TZ',
+  };
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: t(`faq.${f}.q`),
+      acceptedAnswer: { '@type': 'Answer', text: t(`faq.${f}.a`) },
+    })),
+  };
   return (
     <main>
+      <SeoLinks path="/" locale={locale} />
+      <script
+        type="application/ld+json"
+        // Static, server-built object; `<` is escaped so the JSON cannot close the tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, '\\u003c') }}
+      />
       <section className="bg-primary text-on-primary">
         <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-14 md:py-20">
           <OrnamentDiamond className="[--hp-pattern:#D9B26A]" />
@@ -50,6 +102,13 @@ export default async function Landing() {
             </Link>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-4 pt-12" aria-labelledby="what">
+        <h2 id="what" className="text-3xl font-semibold">
+          {t('definitionTitle')}
+        </h2>
+        <p className="mt-3 text-lg leading-relaxed">{t('definition')}</p>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12" aria-labelledby="how">
@@ -76,6 +135,25 @@ export default async function Landing() {
             );
           })}
         </ol>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 pb-12" aria-labelledby="events">
+        <h2 id="events" className="text-3xl font-semibold">
+          {t('eventsTitle')}
+        </h2>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          {events.map((e) => (
+            <li key={e}>
+              <Link
+                href={localeUrl(eventHref[e], locale)}
+                className="flex h-full flex-col gap-1 rounded-card border border-border bg-surface p-5 hover:border-primary"
+              >
+                <span className="text-lg font-semibold text-primary">{t(`events.${e}.title`)}</span>
+                <span className="text-muted">{t(`events.${e}.body`)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="bg-surface" aria-labelledby="feature">

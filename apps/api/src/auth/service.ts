@@ -1,7 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import { eventInvites, eventMembers, newId, refreshTokens, users } from '@harusi/db';
 import { hashGuestToken } from '@harusi/crypto';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { allowedCountries, type Country } from '@harusi/schemas/country';
+import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { OtpService } from './otp';
@@ -13,8 +14,16 @@ export interface AuthResult {
   user: { id: string; name: string; phoneE164: string; roleGlobal: 'user' | 'admin' };
 }
 
-export function parsePhone(input: string): string {
-  const r = normalizeTzPhone(input);
+/**
+ * Local formats (`07…`) are read in `country`; international forms of any `allowed` country are
+ * accepted. Callers without an event (sign-in) leave the default and clients send E.164 (ADR 025).
+ */
+export function parsePhone(
+  input: string,
+  country: Country = 'TZ',
+  allowed: readonly Country[] = ['TZ'],
+): string {
+  const r = normalizePhone(input, country, allowed);
   if (!r.ok)
     throw new ApiError('validation', 'Invalid phone number', { field: 'phone', reason: r.error });
   return r.e164;
@@ -28,13 +37,13 @@ export class AuthService {
   }
 
   async requestOtp(phoneInput: string) {
-    const phone = parsePhone(phoneInput);
+    const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
     const res = await this.otp.request(phone);
     return { phone, ...res };
   }
 
   async verifyOtp(phoneInput: string, code: string): Promise<AuthResult> {
-    const phone = parsePhone(phoneInput);
+    const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
     this.otp.verify(phone, code);
     const { db } = this.deps;
     const now = this.deps.now();

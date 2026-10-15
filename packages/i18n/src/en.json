@@ -41,7 +41,12 @@
     "skipToContent": "Skip to content",
     "errorCode": "Error code: {code}",
     "draft": "Draft",
-    "mockNotice": "Demo build — all data is fictional"
+    "mockNotice": "Demo build — all data is fictional",
+    "country": "Country",
+    "countries": {
+      "TZ": "Tanzania",
+      "KE": "Kenya"
+    }
   },
   "validation": {
     "phone": {
@@ -49,7 +54,8 @@
       "invalid_chars": "Use digits only, e.g. 0712 345 678",
       "wrong_length": "Number is incomplete — it should be 10 digits, e.g. 0712 345 678",
       "not_tanzanian": "Use a Tanzanian number (+255)",
-      "not_mobile": "This is not a mobile number"
+      "not_mobile": "This is not a mobile number",
+      "unsupported_country": "Use a +255 (Tanzania) or +254 (Kenya) number"
     },
     "otp": {
       "invalid": "Enter 6 digits"
@@ -147,9 +153,9 @@
     "signedInAs": "Signed in as {name}"
   },
   "card": {
-    "metaTitle": "Wedding invitation from {couple}",
+    "metaTitle": "{kind} invitation from {couple}",
     "metaDescription": "{date} · {venue}. Open your invitation card.",
-    "weddingOf": "The wedding of",
+    "weddingOf": "The {kind} of",
     "invitesYou": "invite you, {guest}",
     "dateLine": "{weekday} {date}",
     "timeLine": "At {time}",
@@ -191,26 +197,44 @@
     "addCalendar": "Add to calendar",
     "addHome": "Add to home screen",
     "savePdf": "Save as PDF",
-    "calendarTitle": "Wedding of {couple}",
+    "calendarTitle": "{kind} of {couple}",
     "pledgeTitle": "Contribution",
     "pledgeSummary": "Pledged {pledged} · Paid {paid} · Balance {balance}",
     "pledgePaidInFull": "Thank you! Your pledge is fully paid.",
-    "pledgeNone": "You can contribute to this wedding by phone.",
+    "pledgeNone": "You can contribute to this event by phone.",
     "pay": "Pay by phone",
     "footerContact": "Committee",
     "privacyLink": "Privacy",
+    "stopReminders": "Stop reminders",
+    "stopRemindersDone": "Done. You will not get reminder messages. Your card is still valid.",
+    "stopRemindersFailed": "That did not work. Please try again.",
     "mockToken": "Demo token (not a real signature)",
     "invalidTitle": "This link is not valid",
     "invalidBody": "This link is not valid or has expired. Please contact the committee.",
     "reissuedTitle": "This card has been replaced",
     "reissuedBody": "This card has been replaced; use the new link you were sent. The old QR will not work at the gate.",
-    "eventPassedTitle": "This wedding has already taken place",
+    "eventPassedTitle": "This event has already taken place",
     "eventPassedBody": "Thank you for being part of the day. Replies are no longer accepted.",
     "enterCodeInstead": "Enter card number",
     "installHint": "Open your browser menu and choose \"Add to home screen\".",
     "openedOffline": "This card will show even without a network.",
     "groupLabel": "Group: {group}",
-    "dearGuest": "Dear {guest}"
+    "dearGuest": "Dear {guest}",
+    "trustContactPhone": "Contact phone: {phone}",
+    "callContact": "Call {phone}",
+    "footerContactGeneric": "Contact",
+    "programmeTitle": "Programme",
+    "contribEyebrow": "Contribution for the {kind}",
+    "contribGreeting": "Hello {guest}. We invite you to contribute to our {kind}.",
+    "contribMessage": "Your contribution, small or large, helps us make this day possible. Thank you for being with us.",
+    "contribTarget": "Contribution goal: {target}",
+    "contribProgress": "{collected} raised of {target}",
+    "contribDeadline": "Contribute by: {date}",
+    "contribSuggested": "Choose an amount",
+    "contribWhen": "The event: {date}, {venue}",
+    "contribMeta": "Contribution for the {kind} of {couple}",
+    "contribMetaDescription": "Contribute by phone. {sender}.",
+    "contribClosed": "Contributions are not being taken through this card right now."
   },
   "pay": {
     "title": "Pay contribution",
@@ -249,7 +273,7 @@
     "tryAgain": "Try again",
     "backToCard": "Back to card",
     "duplicateNote": "We received the payment notice more than once; it was counted only once.",
-    "noPledges": "Payments are not enabled for this wedding.",
+    "noPledges": "Payments are not enabled for this event.",
     "safety": "We will never ask for your PIN or secret code. The payment request shows the provider name only."
   },
   "short": {
@@ -272,14 +296,14 @@
     "reports": "Reports",
     "settings": "Settings",
     "account": "Account",
-    "events": "My weddings",
+    "events": "My events",
     "more": "More",
     "mainNav": "Main navigation",
-    "switchEvent": "Switch wedding",
-    "currentEvent": "Wedding: {name}",
+    "switchEvent": "Switch event",
+    "currentEvent": "Event: {name}",
     "userMenu": "User menu",
     "signOut": "Sign out",
-    "newEvent": "New wedding",
+    "newEvent": "New event",
     "syncSheetTitle": "Sync status",
     "syncQueueEmpty": "No changes waiting.",
     "syncQueued": "Changes waiting to be sent",
@@ -290,7 +314,8 @@
     "ownerOnly": "This section is for the owner only.",
     "gateNoConsole": "Gate agents use the Harusi Pass phone app. This dashboard is for owners and committee members.",
     "gateNoConsoleTitle": "No dashboard access",
-    "opsLink": "Staff dashboard"
+    "opsLink": "Staff dashboard",
+    "content": "Card text"
   },
   "auth": {
     "title": "Sign in to Harusi Pass",
@@ -316,7 +341,7 @@
     "nameLabel": "Your full name",
     "continue": "Continue",
     "trust": "We never ask for a password. The confirmation code is for you only — never share it.",
-    "mockPhoneHint": "Demo build: sign in with 0712 000 001 to see the sample weddings.",
+    "mockPhoneHint": "Demo build: sign in with 0712 000 001 to see the sample events.",
     "suspended": "This account is suspended. Contact Harusi Pass for help.",
     "staffHint": "Harusi Pass staff: 0700 000 999 (admin), 0700 000 998 (support) or 0700 000 997 (billing); the second code is 654321.",
     "secondFactorTitle": "Second security step",
@@ -326,7 +351,7 @@
     "wrongStaffCode": "The code is not correct. Try again."
   },
   "landing": {
-    "metaTitle": "Harusi Pass — Wedding cards that work for every guest",
+    "metaTitle": "Digital Wedding Invitations Tanzania | Harusi Pass",
     "heroTitle": "One wedding card that reaches every guest, collects replies and contributions, and opens the gate.",
     "heroBody": "WhatsApp, SMS or paper — every guest gets their own card with a QR and a number. Even without a smartphone, even without a network.",
     "cta": "Get started",
@@ -367,7 +392,7 @@
       },
       "data": {
         "title": "Your data stays yours",
-        "body": "Guest numbers are used for your wedding only. Download or delete them at any time."
+        "body": "Guest numbers are used for your event only. Download or delete them at any time."
       }
     },
     "faqTitle": "Frequently asked questions",
@@ -397,38 +422,31 @@
         "a": "It is free during the pilot. SMS costs are shown before sending."
       }
     },
-    "footerTagline": "Made in Tanzania for Tanzanian weddings.",
-    "openCard": "Open your card"
-  },
-  "legal": {
-    "draftBanner": "Draft — this text is not final and will be reviewed by a lawyer before launch.",
-    "privacyTitle": "Privacy notice",
-    "termsTitle": "Terms of use",
-    "updated": "Updated: {date}",
-    "privacy": {
-      "intro": "Harusi Pass collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We follow Tanzania's Personal Data Protection Act (2022).",
-      "collectTitle": "What we collect",
-      "collect": "Guest name, phone number (if any), RSVP, party size, pledges and payments, and the gate check-in record.",
-      "useTitle": "How we use it",
-      "use": "For that wedding only: sending cards and reminders, showing status to the committee, and confirming entry. We do not sell or share data with advertisers.",
-      "rightsTitle": "Your rights",
-      "rights": "You can request a copy of your data or its deletion through the wedding committee or us. Couples can download or delete data from their account.",
-      "securityTitle": "Security",
-      "security": "Card links are unique and unguessable. We never ask guests for passwords, PINs or secret codes.",
-      "contactTitle": "Contact",
-      "contact": "Privacy questions: faragha@harusipass.co.tz"
+    "footerTagline": "Made in Tanzania for Tanzanian weddings and celebrations.",
+    "openCard": "Open your card",
+    "metaDescription": "Send wedding, send-off or engagement cards by WhatsApp, SMS or paper. Track replies and contributions, and admit guests at the gate by QR, even offline.",
+    "definitionTitle": "What is Harusi Pass?",
+    "definition": "Harusi Pass is a Tanzanian service for online invitations. Every guest gets their own card by WhatsApp, SMS or paper, with a QR and a short number. The committee sees who replied, who contributed and who arrived at the gate, even when the network drops.",
+    "eventsTitle": "For weddings, send-offs, engagements and more",
+    "events": {
+      "wedding": {
+        "title": "Digital wedding cards",
+        "body": "A card per guest, replies and reminders."
+      },
+      "sendoff": {
+        "title": "Send-off invitations",
+        "body": "See the bride off with invitations, contributions and a family gate."
+      },
+      "engagement": {
+        "title": "Engagement invitations",
+        "body": "Invitations for an engagement or uchumba party."
+      },
+      "michango": {
+        "title": "Wedding contributions",
+        "body": "Pledges and payments by M-Pesa, Mixx by Yas, Airtel Money and HaloPesa."
+      }
     },
-    "terms": {
-      "intro": "By using Harusi Pass you accept these draft terms.",
-      "accountTitle": "Accounts",
-      "account": "Couples and committee members sign in with a phone number and a confirmation code. You are responsible for the guest information you enter.",
-      "messagesTitle": "Messages",
-      "messages": "Only invite people you know. Do not use the service for advertising.",
-      "paymentsTitle": "Payments",
-      "payments": "Contributions are paid through licensed payment providers. Harusi Pass never stores payment PINs.",
-      "liabilityTitle": "Limitation of liability",
-      "liability": "The service is provided as is during the pilot."
-    }
+    "moreTitle": "Guides"
   },
   "status": {
     "created": "Created",
@@ -458,9 +476,9 @@
     "auto": "Per guest"
   },
   "events": {
-    "title": "My weddings",
-    "new": "New wedding",
-    "empty": "You have no weddings yet. Start by creating your first wedding.",
+    "title": "My events",
+    "new": "New event",
+    "empty": "You have no events yet. Start by creating your first event.",
     "daysLeft": "{days, plural, =0 {Today} one {# day left} other {# days left}}",
     "daysAgo": "{days, plural, one {# day ago} other {# days ago}}",
     "statusPill": {
@@ -475,7 +493,7 @@
     "open": "Open {name}"
   },
   "wizard": {
-    "title": "New wedding",
+    "title": "New event",
     "stepOf": "Step {current} of {total}",
     "steps": {
       "names": "Names & date",
@@ -483,8 +501,12 @@
       "style": "Card style",
       "review": "Review"
     },
-    "partnerA": "Bride's name",
-    "partnerB": "Groom's name",
+    "kind": "Type of invitation",
+    "kindHint": "Choose one or write your own, for example Graduation or Kitchen party",
+    "hostA": "Host name (or first name)",
+    "hostB": "Second name (optional)",
+    "partnerA": "Host name (or first name)",
+    "partnerB": "Second name (optional)",
     "titleHint": "Shown on the dashboard only",
     "date": "Date and time",
     "dateHint": "East Africa Time (EAT)",
@@ -511,11 +533,11 @@
     "draftSaved": "Draft saved on this device",
     "draftRestored": "We restored your draft",
     "discardDraft": "Start over",
-    "create": "Create wedding",
-    "created": "Wedding created",
+    "create": "Create event",
+    "created": "Event created",
     "reviewEdit": "Edit",
     "preview": "This is how the card will look",
-    "eventTitle": "Wedding title",
+    "eventTitle": "Event title",
     "coverSunset": "Sample photo: Sunset",
     "coverGarden": "Sample photo: Garden"
   },
@@ -649,7 +671,11 @@
     "contactsTitle": "Choose from contacts",
     "contactsMock": "Sample contacts (this browser does not allow reading phone contacts).",
     "contactsAdd": "Add {count}",
-    "contactsAdded": "{count, plural, one {# guest added} other {# guests added}}"
+    "contactsAdded": "{count, plural, one {# guest added} other {# guests added}}",
+    "cardKindContribution": "Contribution card",
+    "filter": {
+      "contribution": "Contribution cards"
+    }
   },
   "guestForm": {
     "title": "Add guest",
@@ -671,7 +697,13 @@
     "saved": "{name} saved",
     "duplicatePhone": "This number already belongs to another guest",
     "decrease": "Decrease number",
-    "increase": "Increase number"
+    "increase": "Increase number",
+    "cardKind": "Card type",
+    "cardKinds": {
+      "invitation": "Invitation card (reply and QR)",
+      "contribution": "Contribution card (asks for a contribution only)"
+    },
+    "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate."
   },
   "import": {
     "title": "Import guest list",
@@ -729,7 +761,8 @@
     "goGuests": "See guests",
     "goSend": "Send cards",
     "rowsLabel": "Preview rows",
-    "empty": "No rows found. Make sure each guest is on their own line."
+    "empty": "No rows found. Make sure each guest is on their own line.",
+    "defaultCardKind": "Send these as"
   },
   "guestDetail": {
     "back": "Back to guests",
@@ -817,7 +850,7 @@
     "previewLang": "Preview language",
     "previewSms": "SMS",
     "previewWhatsapp": "WhatsApp",
-    "whatsappTemplate": "Hello {guest}! {couple} invite you to their wedding on {date}, {venue}. Open your card: {link}",
+    "whatsappTemplate": "Hello {guest}! {couple} invite you to: {kind}, {date}, {venue}. Open your card: {link}",
     "testSend": "Test with my number",
     "testSent": "Test message sent to {to}",
     "sendNow": "Send now",
@@ -876,7 +909,31 @@
     "pdfReady": "PDF downloaded (demo)",
     "invitesLine": "invite {guest}",
     "sampleGuest": "Sample guest",
-    "rsvpLine": "Replies or questions: {phone}"
+    "rsvpLine": "Replies or questions: {phone}",
+    "palette": "Card colours",
+    "paletteHelp": "Change any colour of the phone card and the printed card. The QR colours never change: always black on white so it scans at the gate.",
+    "paletteReset": "Reset",
+    "paletteResetAll": "Reset all colours to the style",
+    "paletteHex": "Colour code (hex)",
+    "paletteHexInvalid": "Use a code like #0F5C4D",
+    "paletteCustom": "Customised colours: {n}",
+    "paletteReadable": "All colours are readable.",
+    "paletteUnreadable": "Some colours are hard to read together. Saving is blocked until you fix them.",
+    "paletteIssue": "{a} on {b}: contrast {ratio}:1 is too low",
+    "paletteQrNote": "The QR and the card number stay black on white.",
+    "palettePrintNote": "Printing: very dark or edge-to-edge colours can come out differently on paper. Print one test card first.",
+    "swatch": {
+      "primary": "Main colour (header, buttons)",
+      "onPrimary": "Text on the main colour",
+      "accent": "Second colour (decoration)",
+      "bg": "Page background",
+      "surface": "Card paper",
+      "ink": "Text",
+      "muted": "Soft text",
+      "border": "Lines",
+      "pattern": "Decorative border",
+      "success": "Confirmation green"
+    }
   },
   "pledges": {
     "title": "Contributions",
@@ -967,7 +1024,7 @@
       "ok": "OK",
       "duplicate": "Duplicate",
       "invalid_sig": "Invalid signature",
-      "wrong_event": "Other wedding",
+      "wrong_event": "Other event",
       "not_found": "Not found",
       "manual_ok": "Manual",
       "manual_denied": "Denied"
@@ -1008,7 +1065,7 @@
     "invited": "{name} invited",
     "revoke": "Remove",
     "revokeTitle": "Remove {name} from the team?",
-    "revokeBody": "{name} will no longer be able to open this wedding or run the gate.",
+    "revokeBody": "{name} will no longer be able to open this event or run the gate.",
     "revoked": "{name} removed",
     "gateLink": "Gate link and PIN",
     "gateLinkHelp": "Gate agents open this link in the app and enter the PIN.",
@@ -1052,17 +1109,17 @@
     "arrivals": "Arrivals per hour",
     "exportCsv": "Download CSV",
     "exportPdf": "Download PDF",
-    "postEvent": "After the wedding",
+    "postEvent": "After the event",
     "thankYou": "Thank-you message",
-    "thankYouDefault": "Thank you so much for being with us on our wedding day. God bless you! — {couple}",
+    "thankYouDefault": "Thank you so much for celebrating with us. God bless you! — {couple}",
     "thankYouAudience": "Will be sent to {count, plural, one {# guest} other {# guests}} who confirmed or attended.",
     "sendThankYou": "Send thank-you",
     "thankYouSent": "Thank-you message is being sent",
-    "notYet": "The thank-you message is available after the wedding day."
+    "notYet": "The thank-you message is available after the event day."
   },
   "settings": {
     "title": "Settings",
-    "event": "Wedding details",
+    "event": "Event details",
     "venue": "Venue",
     "rsvp": "Replies",
     "trust": "Sender (shown on every card)",
@@ -1076,17 +1133,17 @@
     "save": "Save",
     "saved": "Settings saved",
     "danger": "Danger zone",
-    "archive": "Archive wedding",
+    "archive": "Archive event",
     "archiveHelp": "New replies and payments are turned off. Data stays readable.",
     "archiveTitle": "Archive {name}?",
-    "archived": "Wedding archived",
-    "delete": "Delete wedding",
-    "deleteHelp": "Deletes the wedding, guests, cards and all records. This cannot be undone.",
+    "archived": "Event archived",
+    "delete": "Delete event",
+    "deleteHelp": "Deletes the event, guests, cards and all records. This cannot be undone.",
     "deleteTitle": "Permanently delete {name}?",
     "deleteBody": "All {count} cards will stop working and guest data will be permanently deleted. This cannot be undone.",
     "deleteType": "Type {word} to confirm",
     "deleteWord": "FUTA",
-    "deleted": "Wedding deleted",
+    "deleted": "Event deleted",
     "pledgesEnabled": "Allow contributions on cards",
     "fallbackHours": "Hours to wait before SMS"
   },
@@ -1104,7 +1161,7 @@
     "exportDone": "Request received ({date}). We will send a download link by SMS.",
     "deletion": "Request account deletion",
     "deletionTitle": "Request deletion of your account?",
-    "deletionBody": "We will delete your account and the weddings you own within 30 days, as required by the Personal Data Protection Act. You will receive an SMS confirmation.",
+    "deletionBody": "We will delete your account and the events you own within 30 days, as required by the Personal Data Protection Act. You will receive an SMS confirmation.",
     "deletionDone": "Deletion request received ({date}).",
     "signOut": "Sign out",
     "privacyLink": "Read the privacy notice"
@@ -1124,22 +1181,23 @@
     "title": "Harusi Pass operations",
     "staffOnly": "This area is for Harusi Pass staff only.",
     "staffOnlyTitle": "No access",
-    "backToConsole": "Back to my weddings",
+    "backToConsole": "Back to my events",
     "nav": {
       "overview": "Overview",
       "organizers": "Customers",
-      "events": "Weddings",
+      "events": "Events",
       "usage": "Usage and costs",
       "payments": "Payments",
       "support": "Support",
       "requests": "Data requests",
-      "audit": "Staff audit log"
+      "audit": "Staff audit log",
+      "pilot": "Pilot"
     },
     "overview": {
       "organizers": "Customers",
       "newOrganizers": "New (30 days)",
       "suspended": "Suspended",
-      "events": "Weddings",
+      "events": "Events",
       "eventsBreakdown": "{active} active · {completed} completed · {draft} draft",
       "guests": "Total guests",
       "messages": "Messages (30 days)",
@@ -1148,7 +1206,7 @@
       "smsCost": "SMS cost (30 days)",
       "contributions": "Contributions (30 days)",
       "contributionsCount": "{count, plural, one {# payment} other {# payments}}",
-      "paidPlans": "Paid weddings",
+      "paidPlans": "Paid events",
       "openRequests": "Open data requests",
       "messagesChart": "Messages sent per day",
       "attention": "Needs attention",
@@ -1164,7 +1222,7 @@
         "name": "Name",
         "phone": "Phone",
         "status": "Status",
-        "events": "Weddings",
+        "events": "Events",
         "guests": "Guests",
         "messages": "Messages",
         "lastLogin": "Last login",
@@ -1313,6 +1371,282 @@
       "support": "Support",
       "billing": "Billing",
       "admin": "Admin"
+    },
+    "pilot": {
+      "title": "Pilot and launch gates",
+      "intro": "Numbers that decide whether a country can open. Staff only; no guest names or phone numbers appear here.",
+      "country": "Country",
+      "all": "All countries",
+      "days": "Last {days} days",
+      "gates": "Launch gates",
+      "gateCol": "Gate",
+      "valueCol": "Now",
+      "targetCol": "Target",
+      "statusCol": "Status",
+      "sampleCol": "Sample",
+      "status": {
+        "met": "Met",
+        "not_met": "Not met",
+        "no_data": "Not enough data"
+      },
+      "blocking": "Blocks launch",
+      "watch": "Watch only",
+      "gate": {
+        "reach": "Guests reached by any channel",
+        "firstScan": "First-scan success at the gate",
+        "gateSpeed": "Median seconds between admissions",
+        "lostScans": "Offline scans not synced after 1 hour",
+        "duplicateAdmissions": "Guests admitted twice",
+        "smsDelivery": "SMS delivery, weakest operator",
+        "paymentSuccess": "Payment success rate",
+        "paymentSpeed": "Median seconds to confirm a payment",
+        "manualShare": "Manual admissions"
+      },
+      "rule": {
+        "min": "at least {limit}",
+        "max": "at most {limit}"
+      },
+      "sms": "SMS delivery by operator",
+      "smsEmpty": "No SMS delivery reports in this period.",
+      "operator": "Operator",
+      "total": "Sent",
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "inFlight": "Waiting",
+      "rate": "Delivery rate",
+      "payments": "Payments",
+      "method": "Method",
+      "started": "Started",
+      "success": "Succeeded",
+      "collected": "Collected",
+      "extras": "Also watched",
+      "timeouts": "Timed out",
+      "late": "Late successes",
+      "mismatch": "Amount differences",
+      "smsShare": "Guests reached by SMS",
+      "duplicates": "Duplicate scans",
+      "assumption": "Operator names come from the network code in delivery reports and are only as complete as the provider makes them. The speed number is the gap between admissions at one gate, a proxy for time per guest.",
+      "untilFlag": "Kenya is switched off in this build, so only Tanzania is shown.",
+      "period": "Period"
+    }
+  },
+  "mobile": {
+    "gateSoon": "Phone gate scanning is coming soon. For now you can see who arrived in the Guests tab.",
+    "pledgesSoon": "Pledges are coming soon in this app.",
+    "cardsTitle": "Printable cards",
+    "cardsHelp": "Download a PDF of every guest's card for printing. Print the test sheet first.",
+    "cardsA6": "A6 cards (one per guest)",
+    "cardsA5": "A5 cards (one per guest)",
+    "cardsA4": "A4 sheet (4 cards)",
+    "cardsTest": "Test sheet",
+    "cardsDone": "The PDF is ready",
+    "sharePdf": "Share PDF",
+    "auditTitle": "Change log",
+    "auditEmpty": "No changes recorded yet.",
+    "auditMore": "Load more",
+    "auditActions": {
+      "guest_reissue": "Card reissued",
+      "guest_delete": "Guest deleted",
+      "guest_erase": "Guest data erased",
+      "guest_export": "Guest data exported",
+      "member_add": "Team member added",
+      "member_invite": "Team member invited",
+      "member_remove": "Team member removed",
+      "gatelink_create": "Gate link created",
+      "gatelink_revoke": "Gate links revoked",
+      "pledge_create": "Pledge set",
+      "pledge_update": "Pledge changed",
+      "payment_manual": "Payment recorded",
+      "payment_webhook": "Mobile payment confirmed"
+    },
+    "kpiComing": "Coming",
+    "sentProgress": "Cards sent: {sent} of {total}"
+  },
+  "gateApp": {
+    "gateName": "Gate",
+    "offline": "Offline",
+    "online": "Online",
+    "arrived": "Arrived {admitted} / {total}",
+    "admit": "WELCOME IN",
+    "duplicate": "ALREADY CHECKED IN",
+    "invalid": "INVALID CARD",
+    "people": "People: {count}",
+    "dupDetail": "At {time} · {gate}",
+    "ok": "OK",
+    "override": "Allow because…",
+    "overrideReason": "Reason for allowing",
+    "overrideGo": "Allow",
+    "reason": {
+      "tampered": "Invalid signature",
+      "wrong_event": "Not for this wedding",
+      "revoked": "Card was replaced",
+      "malformed": "Not a Harusi Pass card",
+      "not_found": "Number is not on the list"
+    },
+    "findByName": "Search by name",
+    "torch": "Torch",
+    "typeCode": "Type number",
+    "typeCodeLabel": "Card number, e.g. KH-4821",
+    "searchPlaceholder": "Search name / number",
+    "go": "Search",
+    "confirm": "Let in",
+    "manualNote": "Manual",
+    "noMatch": "No match",
+    "syncTitle": "Sync",
+    "syncPending": "{n} scans waiting",
+    "syncLast": "Last sync: {time}",
+    "syncNever": "Not synced yet",
+    "syncNow": "Sync now",
+    "syncFailed": "Could not sync. We will retry; every scan is safe on this phone.",
+    "syncOk": "Synced",
+    "cameraNeeded": "Camera permission needed",
+    "cameraBody": "We need the camera to scan QR codes. You can also type the card number or search by name.",
+    "openSettings": "Open settings",
+    "grant": "Allow camera",
+    "downloading": "Downloading the list…",
+    "downloaded": "Done, you can work without a network",
+    "downloadFailed": "Could not download the list. Connect to the network and try again.",
+    "start": "Start scanning",
+    "joinTitle": "Join the gate",
+    "joinBody": "Enter the PIN the host gave you.",
+    "pin": "PIN",
+    "joinGo": "Join",
+    "joinWrong": "Wrong PIN. {attempts, plural, one {# try left} other {# tries left}}.",
+    "joinLocked": "Too many tries. Wait a while and try again.",
+    "joinInvalid": "This gate link is not valid or has expired.",
+    "haptics": "Vibration",
+    "bundleStale": "List updated",
+    "createLink": "Create gate link",
+    "linkShown": "The PIN is shown once. Write it down now.",
+    "linkCode": "Link code",
+    "linkPin": "PIN",
+    "linkUrl": "Link",
+    "openGate": "Open the scanner"
+  },
+  "content": {
+    "title": "Card text and messages",
+    "intro": "Change the words, labels and sections of your cards and messages. Anything you leave empty uses our standard wording, so you only write what you want to change.",
+    "tabs": {
+      "sender": "Sender",
+      "invitation": "Invitation card",
+      "contribution": "Contribution card",
+      "messages": "Messages (SMS)"
+    },
+    "save": "Save changes",
+    "saved": "Saved",
+    "saveFailed": "Could not save. Check the highlighted fields.",
+    "unsaved": "You have changes that are not saved yet",
+    "langSw": "Kiswahili",
+    "langEn": "English",
+    "optional": "optional",
+    "standard": "Standard wording is used when this is empty",
+    "sender": {
+      "intro": "Invitations are usually sent by the family. Choose who the guest should see as the sender.",
+      "kind": "Who is sending?",
+      "kinds": {
+        "family": "The family",
+        "committee": "The committee",
+        "couple": "The couple",
+        "host": "The host",
+        "custom": "Someone else"
+      },
+      "name": "Name shown as sender",
+      "nameHint": "Shown as “This invitation was sent by …”. For example “Familia ya Mzee Mwinyi”.",
+      "phone": "Phone number guests can call",
+      "phoneHint": "Shown on the card and in messages. If empty, the contact phone from the event settings is used.",
+      "trustLine": "Replace the whole “sent by” sentence",
+      "trustHint": "Use {sender} where the name should appear."
+    },
+    "invitation": {
+      "intro": "What guests see on the invitation card.",
+      "eyebrow": "Line above the names",
+      "eyebrowHint": "For example “Karibu kwenye harusi ya”. Standard: “Harusi ya”.",
+      "greeting": "Greeting to the guest",
+      "greetingHint": "You can use {guest} for their name.",
+      "body": "Main message",
+      "bodyHint": "A few lines from the family. A new line starts a new paragraph.",
+      "programme": "Programme",
+      "programmeAdd": "Add a line",
+      "programmeTime": "Time",
+      "programmeTitle": "What happens",
+      "programmeRemove": "Remove this line",
+      "venueNote": "Note about the venue",
+      "venueNoteHint": "Directions, parking, landmarks.",
+      "dressNote": "Note about what to wear",
+      "rsvpQuestion": "Question above the reply buttons",
+      "rsvpYes": "“Yes” button",
+      "rsvpNo": "“No” button",
+      "closing": "Closing message",
+      "footerNote": "Small note at the bottom",
+      "show": "Sections on the card",
+      "showMap": "Map button",
+      "showDress": "Dress code",
+      "showCalendar": "Add to calendar button",
+      "showQr": "QR code and card number",
+      "showRsvp": "Reply buttons",
+      "showPledge": "Contribution section",
+      "qrWarning": "Without the QR code, guests have nothing to show at the gate except the card number."
+    },
+    "contribution": {
+      "intro": "A contribution card asks one person to contribute. It has no reply buttons and no QR code, and the person is not counted as a guest at the gate. Use it for relatives and friends who cannot attend, or who you only want to ask for a contribution.",
+      "eyebrow": "Line above the names",
+      "title": "Heading of the contribution section",
+      "greeting": "Greeting",
+      "message": "Message asking for a contribution",
+      "payNote": "Words about paying",
+      "payNoteHint": "For example how you would like people to keep their confirmation message.",
+      "thanks": "Thank-you message",
+      "closing": "Closing message",
+      "amounts": "Suggested amounts",
+      "amountsHint": "Whole numbers separated by commas, for example 10000, 20000, 50000. Guests can still type another amount.",
+      "amountsInvalid": "Use whole numbers separated by commas",
+      "deadline": "Last day to contribute",
+      "show": "Show on the card",
+      "showTarget": "The contribution goal",
+      "showProgress": "How much has been raised so far",
+      "showProgressHint": "Everyone with a contribution card will see the total. Off unless you choose it.",
+      "showEvent": "Date and place of the event"
+    },
+    "messages": {
+      "intro": "The text of the SMS messages. Your wording replaces ours; leave a box empty to keep ours.",
+      "inviteSms": "Invitation SMS",
+      "reminderSms": "Reminder SMS",
+      "contributionSms": "Contribution SMS",
+      "pledgeReminderSms": "Pledge reminder SMS",
+      "whatsappNote": "WhatsApp messages use the wording approved by WhatsApp. Your text is used for SMS, which also covers guests without WhatsApp.",
+      "insert": "Insert",
+      "count": "{n} characters, about {segments} SMS",
+      "mustLink": "Keep {link} in the message so guests can open the card.",
+      "preview": "How it will read"
+    },
+    "vars": {
+      "guest": "Guest name",
+      "hosts": "Names of the hosts",
+      "kind": "Kind of event",
+      "date": "Event date",
+      "time": "Start time",
+      "venue": "Venue",
+      "link": "Card link",
+      "code": "Card number",
+      "sender": "Sender name",
+      "phone": "Sender phone",
+      "days": "Days left",
+      "target": "Contribution goal",
+      "deadline": "Contribution deadline",
+      "pledged": "Amount pledged",
+      "balance": "Balance"
+    },
+    "preview": {
+      "title": "Preview",
+      "invitation": "Invitation card",
+      "contribution": "Contribution card",
+      "language": "Language",
+      "note": "A sample guest and QR code are shown. Your unsaved changes appear here."
+    },
+    "errors": {
+      "placeholder_unknown": "{name} is not available in this message",
+      "link_required": "The message must include {link}",
+      "invalid": "This is not valid"
     }
   }
 }

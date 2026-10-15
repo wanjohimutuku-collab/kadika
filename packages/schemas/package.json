@@ -8,6 +8,13 @@
   "exports": {
     ".": "./src/index.ts",
     "./phone": "./src/phone.ts",
+    "./country": "./src/country.ts",
+    "./money": "./src/money.ts",
+    "./time": "./src/time.ts",
+    "./operators": "./src/operators.ts",
+    "./pilot": "./src/pilot.ts",
+    "./card-content": "./src/card-content.ts",
+    "./import": "./src/import.ts",
     "./short-code": "./src/short-code.ts"
   },
   "scripts": {

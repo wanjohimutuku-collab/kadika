@@ -2,6 +2,7 @@
 
 import { useQuery, type QueryKey } from '@tanstack/react-query';
 import type { GuestQuery } from '@harusi/api-client';
+import type { Country, Currency } from '@harusi/schemas/country';
 import { getRepository } from './repo';
 import { useMockControls } from './use-mock-controls';
 
@@ -53,6 +54,16 @@ export function useSession() {
 
 export function useEvent(id: string) {
   return useQuery({ queryKey: qk.event(id), queryFn: () => getRepository().getEvent(id) });
+}
+
+/** Currency of an event, from the cached event query; Tanzanian shillings until it loads. */
+export function useEventCurrency(id: string): Currency {
+  return useEvent(id).data?.currency ?? 'TZS';
+}
+
+/** Country of an event; Tanzania until it loads. */
+export function useEventCountry(id: string): Country {
+  return useEvent(id).data?.country ?? 'TZ';
 }
 
 export function useEvents() {

@@ -28,8 +28,13 @@ import { Switch, TabPanel, Tabs } from '@/components/ui/navigation';
 import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
-import { eventScopedKeys, qk, useEvent, useSession } from '@/lib/queries';
-import { formatDateShort, formatDateTimeShort, formatTzs, formatTzsCompact } from '@/lib/format';
+import { eventScopedKeys, qk, useEvent, useSession, useEventCurrency } from '@/lib/queries';
+import {
+  formatDateShort,
+  formatDateTimeShort,
+  formatMoney,
+  formatMoneyCompact,
+} from '@/lib/format';
 import { downloadBlob } from '@/lib/download';
 
 type Tab = 'all' | 'paid' | 'partial' | 'unpaid' | 'history';
@@ -52,6 +57,7 @@ function PledgesInner({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const session = useSession();
   const event = useEvent(id);
+  const cur = useEventCurrency(id);
   const guests = useQuery({
     queryKey: qk.guests(id),
     queryFn: () => getRepository().listGuests(id, { sort: { by: 'balance', dir: 'desc' } }),
@@ -76,7 +82,7 @@ function PledgesInner({ id }: { id: string }) {
   const [policyOpen, setPolicyOpen] = useState(false);
 
   const pledged = useMemo(
-    () => (guests.data ?? []).filter((g) => g.pledge && g.pledge.amountTzs > 0),
+    () => (guests.data ?? []).filter((g) => g.pledge && g.pledge.amount > 0),
     [guests.data],
   );
   const lists: Record<Exclude<Tab, 'history'>, Guest[]> = useMemo(
@@ -119,12 +125,12 @@ function PledgesInner({ id }: { id: string }) {
   return (
     <QueryState query={event} skeleton={<Skeleton className="h-96" />}>
       {(e) => {
-        const target = e.contributionTargetTzs;
-        const collected = e.stats.collectedTzs;
+        const target = e.contributionTarget;
+        const collected = e.stats.collected;
         const pct = progress(collected, target);
         const weekly = (report.data?.collectionsByWeek ?? []).slice(-8).map((w) => ({
           label: formatDateShort(`${w.week}T09:00:00Z`, locale).split(' ').slice(0, 2).join(' '),
-          value: w.amountTzs,
+          value: w.amount,
         }));
         return (
           <>
@@ -161,17 +167,17 @@ function PledgesInner({ id }: { id: string }) {
                   <span className="text-xs text-muted">{t('target')}</span>
                 </Ring>
                 <div className="grid w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
-                  <KpiTile label={t('target')} value={formatTzsCompact(target)} />
+                  <KpiTile label={t('target')} value={formatMoneyCompact(target, cur)} />
                   <KpiTile
                     label={t('collected')}
-                    value={formatTzsCompact(collected)}
+                    value={formatMoneyCompact(collected, cur)}
                     tone="success"
                     icon={<HandCoins className="size-4" />}
                   />
-                  <KpiTile label={t('pledged')} value={formatTzsCompact(e.stats.pledgedTzs)} />
+                  <KpiTile label={t('pledged')} value={formatMoneyCompact(e.stats.pledged, cur)} />
                   <KpiTile
                     label={t('balance')}
-                    value={formatTzsCompact(Math.max(0, e.stats.pledgedTzs - collected))}
+                    value={formatMoneyCompact(Math.max(0, e.stats.pledged - collected), cur)}
                     sub={t('count', { count: e.stats.guestsWithBalance })}
                     tone="warning"
                   />
@@ -209,7 +215,7 @@ function PledgesInner({ id }: { id: string }) {
                                 setRemindIds(
                                   new Set(
                                     lists[k]
-                                      .filter((g) => g.pledge!.balanceTzs > 0 && g.phoneE164)
+                                      .filter((g) => g.pledge!.balance > 0 && g.phoneE164)
                                       .map((g) => g.id),
                                   ),
                                 )
@@ -231,7 +237,7 @@ function PledgesInner({ id }: { id: string }) {
                         <ul className="flex flex-col divide-y divide-border rounded-card border border-border bg-surface">
                           {lists[k].slice(0, 200).map((g) => (
                             <li key={g.id} className="flex min-h-16 items-center gap-3 px-3 py-2">
-                              {k !== 'paid' && g.pledge!.balanceTzs > 0 ? (
+                              {k !== 'paid' && g.pledge!.balance > 0 ? (
                                 <input
                                   type="checkbox"
                                   className="size-5 accent-[var(--hp-primary)]"
@@ -257,14 +263,15 @@ function PledgesInner({ id }: { id: string }) {
                                   {g.displayName}
                                 </Link>
                                 <p className="tabular text-sm text-muted">
-                                  {formatTzs(g.pledge!.paidTzs)} / {formatTzs(g.pledge!.amountTzs)}
+                                  {formatMoney(g.pledge!.paid, cur)} /{' '}
+                                  {formatMoney(g.pledge!.amount, cur)}
                                 </p>
                               </div>
                               <div className="flex flex-col items-end gap-1">
                                 <StatusPill tone={STATUS_TONE[g.pledge!.status]}>
                                   {t(`status.${g.pledge!.status}`)}
                                 </StatusPill>
-                                {g.pledge!.balanceTzs > 0 ? (
+                                {g.pledge!.balance > 0 ? (
                                   <button
                                     type="button"
                                     className="min-h-10 text-sm font-semibold text-primary underline-offset-2 hover:underline"
@@ -301,7 +308,7 @@ function PledgesInner({ id }: { id: string }) {
                         <BarChart
                           caption={tr('collections')}
                           data={weekly}
-                          formatValue={(n) => formatTzsCompact(n).replace('TZS ', '')}
+                          formatValue={(n) => formatMoneyCompact(n, cur).replace(`${cur} `, '')}
                         />
                         <ul
                           className="mt-3 flex flex-col divide-y divide-border rounded-card border border-border bg-surface"
@@ -323,7 +330,7 @@ function PledgesInner({ id }: { id: string }) {
                                 </p>
                               </div>
                               <span className="tabular font-semibold">
-                                {formatTzs(p.amountTzs)}
+                                {formatMoney(p.amount, cur)}
                               </span>
                             </li>
                           ))}

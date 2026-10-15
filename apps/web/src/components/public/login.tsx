@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShieldCheck } from 'lucide-react';
 import { isRepositoryError } from '@harusi/api-client';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { COUNTRIES, type Country } from '@harusi/schemas/country';
+import { ALLOWED_COUNTRIES, KENYA_ENABLED, parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
-import { OtpField, PhoneField, TextField } from '@/components/ui/form';
+import { OtpField, PhoneField, Select, TextField } from '@/components/ui/form';
 import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
@@ -27,6 +28,8 @@ export function LoginPhone() {
   const router = useRouter();
   const params = useSearchParams();
   const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState<Country>('TZ');
+  const tcm = useTranslations('common');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
@@ -43,7 +46,7 @@ export function LoginPhone() {
         className="flex flex-col gap-4"
         onSubmit={async (e) => {
           e.preventDefault();
-          const r = normalizeTzPhone(phone);
+          const r = parsePhone(phone, country);
           if (!r.ok) {
             setError(tv(`phone.${r.error}`));
             return;
@@ -81,7 +84,19 @@ export function LoginPhone() {
           );
         }}
       >
+        {KENYA_ENABLED ? (
+          <Select
+            label={tcm('country')}
+            value={country}
+            onChange={(e) => setCountry(e.target.value as Country)}
+            options={COUNTRIES.filter((c) => ALLOWED_COUNTRIES.includes(c)).map((c) => ({
+              value: c,
+              label: tcm(`countries.${c}`),
+            }))}
+          />
+        ) : null}
         <PhoneField
+          country={country}
           label={t('phone')}
           hint={t('phoneHint')}
           value={phone}

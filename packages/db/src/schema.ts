@@ -32,6 +32,9 @@ export const globalRoleEnum = pgEnum('global_role', ['user', 'admin']);
 export const staffRoleEnum = pgEnum('staff_role', ['support', 'billing', 'admin']);
 export const userStatusEnum = pgEnum('user_status', ['active', 'suspended']);
 export const eventStatusEnum = pgEnum('event_status', ['draft', 'active', 'completed', 'archived']);
+export const cardKindEnum = pgEnum('card_kind', ['invitation', 'contribution']);
+export const countryEnum = pgEnum('country', ['TZ', 'KE']);
+export const currencyEnum = pgEnum('currency', ['TZS', 'KES']);
 export const eventPlanEnum = pgEnum('event_plan', ['free', 'paid']);
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'committee', 'gate']);
 export const languageEnum = pgEnum('language', ['sw', 'en']);
@@ -82,6 +85,8 @@ export const events = pgTable('events', {
     .notNull()
     .references(() => users.id),
   title: text('title').notNull(),
+  /** Free-text kind of occasion the organiser typed (e.g. Harusi, Send-off, Uchumba); display only. */
+  eventKind: text('event_kind'),
   coupleNames: text('couple_names').notNull(),
   dateStart: timestamp('date_start', { withTimezone: true }).notNull(),
   venueName: text('venue_name'),
@@ -89,14 +94,24 @@ export const events = pgTable('events', {
   venueLng: doublePrecision('venue_lng'),
   venueMapUrl: text('venue_map_url'),
   dressCode: text('dress_code'),
+  committeePhone: text('committee_phone'),
+  senderName: text('sender_name'),
+  greeting: text('greeting'),
   languageDefault: languageEnum('language_default').notNull().default('sw'),
+  /** Country, currency and time zone of the event (ADR 025). Amount columns are in `currency`. */
+  country: countryEnum('country').notNull().default('TZ'),
+  currency: currencyEnum('currency').notNull().default('TZS'),
   timezone: text('timezone').notNull().default('Africa/Dar_es_Salaam'),
   status: eventStatusEnum('status').notNull().default('draft'),
   // Logical reference to signing_keys.id; no FK to avoid a circular dependency (see ADR 002).
   signingKeyId: uuid('signing_key_id'),
   brandTheme: jsonb('brand_theme').$type<Record<string, unknown>>(),
+  /** Organiser-written texts, labels and toggles for the cards and messages (ADR 029). Validated on write. */
+  cardContent: jsonb('card_content').$type<Record<string, unknown>>().notNull().default({}),
   rsvpDeadline: timestamp('rsvp_deadline', { withTimezone: true }),
-  contributionTargetTzs: integer('contribution_target_tzs'),
+  contributionTarget: integer('contribution_target'),
+  /** Whether guests may pledge and pay from their card (§7.3). */
+  pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
   plan: eventPlanEnum('plan').notNull().default('free'),
   ...timestamps,
 });
@@ -149,6 +164,8 @@ export const guests = pgTable(
     phoneE164: text('phone_e164'),
     hasSmartphone: boolean('has_smartphone'),
     groupLabel: text('group_label'),
+    /** `invitation`: the full card with RSVP and QR. `contribution`: only asks for a contribution (ADR 029). */
+    cardKind: cardKindEnum('card_kind').notNull().default('invitation'),
     partySizeAllowed: integer('party_size_allowed').notNull().default(1),
     shortCode: text('short_code').notNull(),
     // Last 8 hex characters of the guest id: the on-card id inside the signed QR (ADR 013).
@@ -157,6 +174,8 @@ export const guests = pgTable(
     language: languageEnum('language').notNull().default('sw'),
     inviteChannelPref: channelPrefEnum('invite_channel_pref').notNull().default('mixed'),
     notes: text('notes'),
+    /** Guest asked to stop reminders from the card page (§7.4). Invitations are unaffected. */
+    remindersOptOut: boolean('reminders_opt_out').notNull().default(false),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -175,6 +194,8 @@ export const invitations = pgTable(
       .notNull()
       .references(() => guests.id, { onDelete: 'cascade' }),
     tokenHash: text('token_hash').notNull(),
+    /** AES-GCM copy of the card token so the delivery service can rebuild the link (ADR 017). */
+    tokenEnc: text('token_enc'),
     status: invitationStatusEnum('status').notNull().default('created'),
     sentAt: timestamp('sent_at', { withTimezone: true }),
     deliveredAt: timestamp('delivered_at', { withTimezone: true }),
@@ -190,31 +211,49 @@ export const invitations = pgTable(
   ],
 );
 
-export const messageLog = pgTable('message_log', {
-  id: id(),
-  guestId: uuid('guest_id')
-    .notNull()
-    .references(() => guests.id, { onDelete: 'cascade' }),
-  channel: messageChannelEnum('channel').notNull(),
-  provider: text('provider').notNull(),
-  providerMsgId: text('provider_msg_id'),
-  status: text('status').notNull(),
-  error: text('error'),
-  costTzs: integer('cost_tzs'),
-  ...timestamps,
-});
+export const messageLog = pgTable(
+  'message_log',
+  {
+    id: id(),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    channel: messageChannelEnum('channel').notNull(),
+    /**
+     * invite | fallback | reminder | reminder_14 | reminder_7 | reminder_1 | pledge_reminder.
+     * The `reminder_N` kinds dedupe the automatic sends; `reminder` is one the organiser asked for.
+     */
+    kind: text('kind').notNull().default('invite'),
+    provider: text('provider').notNull(),
+    providerMsgId: text('provider_msg_id'),
+    status: text('status').notNull(),
+    error: text('error'),
+    cost: integer('cost'),
+    /** Mobile network (MCC+MNC) the delivery report named, when the provider says (Phase 5 metrics). */
+    network: text('network'),
+    ...timestamps,
+  },
+  (t) => [
+    index('message_log_provider_msg_idx').on(t.providerMsgId),
+    index('message_log_guest_idx').on(t.guestId),
+  ],
+);
 
-export const pledges = pgTable('pledges', {
-  id: id(),
-  guestId: uuid('guest_id')
-    .notNull()
-    .references(() => guests.id, { onDelete: 'cascade' }),
-  amountTzs: integer('amount_tzs').notNull(),
-  note: text('note'),
-  status: pledgeStatusEnum('status').notNull().default('pledged'),
-  createdBy: uuid('created_by').references(() => users.id),
-  ...timestamps,
-});
+export const pledges = pgTable(
+  'pledges',
+  {
+    id: id(),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    amount: integer('amount').notNull(),
+    note: text('note'),
+    status: pledgeStatusEnum('status').notNull().default('pledged'),
+    createdBy: uuid('created_by').references(() => users.id),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('pledges_guest_uq').on(t.guestId)],
+);
 
 export const payments = pgTable(
   'payments',
@@ -226,9 +265,15 @@ export const payments = pgTable(
       .references(() => guests.id, { onDelete: 'cascade' }),
     provider: text('provider').notNull(),
     providerRef: text('provider_ref').notNull(),
-    amountTzs: integer('amount_tzs').notNull(),
+    amount: integer('amount').notNull(),
     status: paymentStatusEnum('status').notNull().default('pending'),
     phoneE164: text('phone_e164'),
+    /** mpesa | mixx | airtel | halopesa | cash | bank */
+    method: text('method').notNull().default('cash'),
+    note: text('note'),
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    /** A pending mobile-money request that is not confirmed by then counts as expired. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     raw: jsonb('raw'),
     ...timestamps,
@@ -251,9 +296,60 @@ export const scanLog = pgTable(
     scannedAt: timestamp('scanned_at', { withTimezone: true }).notNull(), // device time
     syncedAt: timestamp('synced_at', { withTimezone: true }),
     offline: boolean('offline').notNull().default(false),
+    /** The device's own id for this scan; makes sync idempotent (a retry never double-counts). */
+    clientId: text('client_id'),
+    /** What the device said at scan time. `result` is what the server decides after ordering all devices. */
+    reportedResult: scanResultEnum('reported_result'),
+    /** A committee/owner admitted a guest who was already in (never reordered or flipped). */
+    override: boolean('override').notNull().default(false),
+    reason: text('reason'),
     ...timestamps,
   },
-  (t) => [index('scan_log_event_guest_idx').on(t.eventId, t.guestId)],
+  (t) => [
+    index('scan_log_event_guest_idx').on(t.eventId, t.guestId),
+    uniqueIndex('scan_log_event_client_uq').on(t.eventId, t.clientId),
+  ],
+);
+
+/** Gate link + PIN (§7.6): how a gate agent without an account joins an event. */
+export const gateLinks = pgTable(
+  'gate_links',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    code: text('code').notNull(),
+    /** scrypt(pin) as `salt:hash` hex; the PIN itself is shown once and never stored. */
+    pinHash: text('pin_hash').notNull(),
+    createdBy: uuid('created_by').references(() => users.id),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    failedAttempts: integer('failed_attempts').notNull().default(0),
+    lockedUntil: timestamp('locked_until', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('gate_links_code_uq').on(t.code),
+    index('gate_links_event_idx').on(t.eventId),
+  ],
+);
+
+/** Registered gate devices (§9): one row per event + device id, with the last time it was seen. */
+export const gateDevices = pgTable(
+  'gate_devices',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    linkId: uuid('link_id').references(() => gateLinks.id),
+    deviceId: text('device_id').notNull(),
+    name: text('name'),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('gate_devices_event_device_uq').on(t.eventId, t.deviceId)],
 );
 
 export const signingKeys = pgTable('signing_keys', {
@@ -267,16 +363,22 @@ export const signingKeys = pgTable('signing_keys', {
   ...timestamps,
 });
 
-export const auditLog = pgTable('audit_log', {
-  id: id(),
-  actorId: uuid('actor_id').references(() => users.id),
-  action: text('action').notNull(),
-  entity: text('entity').notNull(),
-  entityId: text('entity_id'),
-  diff: jsonb('diff'),
-  ip: text('ip'),
-  ...timestamps,
-});
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: id(),
+    actorId: uuid('actor_id').references(() => users.id),
+    action: text('action').notNull(),
+    entity: text('entity').notNull(),
+    entityId: text('entity_id'),
+    diff: jsonb('diff'),
+    ip: text('ip'),
+    /** The event this action belongs to, so an owner can read their event's trail (§9). */
+    eventId: uuid('event_id').references(() => events.id, { onDelete: 'cascade' }),
+    ...timestamps,
+  },
+  (t) => [index('audit_log_event_idx').on(t.eventId, t.createdAt)],
+);
 
 export const refreshTokens = pgTable(
   'refresh_tokens',
@@ -311,6 +413,47 @@ export const idempotencyKeys = pgTable(
     ...timestamps,
   },
   (t) => [uniqueIndex('idempotency_user_key_uq').on(t.userId, t.key)],
+);
+
+export const sendKindEnum = pgEnum('send_kind', ['invite', 'reminder']);
+export const scheduledSendStatusEnum = pgEnum('scheduled_send_status', [
+  'scheduled',
+  'running',
+  'done',
+  'cancelled',
+]);
+
+/**
+ * Invitations and reminders the organiser asked to go out later (ADR 030). A guest never needs an
+ * account: the audience is stored as a rule (everyone unanswered, a group, picked guests) and turned
+ * into phone numbers only when the time comes, so guests added in between are included.
+ */
+export const scheduledSends = pgTable(
+  'scheduled_sends',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id),
+    kind: sendKindEnum('kind').notNull(),
+    /** `remaining` | `unanswered` | `all` | `{ guestIds }` | `{ group }` (see `SendTarget`). */
+    target: jsonb('target').$type<string | Record<string, unknown>>().notNull(),
+    channel: text('channel').notNull().default('auto'),
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
+    status: scheduledSendStatusEnum('status').notNull().default('scheduled'),
+    /** Guests the audience matched when it was scheduled; the real outcome is in `summary`. */
+    recipientCount: integer('recipient_count').notNull().default(0),
+    /** The `SendSummary` of the run, once it has happened. */
+    summary: jsonb('summary'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('scheduled_sends_due_idx').on(t.status, t.scheduledFor),
+    index('scheduled_sends_event_idx').on(t.eventId, t.scheduledFor),
+  ],
 );
 
 /** Card tokens replaced by a reissue: their links show "kadi imebadilishwa" instead of "invalid". */

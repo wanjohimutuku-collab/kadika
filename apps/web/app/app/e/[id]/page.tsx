@@ -28,8 +28,14 @@ import { buttonClasses } from '@/components/ui/button';
 import { Card, KpiTile, ProgressBar, Skeleton } from '@/components/ui/display';
 import { FunnelBar } from '@/components/ui/data';
 import { getRepository } from '@/lib/repo';
-import { qk, useEvent, useSession } from '@/lib/queries';
-import { formatDate, formatRelative, formatTime, formatTzs, formatTzsCompact } from '@/lib/format';
+import { qk, useEvent, useSession, useEventCurrency } from '@/lib/queries';
+import {
+  formatDate,
+  formatRelative,
+  formatTime,
+  formatMoney,
+  formatMoneyCompact,
+} from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
 import { cn } from '@/lib/cn';
 
@@ -72,6 +78,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
   const ts = useTranslations('status');
   const locale = useLocale() as Locale;
   const event = useEvent(id);
+  const cur = useEventCurrency(id);
   const session = useSession();
   const activity = useQuery({
     queryKey: qk.activity(id),
@@ -101,8 +108,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
         const days = daysUntil(e.dateStart);
         const s = e.stats;
         const next = nextStep(e, days);
-        const pledgePct =
-          e.contributionTargetTzs > 0 ? s.collectedTzs / e.contributionTargetTzs : 0;
+        const pledgePct = e.contributionTarget > 0 ? s.collected / e.contributionTarget : 0;
         const deadlineDays = e.rsvpDeadline ? daysUntil(e.rsvpDeadline) : null;
         const alerts: { key: string; tone: 'danger' | 'warning'; text: string; href: string }[] =
           [];
@@ -181,10 +187,12 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
               {session.data?.role !== 'gate' ? (
                 <KpiTile
                   label={t('kpiPledges')}
-                  value={formatTzsCompact(s.collectedTzs)}
+                  value={formatMoneyCompact(s.collected, cur)}
                   sub={
-                    e.contributionTargetTzs
-                      ? t('kpiOfTarget', { target: formatTzsCompact(e.contributionTargetTzs) })
+                    e.contributionTarget
+                      ? t('kpiOfTarget', {
+                          target: formatMoneyCompact(e.contributionTarget, cur),
+                        })
                       : undefined
                   }
                   icon={<HandCoins className="size-4" />}
@@ -299,13 +307,13 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                     {ts('declined')}: {s.declined}
                   </li>
                 </ul>
-                {e.contributionTargetTzs > 0 && session.data?.role !== 'gate' ? (
+                {e.contributionTarget > 0 && session.data?.role !== 'gate' ? (
                   <div className="mt-5 flex flex-col gap-2">
                     <p className="flex justify-between text-sm font-semibold">
                       <span>
                         {t('pledgeProgress', {
-                          collected: formatTzsCompact(s.collectedTzs),
-                          target: formatTzsCompact(e.contributionTargetTzs),
+                          collected: formatMoneyCompact(s.collected, cur),
+                          target: formatMoneyCompact(e.contributionTarget, cur),
                         })}
                       </span>
                       <span className="tabular">{Math.round(pledgePct * 100)}%</span>
@@ -313,7 +321,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                     <ProgressBar
                       value={pledgePct}
                       label={t('kpiPledges')}
-                      valueText={`${formatTzs(s.collectedTzs)} / ${formatTzs(e.contributionTargetTzs)}`}
+                      valueText={`${formatMoney(s.collected, cur)} / ${formatMoney(e.contributionTarget, cur)}`}
                       tone="accent"
                     />
                   </div>
@@ -337,7 +345,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                               {t(`act.${a.kind}`, {
                                 name: a.guestName ?? '',
                                 count: a.count ?? 1,
-                                amount: formatTzs(a.amountTzs ?? 0),
+                                amount: formatMoney(a.amount ?? 0, cur),
                               })}
                             </span>
                             <span className="text-sm text-muted">

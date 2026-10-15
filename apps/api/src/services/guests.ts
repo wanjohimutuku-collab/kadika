@@ -1,25 +1,31 @@
 import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
 import { guests, invitations, newId, retiredCardTokens, shortOf, signingKeys } from '@harusi/db';
-import { decryptSecret } from '../crypto-at-rest';
-import { generateGuestToken, hashGuestToken, signQrToken } from '@harusi/crypto';
+import { decryptSecret, encryptSecret } from '../crypto-at-rest';
+import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
+import { signQrTokenFast as signQrToken } from '../qr-sign';
 import {
   buildPreview,
   summarizePreview,
   guessMapping,
   parseCsv,
   type ImportField,
-} from '@harusi/api-client';
+} from '@harusi/schemas/import';
 import { generateShortCode } from '@harusi/schemas/short-code';
-import { normalizeTzPhone } from '@harusi/schemas/phone';
+import { allowedCountries, type Country } from '@harusi/schemas/country';
+import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
-import type { EventService } from './events';
+import { eventCountry, type EventService } from './events';
+import { pledgeSummaryOf } from './pledges';
+import { recordAudit } from './audit';
 
 export interface GuestInput {
   displayName: string;
   phone?: string | null;
   groupLabel?: string | null;
   partySizeAllowed?: number;
+  /** `contribution`: the guest only gets a contribution card (no RSVP, no QR, not admitted). */
+  cardKind?: 'invitation' | 'contribution';
   hasSmartphone?: boolean | null;
   language?: 'sw' | 'en';
   inviteChannelPref?: 'whatsapp' | 'sms' | 'print' | 'mixed';
@@ -83,9 +89,9 @@ export class GuestService {
     throw new ApiError('conflict', 'Could not allocate a guest id');
   }
 
-  private normalizePhone(phone: string | null | undefined): string | null {
+  private normalizePhone(phone: string | null | undefined, country: Country): string | null {
     if (!phone?.trim()) return null;
-    const r = normalizeTzPhone(phone);
+    const r = normalizePhone(phone, country, allowedCountries(this.deps.config.kenyaEnabled));
     if (!r.ok)
       throw new ApiError('validation', 'Invalid phone number', { field: 'phone', reason: r.error });
     return r.e164;
@@ -93,7 +99,7 @@ export class GuestService {
 
   async create(eventId: string, userId: string, input: GuestInput) {
     await this.canManage(eventId, userId);
-    const phone = this.normalizePhone(input.phone);
+    const phone = this.normalizePhone(input.phone, await eventCountry(this.deps.db, eventId));
     return this.deps.db.transaction(async (tx) => {
       if (phone) {
         const [dupe] = await tx
@@ -121,15 +127,19 @@ export class GuestService {
           hasSmartphone: input.hasSmartphone ?? null,
           groupLabel: input.groupLabel?.trim() || null,
           partySizeAllowed: input.partySizeAllowed ?? 1,
+          cardKind: input.cardKind ?? 'invitation',
           shortCode: await this.uniqueShortCode(eventId, tx as Deps['db']),
           language: input.language ?? 'sw',
           inviteChannelPref: phone ? (input.inviteChannelPref ?? 'mixed') : 'print',
           notes: input.notes ?? null,
         })
         .returning();
-      await tx
-        .insert(invitations)
-        .values({ id: newId(), guestId: ids.id, tokenHash: hashGuestToken(token) });
+      await tx.insert(invitations).values({
+        id: newId(),
+        guestId: ids.id,
+        tokenHash: hashGuestToken(token),
+        tokenEnc: await encryptSecret(token, this.deps.config.keyEncSecret),
+      });
       return { ...guest!, cardToken: token };
     });
   }
@@ -141,7 +151,13 @@ export class GuestService {
   async list(
     eventId: string,
     userId: string,
-    q: { search?: string; status?: string; limit?: number; cursor?: string } = {},
+    q: {
+      search?: string;
+      status?: string;
+      cardKind?: 'invitation' | 'contribution';
+      limit?: number;
+      cursor?: string;
+    } = {},
   ) {
     await this.eventsSvc.role(eventId, userId);
     const limit = Math.min(200, Math.max(1, Math.floor(q.limit ?? 50)));
@@ -152,6 +168,7 @@ export class GuestService {
         or(ilike(guests.displayName, s), ilike(guests.phoneE164, s), ilike(guests.shortCode, s))!,
       );
     }
+    if (q.cardKind) where.push(eq(guests.cardKind, q.cardKind));
     if (q.status)
       where.push(eq(invitations.status, q.status as typeof invitations.$inferSelect.status));
     if (q.cursor) {
@@ -169,6 +186,7 @@ export class GuestService {
         guest: guests,
         status: invitations.status,
         rsvpPartySize: invitations.rsvpPartySize,
+        channelLast: invitations.channelLast,
       })
       .from(guests)
       .leftJoin(invitations, eq(invitations.guestId, guests.id))
@@ -182,6 +200,7 @@ export class GuestService {
         ...r.guest,
         status: r.status ?? 'created',
         rsvpPartySize: r.rsvpPartySize,
+        channelLast: r.channelLast,
       })),
       nextCursor:
         rows.length > limit && last
@@ -200,13 +219,35 @@ export class GuestService {
     return g;
   }
 
+  /** One guest with their invitation state (status, answer, last channel) for the detail screen. */
+  async detail(guestId: string, userId: string) {
+    const g = await this.get(guestId, userId);
+    const role = await this.eventsSvc.role(g.eventId, userId);
+    const [inv] = await this.deps.db
+      .select({
+        status: invitations.status,
+        rsvpPartySize: invitations.rsvpPartySize,
+        channelLast: invitations.channelLast,
+      })
+      .from(invitations)
+      .where(eq(invitations.guestId, guestId));
+    return {
+      ...g,
+      status: inv?.status ?? 'created',
+      rsvpPartySize: inv?.rsvpPartySize ?? null,
+      channelLast: inv?.channelLast ?? null,
+      // money stays out of what a gate agent can read (§2)
+      pledge: role === 'gate' ? null : await pledgeSummaryOf(this.deps.db, guestId),
+    };
+  }
+
   async update(guestId: string, userId: string, patch: Partial<GuestInput>) {
     const g = await this.get(guestId, userId);
     await this.canManage(g.eventId, userId);
     const set: Partial<typeof guests.$inferInsert> = {};
     if (patch.displayName !== undefined) set.displayName = patch.displayName.trim();
     if (patch.phone !== undefined) {
-      const phone = this.normalizePhone(patch.phone);
+      const phone = this.normalizePhone(patch.phone, await eventCountry(this.deps.db, g.eventId));
       if (phone && phone !== g.phoneE164) {
         const [dupe] = await this.deps.db
           .select({ id: guests.id })
@@ -229,6 +270,7 @@ export class GuestService {
     for (const k of [
       'groupLabel',
       'partySizeAllowed',
+      'cardKind',
       'hasSmartphone',
       'language',
       'inviteChannelPref',
@@ -251,6 +293,13 @@ export class GuestService {
       .update(guests)
       .set({ deletedAt: this.deps.now() })
       .where(eq(guests.id, guestId));
+    await recordAudit(this.deps.db, {
+      eventId: g.eventId,
+      actorId: userId,
+      action: 'guest.delete',
+      entity: 'guest',
+      entityId: guestId,
+    });
   }
 
   /**
@@ -280,9 +329,20 @@ export class GuestService {
       }
       await tx
         .update(invitations)
-        .set({ tokenHash: hashGuestToken(token) })
+        .set({
+          tokenHash: hashGuestToken(token),
+          tokenEnc: await encryptSecret(token, this.deps.config.keyEncSecret),
+        })
         .where(eq(invitations.guestId, guestId));
       return u!;
+    });
+    await recordAudit(this.deps.db, {
+      eventId: g.eventId,
+      actorId: userId,
+      action: 'guest.reissue',
+      entity: 'guest',
+      entityId: guestId,
+      diff: { tokenVersion: updated.tokenVersion },
     });
     return { guest: updated, cardToken: token };
   }
@@ -311,12 +371,21 @@ export class GuestService {
   async import(
     eventId: string,
     userId: string,
-    input: { csv: string; dryRun?: boolean; defaultGroup?: string },
+    input: {
+      csv: string;
+      dryRun?: boolean;
+      defaultGroup?: string;
+      defaultCardKind?: 'invitation' | 'contribution';
+    },
   ) {
     await this.canManage(eventId, userId);
     const rows = parseCsv(input.csv);
     if (!rows.length) throw new ApiError('validation', 'No rows found');
-    const { mapping, hasHeader } = guessMapping(rows[0]!);
+    const phone = {
+      country: await eventCountry(this.deps.db, eventId),
+      allowed: allowedCountries(this.deps.config.kenyaEnabled),
+    };
+    const { mapping, hasHeader } = guessMapping(rows[0]!, phone);
     const width = Math.max(...rows.map((r) => r.length));
     const fullMapping: ImportField[] = Array.from(
       { length: width },
@@ -331,6 +400,7 @@ export class GuestService {
       existingPhones: existing.map((e) => e.phone).filter((p): p is string => !!p),
       existingNames: existing.map((e) => e.name),
       defaultGroup: input.defaultGroup,
+      phone,
     });
     const summary = summarizePreview(preview);
     if (input.dryRun)
@@ -344,6 +414,7 @@ export class GuestService {
         partySizeAllowed: r.partySizeAllowed,
         hasSmartphone: r.hasSmartphone,
         inviteChannelPref: r.inviteChannelPref,
+        cardKind: input.defaultCardKind,
       });
       created++;
     }

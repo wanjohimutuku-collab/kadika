@@ -26,9 +26,9 @@ test('owner creates an event, imports 50 guests with errors, sends, retries fail
   const errors = trackConsoleErrors(page);
   await page.goto('/app');
   await shot(page, 'events');
-  await page.getByRole('link', { name: 'Harusi mpya' }).first().click();
-  await page.getByLabel('Jina la Bibi Harusi').fill('Neema');
-  await page.getByLabel('Jina la Bwana Harusi').fill('Daudi');
+  await page.getByRole('link', { name: 'Tukio jipya' }).first().click();
+  await page.getByLabel('Jina la mwenyeji (au la kwanza)').fill('Neema');
+  await page.getByLabel('Jina la pili (si lazima)').fill('Daudi');
   await page.getByLabel('Tarehe na saa').fill('2027-03-20T15:00');
   await page.getByTestId('wizard-next').click();
   await page.getByLabel('Ukumbi', { exact: true }).fill('Mlimani City Hall');
@@ -152,6 +152,40 @@ test('overview, cards, team, settings render', async ({ page }) => {
   await expect(page.getByTestId('gate-pin')).toHaveText(/^\d{6}$/);
   await page.goto(`/app/e/${UPCOMING}/settings`);
   await expect(page.getByTestId('settings-save')).toBeVisible();
+});
+
+test('owner recolours the card: live preview, unreadable colours block saving, answer persists', async ({
+  page,
+}) => {
+  await page.goto(`/app/e/${UPCOMING}/cards`);
+  const save = page.getByRole('button', { name: 'Hifadhi mabadiliko' });
+  await expect(page.getByTestId('palette-editor')).toBeVisible();
+  await expect(save).toBeEnabled();
+
+  // a readable custom colour shows up in the live preview straight away
+  await page.getByTestId('palette-hex-primary').fill('#7A1F3D');
+  await expect(page.locator('[style*="--hp-primary: #7A1F3D"]').first()).toBeAttached();
+
+  // text that cannot be read on the card paper blocks saving and says which pair
+  await page.getByTestId('palette-hex-ink').fill('#EEEEEE');
+  await expect(page.getByTestId('palette-issues')).toContainText('Maandishi na Karatasi ya kadi');
+  await expect(save).toBeDisabled();
+  await page.getByTestId('palette-hex-ink').fill('#1B1B1F');
+  await expect(page.getByTestId('palette-issues')).toHaveCount(0);
+  await expect(save).toBeEnabled();
+
+  // a half-typed colour is flagged but never applied
+  await page.getByTestId('palette-hex-accent').fill('#12');
+  await expect(page.getByText('Tumia msimbo kama #0F5C4D')).toBeVisible();
+
+  await page.getByTestId('palette-hex-accent').blur();
+  await save.click();
+  await expect(page.getByText('Kadi imehifadhiwa').first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('palette-hex-primary')).toHaveValue('#7A1F3D');
+
+  await page.getByTestId('palette-reset-all').click();
+  await expect(page.getByTestId('palette-hex-primary')).not.toHaveValue('#7A1F3D');
 });
 
 test.describe('keyboard', () => {

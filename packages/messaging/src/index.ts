@@ -3,18 +3,37 @@ export type MessageChannel = 'whatsapp' | 'sms';
 
 export interface SendResult {
   providerMsgId: string;
-  /** Provider cost in TZS when known. */
-  costTzs?: number;
+  /** Provider cost in the event's currency (TZS today) when known. */
+  cost?: number;
+}
+
+/**
+ * Structured form of a message, for providers that need an approved template (WhatsApp Cloud API
+ * business-initiated messages). Providers that send free text ignore it.
+ */
+export interface MessageTemplate {
+  kind: 'invite' | 'reminder' | 'pledge' | 'contribution';
+  locale: 'sw' | 'en';
+  /** Event country (`TZ`, `KE`): picks the approved template and its parameter layout (ADR 026). */
+  country?: string;
+  /**
+   * Positional values for {{1}}…{{n}}. Tanzania: invite = A, B, date, link, code; reminder = A, B, days,
+   * link, code; pledge = name, A & B, pledged, balance, link. Kenya (one host field, so a single host
+   * works): invite = hosts, date, link, code; reminder = hosts, days, link, code; pledge = name, hosts,
+   * pledged, balance, link. A contribution card (both countries): hosts, sender, link.
+   */
+  params: string[];
 }
 
 export interface MessagingProvider {
   readonly name: string;
   readonly channel: MessageChannel;
   /** Throws on failure; callers record the error in `message_log`. */
-  send(to: string, body: string): Promise<SendResult>;
+  send(to: string, body: string, template?: MessageTemplate): Promise<SendResult>;
 }
 
 export interface SentMessage {
+  template?: MessageTemplate;
   to: string;
   body: string;
   channel: MessageChannel;
@@ -33,12 +52,17 @@ export class FakeMessagingProvider implements MessagingProvider {
   constructor(
     readonly channel: MessageChannel = 'sms',
     private readonly failFor: (to: string) => boolean = () => false,
+    /** Message ids look like `<idPrefix>-1`; separate fakes use separate prefixes so ids never collide. */
+    private readonly idPrefix = 'fake',
   ) {}
 
-  async send(to: string, body: string): Promise<SendResult> {
+  async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
     if (this.failFor(to)) throw new Error('fake provider failure');
-    this.sent.push({ to, body, channel: this.channel, at: new Date() });
-    return { providerMsgId: `fake-${++this.counter}`, costTzs: this.channel === 'sms' ? 25 : 0 };
+    this.sent.push({ to, body, template, channel: this.channel, at: new Date() });
+    return {
+      providerMsgId: `${this.idPrefix}-${++this.counter}`,
+      cost: this.channel === 'sms' ? 25 : 0,
+    };
   }
 
   /** The last body sent to a number — tests read OTP codes from here. */
@@ -46,3 +70,7 @@ export class FakeMessagingProvider implements MessagingProvider {
     return [...this.sent].reverse().find((m) => m.to === to)?.body;
   }
 }
+export * from './evolution';
+export * from './nextsms';
+export * from './africastalking';
+export * from './whatsapp-cloud';

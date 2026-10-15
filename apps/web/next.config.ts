@@ -11,6 +11,9 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
+/** Belt and braces with robots.txt and meta tags: these surfaces must never be indexed. */
+const noindex = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
+
 const config: NextConfig = {
   // A separate dist dir lets e2e/Lighthouse use a production build while `next dev` keeps `.next`.
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
@@ -29,6 +32,10 @@ const config: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
+      ...['/app', '/ops', '/c', '/s', '/k', '/dev'].flatMap((p) => [
+        { source: p, headers: noindex },
+        { source: `${p}/:path*`, headers: noindex },
+      ]),
       {
         source: '/sw.js',
         headers: [

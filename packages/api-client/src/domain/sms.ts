@@ -1,3 +1,4 @@
+import { eventKindLabel, hostNames, type Currency } from '@harusi/schemas';
 /** GSM 03.38 basic charset (+ extension chars that cost 2 septets). */
 const GSM_BASIC =
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
@@ -40,8 +41,20 @@ export function smsSegments(text: string): SmsSegments {
   };
 }
 
-/** Default SMS price per segment in TZS (assumption until a gateway is chosen — §15.3, ADR 007). */
+/** Default SMS price per segment in TZS (Tanzanian SMS only until Kenya pricing exists) (assumption until a gateway is chosen — §15.3, ADR 007). */
 export const SMS_PRICE_PER_SEGMENT_TZS = 25;
+
+/**
+ * SMS price per segment by currency (ADR 026). Assumptions until gateway contracts exist: TZS 25 for
+ * Tanzania; KES 1 for Kenya (listed rates are under a shilling, rounded up to a whole shilling because
+ * amounts are whole currency units). Confirm both with the providers before showing prices to hosts.
+ */
+export const SMS_PRICE_PER_SEGMENT: Record<Currency, number> = { TZS: 25, KES: 1 };
+
+/** Estimated cost of sending `text` to `recipients` people, priced in the event's currency. */
+export function estimateSmsCostFor(text: string, recipients: number, currency: Currency) {
+  return estimateSmsCost(text, recipients, SMS_PRICE_PER_SEGMENT[currency]);
+}
 
 export function estimateSmsCost(
   text: string,
@@ -49,13 +62,15 @@ export function estimateSmsCost(
   pricePerSegment = SMS_PRICE_PER_SEGMENT_TZS,
 ) {
   const seg = smsSegments(text);
-  return { ...seg, recipients, costTzs: seg.segments * recipients * pricePerSegment };
+  return { ...seg, recipients, cost: seg.segments * recipients * pricePerSegment };
 }
 
 export interface InviteTextInput {
   locale: 'sw' | 'en';
   partnerA: string;
   partnerB: string;
+  /** Free-text kind of event; defaults to wedding. */
+  kind?: string | null;
   dateText: string;
   shortLink: string;
   code: string;
@@ -63,13 +78,36 @@ export interface InviteTextInput {
 
 /** §7.2 SMS template (≤ 160 chars when names are of normal length). */
 export function buildInviteSms(i: InviteTextInput): string {
+  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `Karibu kwenye harusi ya ${i.partnerA} & ${i.partnerB}, ${i.dateText}. Kadi yako: ${i.shortLink} Namba: ${i.code}`
-    : `You're invited to the wedding of ${i.partnerA} & ${i.partnerB}, ${i.dateText}. Your card: ${i.shortLink} Code: ${i.code}`;
+    ? `Karibu kwenye ${kind} ya ${hosts}, ${i.dateText}. Kadi yako: ${i.shortLink} Namba: ${i.code}`
+    : `You're invited to the ${kind} of ${hosts}, ${i.dateText}. Your card: ${i.shortLink} Code: ${i.code}`;
 }
 
 export function buildReminderSms(i: InviteTextInput & { daysLeft: number }): string {
+  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `Kumbukumbu: harusi ya ${i.partnerA} & ${i.partnerB} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
-    : `Reminder: ${i.partnerA} & ${i.partnerB}'s wedding is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
+    ? `Kumbukumbu: ${kind} ya ${hosts} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
+    : `Reminder: the ${kind} of ${hosts} is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
+}
+
+export interface ContributionTextInput {
+  locale: 'sw' | 'en';
+  partnerA: string;
+  partnerB: string;
+  kind?: string | null;
+  /** Who is asking, for example "Familia ya Asha & Juma". */
+  sender: string;
+  shortLink: string;
+}
+
+/** Default SMS for a contribution card (ADR 029): who asks, for which event, and the link to give. */
+export function buildContributionSms(i: ContributionTextInput): string {
+  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const hosts = hostNames(i.partnerA, i.partnerB);
+  return i.locale === 'sw'
+    ? `${i.sender} wanakuomba mchango kwa ${kind} ya ${hosts}. Changia hapa: ${i.shortLink}`
+    : `${i.sender} invite you to contribute to the ${kind} of ${hosts}. Contribute here: ${i.shortLink}`;
 }

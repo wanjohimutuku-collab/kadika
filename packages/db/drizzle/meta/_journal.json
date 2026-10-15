@@ -36,6 +36,90 @@
       "when": 1791948820940,
       "tag": "0004_breezy_gressill",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791965149190,
+      "tag": "0005_event_trust_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791970562320,
+      "tag": "0006_invitation_token_enc",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791971425788,
+      "tag": "0007_delivery_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791975994678,
+      "tag": "0008_gate",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791986253092,
+      "tag": "0009_pledges_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791991403369,
+      "tag": "0010_audit_event",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792012370238,
+      "tag": "0011_event_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792023533717,
+      "tag": "0012_country_currency",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792100000000,
+      "tag": "0013_currency_neutral_amounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792062109847,
+      "tag": "0014_message_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792067991474,
+      "tag": "0015_card_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792076879681,
+      "tag": "0016_scheduled_sends",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { normalizeTzPhone } from './phone';
+import { cardContentSchema, cardKindSchema } from './card-content';
+import { countrySchema, type Country } from './country';
+import { normalizePhone, normalizeTzPhone } from './phone';
 import { SHORT_CODE_PATTERN } from './short-code';
 
 export const languageSchema = z.enum(['sw', 'en']);
@@ -29,6 +31,22 @@ export const scanResultSchema = z.enum([
   'manual_denied',
 ]);
 export const themeIdSchema = z.enum(['emerald-gold', 'navy-silver', 'terracotta', 'rose-sage']);
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'color.invalid');
+/** Per-event colour overrides for the digital and print cards (keys mirror `@harusi/ui-tokens` PALETTE_KEYS). */
+export const paletteOverridesSchema = z
+  .object({
+    primary: hexColor,
+    onPrimary: hexColor,
+    accent: hexColor,
+    bg: hexColor,
+    surface: hexColor,
+    ink: hexColor,
+    muted: hexColor,
+    border: hexColor,
+    pattern: hexColor,
+  })
+  .partial()
+  .strict();
 
 export type Language = z.infer<typeof languageSchema>;
 export type ChannelPref = z.infer<typeof channelPrefSchema>;
@@ -50,6 +68,17 @@ export const tzPhoneSchema = z.string().transform((value, ctx) => {
   return r.e164;
 });
 
+/** Phone schema for an event: local formats use `country`, international forms any of `allowed`. */
+export const phoneSchemaFor = (country: Country, allowed: readonly Country[] = [country]) =>
+  z.string().transform((value, ctx) => {
+    const r = normalizePhone(value, country, allowed);
+    if (!r.ok) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `phone.${r.error}` });
+      return z.NEVER;
+    }
+    return r.e164;
+  });
+
 export const optionalTzPhoneSchema = z
   .string()
   .optional()
@@ -68,7 +97,7 @@ export const shortCodeSchema = z.string().regex(SHORT_CODE_PATTERN, 'code.invali
 export const otpSchema = z.string().regex(/^\d{6}$/, 'otp.invalid');
 
 /** Amounts are whole TZS (§5). */
-export const amountTzsSchema = z.coerce
+export const amountSchema = z.coerce
   .number({ invalid_type_error: 'amount.invalid' })
   .int('amount.invalid')
   .positive('amount.positive')
@@ -79,6 +108,8 @@ export const guestInputSchema = z.object({
   phone: optionalTzPhoneSchema,
   groupLabel: z.string().trim().max(40).optional().default(''),
   partySizeAllowed: z.coerce.number().int().min(1, 'party.min').max(10, 'party.max'),
+  /** `contribution`: the guest only receives a contribution card (ADR 029). */
+  cardKind: cardKindSchema.optional(),
   inviteChannelPref: channelPrefSchema,
   hasSmartphone: z.boolean(),
   language: languageSchema,
@@ -87,10 +118,43 @@ export const guestInputSchema = z.object({
 export type GuestInput = z.input<typeof guestInputSchema>;
 export type GuestInputParsed = z.output<typeof guestInputSchema>;
 
+/** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
+export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const;
+/** The kind to show: what the organiser wrote, else the default for the language. */
+export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | 'en'): string {
+  return kind?.trim() || (locale === 'sw' ? 'Harusi' : 'Wedding');
+}
+/** Host names joined for display; a single host has no dangling ampersand. */
+export function hostNames(a: string, b?: string | null): string {
+  return [a, b]
+    .map((n) => n?.trim())
+    .filter(Boolean)
+    .join(' & ');
+}
+
+/** Default "sent by" line; names the kind of event when the organiser wrote one. */
+export function defaultSender(
+  kind: string | null | undefined,
+  hosts: string,
+  senderKind: 'family' | 'committee' | 'couple' | 'host' | 'custom' = 'committee',
+  locale: 'sw' | 'en' = 'sw',
+): string {
+  const k = kind?.trim();
+  if (senderKind === 'family')
+    return locale === 'sw' ? `Familia ya ${hosts}` : `The ${hosts} family`;
+  if (senderKind === 'couple' || senderKind === 'host' || senderKind === 'custom') return hosts;
+  return k ? `Kamati ya ${k} ya ${hosts}` : `Kamati ya ${hosts}`;
+}
+
+export const eventKindSchema = z.string().trim().max(40, 'name.too_long');
+
 export const eventInputSchema = z.object({
   title: z.string().trim().min(2, 'name.too_short').max(80),
+  eventKind: eventKindSchema.optional().default(''),
+  /** Defaults to Tanzania; Kenya only when the deployment enables it (ADR 025). */
+  country: countrySchema.optional().default('TZ'),
   partnerA: z.string().trim().min(2, 'name.too_short').max(40),
-  partnerB: z.string().trim().min(2, 'name.too_short').max(40),
+  partnerB: z.string().trim().max(40).optional().default(''),
   dateStart: z.string().min(1, 'date.required'), // ISO date-time (local Africa/Dar_es_Salaam)
   venueName: z.string().trim().min(2, 'venue.required').max(120),
   venueMapUrl: z.string().trim().url('url.invalid').or(z.literal('')).optional().default(''),
@@ -98,8 +162,11 @@ export const eventInputSchema = z.object({
   languageDefault: languageSchema,
   themeId: themeIdSchema,
   coverGradient: z.string().optional().default(''),
+  palette: paletteOverridesSchema.optional(),
   rsvpDeadline: z.string().optional().default(''),
-  contributionTargetTzs: z.coerce.number().int().min(0).optional().default(0),
+  contributionTarget: z.coerce.number().int().min(0).optional().default(0),
+  /** Texts, labels and toggles for the cards and messages; new events start family-sent (ADR 029). */
+  cardContent: cardContentSchema.optional(),
 });
 export type EventInput = z.input<typeof eventInputSchema>;
 
@@ -111,7 +178,7 @@ export type RsvpInput = z.infer<typeof rsvpInputSchema>;
 
 export const manualPaymentSchema = z.object({
   guestId: z.string().min(1, 'guest.required'),
-  amountTzs: amountTzsSchema,
+  amount: amountSchema,
   method: paymentMethodSchema,
   reference: z.string().trim().max(60).optional().default(''),
   note: z.string().trim().max(200).optional().default(''),

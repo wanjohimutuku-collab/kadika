@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SHORT_CODE_PATTERN } from '@harusi/schemas';
 import { MockControls } from './controls';
 import { MockRepository } from './mock-repository';
-import { createSeedState } from './state';
+import { createSeedState, sampleCardToken } from './state';
 
 const NOW = Date.parse('2026-10-13T09:00:00Z');
 
@@ -178,15 +178,13 @@ describe('MockRepository', () => {
 
   it('records a manual payment once per idempotency key and updates the balance', async () => {
     const ev = (await repo.listEvents())[0]!;
-    const g = (await repo.listGuests(ev.id)).find(
-      (x) => x.pledge && x.pledge.balanceTzs >= 20_000,
-    )!;
-    const input = { guestId: g.id, amountTzs: 10_000, method: 'cash' as const };
+    const g = (await repo.listGuests(ev.id)).find((x) => x.pledge && x.pledge.balance >= 20_000)!;
+    const input = { guestId: g.id, amount: 10_000, method: 'cash' as const };
     await repo.recordManualPayment(ev.id, input, 'p1');
     await repo.recordManualPayment(ev.id, input, 'p1');
     const after = await repo.getGuest(g.id);
-    expect(after.pledge!.paidTzs).toBe(g.pledge!.paidTzs + 10_000);
-    expect(after.pledge!.balanceTzs).toBe(g.pledge!.balanceTzs - 10_000);
+    expect(after.pledge!.paid).toBe(g.pledge!.paid + 10_000);
+    expect(after.pledge!.balance).toBe(g.pledge!.balance - 10_000);
   });
 
   it('applies a duplicate payment webhook once', async () => {
@@ -194,7 +192,7 @@ describe('MockRepository', () => {
     repo.controls.set({ payOutcome: 'duplicate_webhook' });
     const start = await repo.startPayment(
       token,
-      { amountTzs: 5000, phoneE164: '+255712345678', method: 'mpesa' },
+      { amount: 5000, phoneE164: '+255712345678', method: 'mpesa' },
       'pay1',
     );
     clock += 10_000;
@@ -214,7 +212,7 @@ describe('MockRepository', () => {
     repo.controls.set({ payOutcome: 'declined' });
     const a = await repo.startPayment(
       token,
-      { amountTzs: 5000, phoneE164: '+255712345678', method: 'airtel' },
+      { amount: 5000, phoneE164: '+255712345678', method: 'airtel' },
       'pd',
     );
     clock += 5000;
@@ -222,7 +220,7 @@ describe('MockRepository', () => {
     repo.controls.set({ payOutcome: 'timeout' });
     const b = await repo.startPayment(
       token,
-      { amountTzs: 5000, phoneE164: '+255712345678', method: 'airtel' },
+      { amount: 5000, phoneE164: '+255712345678', method: 'airtel' },
       'pt',
     );
     clock += 30_000;
@@ -415,5 +413,60 @@ describe('staff (ops) panel and accounts', () => {
     await expect(repo.opsResolveDataRequest('dr-1', 'done', '')).rejects.toMatchObject({
       code: 'forbidden',
     });
+  });
+
+  it('stores a readable palette on the event and serves it on the guest card; refuses an unreadable one', async () => {
+    const ev = (await repo.listEvents())[0]!;
+    const dark = {
+      bg: '#101820',
+      surface: '#16222E',
+      ink: '#F5F1E8',
+      muted: '#C9CED6',
+      primary: '#7FD1B9',
+      onPrimary: '#08241D',
+    };
+    const saved = await repo.updateEvent(ev.id, { palette: dark });
+    expect(saved.palette).toEqual(dark);
+    const token = sampleCardToken(createSeedState({ now: NOW }));
+    expect((await repo.getCard(token)).event?.palette).toEqual(dark);
+    await expect(repo.updateEvent(ev.id, { palette: { ink: '#EEEEEE' } })).rejects.toMatchObject({
+      code: 'validation',
+      details: { pairs: ['ink/surface', 'ink/bg'] },
+    });
+    expect((await repo.getEvent(ev.id)).palette).toEqual(dark); // unchanged after the refusal
+  });
+
+  it('folds RSVPs saved by the light card before this state existed into the guest list', async () => {
+    const storage = memoryStorage();
+    const seed = createSeedState({ now: NOW });
+    const g = seed.guests.find((x) => x.status === 'delivered')!;
+    storage.setItem(
+      `harusi.card.overlay.${g.token}`,
+      JSON.stringify({ status: 'confirmed', rsvpPartySize: 2, at: '2026-10-13T09:05:00.000Z' }),
+    );
+    storage.setItem('harusi.mock.v1', JSON.stringify(seed));
+    const r2 = new MockRepository({ storage, now: () => NOW });
+    expect((await r2.peekCard(g.token)).rsvp).toMatchObject({ status: 'confirmed', partySize: 2 });
+    expect(storage.getItem(`harusi.card.overlay.${g.token}`)).toBeNull();
+  });
+});
+
+describe('saved demo state from before the money rename', () => {
+  it('keeps old state usable by renaming *Tzs keys', async () => {
+    const storage = memoryStorage();
+    const seed = createSeedState({ now: NOW });
+    const legacy = JSON.parse(
+      JSON.stringify({ ...seed, version: 3 })
+        .replace(/"collected"/g, '"collectedTzs"')
+        .replace(/"amount"/g, '"amountTzs"'),
+    );
+    storage.setItem('harusi.mock.v1', JSON.stringify(legacy));
+    const r2 = new MockRepository({ storage, now: () => NOW });
+    await r2.requestOtp('+255712000001');
+    await r2.verifyOtp('+255712000001', '123456');
+    const events = await r2.listEvents();
+    expect(events.length).toBeGreaterThan(0);
+    for (const e of events) expect(Number.isFinite(e.stats.collected)).toBe(true);
+    expect(JSON.parse(storage.getItem('harusi.mock.v1')!).version).toBe(5);
   });
 });

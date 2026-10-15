@@ -1,4 +1,9 @@
-import { formatTzPhone } from '@harusi/schemas/phone';
+import { formatPhone as formatPhoneIn } from '@harusi/schemas/phone';
+import {
+  formatMoney as formatMoneyIn,
+  formatMoneyCompact as formatMoneyCompactIn,
+} from '@harusi/schemas/money';
+import type { Country, Currency } from '@harusi/schemas/country';
 import type { Locale } from '@harusi/i18n';
 
 /**
@@ -99,25 +104,32 @@ function eat(iso: string | number | Date): EatParts {
 
 const NUMBER = new Intl.NumberFormat('en-US');
 
-/** `TZS 1,200,000` (§17.9 CurrencyText). Amounts are whole shillings. */
+/** `TZS 1,200,000` / `KES 1,200,000` (§17.9 CurrencyText). Amounts are whole currency units. */
+export function formatMoney(amount: number, currency: Currency = 'TZS'): string {
+  return formatMoneyIn(amount, currency);
+}
+
+/** `TZS 1,200,000`. For screens that are Tanzania-only (staff panel); event screens use `formatMoney`. */
 export function formatTzs(amount: number): string {
-  return `TZS ${NUMBER.format(Math.round(amount))}`;
+  return formatMoney(amount, 'TZS');
 }
 
 export function formatNumber(n: number): string {
   return NUMBER.format(n);
 }
 
-/** `TZS 8.4M` / `TZS 450K` for tiles. */
-export function formatTzsCompact(amount: number): string {
-  if (amount >= 1_000_000)
-    return `TZS ${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 0 : 1).replace(/\.0$/, '')}M`;
-  if (amount >= 10_000) return `TZS ${Math.round(amount / 1000)}K`;
-  return formatTzs(amount);
+/** `TZS 8.4M` / `KES 450K` for tiles. */
+export function formatMoneyCompact(amount: number, currency: Currency = 'TZS'): string {
+  return formatMoneyCompactIn(amount, currency);
 }
 
-export function formatPhone(e164: string | null | undefined): string {
-  return e164 ? formatTzPhone(e164) : '—';
+export function formatTzsCompact(amount: number): string {
+  return formatMoneyCompact(amount, 'TZS');
+}
+
+/** National form for numbers of the event's country, international form for others (ADR 025). */
+export function formatPhone(e164: string | null | undefined, home: Country = 'TZ'): string {
+  return e164 ? formatPhoneIn(e164, home) : '—';
 }
 
 /** `14 Desemba 2026` / `14 December 2026`. */

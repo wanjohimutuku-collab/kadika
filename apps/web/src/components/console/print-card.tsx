@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import type { Locale } from '@harusi/i18n';
+import { eventKindLabel, hostNames } from '@harusi/schemas';
 import { QrBlock } from '@/components/ui/qr-block';
 import { qrMatrix, QR_QUIET_ZONE } from '@/lib/qr';
 import { OrnamentBand, OrnamentDiamond } from '@/components/card/ornament';
@@ -54,23 +55,25 @@ export function PrintCard({
     >
       <div
         style={{
-          ...themeStyle(data.themeId),
+          ...themeStyle(data.themeId, data.palette),
           width: `${f.w}mm`,
           height: `${f.h}mm`,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
-        className="relative flex flex-col bg-white px-[8mm] pt-[6mm] pb-[6mm] text-center text-[#1B1B1F]"
+        className="relative flex flex-col bg-surface px-[8mm] pt-[6mm] pb-[6mm] text-center text-ink"
         data-testid="print-card"
       >
         <OrnamentBand id={`print-band-${format}`} className="block" />
         <OrnamentDiamond className="mx-auto mt-[3mm]" />
-        <p className="mt-[2mm] text-[9pt] tracking-[0.25em] uppercase">{tc('weddingOf')}</p>
+        <p className="mt-[2mm] text-[9pt] tracking-[0.25em] uppercase">
+          {tc('weddingOf', { kind: eventKindLabel(data.eventKind, locale) })}
+        </p>
         <p
           className="font-display text-[26pt] leading-tight font-semibold"
           style={{ color: 'var(--hp-primary)' }}
         >
-          {data.partnerA} &amp; {data.partnerB}
+          {hostNames(data.partnerA, data.partnerB)}
         </p>
         {data.greeting ? <p className="mt-[2mm] text-[9pt] leading-snug">{data.greeting}</p> : null}
         <p className="mt-[1.5mm] text-[10pt] font-semibold">
@@ -93,19 +96,19 @@ export function PrintCard({
             {t('rsvpLine', { phone: formatPhone(data.committeePhone) })}
           </p>
         ) : null}
-        <div className="mt-auto flex items-center justify-center gap-[4mm] border-t border-[#E6DFD3] pt-[3mm]">
-          {/* QR band: never themed, never tinted (§6.4). */}
-          <div style={{ background: '#fff' }}>
+        <div className="mt-auto flex justify-center border-t border-border pt-[3mm]">
+          {/* QR band: a white panel with black ink whatever the palette, never tinted (§6.4). */}
+          <div
+            className="flex items-center gap-[4mm] rounded-[2mm] p-[1.5mm]"
+            style={{ background: '#fff', color: '#000' }}
+          >
             <QrBlock payload={payload} alt={`QR ${data.shortCode ?? ''}`} size={qrPx} />
-          </div>
-          <div className="text-left">
-            <p className="text-[9pt]">{tc('codeLabel')}</p>
-            <p
-              className="font-mono text-[16pt] font-bold tracking-[0.12em]"
-              style={{ color: '#000' }}
-            >
-              {data.shortCode ?? 'KH-4826'}
-            </p>
+            <div className="pr-[2mm] text-left">
+              <p className="text-[9pt]">{tc('codeLabel')}</p>
+              <p className="font-mono text-[16pt] font-bold tracking-[0.12em]">
+                {data.shortCode ?? 'KH-4826'}
+              </p>
+            </div>
           </div>
         </div>
       </div>

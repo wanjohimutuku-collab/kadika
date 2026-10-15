@@ -45,7 +45,7 @@ describe('public guest card', () => {
       eventPassed: false,
     });
     // The card shows no other guest's data and never the private key or token hash.
-    expect(JSON.stringify(res.body)).not.toMatch(/privateKey|tokenHash|phone/i);
+    expect(JSON.stringify(res.body)).not.toMatch(/privateKey|tokenHash|phoneE164|0712000111/i);
     const { publicKey } = (await api(ctx, 'GET', `/v1/events/${ev.id}/public-key`, { token: t }))
       .body!;
     expect(
@@ -140,5 +140,88 @@ describe('public guest card', () => {
     const { g, t } = await setup('0744000007');
     await api(ctx, 'DELETE', `/v1/guests/${g.id}`, { token: t });
     expect((await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body?.state).toBe('invalid');
+  });
+});
+
+describe('card colour customisation', () => {
+  const palette = {
+    bg: '#101820',
+    surface: '#16222E',
+    ink: '#F5F1E8',
+    muted: '#C9CED6',
+    primary: '#7FD1B9',
+    onPrimary: '#08241D',
+  };
+
+  it('serves the trust-strip fields (sender, committee phone, greeting) on the public card', async () => {
+    const { g } = await setup('0744000022', {
+      committeePhone: '0755123456',
+      senderName: 'Kamati ya Harusi ya Asha na Juma',
+      greeting: 'Karibu kwenye harusi yetu',
+    });
+    const card = await api(ctx, 'GET', `/v1/c/${g.cardToken}`);
+    expect(card.body?.event).toMatchObject({
+      committeePhone: '0755123456',
+      senderName: 'Kamati ya Harusi ya Asha na Juma',
+      greeting: 'Karibu kwenye harusi yetu',
+    });
+    expect(JSON.stringify(card.body)).not.toContain('0712000111'); // the guest's own phone stays private
+  });
+
+  it('previews the card for bots without marking it opened or exposing the QR', async () => {
+    const { ev, g, t } = await setup('0744000023');
+    const res = await api(ctx, 'GET', `/v1/c/${g.cardToken}/preview`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ state: 'ok', qrPayload: null });
+    const list = await api(ctx, 'GET', `/v1/events/${ev.id}/guests?status=opened`, { token: t });
+    expect(list.body?.items).toHaveLength(0);
+    expect((await api(ctx, 'GET', '/v1/c/nope-nope-nope/preview')).body).toMatchObject({
+      state: 'invalid',
+    });
+  });
+
+  it('stores a readable palette, serves it on the public card and merges later patches', async () => {
+    const { ev, g, t } = await setup('0744000020', {
+      brandTheme: { themeId: 'emerald-gold', palette },
+    });
+    const card = await api(ctx, 'GET', `/v1/c/${g.cardToken}`);
+    expect(card.body?.event.brandTheme).toMatchObject({ themeId: 'emerald-gold', palette });
+    // patching only the cover keeps the palette
+    const patched = await api(ctx, 'PATCH', `/v1/events/${ev.id}`, {
+      token: t,
+      body: { brandTheme: { coverGradient: 'linear-gradient(#000,#111)' } },
+    });
+    expect(patched.status).toBe(200);
+    expect(patched.body?.brandTheme).toMatchObject({
+      themeId: 'emerald-gold',
+      coverGradient: 'linear-gradient(#000,#111)',
+      palette,
+    });
+  });
+
+  it('rejects an unreadable palette on create and on update, and drops junk keys', async () => {
+    const owner = await loginAs(ctx, '0744000021');
+    const base = {
+      title: 'Harusi',
+      coupleNames: 'A & B',
+      dateStart: '2027-06-01T10:00:00+03:00',
+    };
+    const bad = await api(ctx, 'POST', '/v1/events', {
+      token: owner.accessToken,
+      body: { ...base, brandTheme: { palette: { ink: '#EEEEEE' } } },
+    });
+    expect(bad.status).toBe(400);
+    expect(bad.body?.error.details).toMatchObject({ reason: 'palette.contrast' });
+    const ok = await api(ctx, 'POST', '/v1/events', {
+      token: owner.accessToken,
+      body: { ...base, brandTheme: { palette: { primary: '#123456', evil: 'x;y', ink: 'nope' } } },
+    });
+    expect(ok.status).toBe(201);
+    expect(ok.body?.brandTheme.palette).toEqual({ primary: '#123456' });
+    const bad2 = await api(ctx, 'PATCH', `/v1/events/${ok.body!.id}`, {
+      token: owner.accessToken,
+      body: { brandTheme: { palette: { surface: '#202020' } } },
+    });
+    expect(bad2.status).toBe(400);
   });
 });

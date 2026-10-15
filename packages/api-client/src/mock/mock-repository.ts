@@ -1,4 +1,5 @@
 import {
+  cardContentSchema,
   eventInputSchema,
   guestInputSchema,
   manualPaymentSchema,
@@ -8,11 +9,31 @@ import {
   type GuestInput,
   type InvitationStatus,
   type ManualPaymentInput,
+  type Country,
   type MessageChannel,
   type PaymentMethod,
+  type PilotMetrics,
   type RsvpInput,
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
+import { defaultSender } from '@harusi/schemas';
+import {
+  paletteContrastIssues,
+  resolvePalette,
+  sanitizeOverrides,
+  type PaletteOverrides,
+} from '@harusi/ui-tokens/palette';
+
+/** Same rule as the API: overrides must keep the card readable (WCAG, ADR 006/015). */
+function checkedPalette(themeId: string, raw: PaletteOverrides | undefined): PaletteOverrides {
+  const clean = sanitizeOverrides(raw);
+  const issues = paletteContrastIssues(resolvePalette(themeId, clean));
+  if (issues.length)
+    throw new RepositoryError('validation', 'palette.contrast', {
+      pairs: issues.map((i) => i.pair),
+    });
+  return clean;
+}
 import type { Repository } from '../repository';
 import type {
   Activity,
@@ -31,6 +52,8 @@ import type {
   Payment,
   PaymentStart,
   PaymentStatusView,
+  PledgeSummaryView,
+  AuditPage,
   ScanEntry,
   SendJob,
   SendPreview,
@@ -53,10 +76,11 @@ import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
 import { pledgeTotals, summarizePledge } from '../domain/pledge';
-import { buildInviteSms, estimateSmsCost } from '../domain/sms';
-import { toCsv } from '../domain/import';
+import { buildInviteSms, estimateSmsCostFor } from '../domain/sms';
+import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
 import { MockControls } from './controls';
+import { addCardFields, renameLegacyMoneyKeys } from './migrate';
 import { Rng } from './prng';
 import {
   createSeedState,
@@ -114,6 +138,45 @@ export class MockRepository implements Repository {
     this.rng = new Rng(this.random);
     this.baseUrl = opts.baseUrl ?? 'https://harusipass.example';
     this.state = opts.initialState ?? this.load() ?? createSeedState({ now: this.now() });
+    this.applyCardOverlays();
+  }
+
+  /**
+   * The light guest card (apps/web `light-card`) has no repository: before this state exists it
+   * stores RSVPs as `harusi.card.overlay.<token>`. Fold them in so the console sees them.
+   */
+  private applyCardOverlays(): void {
+    const s = this.storage;
+    if (!s || typeof s.length !== 'number') return;
+    const prefix = 'harusi.card.overlay.';
+    const keys: string[] = [];
+    for (let i = 0; i < s.length; i++) {
+      const k = s.key(i);
+      if (k?.startsWith(prefix)) keys.push(k);
+    }
+    let changed = false;
+    for (const k of keys) {
+      try {
+        const o = JSON.parse(s.getItem(k) ?? 'null') as {
+          status: 'confirmed' | 'declined';
+          rsvpPartySize: number;
+          at: string;
+        } | null;
+        const g = o && this.state.guests.find((x) => x.token === k.slice(prefix.length));
+        if (o && g && (o.status === 'confirmed' || o.status === 'declined')) {
+          g.status = o.status;
+          g.rsvpPartySize = o.rsvpPartySize;
+          g.updatedAt = o.at;
+          g.timeline = { ...g.timeline, [o.status]: o.at };
+          delete g.timeline[o.status === 'confirmed' ? 'declined' : 'confirmed'];
+          changed = true;
+        }
+      } catch {
+        /* ignore a corrupt overlay */
+      }
+      s.removeItem(k);
+    }
+    if (changed) this.persist();
   }
 
   // ---------------------------------------------------------------- infrastructure
@@ -122,8 +185,14 @@ export class MockRepository implements Repository {
     try {
       const raw = this.storage?.getItem(STATE_KEY);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as MockState;
-      return parsed.version === 3 ? parsed : null;
+      const parsed = JSON.parse(raw) as { version?: number };
+      if (parsed.version === 5) return parsed as MockState;
+      // v4 predates card kinds and card content (ADR 029); v3 also the currency-neutral money names
+      // (ADR 025, Phase 1b). Both are upgraded in place so a returning visitor keeps their demo data.
+      if (parsed.version === 4) return addCardFields(parsed as unknown as MockState);
+      if (parsed.version === 3)
+        return addCardFields(renameLegacyMoneyKeys(parsed) as unknown as MockState);
+      return null;
     } catch {
       return null;
     }
@@ -241,7 +310,7 @@ export class MockRepository implements Repository {
     const m = new Map<string, number>();
     for (const p of this.state.payments) {
       if (p.eventId === eventId && p.status === 'success')
-        m.set(p.guestId, (m.get(p.guestId) ?? 0) + p.amountTzs);
+        m.set(p.guestId, (m.get(p.guestId) ?? 0) + p.amount);
     }
     return m;
   }
@@ -258,19 +327,19 @@ export class MockRepository implements Repository {
 
   private toGuest(
     g: GuestRecord,
-    paid: Map<string, number>,
+    paidBy: Map<string, number>,
     last: Map<string, MessageLogEntry>,
   ): Guest {
-    const paidTzs = paid.get(g.id) ?? 0;
-    const { token: _t, deletedAt: _d, pledgeAmountTzs, pledgeWaived, ...rest } = g;
+    const paid = paidBy.get(g.id) ?? 0;
+    const { token: _t, deletedAt: _d, pledgeAmount, pledgeWaived, ...rest } = g;
     return {
       ...rest,
       lastMessageFailed: last.get(g.id)?.status === 'failed',
       pledge:
-        pledgeAmountTzs != null
-          ? summarizePledge(pledgeAmountTzs, paidTzs, pledgeWaived)
-          : paidTzs > 0
-            ? summarizePledge(0, paidTzs)
+        pledgeAmount != null
+          ? summarizePledge(pledgeAmount, paid, pledgeWaived)
+          : paid > 0
+            ? summarizePledge(0, paid)
             : null,
     };
   }
@@ -280,18 +349,19 @@ export class MockRepository implements Repository {
   }
 
   private stats(eventId: string): EventStats {
-    const guests = this.guestsOf(eventId);
+    // The invitation funnel counts invitation cards only; contribution cards are not attendees (ADR 029).
+    const guests = this.guestsOf(eventId).filter((g) => g.cardKind === 'invitation');
     const funnel = funnelCounts(guests.map((g) => g.status));
     const paid = this.paidByGuest(eventId);
     const last = this.lastMessageByGuest(eventId);
     const totals = pledgeTotals(
       guests.map((g) =>
-        g.pledgeAmountTzs != null
-          ? summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived)
+        g.pledgeAmount != null
+          ? summarizePledge(g.pledgeAmount, paid.get(g.id) ?? 0, g.pledgeWaived)
           : null,
       ),
     );
-    const collectedTzs = [...paid.values()].reduce((a, b) => a + b, 0);
+    const collected = [...paid.values()].reduce((a, b) => a + b, 0);
     return {
       invited: funnel.created,
       sent: funnel.sent,
@@ -306,8 +376,8 @@ export class MockRepository implements Repository {
         0,
       ),
       headcountAttended: guests.reduce((n, g) => n + g.partyAdmitted, 0),
-      pledgedTzs: totals.pledgedTzs,
-      collectedTzs,
+      pledged: totals.pledged,
+      collected,
       guestsWithBalance: totals.guestsPartial + totals.guestsUnpaid,
       failedMessages: guests.filter((g) => last.get(g.id)?.status === 'failed').length,
       featurePhoneGuests: guests.filter((g) => !g.hasSmartphone).length,
@@ -536,25 +606,36 @@ export class MockRepository implements Repository {
     return this.run('write', 'Harusi mpya', () => {
       const u = this.requireSession();
       const v = eventInputSchema.parse(input);
+      // The demo backend only models Tanzania (ADR 025); Kenya needs the real API with the flag on.
+      if (v.country !== 'TZ')
+        throw new RepositoryError('validation', 'Country is not available', { field: 'country' });
       const now = iso(this.now());
       const e: EventRecord = {
         id: this.rng.uuid(),
         title: v.title,
+        cardContent: v.cardContent ?? { sender: { kind: 'family' } },
+        eventKind: v.eventKind,
         partnerA: v.partnerA,
         partnerB: v.partnerB,
-        coupleNames: `${v.partnerA} & ${v.partnerB}`,
+        coupleNames: [v.partnerA, v.partnerB].filter(Boolean).join(' & '),
         dateStart: new Date(v.dateStart).toISOString(),
         venueName: v.venueName,
         venueMapUrl: v.venueMapUrl,
         dressCode: v.dressCode,
         languageDefault: v.languageDefault,
+        country: 'TZ',
+        currency: 'TZS',
         timezone: 'Africa/Dar_es_Salaam',
         status: 'active',
         themeId: v.themeId,
         coverGradient: v.coverGradient,
+        palette: checkedPalette(v.themeId, v.palette),
         rsvpDeadline: v.rsvpDeadline ? new Date(v.rsvpDeadline).toISOString() : null,
-        contributionTargetTzs: v.contributionTargetTzs,
-        senderName: `Kamati ya Harusi ya ${v.partnerA} & ${v.partnerB}`,
+        contributionTarget: v.contributionTarget,
+        senderName: defaultSender(
+          v.eventKind,
+          [v.partnerA, v.partnerB].filter(Boolean).join(' & '),
+        ),
         committeePhone: u.phoneE164,
         pledgesEnabled: true,
         requirePledgeBeforeCard: false,
@@ -588,8 +669,16 @@ export class MockRepository implements Repository {
       this.requireSession();
       const e = this.event(eventId);
       const { stats: _s, id: _i, timezone: _tz, createdAt: _c, ...allowed } = patch;
+      if (patch.palette !== undefined)
+        allowed.palette = checkedPalette(patch.themeId ?? e.themeId, patch.palette);
+      if (patch.cardContent !== undefined) {
+        const ok = cardContentSchema.safeParse(patch.cardContent);
+        if (!ok.success)
+          throw new RepositoryError('validation', 'Invalid card content', { field: 'cardContent' });
+      }
       Object.assign(e, allowed, { updatedAt: iso(this.now()) });
-      if (patch.partnerA || patch.partnerB) e.coupleNames = `${e.partnerA} & ${e.partnerB}`;
+      if (patch.partnerA || patch.partnerB)
+        e.coupleNames = [e.partnerA, e.partnerB].filter(Boolean).join(' & ');
       return this.toEvent(e);
     });
   }
@@ -712,6 +801,7 @@ export class MockRepository implements Repository {
     return {
       id: this.rng.uuid(),
       eventId,
+      cardKind: v.cardKind ?? 'invitation',
       displayName: v.displayName,
       phoneE164: v.phone,
       hasSmartphone: v.hasSmartphone,
@@ -729,7 +819,7 @@ export class MockRepository implements Repository {
       channelLast: null,
       checkedInAt: null,
       partyAdmitted: 0,
-      pledgeAmountTzs: null,
+      pledgeAmount: null,
       pledgeWaived: false,
       createdAt: now,
       updatedAt: now,
@@ -761,6 +851,7 @@ export class MockRepository implements Repository {
         phone: g.phoneE164 ?? '',
         groupLabel: g.groupLabel,
         partySizeAllowed: g.partySizeAllowed,
+        cardKind: g.cardKind,
         inviteChannelPref: g.inviteChannelPref,
         hasSmartphone: g.hasSmartphone,
         language: g.language,
@@ -780,6 +871,7 @@ export class MockRepository implements Repository {
         phoneE164: merged.phone,
         groupLabel: merged.groupLabel,
         partySizeAllowed: merged.partySizeAllowed,
+        cardKind: merged.cardKind ?? g.cardKind,
         inviteChannelPref: merged.phone ? merged.inviteChannelPref : 'print',
         hasSmartphone: merged.hasSmartphone,
         language: merged.language,
@@ -936,6 +1028,23 @@ export class MockRepository implements Repository {
     kind: SendRequest['kind'],
   ): GuestRecord[] {
     const all = this.guestsOf(eventId);
+    if (kind === 'reminder') {
+      // Like the API: only invitation cards that went out; "unsent" means "not answered yet" here (ADR 030).
+      const open = (g: GuestRecord) => ['sent', 'delivered', 'opened'].includes(g.status);
+      const invited = all.filter((g) => g.cardKind === 'invitation');
+      switch (a.kind) {
+        case 'unsent':
+          return invited.filter(open);
+        case 'group':
+          return invited.filter((g) => g.groupLabel === a.group && open(g));
+        case 'selected': {
+          const ids = new Set(a.guestIds);
+          return invited.filter((g) => ids.has(g.id) && (open(g) || g.status === 'confirmed'));
+        }
+        default:
+          return invited.filter((g) => open(g) || g.status === 'confirmed');
+      }
+    }
     switch (a.kind) {
       case 'unsent':
         return all.filter((g) =>
@@ -974,6 +1083,7 @@ export class MockRepository implements Repository {
       locale: 'sw',
       partnerA: e.partnerA,
       partnerB: e.partnerB,
+      kind: e.eventKind,
       dateText: '14 Des 2026',
       shortLink: 'hrs.example/s/KH-4826',
       code: 'KH-4826',
@@ -990,12 +1100,16 @@ export class MockRepository implements Repository {
       const list = this.audience(eventId, req.audience, req.kind);
       const byChannel: Record<MessageChannel, number> = { whatsapp: 0, sms: 0, print: 0 };
       for (const g of list) byChannel[this.channelFor(g, req)] += 1;
-      const cost = estimateSmsCost(this.sampleSms(e, req.kind, req.body), byChannel.sms);
+      const cost = estimateSmsCostFor(
+        this.sampleSms(e, req.kind, req.body),
+        byChannel.sms,
+        e.currency,
+      );
       return {
         total: list.length,
         byChannel,
         smsSegments: cost.segments,
-        estimatedSmsCostTzs: cost.costTzs,
+        estimatedSmsCost: cost.cost,
         withoutPhone: list.filter((g) => !g.phoneE164).length,
       };
     });
@@ -1084,6 +1198,12 @@ export class MockRepository implements Repository {
 
   /** Applies messages whose simulated time has passed, then projects counters. */
   private jobView(job: JobRecord): SendJob {
+    // A scheduled send whose time has come starts now, like the API's scheduler does (ADR 030).
+    if (job.scheduledFor && Date.parse(job.scheduledFor) <= this.now()) {
+      job.startedAt = this.now();
+      job.scheduledFor = null;
+      this.persist();
+    }
     if (job.scheduledFor) {
       return {
         ...this.jobBase(job),
@@ -1153,7 +1273,7 @@ export class MockRepository implements Repository {
         kind: job.kind,
         status: r.outcome === 'failed' ? 'failed' : 'delivered',
         error: r.error,
-        costTzs: r.channel === 'sms' && r.outcome !== 'failed' ? 25 : 0,
+        cost: r.channel === 'sms' && r.outcome !== 'failed' ? 25 : 0,
         createdAt: at,
       });
     }
@@ -1168,6 +1288,30 @@ export class MockRepository implements Repository {
 
   getSendJob(jobId: string): Promise<SendJob> {
     return this.run('local', 'job', () => this.jobView(this.job(jobId)));
+  }
+
+  listScheduledSends(eventId: string): Promise<SendJob[]> {
+    return this.run('local', 'scheduled', () => {
+      this.requireSession();
+      const mine = this.state.jobs.filter((j) => j.eventId === eventId && j.scheduledFor);
+      return mine
+        .map((j) => this.jobView(j))
+        .filter((j) => j.status === 'scheduled')
+        .sort((a, b) => Date.parse(a.scheduledFor!) - Date.parse(b.scheduledFor!));
+    });
+  }
+
+  cancelScheduledSend(eventId: string, jobId: string): Promise<void> {
+    return this.run('send', 'cancel-scheduled', () => {
+      this.requireSession();
+      const job = this.job(jobId);
+      this.jobView(job); // may start it if its time has come
+      if (job.eventId !== eventId) throw new RepositoryError('not_found', 'Job not found');
+      if (!job.scheduledFor)
+        throw new RepositoryError('conflict', 'This send has already started or finished');
+      this.state.jobs = this.state.jobs.filter((j) => j.id !== jobId);
+      this.persist();
+    });
   }
 
   retryFailed(jobId: string): Promise<SendJob> {
@@ -1246,7 +1390,7 @@ export class MockRepository implements Repository {
             kind: 'payment',
             guestId: p.guestId,
             guestName: p.guestName,
-            amountTzs: p.amountTzs,
+            amount: p.amount,
           });
       }
       for (const s of this.state.scans) {
@@ -1406,16 +1550,16 @@ export class MockRepository implements Repository {
 
   // ---------------------------------------------------------------- pledges & payments
 
-  upsertPledge(guestId: string, amountTzs: number, note?: string): Promise<Guest> {
+  upsertPledge(guestId: string, amount: number, note?: string): Promise<Guest> {
     return this.run('write', 'Ahadi', () => {
       this.requireSession();
       const g = this.guestRecord(guestId);
-      g.pledgeAmountTzs = Math.max(0, Math.round(amountTzs));
+      g.pledgeAmount = Math.max(0, Math.round(amount));
       g.updatedAt = iso(this.now());
       this.audit(
         g.id,
         'pledge',
-        `Ahadi: TZS ${g.pledgeAmountTzs.toLocaleString('en-US')}${note ? ` — ${note}` : ''}`,
+        `Ahadi: TZS ${g.pledgeAmount.toLocaleString('en-US')}${note ? ` — ${note}` : ''}`,
       );
       return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
     });
@@ -1437,7 +1581,7 @@ export class MockRepository implements Repository {
           eventId,
           guestId: g.id,
           guestName: g.displayName,
-          amountTzs: v.amountTzs,
+          amount: v.amount,
           method: v.method,
           status: 'success' as const,
           reference:
@@ -1452,12 +1596,50 @@ export class MockRepository implements Repository {
         this.audit(
           g.id,
           'payment',
-          `Malipo TZS ${p.amountTzs.toLocaleString('en-US')} (${p.method}) yamerekodiwa`,
+          `Malipo TZS ${p.amount.toLocaleString('en-US')} (${p.method}) yamerekodiwa`,
         );
         const { eventId: _e, ...out } = p;
         return out;
       }),
     );
+  }
+
+  listAuditLog(_eventId: string, _before?: string): Promise<AuditPage> {
+    // the demo data has no per-event trail; the real API serves one
+    return this.run('read', 'audit-log', () => ({ items: [], nextBefore: null }));
+  }
+
+  getPledgeSummary(eventId: string): Promise<PledgeSummaryView> {
+    return this.run('read', 'pledge-summary', () => {
+      const paid = this.paidByGuest(eventId);
+      const guests = this.state.guests
+        .filter((g) => g.eventId === eventId && !g.deletedAt)
+        .map((g) => {
+          const view = this.toGuest(g, paid, this.lastMessageByGuest(eventId));
+          const p = view.pledge;
+          return {
+            guestId: g.id,
+            displayName: g.displayName,
+            groupLabel: g.groupLabel || null,
+            shortCode: g.shortCode,
+            amount: p?.amount ?? 0,
+            paid: p?.paid ?? 0,
+            balance: p?.balance ?? 0,
+            status: p?.status ?? null,
+            note: null,
+          };
+        });
+      return {
+        totals: {
+          targetAmount: this.state.events.find((e) => e.id === eventId)?.contributionTarget ?? 0,
+          pledged: guests.reduce((n, r) => n + r.amount, 0),
+          collected: guests.reduce((n, r) => n + r.paid, 0),
+          balance: guests.reduce((n, r) => n + r.balance, 0),
+          guestsWithBalance: guests.filter((r) => r.balance > 0).length,
+        },
+        guests,
+      };
+    });
   }
 
   listPayments(eventId: string): Promise<Payment[]> {
@@ -1487,7 +1669,7 @@ export class MockRepository implements Repository {
           kind: 'reminder',
           status: 'sent',
           error: null,
-          costTzs: g.hasSmartphone ? 0 : 25,
+          cost: g.hasSmartphone ? 0 : 25,
           createdAt: iso(this.now()),
         });
         queued++;
@@ -1523,8 +1705,8 @@ export class MockRepository implements Repository {
       const paid = this.paidByGuest(eventId);
       const totals = pledgeTotals(
         guests.map((g) =>
-          g.pledgeAmountTzs != null
-            ? summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived)
+          g.pledgeAmount != null
+            ? summarizePledge(g.pledgeAmount, paid.get(g.id) ?? 0, g.pledgeWaived)
             : null,
         ),
       );
@@ -1536,7 +1718,7 @@ export class MockRepository implements Repository {
           Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7)),
         );
         const key = monday.toISOString().slice(0, 10);
-        weeks.set(key, (weeks.get(key) ?? 0) + p.amountTzs);
+        weeks.set(key, (weeks.get(key) ?? 0) + p.amount);
       }
       return {
         stats,
@@ -1544,8 +1726,8 @@ export class MockRepository implements Repository {
         arrivalsByHour: arrivalsByHour(this.state.scans.filter((s) => s.eventId === eventId)),
         collectionsByWeek: [...weeks.entries()]
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([week, amountTzs]) => ({ week, amountTzs })),
-        pledgeReconciliation: { ...totals, collectedTzs: stats.collectedTzs },
+          .map(([week, amount]) => ({ week, amount })),
+        pledgeReconciliation: { ...totals, collected: stats.collected },
         headcountForecast: stats.headcountConfirmed,
         headcountTarget: guests.reduce((n, g) => n + g.partySizeAllowed, 0),
       };
@@ -1565,22 +1747,15 @@ export class MockRepository implements Repository {
         case 'pledges':
           rows = [['Jina', 'Kikundi', 'Ahadi (TZS)', 'Imelipwa (TZS)', 'Salio (TZS)', 'Hali']];
           for (const g of guests) {
-            if (g.pledgeAmountTzs == null) continue;
-            const s = summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived);
-            rows.push([
-              g.displayName,
-              g.groupLabel,
-              s.amountTzs,
-              s.paidTzs,
-              s.balanceTzs,
-              s.status,
-            ]);
+            if (g.pledgeAmount == null) continue;
+            const s = summarizePledge(g.pledgeAmount, paid.get(g.id) ?? 0, g.pledgeWaived);
+            rows.push([g.displayName, g.groupLabel, s.amount, s.paid, s.balance, s.status]);
           }
           break;
         case 'payments':
           rows = [['Tarehe', 'Mgeni', 'Kiasi (TZS)', 'Njia', 'Kumbukumbu', 'Aliyerekodi']];
           for (const p of this.state.payments.filter((x) => x.eventId === eventId))
-            rows.push([p.paidAt, p.guestName, p.amountTzs, p.method, p.reference, p.recordedBy]);
+            rows.push([p.paidAt, p.guestName, p.amount, p.method, p.reference, p.recordedBy]);
           break;
         case 'scans':
           rows = [['Muda', 'Mgeni', 'Matokeo', 'Watu', 'Lango', 'Kifaa', 'Aliyeskani']];
@@ -1626,6 +1801,7 @@ export class MockRepository implements Repository {
     const empty = (state: CardView['state']): CardView => ({
       token,
       state,
+      cardKind: 'invitation',
       event: null,
       guest: null,
       qrPayload: null,
@@ -1644,11 +1820,14 @@ export class MockRepository implements Repository {
     const eventPassed = now > start + 12 * HOUR;
     const deadlinePassed = e.rsvpDeadline ? now > Date.parse(e.rsvpDeadline) + DAY : false;
     const paid = this.paidByGuest(e.id).get(g.id) ?? 0;
+    const contribution = g.cardKind === 'contribution';
     return {
       token,
       state: 'ok',
+      cardKind: g.cardKind,
       event: {
         id: e.id,
+        eventKind: e.eventKind,
         partnerA: e.partnerA,
         partnerB: e.partnerB,
         coupleNames: e.coupleNames,
@@ -1658,12 +1837,17 @@ export class MockRepository implements Repository {
         dressCode: e.dressCode,
         themeId: e.themeId,
         coverGradient: e.coverGradient,
+        palette: sanitizeOverrides(e.palette),
         rsvpDeadline: e.rsvpDeadline,
         senderName: e.senderName,
         committeePhone: e.committeePhone,
         pledgesEnabled: e.pledgesEnabled,
         greeting: e.greeting,
         extraNote: e.extraNote,
+        cardContent: e.cardContent,
+        contributionTarget: e.contributionTarget,
+        country: e.country,
+        currency: e.currency,
         timezone: e.timezone,
       },
       guest: {
@@ -1674,7 +1858,9 @@ export class MockRepository implements Repository {
         language: g.language,
       },
       // The signed party size is the allowed maximum (§6.1); RSVP changes never require a new signature.
-      qrPayload: mockQrPayload(e.id, g.id, g.partySizeAllowed, g.tokenVersion),
+      qrPayload: contribution
+        ? null
+        : mockQrPayload(e.id, g.id, g.partySizeAllowed, g.tokenVersion),
       rsvp: {
         status:
           g.status === 'confirmed' || g.status === 'checked_in'
@@ -1685,14 +1871,18 @@ export class MockRepository implements Repository {
         partySize: g.rsvpPartySize,
       },
       pledge: e.pledgesEnabled
-        ? g.pledgeAmountTzs != null
-          ? summarizePledge(g.pledgeAmountTzs, paid, g.pledgeWaived)
+        ? g.pledgeAmount != null
+          ? summarizePledge(g.pledgeAmount, paid, g.pledgeWaived)
           : paid > 0
             ? summarizePledge(0, paid)
             : null
         : null,
       rsvpOpen:
-        !eventPassed && !deadlinePassed && g.status !== 'checked_in' && e.status !== 'archived',
+        !contribution &&
+        !eventPassed &&
+        !deadlinePassed &&
+        g.status !== 'checked_in' &&
+        e.status !== 'archived',
       eventPassed,
       isMock: true,
     };
@@ -1743,7 +1933,7 @@ export class MockRepository implements Repository {
 
   startPayment(
     token: string,
-    input: { amountTzs: number; phoneE164: string; method: PaymentMethod },
+    input: { amount: number; phoneE164: string; method: PaymentMethod },
     idempotencyKey: string,
   ): Promise<PaymentStart> {
     return this.run('online-only', 'pay', () =>
@@ -1752,7 +1942,7 @@ export class MockRepository implements Repository {
         if (view.state !== 'ok') throw new RepositoryError('invalid_token');
         if (!view.event?.pledgesEnabled)
           throw new RepositoryError('forbidden', 'payments_disabled');
-        if (!Number.isInteger(input.amountTzs) || input.amountTzs < 1000)
+        if (!Number.isInteger(input.amount) || input.amount < 1000)
           throw new RepositoryError('validation', 'amount', { min: 1000 });
         const g = this.state.guests.find((x) => x.token === token)!;
         const reference = `HP${this.rng.hex(10).toUpperCase()}`;
@@ -1760,7 +1950,7 @@ export class MockRepository implements Repository {
           reference,
           guestId: g.id,
           eventId: g.eventId,
-          amountTzs: input.amountTzs,
+          amount: input.amount,
           phoneE164: input.phoneE164,
           method: input.method,
           outcome: this.controls.get().payOutcome,
@@ -1770,7 +1960,7 @@ export class MockRepository implements Repository {
         this.persist();
         return {
           reference,
-          amountTzs: input.amountTzs,
+          amount: input.amount,
           phoneE164: input.phoneE164,
           method: input.method,
           expiresAt: iso(this.now() + PAY_TIMEOUT_MS),
@@ -1787,11 +1977,11 @@ export class MockRepository implements Repository {
       const view: PaymentStatusView = {
         reference,
         status: 'pending',
-        amountTzs: p.amountTzs,
+        amount: p.amount,
         method: p.method,
         paidAt: null,
         duplicateWebhook: false,
-        newBalanceTzs: null,
+        newBalance: null,
         failureReason: null,
       };
       const resolvesAt = p.outcome === 'declined' ? 4000 : 6000;
@@ -1813,7 +2003,7 @@ export class MockRepository implements Repository {
             eventId: p.eventId,
             guestId: g.id,
             guestName: g.displayName,
-            amountTzs: p.amountTzs,
+            amount: p.amount,
             method: p.method,
             status: 'success',
             reference,
@@ -1833,7 +2023,7 @@ export class MockRepository implements Repository {
         status: 'success',
         paidAt: iso(p.startedAt + resolvesAt),
         duplicateWebhook: p.outcome === 'duplicate_webhook',
-        newBalanceTzs: g.pledgeAmountTzs != null ? Math.max(0, g.pledgeAmountTzs - paid) : null,
+        newBalance: g.pledgeAmount != null ? Math.max(0, g.pledgeAmount - paid) : null,
       };
     });
   }
@@ -1917,8 +2107,8 @@ export class MockRepository implements Repository {
       sent: msgs.filter((m) => m.status !== 'failed').length,
       failedMessages: msgs.filter((m) => m.status === 'failed').length,
       confirmed: stats.confirmed,
-      collectedTzs: stats.collectedTzs,
-      smsCostTzs: msgs.reduce((n, m) => n + m.costTzs, 0),
+      collected: stats.collected,
+      smsCost: msgs.reduce((n, m) => n + m.cost, 0),
     };
   }
 
@@ -1957,13 +2147,13 @@ export class MockRepository implements Repository {
           failed: msgs.filter((m) => m.status === 'failed').length,
           total: msgs.length,
         },
-        smsCostTzs30d: msgs.reduce((n, m) => n + m.costTzs, 0),
+        smsCost30d: msgs.reduce((n, m) => n + m.cost, 0),
         failureRate30d: msgs.length
           ? msgs.filter((m) => m.status === 'failed').length / msgs.length
           : 0,
         contributions30d: {
           count: pays.length,
-          amountTzs: pays.reduce((n, p) => n + p.amountTzs, 0),
+          amount: pays.reduce((n, p) => n + p.amount, 0),
         },
         paidPlans: evs.filter((e) => e.plan === 'paid').length,
         messagesByDay: [...byDay.entries()]
@@ -1993,6 +2183,100 @@ export class MockRepository implements Repository {
     });
   }
 
+  /** Demo numbers from the browser state (Tanzania only); the real API computes them from the database. */
+  opsPilotMetrics(opts: { country?: Country | 'all'; days?: number } = {}): Promise<PilotMetrics> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      const country = opts.country ?? 'all';
+      const days = opts.days ?? 30;
+      const since = this.now() - days * DAY;
+      const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 1000 : null);
+      const evs = this.state.events.filter((e) => country === 'all' || e.country === country);
+      const ids = new Set(evs.map((e) => e.id));
+      const guests = this.state.guests.filter(
+        (g) => ids.has(g.eventId) && !g.deletedAt && g.phoneE164,
+      );
+      const reached = guests.filter((g) =>
+        ['delivered', 'opened', 'confirmed', 'declined', 'checked_in'].includes(g.status),
+      ).length;
+      const sentGuests = guests.filter((g) => g.channelLast);
+      const viaSms = sentGuests.filter((g) => g.channelLast === 'sms').length;
+      const msgs = this.state.messages.filter(
+        (m) => ids.has(m.eventId) && Date.parse(m.createdAt) >= since && m.channel !== 'print',
+      );
+      const channel = (c: 'sms' | 'whatsapp') => {
+        const list = msgs.filter((m) => m.channel === c);
+        const delivered = list.filter(
+          (m) => m.status === 'delivered' || m.status === 'read',
+        ).length;
+        const failed = list.filter((m) => m.status === 'failed').length;
+        return {
+          channel: c,
+          total: list.length,
+          delivered,
+          failed,
+          inFlight: list.length - delivered - failed,
+          deliveryRate: rate(delivered, list.length),
+        };
+      };
+      const pays = this.state.payments.filter(
+        (p) => ids.has(p.eventId) && p.method !== 'cash' && p.method !== 'bank',
+      );
+      const ok = pays.filter((p) => p.status === 'success');
+      const methods = [...new Set(pays.map((p) => p.method))];
+      const scans = this.state.scans.filter(
+        (s) => ids.has(s.eventId) && Date.parse(s.scannedAt) >= since,
+      );
+      const n = (r: string) => scans.filter((s) => s.result === r).length;
+      const bad = n('invalid_sig') + n('wrong_event') + n('not_found');
+      return {
+        country,
+        windowDays: days,
+        generatedAt: new Date(this.now()).toISOString(),
+        events: evs.length,
+        reach: { guestsWithPhone: guests.length, reached, rate: rate(reached, guests.length) },
+        smsPath: { invited: sentGuests.length, viaSms, share: rate(viaSms, sentGuests.length) },
+        messages: [channel('sms'), channel('whatsapp')],
+        smsByNetwork: [],
+        payments: {
+          started: pays.length,
+          success: ok.length,
+          failed: pays.filter((p) => p.status === 'failed').length,
+          pending: pays.filter((p) => p.status === 'pending').length,
+          successRate: rate(ok.length, pays.length),
+          medianSecondsToConfirm: null,
+          timeouts: 0,
+          lateSuccesses: 0,
+          amountMismatches: 0,
+          byMethod: methods.map((m) => {
+            const rows = pays.filter((p) => p.method === m);
+            const s = rows.filter((p) => p.status === 'success').length;
+            return {
+              method: m,
+              started: rows.length,
+              success: s,
+              successRate: rate(s, rows.length),
+            };
+          }),
+          collected: ok.length
+            ? [{ currency: 'TZS', amount: ok.reduce((a, p) => a + p.amount, 0) }]
+            : [],
+        },
+        gate: {
+          scans: scans.length,
+          admitted: n('ok') + n('manual_ok'),
+          firstScanSuccessRate: rate(n('ok'), n('ok') + bad),
+          manualShare: rate(n('manual_ok'), n('ok') + n('manual_ok')),
+          duplicateScans: n('duplicate'),
+          duplicateAdmissions: 0,
+          offlineScans: 0,
+          unsyncedOffline: 0,
+          medianSecondsBetweenAdmissions: null,
+        },
+      };
+    });
+  }
+
   opsUsage(): Promise<OpsUsage> {
     return this.run('read', 'ops', () => {
       this.requireStaff();
@@ -2007,13 +2291,13 @@ export class MockRepository implements Repository {
           sent: list.length,
           delivered: list.filter((m) => m.status === 'delivered' || m.status === 'read').length,
           failed: list.filter((m) => m.status === 'failed').length,
-          costTzs: list.reduce((n, m) => n + m.costTzs, 0),
+          cost: list.reduce((n, m) => n + m.cost, 0),
         };
       };
       const days = new Map<string, { whatsapp: number; sms: number; failed: number }>();
       const perEvent = new Map<
         string,
-        { whatsapp: number; sms: number; failed: number; costTzs: number }
+        { whatsapp: number; sms: number; failed: number; cost: number }
       >();
       const reasons = new Map<string, number>();
       for (const m of msgs) {
@@ -2021,10 +2305,10 @@ export class MockRepository implements Repository {
         if (m.status === 'failed') d.failed++;
         else d[m.channel as 'whatsapp' | 'sms']++;
         days.set(m.createdAt.slice(0, 10), d);
-        const e = perEvent.get(m.eventId) ?? { whatsapp: 0, sms: 0, failed: 0, costTzs: 0 };
+        const e = perEvent.get(m.eventId) ?? { whatsapp: 0, sms: 0, failed: 0, cost: 0 };
         if (m.status === 'failed') e.failed++;
         else e[m.channel as 'whatsapp' | 'sms']++;
-        e.costTzs += m.costTzs;
+        e.cost += m.cost;
         perEvent.set(m.eventId, e);
         if (m.error) reasons.set(m.error, (reasons.get(m.error) ?? 0) + 1);
       }

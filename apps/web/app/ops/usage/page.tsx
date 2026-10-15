@@ -44,7 +44,7 @@ export default function UsagePage() {
                     <Td right>{c.sent}</Td>
                     <Td right>{c.delivered}</Td>
                     <Td right>{c.failed}</Td>
-                    <Td right>{formatTzs(c.costTzs)}</Td>
+                    <Td right>{formatTzs(c.cost)}</Td>
                   </tr>
                 ))}
               </DataTable>
@@ -71,7 +71,7 @@ export default function UsagePage() {
                     <li key={e.eventId} className="flex items-center justify-between gap-3 py-2">
                       <span className="font-medium">{e.coupleNames}</span>
                       <span className="tabular text-sm text-muted">
-                        {e.whatsapp + e.sms} · {e.failed} ✕ · {formatTzs(e.costTzs)}
+                        {e.whatsapp + e.sms} · {e.failed} ✕ · {formatTzs(e.cost)}
                       </span>
                     </li>
                   ))}

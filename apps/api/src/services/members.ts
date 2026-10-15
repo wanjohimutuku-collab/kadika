@@ -2,8 +2,11 @@ import { and, eq } from 'drizzle-orm';
 import { eventInvites, eventMembers, newId, users } from '@harusi/db';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
+import { recordAudit } from './audit';
 import type { EventService } from './events';
+import { allowedCountries } from '@harusi/schemas/country';
 import { parsePhone } from '../auth/service';
+import { eventCountry } from './events';
 
 export class MemberService {
   constructor(
@@ -53,7 +56,11 @@ export class MemberService {
     input: { name: string; phone: string; role: 'committee' | 'gate' },
   ) {
     await this.requireOwner(eventId, userId);
-    const phone = parsePhone(input.phone);
+    const phone = parsePhone(
+      input.phone,
+      await eventCountry(this.deps.db, eventId),
+      allowedCountries(this.deps.config.kenyaEnabled),
+    );
     const [user] = await this.deps.db.select().from(users).where(eq(users.phoneE164, phone));
     if (user) {
       const [exists] = await this.deps.db
@@ -64,6 +71,14 @@ export class MemberService {
       await this.deps.db
         .insert(eventMembers)
         .values({ id: newId(), eventId, userId: user.id, role: input.role });
+      await recordAudit(this.deps.db, {
+        eventId,
+        actorId: userId,
+        action: 'member.add',
+        entity: 'member',
+        entityId: user.id,
+        diff: { role: input.role },
+      });
       return { status: 'active' as const, phoneE164: phone, role: input.role };
     }
     await this.deps.db
@@ -80,6 +95,13 @@ export class MemberService {
         target: [eventInvites.eventId, eventInvites.phoneE164],
         set: { role: input.role, name: input.name, status: 'pending' },
       });
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'member.invite',
+      entity: 'member',
+      diff: { role: input.role },
+    });
     return { status: 'invited' as const, phoneE164: phone, role: input.role };
   }
 
@@ -92,5 +114,13 @@ export class MemberService {
     if (!m) throw new ApiError('not_found', 'Member not found');
     if (m.role === 'owner') throw new ApiError('forbidden', 'The owner cannot be removed');
     await this.deps.db.delete(eventMembers).where(eq(eventMembers.id, m.id));
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'member.remove',
+      entity: 'member',
+      entityId: memberUserId,
+      diff: { role: m.role },
+    });
   }
 }

@@ -1,6 +1,8 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { toHex } from '@harusi/crypto';
+import { countryOfE164 } from '@harusi/schemas/country';
 import { ApiError } from '../errors';
+import { smsFor } from '../sms-routing';
 import type { Deps } from '../context';
 
 const RESEND_MS = 30_000;
@@ -55,6 +57,14 @@ export class OtpService {
     }
     if (r.requests.length >= MAX_PER_HOUR)
       throw new ApiError('rate_limited', 'Too many codes requested', { retryAfterSeconds: 3600 });
+    // The code goes out through the route for the number's own country (ADR 026).
+    const country = countryOfE164(phone) ?? 'TZ';
+    const route = smsFor(this.deps, country);
+    if (!route)
+      throw new ApiError('unavailable', 'SMS is not available for this country yet', {
+        reason: 'sms_route_missing',
+        country,
+      });
     const bytes = this.deps.random(4);
     const n = ((bytes[0]! << 24) | (bytes[1]! << 16) | (bytes[2]! << 8) | bytes[3]!) >>> 0;
     const code = String(n % 1_000_000).padStart(6, '0');
@@ -62,9 +72,11 @@ export class OtpService {
     r.expiresAt = now + CODE_TTL_MS;
     r.attempts = 0;
     r.requests.push(now);
-    await this.deps.sms.send(
+    await route.send(
       phone,
-      `Namba yako ya uthibitisho ya Harusi Pass ni ${code}. Usimpe mtu yeyote.`,
+      country === 'KE'
+        ? `Your Harusi Pass verification code is ${code}. Do not share it with anyone.`
+        : `Namba yako ya uthibitisho ya Harusi Pass ni ${code}. Usimpe mtu yeyote.`,
     );
     return { resendAfterSeconds: RESEND_MS / 1000 };
   }

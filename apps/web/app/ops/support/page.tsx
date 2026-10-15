@@ -183,7 +183,7 @@ export default function SupportPage() {
                     <Td>
                       {p.guestName} · {p.coupleNames}
                     </Td>
-                    <Td right>{formatTzs(p.amountTzs)}</Td>
+                    <Td right>{formatTzs(p.amount)}</Td>
                   </tr>
                 ))}
               </DataTable>

@@ -390,7 +390,7 @@ Seating charts, vendor marketplace, photo galleries, live streaming, multi-day m
 | `danger` | `#B3261E` | `#FF8A80` |
 | `info` | `#0B63B6` | `#7DB8F5` |
 
-- **Gate result fills:** ADMIT `#0B7A2B`, DUPLICATE `#B26A00`, DENY `#B3261E`, text white. Contrast ≥ 7:1. Never rely on colour alone: each state also has an icon and a word.
+- **Gate result fills:** ADMIT `#075E20`, DUPLICATE `#7A4A00`, DENY `#8C1D17`, text white. Contrast ≥ 7:1 (the earlier `#0B7A2B` / `#B26A00` / `#B3261E` measured only 4.2–6.5:1; see `docs/adr/006-token-contrast.md` and `docs/adr/022-phase5-gate-scanner.md`). Never rely on colour alone: each state also has an icon and a word.
 - **Event theming:** `events.brand_theme` may override only `primary`, `accent` and a decorative pattern on the **guest card**, from 4 preset themes (Emerald & Gold default, Navy & Silver, Terracotta, Rose & Sage) plus an optional cover photo. The QR block is always black on white regardless of theme. Reject themes failing 4.5:1 text contrast.
 - **Type:** body uses the system font stack (no webfont for body, for speed). One optional display serif (e.g. Cormorant Garamond), subsetted woff2 ≤ 30 KB, `font-display: swap`, used only for couple names/headings on the guest card and print card. Scale: 14 / 16 (body, inputs never below 16) / 20 / 24 / 28 / 36 (display). Gate name: 36 bold.
 - **Spacing:** 4-pt grid (4, 8, 12, 16, 24, 32, 48). Radius: 12 cards, 8 inputs, 999 pills. Elevation: borders over shadows.

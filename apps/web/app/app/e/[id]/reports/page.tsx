@@ -14,8 +14,8 @@ import { Textarea } from '@/components/ui/form';
 import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
-import { qk, useEvent, useSession } from '@/lib/queries';
-import { formatDateShort, formatTzs, formatTzsCompact } from '@/lib/format';
+import { qk, useEvent, useSession, useEventCurrency } from '@/lib/queries';
+import { formatDateShort, formatMoney, formatMoneyCompact } from '@/lib/format';
 import { downloadBlob } from '@/lib/download';
 
 export default function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +29,7 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
   const toast = useToast();
   const session = useSession();
   const event = useEvent(id);
+  const cur = useEventCurrency(id);
   const report = useQuery({
     queryKey: qk.report(id),
     queryFn: () => getRepository().getReport(id),
@@ -173,21 +174,21 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <KpiTile
                     label={t('rec.pledged')}
-                    value={formatTzsCompact(r.pledgeReconciliation.pledgedTzs)}
+                    value={formatMoneyCompact(r.pledgeReconciliation.pledged, cur)}
                   />
                   <KpiTile
                     label={t('rec.collected')}
-                    value={formatTzsCompact(r.pledgeReconciliation.collectedTzs)}
+                    value={formatMoneyCompact(r.pledgeReconciliation.collected, cur)}
                     tone="success"
                   />
                   <KpiTile
                     label={t('rec.outstanding')}
-                    value={formatTzsCompact(r.pledgeReconciliation.outstandingTzs)}
+                    value={formatMoneyCompact(r.pledgeReconciliation.outstanding, cur)}
                     tone="warning"
                   />
                   <KpiTile
                     label={t('rec.overpaid')}
-                    value={formatTzs(r.pledgeReconciliation.overpaidTzs)}
+                    value={formatMoney(r.pledgeReconciliation.overpaid, cur)}
                   />
                 </div>
                 <p className="mt-3 text-sm text-muted">
@@ -205,9 +206,9 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
                           .split(' ')
                           .slice(0, 2)
                           .join(' '),
-                        value: w.amountTzs,
+                        value: w.amount,
                       }))}
-                      formatValue={(n) => formatTzsCompact(n).replace('TZS ', '')}
+                      formatValue={(n) => formatMoneyCompact(n, cur).replace(`${cur} `, '')}
                     />
                   </div>
                 ) : null}

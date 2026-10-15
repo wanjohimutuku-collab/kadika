@@ -1,8 +1,10 @@
 import type {
+  Country,
   EventInput,
   GuestInput,
   ManualPaymentInput,
   PaymentMethod,
+  PilotMetrics,
   RsvpInput,
 } from '@harusi/schemas';
 import type {
@@ -21,6 +23,8 @@ import type {
   Payment,
   PaymentStart,
   PaymentStatusView,
+  PledgeSummaryView,
+  AuditPage,
   ScanEntry,
   SendJob,
   SendPreview,
@@ -40,7 +44,7 @@ import type {
 /**
  * One method per §8 endpoint (plus read models the console needs). `MockRepository` and
  * `HttpRepository` both implement it, so swapping is a one-line change in `apps/web/src/lib/repo.ts`.
- * All amounts are integer TZS; all dates ISO-8601 UTC.
+ * All amounts are whole units of the event's `currency`; all dates ISO-8601 UTC.
  */
 export interface Repository {
   // Auth — POST /v1/auth/otp/request, /verify, /refresh
@@ -101,6 +105,10 @@ export interface Repository {
   sendInvitations(eventId: string, req: SendRequest): Promise<SendJob>;
   getSendJob(jobId: string): Promise<SendJob>;
   retryFailed(jobId: string): Promise<SendJob>;
+  /** Sends that wait for their time or recently ran, soonest first (ADR 030). Same shape as a job. */
+  listScheduledSends(eventId: string): Promise<SendJob[]>;
+  /** Stops a send that has not started. Rejects with `conflict` once it is running or done. */
+  cancelScheduledSend(eventId: string, jobId: string): Promise<void>;
   sendTestMessage(eventId: string, channel: 'whatsapp' | 'sms'): Promise<{ to: string }>;
   listActivity(eventId: string, limit?: number): Promise<Activity[]>;
 
@@ -120,13 +128,17 @@ export interface Repository {
   ): Promise<ScanEntry>;
 
   // Pledges & payments — GET …/pledges, POST /v1/guests/:id/pledges, POST /v1/payments/manual
-  upsertPledge(guestId: string, amountTzs: number, note?: string): Promise<Guest>;
+  upsertPledge(guestId: string, amount: number, note?: string): Promise<Guest>;
   recordManualPayment(
     eventId: string,
     input: ManualPaymentInput,
     idempotencyKey: string,
   ): Promise<Payment>;
   listPayments(eventId: string): Promise<Payment[]>;
+  /** Every guest's pledge, paid and balance plus the event totals (committee and owner only). */
+  getPledgeSummary(eventId: string): Promise<PledgeSummaryView>;
+  /** The event's audit trail, newest first (owner only). */
+  listAuditLog(eventId: string, before?: string): Promise<AuditPage>;
   sendPledgeReminders(eventId: string, guestIds: string[]): Promise<{ queued: number }>;
 
   // Reports
@@ -141,7 +153,7 @@ export interface Repository {
   rsvp(token: string, input: RsvpInput, idempotencyKey: string): Promise<CardView>;
   startPayment(
     token: string,
-    input: { amountTzs: number; phoneE164: string; method: PaymentMethod },
+    input: { amount: number; phoneE164: string; method: PaymentMethod },
     idempotencyKey: string,
   ): Promise<PaymentStart>;
   getPaymentStatus(reference: string): Promise<PaymentStatusView>;
@@ -154,6 +166,8 @@ export interface Repository {
   opsListOrganizers(): Promise<OpsOrganizer[]>;
   opsListEvents(): Promise<OpsEvent[]>;
   opsUsage(): Promise<OpsUsage>;
+  /** Launch-gate numbers for one country (or all), for the pilot dashboard (Phase 5). */
+  opsPilotMetrics(opts?: { country?: Country | 'all'; days?: number }): Promise<PilotMetrics>;
   opsListPayments(): Promise<OpsPayment[]>;
   opsLookup(query: string): Promise<OpsLookupResult>;
   opsRevealPhone(

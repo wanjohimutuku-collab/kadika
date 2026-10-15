@@ -10,7 +10,7 @@ import { QueryState } from '@/components/console/query-state';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState, Skeleton, StatusPill } from '@/components/ui/display';
 import { useEvents } from '@/lib/queries';
-import { formatDate, formatTzsCompact } from '@/lib/format';
+import { formatDate, formatMoneyCompact } from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
 import { themeStyle } from '@/lib/theme';
 
@@ -54,7 +54,7 @@ export default function EventsPage() {
                     href={`/app/e/${e.id}`}
                     aria-label={t('open', { name: e.coupleNames })}
                     className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface transition-shadow hover:shadow-md"
-                    style={themeStyle(e.themeId)}
+                    style={themeStyle(e.themeId, e.palette)}
                   >
                     <div
                       className="flex items-start justify-between gap-3 p-4 text-on-primary"
@@ -98,7 +98,10 @@ export default function EventsPage() {
                         <div className="rounded-input bg-bg p-2">
                           <dt className="text-xs text-muted">{t('statCollected')}</dt>
                           <dd className="tabular text-lg font-bold">
-                            {formatTzsCompact(e.stats.collectedTzs).replace('TZS ', '')}
+                            {formatMoneyCompact(e.stats.collected, e.currency).replace(
+                              `${e.currency} `,
+                              '',
+                            )}
                           </dd>
                         </div>
                       </dl>

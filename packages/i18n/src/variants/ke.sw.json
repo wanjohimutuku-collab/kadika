@@ -1,0 +1,28 @@
+{
+  "common": {
+    "tzs": "KES {amount}"
+  },
+  "validation": {
+    "amount": {
+      "min": "Kiasi cha chini ni KES {min}"
+    }
+  },
+  "pay": {
+    "amount": "Kiasi (KES)"
+  },
+  "wizard": {
+    "target": "Lengo la michango (KES)"
+  },
+  "guestDetail": {
+    "pledgeAmount": "Kiasi cha ahadi (KES)"
+  },
+  "pledges": {
+    "amount": "Kiasi (KES)"
+  },
+  "settings": {
+    "pledgesEnabled": "Ruhusu michango (harambee) kwenye kadi"
+  },
+  "card": {
+    "pledgeNone": "Unaweza kuchangia tukio hili kwa pesa za simu."
+  }
+}

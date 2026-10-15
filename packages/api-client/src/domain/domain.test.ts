@@ -2,28 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { pledgeTotals, progress, summarizePledge } from './pledge';
 import { buildInviteSms, estimateSmsCost, smsSegments } from './sms';
 import { advanceStatus, funnelCounts } from './funnel';
-import {
-  buildPreview,
-  guessMapping,
-  parseCsv,
-  parsePastedList,
-  summarizePreview,
-  toCsv,
-} from './import';
 import { isMockPayload, mockQrPayload } from './token';
 
 describe('pledge math', () => {
   it('derives status and balance', () => {
     expect(summarizePledge(100_000, 0)).toEqual({
-      amountTzs: 100_000,
-      paidTzs: 0,
-      balanceTzs: 100_000,
+      amount: 100_000,
+      paid: 0,
+      balance: 100_000,
       status: 'pledged',
     });
     expect(summarizePledge(100_000, 40_000).status).toBe('partial');
-    expect(summarizePledge(100_000, 100_000)).toMatchObject({ status: 'paid', balanceTzs: 0 });
-    expect(summarizePledge(100_000, 120_000)).toMatchObject({ status: 'paid', balanceTzs: 0 });
-    expect(summarizePledge(100_000, 0, true)).toMatchObject({ status: 'waived', balanceTzs: 0 });
+    expect(summarizePledge(100_000, 100_000)).toMatchObject({ status: 'paid', balance: 0 });
+    expect(summarizePledge(100_000, 120_000)).toMatchObject({ status: 'paid', balance: 0 });
+    expect(summarizePledge(100_000, 0, true)).toMatchObject({ status: 'waived', balance: 0 });
   });
   it('totals reconcile: pledged = collected-against-pledges + outstanding - overpaid', () => {
     const list = [
@@ -35,15 +27,15 @@ describe('pledge math', () => {
     ];
     const t = pledgeTotals(list, 5_000);
     expect(t).toEqual({
-      pledgedTzs: 180_000,
-      collectedTzs: 125_000,
-      outstandingTzs: 70_000,
-      overpaidTzs: 10_000,
+      pledged: 180_000,
+      collected: 125_000,
+      outstanding: 70_000,
+      overpaid: 10_000,
       guestsPaid: 2,
       guestsPartial: 1,
       guestsUnpaid: 1,
     });
-    expect(t.pledgedTzs).toBe(t.collectedTzs - 5_000 + t.outstandingTzs - t.overpaidTzs);
+    expect(t.pledged).toBe(t.collected - 5_000 + t.outstanding - t.overpaid);
   });
   it('clamps progress', () => {
     expect(progress(5, 10)).toBe(0.5);
@@ -63,7 +55,7 @@ describe('sms cost estimator', () => {
     expect(smsSegments('🎉'.repeat(40))).toMatchObject({ encoding: 'UCS-2', segments: 2 });
   });
   it('estimates cost in TZS', () => {
-    expect(estimateSmsCost('hello', 100, 25).costTzs).toBe(2500);
+    expect(estimateSmsCost('hello', 100, 25).cost).toBe(2500);
   });
   it('§7.2 invite SMS fits in one segment', () => {
     const text = buildInviteSms({
@@ -106,69 +98,6 @@ describe('funnel', () => {
   });
 });
 
-describe('CSV import', () => {
-  it('parses quotes, CRLF and semicolons', () => {
-    expect(parseCsv('a,"b, c","d ""e"""\r\n1,2,3\r\n')).toEqual([
-      ['a', 'b, c', 'd "e"'],
-      ['1', '2', '3'],
-    ]);
-    expect(parseCsv('Jina;Simu\nAsha;0712345678')).toEqual([
-      ['Jina', 'Simu'],
-      ['Asha', '0712345678'],
-    ]);
-  });
-  it('parses pasted lists in several shapes', () => {
-    expect(
-      parsePastedList(
-        'Asha Mwinyi, 0712 345 678\nBaraka\t+255754123456\nMama Neema 0688 123 456\nBibi Zuhura',
-      ),
-    ).toEqual([
-      ['Asha Mwinyi', '0712 345 678'],
-      ['Baraka', '+255754123456'],
-      ['Mama Neema', '0688 123 456'],
-      ['Bibi Zuhura'],
-    ]);
-  });
-  it('guesses Swahili headers and flags invalid + duplicate rows', () => {
-    const rows = parseCsv(
-      'Jina,Simu,Kikundi,Idadi\nAsha,0712345678,Marafiki,2\nAsha tena,+255 712 345 678,Marafiki,1\nBaraka,07123,,1\nX,,,\nMama Neema,,Wazee,1\nJuma,0754000111,,1',
-    );
-    const { mapping, hasHeader } = guessMapping(rows[0]!);
-    expect(hasHeader).toBe(true);
-    expect(mapping).toEqual(['name', 'phone', 'group', 'party']);
-    const preview = buildPreview(rows, mapping, { hasHeader, existingPhones: ['+255754000111'] });
-    expect(preview.map((r) => r.issues.map((i) => i.kind))).toEqual([
-      [],
-      ['duplicate'],
-      ['phone'],
-      ['name'],
-      [],
-      ['duplicate'],
-    ]);
-    expect(preview[0]).toMatchObject({
-      phoneE164: '+255712345678',
-      partySizeAllowed: 2,
-      include: true,
-    });
-    expect(preview[4]).toMatchObject({ inviteChannelPref: 'print', include: true });
-    expect(summarizePreview(preview)).toEqual({
-      total: 6,
-      valid: 2,
-      invalid: 2,
-      duplicates: 2,
-      withoutPhone: 2,
-    });
-  });
-  it('treats a headerless file positionally', () => {
-    const { mapping, hasHeader } = guessMapping(['Asha', '0712345678']);
-    expect(hasHeader).toBe(false);
-    expect(mapping).toEqual(['name', 'phone']);
-  });
-  it('escapes CSV output', () => {
-    expect(toCsv([['a,b', 'c"d', null, 5]])).toBe('"a,b","c""d",,5\r\n');
-  });
-});
-
 describe('mock token', () => {
   it('follows the §6.1 shape and is labelled', () => {
     const t = mockQrPayload(
@@ -179,5 +108,28 @@ describe('mock token', () => {
     );
     expect(t).toBe('v1.4a6f0001.34567890.2.1.MOCKSIG');
     expect(isMockPayload(t)).toBe(true);
+  });
+});
+
+describe('kind-aware messages', () => {
+  const base = {
+    partnerA: 'Neema',
+    partnerB: '',
+    dateText: '14 Des',
+    shortLink: 'x.co/s/1',
+    code: 'KH-4821',
+  };
+  it('names a custom kind and has no dangling ampersand for one host', () => {
+    expect(buildInviteSms({ ...base, locale: 'sw', kind: 'Send-off' })).toMatch(
+      /^Karibu kwenye send-off ya Neema, 14 Des\./,
+    );
+    expect(buildInviteSms({ ...base, locale: 'en', kind: 'Kitchen party' })).toMatch(
+      /^You're invited to the kitchen party of Neema,/,
+    );
+  });
+  it('falls back to wedding wording when no kind is set', () => {
+    expect(buildInviteSms({ ...base, partnerB: 'Juma', locale: 'sw' })).toMatch(
+      /^Karibu kwenye harusi ya Neema & Juma,/,
+    );
   });
 });

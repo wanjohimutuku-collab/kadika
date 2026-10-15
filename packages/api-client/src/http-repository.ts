@@ -1,4 +1,16 @@
-import type { EventInput, GuestInput } from '@harusi/schemas';
+import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
+import {
+  defaultSender,
+  senderKindOf,
+  type CardContent,
+  type CardKind,
+  hostNames,
+  type Country,
+  type Currency,
+  type EventInput,
+  type GuestInput,
+  type PilotMetrics,
+} from '@harusi/schemas';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
@@ -9,10 +21,15 @@ import type {
   ImportResult,
   ImportRowInput,
   Member,
+  Payment,
+  PaymentStart,
+  PaymentStatusView,
+  SendJob,
+  SendRequest,
   Session,
   WeddingEvent,
 } from './types';
-import { toCsv } from './domain/import';
+import { toCsv } from '@harusi/schemas/import';
 
 /** Where the session tokens live: `localStorage` in browsers, memory elsewhere. */
 export interface TokenStore {
@@ -62,16 +79,24 @@ interface ApiUser {
 interface ApiEvent {
   id: string;
   title: string;
+  cardContent?: CardContent | null;
+  eventKind?: string | null;
   coupleNames: string;
   dateStart: string;
   venueName: string | null;
   venueMapUrl: string | null;
   dressCode: string | null;
+  committeePhone?: string | null;
+  pledgesEnabled?: boolean;
+  senderName?: string | null;
+  greeting?: string | null;
   languageDefault: 'sw' | 'en';
+  country?: Country;
+  currency?: Currency;
   timezone: string;
   status: WeddingEvent['status'];
   rsvpDeadline: string | null;
-  contributionTargetTzs: number | null;
+  contributionTarget: number | null;
   plan: 'free' | 'paid';
   brandTheme: Record<string, unknown> | null;
   createdAt: string;
@@ -82,6 +107,7 @@ interface ApiEvent {
 interface ApiGuest {
   id: string;
   eventId: string;
+  cardKind?: CardKind;
   displayName: string;
   phoneE164: string | null;
   hasSmartphone: boolean | null;
@@ -93,6 +119,8 @@ interface ApiGuest {
   inviteChannelPref: Guest['inviteChannelPref'];
   notes: string | null;
   status?: Guest['status'];
+  channelLast?: Guest['channelLast'];
+  pledge?: Guest['pledge'];
   rsvpPartySize?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -101,27 +129,48 @@ interface ApiGuest {
 const notImplemented = (name: string) => () =>
   Promise.reject(new RepositoryError('not_implemented', `${name} is not available on the API yet`));
 
-function mapEvent(e: ApiEvent): WeddingEvent {
-  const [a = '', b = ''] = e.coupleNames.split('&').map((s) => s.trim());
-  const empty = {
-    invited: 0,
-    sent: 0,
-    delivered: 0,
-    opened: 0,
-    confirmed: 0,
-    declined: 0,
-    attended: 0,
-    headcountConfirmed: 0,
+interface ApiStats {
+  total: number;
+  byStatus: Record<string, number>;
+  failedMessages: number;
+  headcountConfirmed?: number;
+  featurePhoneGuests?: number;
+  pledged?: number;
+  collected?: number;
+  guestsWithBalance?: number;
+}
+
+/** Funnel counts are cumulative: a guest who opened the card also counts as sent and delivered. */
+function mapStats(s: ApiStats | null): WeddingEvent['stats'] {
+  const n = (...k: string[]) => k.reduce((t, x) => t + (s?.byStatus[x] ?? 0), 0);
+  const afterSent = ['sent', 'delivered', 'opened', 'confirmed', 'declined', 'checked_in'];
+  return {
+    invited: s?.total ?? 0,
+    sent: n(...afterSent),
+    delivered: n('delivered', 'opened', 'confirmed', 'declined', 'checked_in'),
+    opened: n('opened', 'confirmed', 'declined', 'checked_in'),
+    confirmed: n('confirmed', 'checked_in'),
+    declined: n('declined'),
+    attended: n('checked_in'),
+    headcountConfirmed: s?.headcountConfirmed ?? 0,
     headcountAttended: 0,
-    pledgedTzs: 0,
-    collectedTzs: 0,
-    guestsWithBalance: 0,
-    failedMessages: 0,
-    featurePhoneGuests: 0,
+    pledged: s?.pledged ?? 0,
+    collected: s?.collected ?? 0,
+    guestsWithBalance: s?.guestsWithBalance ?? 0,
+    failedMessages: s?.failedMessages ?? 0,
+    featurePhoneGuests: s?.featurePhoneGuests ?? 0,
   };
+}
+
+function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
+  const [a = '', b = ''] = e.coupleNames.split('&').map((s) => s.trim());
+  const empty = mapStats(stats);
   return {
     id: e.id,
+    myRole: e.myRole,
     title: e.title,
+    cardContent: e.cardContent ?? {},
+    eventKind: e.eventKind ?? '',
     partnerA: a,
     partnerB: b,
     coupleNames: e.coupleNames,
@@ -130,18 +179,22 @@ function mapEvent(e: ApiEvent): WeddingEvent {
     venueMapUrl: e.venueMapUrl ?? '',
     dressCode: e.dressCode ?? '',
     languageDefault: e.languageDefault,
-    timezone: 'Africa/Dar_es_Salaam',
+    country: e.country ?? 'TZ',
+    currency: e.currency ?? 'TZS',
+    timezone: e.timezone || 'Africa/Dar_es_Salaam',
     status: e.status,
     themeId: ((e.brandTheme as { themeId?: WeddingEvent['themeId'] } | null)?.themeId ??
       'emerald-gold') as WeddingEvent['themeId'],
     coverGradient: String((e.brandTheme as { coverGradient?: string } | null)?.coverGradient ?? ''),
+    palette: sanitizeOverrides((e.brandTheme as { palette?: unknown } | null)?.palette),
     rsvpDeadline: e.rsvpDeadline,
-    contributionTargetTzs: e.contributionTargetTzs ?? 0,
-    senderName: `Kamati ya Harusi ya ${e.coupleNames}`,
-    committeePhone: '',
-    pledgesEnabled: true,
+    contributionTarget: e.contributionTarget ?? 0,
+    senderName:
+      e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
+    committeePhone: e.committeePhone ?? '',
+    pledgesEnabled: e.pledgesEnabled ?? true,
     requirePledgeBeforeCard: false,
-    greeting: '',
+    greeting: e.greeting ?? '',
     extraNote: '',
     reminders: { t14: true, t7: true, t1: true },
     whatsappFallbackHours: 6,
@@ -154,22 +207,17 @@ function mapEvent(e: ApiEvent): WeddingEvent {
 
 interface ApiCard {
   state: CardView['state'];
+  cardKind?: CardKind;
+  contributionCollected?: number | null;
   event:
     | (Omit<
         NonNullable<CardView['event']>,
-        | 'partnerA'
-        | 'partnerB'
-        | 'senderName'
-        | 'committeePhone'
-        | 'pledgesEnabled'
-        | 'greeting'
-        | 'extraNote'
-        | 'themeId'
-        | 'coverGradient'
-      > & { brandTheme: Record<string, unknown> | null })
+        'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
+      > & { brandTheme: Record<string, unknown> | null; eventKind?: string | null })
     | null;
   guest: CardView['guest'];
   qrPayload: string | null;
+  pledge?: CardView['pledge'];
   rsvp: CardView['rsvp'];
   rsvpOpen: boolean;
   eventPassed: boolean;
@@ -180,14 +228,18 @@ function mapCard(token: string, c: ApiCard): CardView {
   const theme = (e?.brandTheme ?? {}) as {
     themeId?: WeddingEvent['themeId'];
     coverGradient?: string;
+    palette?: unknown;
   };
   const [a = '', b = ''] = (e?.coupleNames ?? '').split('&').map((x) => x.trim());
   return {
     token,
     state: c.state,
+    cardKind: c.cardKind ?? 'invitation',
+    contributionCollected: c.contributionCollected ?? null,
     event: e
       ? {
           id: e.id,
+          eventKind: e.eventKind ?? '',
           partnerA: a,
           partnerB: b,
           coupleNames: e.coupleNames,
@@ -197,19 +249,26 @@ function mapCard(token: string, c: ApiCard): CardView {
           dressCode: e.dressCode ?? '',
           themeId: theme.themeId ?? 'emerald-gold',
           coverGradient: theme.coverGradient ?? '',
+          palette: sanitizeOverrides(theme.palette),
           rsvpDeadline: e.rsvpDeadline,
-          senderName: `Kamati ya Harusi ya ${e.coupleNames}`,
-          committeePhone: '',
-          pledgesEnabled: false,
-          greeting: '',
+          senderName:
+            e.senderName ||
+            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
+          committeePhone: e.committeePhone ?? '',
+          pledgesEnabled: e.pledgesEnabled ?? false,
+          cardContent: e.cardContent ?? {},
+          contributionTarget: e.contributionTarget ?? 0,
+          greeting: e.greeting ?? '',
           extraNote: '',
-          timezone: 'Africa/Dar_es_Salaam',
+          country: e.country ?? 'TZ',
+          currency: e.currency ?? 'TZS',
+          timezone: e.timezone || 'Africa/Dar_es_Salaam',
         }
       : null,
     guest: c.guest,
     qrPayload: c.qrPayload,
     rsvp: c.rsvp,
-    pledge: null,
+    pledge: c.pledge ?? null,
     rsvpOpen: c.rsvpOpen,
     eventPassed: c.eventPassed,
     isMock: false,
@@ -220,6 +279,7 @@ function mapGuest(g: ApiGuest): Guest {
   return {
     id: g.id,
     eventId: g.eventId,
+    cardKind: g.cardKind ?? 'invitation',
     displayName: g.displayName,
     phoneE164: g.phoneE164,
     hasSmartphone: g.hasSmartphone ?? true,
@@ -233,11 +293,11 @@ function mapGuest(g: ApiGuest): Guest {
     status: g.status ?? 'created',
     timeline: { created: g.createdAt },
     rsvpPartySize: g.rsvpPartySize ?? null,
-    channelLast: null,
+    channelLast: g.channelLast ?? null,
     lastMessageFailed: false,
     checkedInAt: null,
     partyAdmitted: 0,
-    pledge: null,
+    pledge: g.pledge ?? null,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
   };
@@ -248,6 +308,17 @@ function mapGuest(g: ApiGuest): Guest {
  * API does not have yet (sending, pledges, gate, reports, public card) rejects with
  * `not_implemented`; the web app keeps using the mock for those until their phases land.
  */
+/** Side-effect-free card read for the OG image and manifest (never marks the invitation opened). */
+export async function fetchCardPreview(
+  baseUrl: string,
+  token: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<CardView> {
+  const res = await fetchImpl(`${baseUrl}/v1/c/${encodeURIComponent(token)}/preview`);
+  if (!res.ok) throw new Error(`preview failed: ${res.status}`);
+  return mapCard(token, (await res.json()) as ApiCard);
+}
+
 export function createHttpRepository(
   baseUrl: string,
   opts: HttpRepositoryOptions = {},
@@ -331,6 +402,12 @@ export function createHttpRepository(
     expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   });
 
+  /** Funnel stats; a failure here must not hide the event itself. */
+  const statsOf = (eventId: string): Promise<ApiStats | null> =>
+    call<ApiStats>('GET', `/v1/events/${encodeURIComponent(eventId)}/invitations/stats`).catch(
+      () => null,
+    );
+
   const impl: Partial<Repository> = {
     async requestOtp(phone) {
       const r = await raw('POST', '/v1/auth/otp/request', { phone }, {}, false);
@@ -369,24 +446,39 @@ export function createHttpRepository(
       return sessionOf(await call<ApiUser>('GET', '/v1/me'));
     },
 
+    async opsPilotMetrics(opts = {}) {
+      const q = new URLSearchParams();
+      if (opts.country) q.set('country', opts.country);
+      if (opts.days) q.set('days', String(opts.days));
+      return call<PilotMetrics>('GET', `/v1/ops/pilot-metrics${q.size ? `?${q}` : ''}`);
+    },
+
     async listEvents() {
-      return (await call<{ items: ApiEvent[] }>('GET', '/v1/events')).items.map(mapEvent);
+      const items = (await call<{ items: ApiEvent[] }>('GET', '/v1/events')).items;
+      return Promise.all(items.map(async (e) => mapEvent(e, await statsOf(e.id))));
     },
     async getEvent(id) {
-      return mapEvent(await call<ApiEvent>('GET', `/v1/events/${id}`));
+      return mapEvent(await call<ApiEvent>('GET', `/v1/events/${id}`), await statsOf(id));
     },
     async createEvent(input: EventInput) {
       const created = await call<ApiEvent>('POST', '/v1/events', {
         title: input.title,
-        coupleNames: `${input.partnerA} & ${input.partnerB}`,
+        eventKind: input.eventKind || null,
+        country: input.country,
+        cardContent: input.cardContent,
+        coupleNames: [input.partnerA, input.partnerB].filter(Boolean).join(' & '),
         dateStart: input.dateStart,
         venueName: input.venueName,
         venueMapUrl: input.venueMapUrl || null,
         dressCode: input.dressCode || null,
         languageDefault: input.languageDefault,
         rsvpDeadline: input.rsvpDeadline || null,
-        contributionTargetTzs: input.contributionTargetTzs ?? null,
-        brandTheme: { themeId: input.themeId, coverGradient: input.coverGradient ?? '' },
+        contributionTarget: input.contributionTarget ?? null,
+        brandTheme: {
+          themeId: input.themeId,
+          coverGradient: input.coverGradient ?? '',
+          palette: input.palette ?? {},
+        },
       });
       return mapEvent(created);
     },
@@ -394,20 +486,43 @@ export function createHttpRepository(
       const body: Record<string, unknown> = {};
       if (patch.title !== undefined) body.title = patch.title;
       if (patch.coupleNames !== undefined) body.coupleNames = patch.coupleNames;
+      else if (patch.partnerA !== undefined || patch.partnerB !== undefined)
+        body.coupleNames = hostNames(patch.partnerA ?? '', patch.partnerB);
+      if (patch.eventKind !== undefined) body.eventKind = patch.eventKind || null;
+      if (patch.cardContent !== undefined) body.cardContent = patch.cardContent;
       if (patch.dateStart !== undefined) body.dateStart = patch.dateStart;
       if (patch.venueName !== undefined) body.venueName = patch.venueName;
       if (patch.venueMapUrl !== undefined) body.venueMapUrl = patch.venueMapUrl || null;
       if (patch.dressCode !== undefined) body.dressCode = patch.dressCode || null;
       if (patch.languageDefault !== undefined) body.languageDefault = patch.languageDefault;
       if (patch.rsvpDeadline !== undefined) body.rsvpDeadline = patch.rsvpDeadline;
-      if (patch.contributionTargetTzs !== undefined)
-        body.contributionTargetTzs = patch.contributionTargetTzs;
+      if (patch.contributionTarget !== undefined)
+        body.contributionTarget = patch.contributionTarget;
       if (patch.status !== undefined) body.status = patch.status;
-      if (patch.themeId !== undefined || patch.coverGradient !== undefined)
-        body.brandTheme = { themeId: patch.themeId, coverGradient: patch.coverGradient };
+      if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
+      if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
+      if (patch.greeting !== undefined) body.greeting = patch.greeting || null;
+      if (
+        patch.themeId !== undefined ||
+        patch.coverGradient !== undefined ||
+        patch.palette !== undefined
+      )
+        body.brandTheme = {
+          themeId: patch.themeId,
+          coverGradient: patch.coverGradient,
+          palette: patch.palette,
+        };
       return mapEvent(await call<ApiEvent>('PATCH', `/v1/events/${id}`, body));
     },
     archiveEvent: (id) => impl.updateEvent!(id, { status: 'archived' }),
+
+    async createGateLink(eventId) {
+      const r = await call<{ code: string; pin: string; url: string; expiresAt: string }>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/gate-links`,
+      );
+      return { code: r.code, pin: r.pin, url: r.url, expiresAt: r.expiresAt };
+    },
 
     async listMembers(eventId) {
       const r = await call<{
@@ -496,6 +611,7 @@ export function createHttpRepository(
           phone: input.phone || null,
           groupLabel: input.groupLabel,
           partySizeAllowed: Number(input.partySizeAllowed ?? 1),
+          cardKind: input.cardKind,
           hasSmartphone: input.hasSmartphone,
           language: input.language,
           inviteChannelPref: input.inviteChannelPref,
@@ -554,6 +670,269 @@ export function createHttpRepository(
       );
       return { created: r.created, skipped: r.skipped } satisfies ImportResult;
     },
+  };
+
+  // ---- Sending (Phase 3). The API sends inline and returns a summary, so a "job" is built from it.
+  const sendJobs = new Map<string, SendJob>();
+  interface ApiSendSummary {
+    total: number;
+    sent: number;
+    failed: number;
+    skipped: number;
+    byChannel: { whatsapp: number; sms: number };
+    failures: { guestId: string; error: string }[];
+  }
+  async function runSend(
+    eventId: string,
+    target: unknown,
+    channel: 'auto' | 'whatsapp' | 'sms',
+    key: string,
+    kind: 'invite' | 'reminder' = 'invite',
+  ): Promise<SendJob> {
+    const sum = await call<ApiSendSummary>(
+      'POST',
+      `/v1/events/${encodeURIComponent(eventId)}/invitations/send`,
+      { target, channel, kind },
+      { 'idempotency-key': key.length >= 8 ? key : newKey() },
+    );
+    const names = new Map<string, string>();
+    if (sum.failures.length > 0)
+      for (const g of await impl.listGuests!(eventId)) names.set(g.id, g.displayName);
+    const job: SendJob = {
+      id: newKey(),
+      eventId,
+      kind,
+      total: sum.total,
+      counts: { queued: 0, sent: sum.sent, delivered: 0, failed: sum.failed },
+      byChannel: { whatsapp: sum.byChannel.whatsapp, sms: sum.byChannel.sms, print: 0 },
+      failures: sum.failures.map((f) => ({
+        guestId: f.guestId,
+        guestName: names.get(f.guestId) ?? '',
+        channel: 'sms',
+        error: f.error,
+      })),
+      status: 'done',
+      scheduledFor: null,
+      createdAt: new Date().toISOString(),
+    };
+    sendJobs.set(job.id, job);
+    return job;
+  }
+  // ---- Scheduled sends (ADR 030): the API stores a rule and sends when it comes due.
+  interface ApiScheduledSend {
+    id: string;
+    eventId: string;
+    kind: 'invite' | 'reminder';
+    scheduledFor: string;
+    status: 'scheduled' | 'running' | 'done' | 'cancelled';
+    recipientCount: number;
+    summary: (ApiSendSummary & { error?: string }) | null;
+    createdAt: string;
+  }
+  async function jobFromScheduled(s: ApiScheduledSend): Promise<SendJob> {
+    const sum = s.summary;
+    const names = new Map<string, string>();
+    if (sum && sum.failures.length > 0)
+      for (const g of await impl.listGuests!(s.eventId)) names.set(g.id, g.displayName);
+    return {
+      id: s.id,
+      eventId: s.eventId,
+      kind: s.kind,
+      total: sum ? sum.total : s.recipientCount,
+      counts: {
+        queued: s.status === 'scheduled' || s.status === 'running' ? s.recipientCount : 0,
+        sent: sum?.sent ?? 0,
+        delivered: 0,
+        failed: sum?.failed ?? 0,
+      },
+      byChannel: { whatsapp: sum?.byChannel.whatsapp ?? 0, sms: sum?.byChannel.sms ?? 0, print: 0 },
+      failures: (sum?.failures ?? []).map((f) => ({
+        guestId: f.guestId,
+        guestName: names.get(f.guestId) ?? '',
+        channel: 'sms' as const,
+        error: f.error,
+      })),
+      status: s.status === 'scheduled' ? 'scheduled' : s.status === 'running' ? 'running' : 'done',
+      scheduledFor: s.status === 'scheduled' ? s.scheduledFor : null,
+      createdAt: s.createdAt,
+    };
+  }
+  /** Which wedding each scheduled send belongs to, so a job id can be looked up again. */
+  const scheduledEvent = new Map<string, string>();
+  /** The API's audience words differ by kind: an invitation goes to those not yet invited, a reminder to those who have not answered. */
+  const apiTarget = (a: SendRequest['audience'], kind: 'invite' | 'reminder') =>
+    a.kind === 'selected'
+      ? { guestIds: a.guestIds }
+      : a.kind === 'group'
+        ? { group: a.group }
+        : kind === 'reminder'
+          ? a.kind === 'all'
+            ? 'all'
+            : 'unanswered'
+          : 'remaining';
+  impl.sendInvitations = async (eventId, req) => {
+    if (req.kind === 'thank_you')
+      throw new RepositoryError('not_implemented', 'Thank-you messages are not available yet');
+    if (req.channel === 'print')
+      throw new RepositoryError('validation', 'Print cards are made as a PDF');
+    const target = apiTarget(req.audience, req.kind);
+    if (req.scheduleAt) {
+      const s = await call<ApiScheduledSend>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends`,
+        { kind: req.kind, target, channel: req.channel, scheduledFor: req.scheduleAt },
+        { 'idempotency-key': req.idempotencyKey.length >= 8 ? req.idempotencyKey : newKey() },
+      );
+      scheduledEvent.set(s.id, eventId);
+      return jobFromScheduled(s);
+    }
+    return runSend(eventId, target, req.channel, req.idempotencyKey, req.kind);
+  };
+  impl.getSendJob = async (jobId) => {
+    const j = sendJobs.get(jobId);
+    if (j) return j;
+    const eventId = scheduledEvent.get(jobId);
+    const found = eventId
+      ? (await impl.listScheduledSends!(eventId)).find((x) => x.id === jobId)
+      : undefined;
+    if (found) return found;
+    throw new RepositoryError('not_found', 'Unknown job');
+  };
+  impl.listScheduledSends = async (eventId) => {
+    const r = await call<{ items: ApiScheduledSend[] }>(
+      'GET',
+      `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends`,
+    );
+    const items = r.items.filter((s) => s.status !== 'cancelled');
+    for (const s of items) scheduledEvent.set(s.id, eventId);
+    // waiting ones first, soonest first; then what already ran, newest first
+    const waiting = items.filter((s) => s.status === 'scheduled').reverse();
+    const rest = items.filter((s) => s.status !== 'scheduled');
+    return Promise.all([...waiting, ...rest].map(jobFromScheduled));
+  };
+  impl.cancelScheduledSend = async (eventId, jobId) => {
+    await call(
+      'DELETE',
+      `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends/${encodeURIComponent(jobId)}`,
+    );
+    scheduledEvent.delete(jobId);
+  };
+  impl.retryFailed = (jobId) => {
+    const j = sendJobs.get(jobId);
+    if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
+    // "failed" is an invitation audience; a reminder is retried for the guests it failed for.
+    if (j.kind === 'reminder') {
+      const guestIds = j.failures.map((f) => f.guestId);
+      if (guestIds.length === 0)
+        return Promise.reject(new RepositoryError('validation', 'Nothing failed'));
+      return runSend(j.eventId, { guestIds }, 'auto', newKey(), 'reminder');
+    }
+    return runSend(j.eventId, 'failed', 'auto', newKey());
+  };
+  impl.sendPledgeReminders = async (eventId, guestIds) => {
+    const r = await call<{ sent: number; failed: number; skipped: number }>(
+      'POST',
+      `/v1/events/${encodeURIComponent(eventId)}/pledges/reminders`,
+      { guestIds },
+    );
+    return { queued: r.sent };
+  };
+  impl.listAuditLog = (eventId, before) =>
+    call(
+      'GET',
+      `/v1/events/${encodeURIComponent(eventId)}/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ''}`,
+    );
+  impl.getPledgeSummary = (eventId) =>
+    call('GET', `/v1/events/${encodeURIComponent(eventId)}/pledges`);
+  impl.upsertPledge = async (guestId, amount, note) => {
+    await call('POST', `/v1/guests/${encodeURIComponent(guestId)}/pledges`, {
+      amount,
+      note: note || null,
+    });
+    return impl.getGuest!(guestId);
+  };
+  impl.recordManualPayment = (eventId, input, idempotencyKey) =>
+    call(
+      'POST',
+      '/v1/payments/manual',
+      {
+        guestId: input.guestId,
+        amount: input.amount,
+        method: input.method,
+        reference: input.reference || undefined,
+        note: input.note || undefined,
+      },
+      { 'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey() },
+    );
+  impl.listPayments = async (eventId) =>
+    (await call<{ items: Payment[] }>('GET', `/v1/events/${encodeURIComponent(eventId)}/payments`))
+      .items;
+  impl.startPayment = async (token, input, idempotencyKey) => {
+    const r = await raw(
+      'POST',
+      `/v1/c/${encodeURIComponent(token)}/pay`,
+      { amount: input.amount, phone: input.phoneE164, method: input.method },
+      { 'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey() },
+      false,
+    );
+    if (r.status >= 400) return fail(r.status, r.json as never);
+    return r.json as unknown as PaymentStart;
+  };
+  impl.getPaymentStatus = async (reference) => {
+    const r = await raw(
+      'GET',
+      `/v1/payments/${encodeURIComponent(reference)}/status`,
+      undefined,
+      {},
+      false,
+    );
+    if (r.status >= 400) return fail(r.status, r.json as never);
+    return r.json as unknown as PaymentStatusView;
+  };
+  impl.exportCsv = async (eventId, kind) => {
+    if (kind !== 'pledges' && kind !== 'payments')
+      throw new RepositoryError('not_implemented', 'That export is not available yet');
+    const send = () =>
+      doFetch(`${baseUrl}/v1/events/${encodeURIComponent(eventId)}/exports/${kind}.csv`, {
+        headers: tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {},
+      });
+    let res: Response;
+    try {
+      res = await send();
+      if (res.status === 401 && tokens.get() && (await refreshTokens())) res = await send();
+    } catch {
+      throw new RepositoryError('offline', 'No network');
+    }
+    if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
+    return res.blob();
+  };
+  impl.requestCardsPdf = async (eventId, opts) => {
+    const format =
+      opts.layout === 'a4-4up'
+        ? 'a4x4'
+        : opts.layout === 'test-sheet'
+          ? 'test'
+          : opts.format === 'A5'
+            ? 'a5'
+            : 'a6';
+    const send = () =>
+      doFetch(`${baseUrl}/v1/events/${encodeURIComponent(eventId)}/cards/pdf`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
+        },
+        body: JSON.stringify({ format, guestIds: opts.guestIds }),
+      });
+    let res: Response;
+    try {
+      res = await send();
+      if (res.status === 401 && tokens.get() && (await refreshTokens())) res = await send();
+    } catch {
+      throw new RepositoryError('offline', 'No network');
+    }
+    if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
+    return res.blob();
   };
 
   // Anything the API does not provide yet rejects with `not_implemented`.

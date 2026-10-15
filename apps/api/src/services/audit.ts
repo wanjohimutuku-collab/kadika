@@ -121,11 +121,9 @@ export class PrivacyService {
         notes: g.notes,
         createdAt: g.createdAt,
       },
-      pledge: pledge
-        ? { amountTzs: pledge.amountTzs, status: pledge.status, note: pledge.note }
-        : null,
+      pledge: pledge ? { amount: pledge.amount, status: pledge.status, note: pledge.note } : null,
       payments: pays.map((p) => ({
-        amountTzs: p.amountTzs,
+        amount: p.amount,
         method: p.method,
         status: p.status,
         paidAt: p.paidAt,

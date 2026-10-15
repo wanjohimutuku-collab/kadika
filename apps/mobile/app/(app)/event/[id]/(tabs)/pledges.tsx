@@ -92,7 +92,7 @@ export default function Pledges() {
           .slice(0, 8)
       : [];
   const total = q.data?.totals;
-  const target = total?.targetTzs || total?.pledgedTzs || 0;
+  const target = total?.targetAmount || total?.pledged || 0;
 
   const reset = () => {
     setSheet(null);
@@ -112,7 +112,7 @@ export default function Pledges() {
     try {
       await record.mutateAsync({
         guestId: picked.guestId,
-        amountTzs: n,
+        amount: n,
         method,
         reference: reference.trim(),
         note: note.trim(),
@@ -134,7 +134,7 @@ export default function Pledges() {
     if (!picked) return setErr(t('validation.guest.required'));
     if (!Number.isInteger(n) || n < 0) return setErr(t('validation.amount.invalid'));
     try {
-      await setPledge.mutateAsync({ guestId: picked.guestId, amountTzs: n });
+      await setPledge.mutateAsync({ guestId: picked.guestId, amount: n });
       setMsg(`${t('pledges.pledged')}: ${formatMoney(n, currency)} · ${picked.displayName}`);
       reset();
     } catch {
@@ -142,7 +142,7 @@ export default function Pledges() {
     }
   };
 
-  const owing = rows.filter((r) => r.balanceTzs > 0);
+  const owing = rows.filter((r) => r.balance > 0);
   const remind = async () => {
     try {
       const r = await getRepository().sendPledgeReminders(
@@ -197,22 +197,20 @@ export default function Pledges() {
               {t('pledges.collected')}
             </Txt>
             <Txt size={28} bold>
-              {formatMoney(total!.collectedTzs, currency)}
+              {formatMoney(total!.collected, currency)}
             </Txt>
             <Txt size={14} color={c.muted}>
-              {t('pledges.target')}: {formatMoney(total!.targetTzs, currency)} ·{' '}
-              {t('pledges.pledged')}: {formatMoney(total!.pledgedTzs, currency)} ·{' '}
-              {t('pledges.balance')}: {formatMoney(total!.balanceTzs, currency)}
+              {t('pledges.target')}: {formatMoney(total!.targetAmount, currency)} ·{' '}
+              {t('pledges.pledged')}: {formatMoney(total!.pledged, currency)} ·{' '}
+              {t('pledges.balance')}: {formatMoney(total!.balance, currency)}
             </Txt>
             <FunnelBar
               steps={[
                 {
                   label: t('pledges.ofTarget', {
-                    pct: target
-                      ? Math.min(100, Math.round((total!.collectedTzs / target) * 100))
-                      : 0,
+                    pct: target ? Math.min(100, Math.round((total!.collected / target) * 100)) : 0,
                   }),
-                  value: total!.collectedTzs,
+                  value: total!.collected,
                 },
               ]}
             />
@@ -235,7 +233,7 @@ export default function Pledges() {
                 key={r.guestId}
                 onPress={() => {
                   setGuestId(r.guestId);
-                  setAmount(String(r.amountTzs || ''));
+                  setAmount(String(r.amount || ''));
                   setSheet('pledge');
                 }}
                 label={r.displayName}
@@ -245,10 +243,10 @@ export default function Pledges() {
                     {r.displayName}
                   </Txt>
                   <Txt size={14} color={c.muted}>
-                    {t('pledges.pledged')} {formatMoney(r.amountTzs, currency)} ·{' '}
-                    {t('pledges.paid')} {formatMoney(r.paidTzs, currency)}
-                    {r.balanceTzs > 0
-                      ? ` · ${t('pledges.balance')} ${formatMoney(r.balanceTzs, currency)}`
+                    {t('pledges.pledged')} {formatMoney(r.amount, currency)} · {t('pledges.paid')}{' '}
+                    {formatMoney(r.paid, currency)}
+                    {r.balance > 0
+                      ? ` · ${t('pledges.balance')} ${formatMoney(r.balance, currency)}`
                       : ''}
                   </Txt>
                 </View>
@@ -298,7 +296,7 @@ export default function Pledges() {
                 key={m.guestId}
                 onPress={() => {
                   setGuestId(m.guestId);
-                  setAmount(m.balanceTzs ? String(m.balanceTzs) : '');
+                  setAmount(m.balance ? String(m.balance) : '');
                 }}
                 label={m.displayName}
               >
@@ -306,8 +304,8 @@ export default function Pledges() {
                   <Txt bold>{m.displayName}</Txt>
                   <Txt size={14} color={c.muted}>
                     {m.shortCode}
-                    {m.balanceTzs
-                      ? ` · ${t('pledges.balance')} ${formatMoney(m.balanceTzs, currency)}`
+                    {m.balance
+                      ? ` · ${t('pledges.balance')} ${formatMoney(m.balance, currency)}`
                       : ''}
                   </Txt>
                 </View>

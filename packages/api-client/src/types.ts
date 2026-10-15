@@ -67,8 +67,8 @@ export interface EventStats {
   attended: number;
   headcountConfirmed: number;
   headcountAttended: number;
-  pledgedTzs: number;
-  collectedTzs: number;
+  pledged: number;
+  collected: number;
   /** Guests whose pledge still has a balance. */
   guestsWithBalance: number;
   failedMessages: number;
@@ -93,7 +93,7 @@ export interface WeddingEvent {
   venueMapUrl: string;
   dressCode: string;
   languageDefault: Language;
-  /** Country, currency and time zone of the event (ADR 025). `*Tzs` amounts are in `currency`. */
+  /** Country, currency and time zone of the event (ADR 025). Money amounts are in `currency`. */
   country: Country;
   currency: Currency;
   timezone: string;
@@ -103,7 +103,7 @@ export interface WeddingEvent {
   /** Colour overrides on top of the theme; empty = the preset as is. */
   palette: PaletteOverrides;
   rsvpDeadline: ISODate | null;
-  contributionTargetTzs: number;
+  contributionTarget: number;
   /** Shown on the trust strip (§7.2): who sent the invitation and how to call them. */
   senderName: string;
   committeePhone: string;
@@ -121,9 +121,9 @@ export interface WeddingEvent {
 }
 
 export interface PledgeSummary {
-  amountTzs: number;
-  paidTzs: number;
-  balanceTzs: number;
+  amount: number;
+  paid: number;
+  balance: number;
   status: PledgeStatus;
 }
 
@@ -163,7 +163,7 @@ export interface MessageLogEntry {
   kind: 'invite' | 'reminder' | 'thank_you' | 'test';
   status: MessageStatus;
   error: string | null;
-  costTzs: number;
+  cost: number;
   createdAt: ISODate;
 }
 
@@ -172,19 +172,19 @@ export interface PledgeRow {
   displayName: string;
   groupLabel: string | null;
   shortCode: string;
-  amountTzs: number;
-  paidTzs: number;
-  balanceTzs: number;
+  amount: number;
+  paid: number;
+  balance: number;
   status: PledgeStatus | null;
   note: string | null;
 }
 
 export interface PledgeSummaryView {
   totals: {
-    targetTzs: number;
-    pledgedTzs: number;
-    collectedTzs: number;
-    balanceTzs: number;
+    targetAmount: number;
+    pledged: number;
+    collected: number;
+    balance: number;
     guestsWithBalance: number;
   };
   guests: PledgeRow[];
@@ -210,7 +210,7 @@ export interface Payment {
   id: string;
   guestId: string;
   guestName: string;
-  amountTzs: number;
+  amount: number;
   method: PaymentMethod;
   status: PaymentStatus;
   reference: string;
@@ -271,7 +271,7 @@ export interface Activity {
   kind: ActivityKind;
   guestId: string | null;
   guestName: string | null;
-  amountTzs?: number;
+  amount?: number;
   count?: number;
 }
 
@@ -368,7 +368,7 @@ export interface SendPreview {
   total: number;
   byChannel: Record<MessageChannel, number>;
   smsSegments: number;
-  estimatedSmsCostTzs: number;
+  estimatedSmsCost: number;
   withoutPhone: number;
 }
 
@@ -405,7 +405,7 @@ export interface ImportResult {
 
 export interface PaymentStart {
   reference: string;
-  amountTzs: number;
+  amount: number;
   phoneE164: string;
   method: PaymentMethod;
   expiresAt: ISODate;
@@ -414,11 +414,11 @@ export interface PaymentStart {
 export interface PaymentStatusView {
   reference: string;
   status: 'pending' | 'success' | 'failed' | 'expired';
-  amountTzs: number;
+  amount: number;
   method: PaymentMethod;
   paidAt: ISODate | null;
   duplicateWebhook: boolean;
-  newBalanceTzs: number | null;
+  newBalance: number | null;
   failureReason: string | null;
 }
 
@@ -434,12 +434,12 @@ export interface EventReport {
   stats: EventStats;
   channels: ChannelPerformance[];
   arrivalsByHour: { hour: string; count: number }[];
-  collectionsByWeek: { week: string; amountTzs: number }[];
+  collectionsByWeek: { week: string; amount: number }[];
   pledgeReconciliation: {
-    pledgedTzs: number;
-    collectedTzs: number;
-    outstandingTzs: number;
-    overpaidTzs: number;
+    pledged: number;
+    collected: number;
+    outstanding: number;
+    overpaid: number;
     guestsPaid: number;
     guestsPartial: number;
     guestsUnpaid: number;
@@ -476,9 +476,9 @@ export interface OpsOverview {
   events: Record<EventStatus, number> & { total: number };
   guests: number;
   messages30d: { whatsapp: number; sms: number; failed: number; total: number };
-  smsCostTzs30d: number;
+  smsCost30d: number;
   failureRate30d: number;
-  contributions30d: { count: number; amountTzs: number };
+  contributions30d: { count: number; amount: number };
   paidPlans: number;
   messagesByDay: { day: ISODate; sent: number; failed: number }[];
   openDataRequests: number;
@@ -509,8 +509,8 @@ export interface OpsEvent {
   sent: number;
   failedMessages: number;
   confirmed: number;
-  collectedTzs: number;
-  smsCostTzs: number;
+  collected: number;
+  smsCost: number;
 }
 
 export interface OpsUsage {
@@ -519,7 +519,7 @@ export interface OpsUsage {
     sent: number;
     delivered: number;
     failed: number;
-    costTzs: number;
+    cost: number;
   }[];
   byDay: { day: ISODate; whatsapp: number; sms: number; failed: number }[];
   topEvents: {
@@ -528,7 +528,7 @@ export interface OpsUsage {
     whatsapp: number;
     sms: number;
     failed: number;
-    costTzs: number;
+    cost: number;
   }[];
   failureReasons: { reason: string; count: number }[];
 }

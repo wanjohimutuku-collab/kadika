@@ -55,7 +55,7 @@ export function PayFlow({ token }: { token: string }) {
       const { getRepository } = await loadRepo();
       const v = await getRepository().getCard(token);
       setCard(v);
-      if (v.pledge?.balanceTzs) setAmount(String(v.pledge.balanceTzs));
+      if (v.pledge?.balance) setAmount(String(v.pledge.balance));
     } catch {
       const cached = readCachedCard(token);
       if (cached) setCard(cached.view);
@@ -126,7 +126,7 @@ export function PayFlow({ token }: { token: string }) {
       idem.current ||= newIdempotencyKey();
       const start = await getRepository().startPayment(
         token,
-        { amountTzs: n, phoneE164: p.e164, method },
+        { amount: n, phoneE164: p.e164, method },
         idem.current,
       );
       idem.current = '';
@@ -203,8 +203,8 @@ export function PayFlow({ token }: { token: string }) {
               value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^\d,]/g, ''))}
               hint={
-                card.pledge?.balanceTzs
-                  ? t('amountHelp', { balance: formatMoney(card.pledge.balanceTzs, currency) })
+                card.pledge?.balance
+                  ? t('amountHelp', { balance: formatMoney(card.pledge.balance, currency) })
                   : undefined
               }
               error={errors.amount}
@@ -273,7 +273,7 @@ export function PayFlow({ token }: { token: string }) {
             </h1>
             <p>
               {t('waitingBody', {
-                amount: formatMoney(step.start.amountTzs, currency),
+                amount: formatMoney(step.start.amount, currency),
                 phone: formatPhone(step.start.phoneE164),
                 provider: providerName(step.start.method),
               })}
@@ -323,7 +323,7 @@ export function PayFlow({ token }: { token: string }) {
               <h1 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none">
                 {t('successTitle')}
               </h1>
-              <p>{t('successBody', { amount: formatMoney(step.status.amountTzs, currency) })}</p>
+              <p>{t('successBody', { amount: formatMoney(step.status.amount, currency) })}</p>
             </div>
             <dl className="grid grid-cols-1 gap-3 rounded-card border border-border p-4">
               <p className="font-semibold">{t('receipt')}</p>
@@ -343,12 +343,10 @@ export function PayFlow({ token }: { token: string }) {
                   <dd>{formatDateTimeShort(step.status.paidAt, locale)}</dd>
                 </div>
               ) : null}
-              {step.status.newBalanceTzs !== null ? (
+              {step.status.newBalance !== null ? (
                 <div className="flex justify-between gap-2">
                   <dt className="text-muted">{t('newBalance')}</dt>
-                  <dd className="font-semibold">
-                    {formatMoney(step.status.newBalanceTzs, currency)}
-                  </dd>
+                  <dd className="font-semibold">{formatMoney(step.status.newBalance, currency)}</dd>
                 </div>
               ) : null}
             </dl>

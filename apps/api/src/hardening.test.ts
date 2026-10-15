@@ -83,10 +83,10 @@ describe('audit trail', () => {
   it('records sensitive actions for the owner to read, and nobody else can', async () => {
     const { t, evId, g } = await setup();
     await api(ctx, 'POST', `/v1/guests/${g.id}/reissue`, { token: t });
-    await api(ctx, 'POST', `/v1/guests/${g.id}/pledges`, { token: t, body: { amountTzs: 30_000 } });
+    await api(ctx, 'POST', `/v1/guests/${g.id}/pledges`, { token: t, body: { amount: 30_000 } });
     await api(ctx, 'POST', '/v1/payments/manual', {
       token: t,
-      body: { guestId: g.id, amountTzs: 10_000, method: 'cash' },
+      body: { guestId: g.id, amount: 10_000, method: 'cash' },
     });
     await api(ctx, 'POST', `/v1/events/${evId}/gate-links`, { token: t });
     await api(ctx, 'POST', `/v1/events/${evId}/members`, {
@@ -138,18 +138,18 @@ describe('personal data rights', () => {
     const { t, evId, g } = await setup();
     await api(ctx, 'POST', `/v1/guests/${g.id}/pledges`, {
       token: t,
-      body: { amountTzs: 40_000, note: 'ahadi ya mzee' },
+      body: { amount: 40_000, note: 'ahadi ya mzee' },
     });
     await api(ctx, 'POST', '/v1/payments/manual', {
       token: t,
-      body: { guestId: g.id, amountTzs: 15_000, method: 'cash', note: 'alilipa mwenyewe' },
+      body: { guestId: g.id, amount: 15_000, method: 'cash', note: 'alilipa mwenyewe' },
     });
 
     const exp = await api(ctx, 'GET', `/v1/guests/${g.id}/export`, { token: t });
     expect(exp.status).toBe(200);
     expect(exp.body).toMatchObject({
       guest: { displayName: 'Bibi Pendo', notes: 'mzee, kiti cha mbele' },
-      pledge: { amountTzs: 40_000 },
+      pledge: { amount: 40_000 },
     });
     expect(exp.body!.guest.phoneE164).toMatch(/^\+255/);
     expect(exp.body!.payments).toHaveLength(1);
@@ -162,7 +162,7 @@ describe('personal data rights', () => {
       phoneE164: null,
       notes: null,
     });
-    expect(after.body!.payments[0]).toMatchObject({ amountTzs: 15_000, phoneE164: null }); // the amount stays for the books
+    expect(after.body!.payments[0]).toMatchObject({ amount: 15_000, phoneE164: null }); // the amount stays for the books
     expect((await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body).toMatchObject({
       state: 'invalid',
     });

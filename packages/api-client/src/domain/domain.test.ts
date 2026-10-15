@@ -7,15 +7,15 @@ import { isMockPayload, mockQrPayload } from './token';
 describe('pledge math', () => {
   it('derives status and balance', () => {
     expect(summarizePledge(100_000, 0)).toEqual({
-      amountTzs: 100_000,
-      paidTzs: 0,
-      balanceTzs: 100_000,
+      amount: 100_000,
+      paid: 0,
+      balance: 100_000,
       status: 'pledged',
     });
     expect(summarizePledge(100_000, 40_000).status).toBe('partial');
-    expect(summarizePledge(100_000, 100_000)).toMatchObject({ status: 'paid', balanceTzs: 0 });
-    expect(summarizePledge(100_000, 120_000)).toMatchObject({ status: 'paid', balanceTzs: 0 });
-    expect(summarizePledge(100_000, 0, true)).toMatchObject({ status: 'waived', balanceTzs: 0 });
+    expect(summarizePledge(100_000, 100_000)).toMatchObject({ status: 'paid', balance: 0 });
+    expect(summarizePledge(100_000, 120_000)).toMatchObject({ status: 'paid', balance: 0 });
+    expect(summarizePledge(100_000, 0, true)).toMatchObject({ status: 'waived', balance: 0 });
   });
   it('totals reconcile: pledged = collected-against-pledges + outstanding - overpaid', () => {
     const list = [
@@ -27,15 +27,15 @@ describe('pledge math', () => {
     ];
     const t = pledgeTotals(list, 5_000);
     expect(t).toEqual({
-      pledgedTzs: 180_000,
-      collectedTzs: 125_000,
-      outstandingTzs: 70_000,
-      overpaidTzs: 10_000,
+      pledged: 180_000,
+      collected: 125_000,
+      outstanding: 70_000,
+      overpaid: 10_000,
       guestsPaid: 2,
       guestsPartial: 1,
       guestsUnpaid: 1,
     });
-    expect(t.pledgedTzs).toBe(t.collectedTzs - 5_000 + t.outstandingTzs - t.overpaidTzs);
+    expect(t.pledged).toBe(t.collected - 5_000 + t.outstanding - t.overpaid);
   });
   it('clamps progress', () => {
     expect(progress(5, 10)).toBe(0.5);
@@ -55,7 +55,7 @@ describe('sms cost estimator', () => {
     expect(smsSegments('🎉'.repeat(40))).toMatchObject({ encoding: 'UCS-2', segments: 2 });
   });
   it('estimates cost in TZS', () => {
-    expect(estimateSmsCost('hello', 100, 25).costTzs).toBe(2500);
+    expect(estimateSmsCost('hello', 100, 25).cost).toBe(2500);
   });
   it('§7.2 invite SMS fits in one segment', () => {
     const text = buildInviteSms({

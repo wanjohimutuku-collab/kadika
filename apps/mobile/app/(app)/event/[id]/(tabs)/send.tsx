@@ -200,7 +200,7 @@ export default function Send() {
         <Tile
           icon="sms"
           label={t('channel.sms')}
-          hint={`${withPhone.length} · ${formatMoney(estimateSmsCost(sample, withPhone.length).costTzs, currency)}`}
+          hint={`${withPhone.length} · ${formatMoney(estimateSmsCost(sample, withPhone.length).cost, currency)}`}
           selected={channel === 'sms'}
           onPress={() => setChannel('sms')}
         />
@@ -227,7 +227,7 @@ export default function Send() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name="sms" size={14} color={c.muted} />
         <Txt size={13} color={c.muted}>
-          {t('send.smsCost', { cost: formatMoney(cost.costTzs, currency) })}
+          {t('send.smsCost', { cost: formatMoney(cost.cost, currency) })}
         </Txt>
       </View>
 
@@ -257,7 +257,7 @@ export default function Send() {
           whatsapp: waCount,
           sms: smsCount,
           print: targets.length - withPhone.length,
-          cost: formatMoney(cost.costTzs, currency),
+          cost: formatMoney(cost.cost, currency),
         })}
         confirmLabel={t('send.sendNow')}
         onClose={() => setConfirm(false)}

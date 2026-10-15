@@ -112,7 +112,7 @@ export class DeliveryService {
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
       try {
         const r = await p.send(to, body, template);
-        return { ok: true, id: r.providerMsgId, cost: r.costTzs };
+        return { ok: true, id: r.providerMsgId, cost: r.cost };
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
         if (i < MAX_ATTEMPTS - 1) await sleep(BACKOFF_MS[i] ?? 2_000);
@@ -137,7 +137,7 @@ export class DeliveryService {
       providerMsgId: r.ok ? r.id : null,
       status: r.ok ? 'sent' : 'failed',
       error: r.ok ? null : r.error,
-      costTzs: r.ok ? (r.cost ?? null) : null,
+      cost: r.ok ? (r.cost ?? null) : null,
     });
   }
 
@@ -416,19 +416,19 @@ export class DeliveryService {
         guest.remindersOptOut ||
         recent.has(guest.id) ||
         !s ||
-        s.balanceTzs <= 0
+        s.balance <= 0
       ) {
         out.skipped++;
         continue;
       }
-      const tzs = (n: number) => formatMoney(n, event.currency);
+      const money = (n: number) => formatMoney(n, event.currency);
       const link = `${this.deps.config.shortBaseUrl}/s/${await this.cardToken(inv)}`;
       const sw = guest.language === 'sw';
       const kind = eventKindLabel(event.eventKind, guest.language).toLowerCase();
       const hosts = hostNames(a, b);
       const text = sw
-        ? `Habari ${guest.displayName}, mchango wa ${kind} ya ${hosts}: ahadi ${tzs(s.amountTzs)}, salio ${tzs(s.balanceTzs)}. Lipa hapa: ${link}`
-        : `Hello ${guest.displayName}, your gift for the ${kind} of ${hosts}: pledged ${tzs(s.amountTzs)}, balance ${tzs(s.balanceTzs)}. Pay here: ${link}`;
+        ? `Habari ${guest.displayName}, mchango wa ${kind} ya ${hosts}: ahadi ${money(s.amount)}, salio ${money(s.balance)}. Lipa hapa: ${link}`
+        : `Hello ${guest.displayName}, your gift for the ${kind} of ${hosts}: pledged ${money(s.amount)}, balance ${money(s.balance)}. Pay here: ${link}`;
       const channels: MessageChannel[] =
         inv.channelLast === 'whatsapp' && this.deps.whatsapp ? ['whatsapp', 'sms'] : ['sms'];
       const r = await this.dispatch(guest, inv, event, 'pledge_reminder', channels, undefined, {
@@ -436,7 +436,7 @@ export class DeliveryService {
         template: {
           kind: 'pledge',
           locale: guest.language,
-          params: [guest.displayName, `${a} & ${b}`, tzs(s.amountTzs), tzs(s.balanceTzs), link],
+          params: [guest.displayName, `${a} & ${b}`, money(s.amount), money(s.balance), link],
         },
       });
       out[r.ok ? 'sent' : 'failed']++;

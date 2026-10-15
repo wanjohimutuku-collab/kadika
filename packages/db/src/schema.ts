@@ -106,7 +106,7 @@ export const events = pgTable('events', {
   signingKeyId: uuid('signing_key_id'),
   brandTheme: jsonb('brand_theme').$type<Record<string, unknown>>(),
   rsvpDeadline: timestamp('rsvp_deadline', { withTimezone: true }),
-  contributionTargetTzs: integer('contribution_target_tzs'),
+  contributionTarget: integer('contribution_target'),
   /** Whether guests may pledge and pay from their card (§7.3). */
   pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
   plan: eventPlanEnum('plan').notNull().default('free'),
@@ -220,7 +220,7 @@ export const messageLog = pgTable(
     providerMsgId: text('provider_msg_id'),
     status: text('status').notNull(),
     error: text('error'),
-    costTzs: integer('cost_tzs'),
+    cost: integer('cost'),
     ...timestamps,
   },
   (t) => [
@@ -236,7 +236,7 @@ export const pledges = pgTable(
     guestId: uuid('guest_id')
       .notNull()
       .references(() => guests.id, { onDelete: 'cascade' }),
-    amountTzs: integer('amount_tzs').notNull(),
+    amount: integer('amount').notNull(),
     note: text('note'),
     status: pledgeStatusEnum('status').notNull().default('pledged'),
     createdBy: uuid('created_by').references(() => users.id),
@@ -255,7 +255,7 @@ export const payments = pgTable(
       .references(() => guests.id, { onDelete: 'cascade' }),
     provider: text('provider').notNull(),
     providerRef: text('provider_ref').notNull(),
-    amountTzs: integer('amount_tzs').notNull(),
+    amount: integer('amount').notNull(),
     status: paymentStatusEnum('status').notNull().default('pending'),
     phoneE164: text('phone_e164'),
     /** mpesa | mixx | airtel | halopesa | cash | bank */

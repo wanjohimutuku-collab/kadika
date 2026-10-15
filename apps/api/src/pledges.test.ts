@@ -22,7 +22,7 @@ async function setup(opts: { target?: number } = {}) {
         title: 'Harusi',
         coupleNames: 'Asha & Juma',
         dateStart: '2027-06-01T10:00:00+03:00',
-        contributionTargetTzs: opts.target ?? 1_000_000,
+        contributionTarget: opts.target ?? 1_000_000,
       },
     })
   ).body!;
@@ -34,8 +34,8 @@ async function setup(opts: { target?: number } = {}) {
   ).body!;
   return { t, phone, ev, g: g as { id: string; cardToken: string }, evId: ev.id as string };
 }
-const pledge = (t: string, gid: string, amountTzs: number, extra: object = {}) =>
-  api(ctx, 'POST', `/v1/guests/${gid}/pledges`, { token: t, body: { amountTzs, ...extra } });
+const pledge = (t: string, gid: string, amount: number, extra: object = {}) =>
+  api(ctx, 'POST', `/v1/guests/${gid}/pledges`, { token: t, body: { amount, ...extra } });
 const manual = (t: string, body: object) =>
   api(ctx, 'POST', '/v1/payments/manual', { token: t, body });
 const summary = async (t: string, evId: string) =>
@@ -43,7 +43,7 @@ const summary = async (t: string, evId: string) =>
 const startPay = (
   token: string,
   key: string,
-  body: object = { amountTzs: 20_000, phone: '0712 345 678', method: 'mpesa' },
+  body: object = { amount: 20_000, phone: '0712 345 678', method: 'mpesa' },
 ) =>
   ctx.app.request(`/v1/c/${token}/pay`, {
     method: 'POST',
@@ -61,67 +61,63 @@ describe('pledges and manual payments', () => {
   it('computes pledged → partial → paid and balances, and reconciles with the dashboard', async () => {
     const { t, g, evId } = await setup();
     expect((await pledge(t, g.id, 50_000, { note: 'ahadi ya kwanza' })).body).toMatchObject({
-      amountTzs: 50_000,
-      paidTzs: 0,
-      balanceTzs: 50_000,
+      amount: 50_000,
+      paid: 0,
+      balance: 50_000,
       status: 'pledged',
     });
     const p1 = await manual(t, {
       guestId: g.id,
-      amountTzs: 20_000,
+      amount: 20_000,
       method: 'cash',
       reference: 'RCPT-1',
     });
     expect(p1.status).toBe(201);
     expect((await summary(t, evId)).guests[0]).toMatchObject({
-      amountTzs: 50_000,
-      paidTzs: 20_000,
-      balanceTzs: 30_000,
+      amount: 50_000,
+      paid: 20_000,
+      balance: 30_000,
       status: 'partial',
     });
-    await manual(t, { guestId: g.id, amountTzs: 30_000, method: 'mpesa' });
+    await manual(t, { guestId: g.id, amount: 30_000, method: 'mpesa' });
     const s = await summary(t, evId);
-    expect(s.guests[0]).toMatchObject({ paidTzs: 50_000, balanceTzs: 0, status: 'paid' });
+    expect(s.guests[0]).toMatchObject({ paid: 50_000, balance: 0, status: 'paid' });
     expect(s.totals).toMatchObject({
-      targetTzs: 1_000_000,
-      pledgedTzs: 50_000,
-      collectedTzs: 50_000,
-      balanceTzs: 0,
+      targetAmount: 1_000_000,
+      pledged: 50_000,
+      collected: 50_000,
+      balance: 0,
       guestsWithBalance: 0,
     });
     const stats = (await api(ctx, 'GET', `/v1/events/${evId}/invitations/stats`, { token: t }))
       .body!;
-    expect(stats).toMatchObject({ pledgedTzs: 50_000, collectedTzs: 50_000, guestsWithBalance: 0 });
+    expect(stats).toMatchObject({ pledged: 50_000, collected: 50_000, guestsWithBalance: 0 });
     // raising the pledge reopens a balance; overpaying never makes a negative one; waiving clears it
     expect((await pledge(t, g.id, 80_000)).body).toMatchObject({
-      balanceTzs: 30_000,
+      balance: 30_000,
       status: 'partial',
     });
-    expect((await pledge(t, g.id, 10_000)).body).toMatchObject({ balanceTzs: 0, status: 'paid' });
+    expect((await pledge(t, g.id, 10_000)).body).toMatchObject({ balance: 0, status: 'paid' });
     expect((await pledge(t, g.id, 100_000, { waived: true })).body).toMatchObject({
-      balanceTzs: 0,
+      balance: 0,
       status: 'waived',
     });
-    expect((await summary(t, evId)).totals.pledgedTzs).toBe(0); // waived pledges are not counted as expected money
+    expect((await summary(t, evId)).totals.pledged).toBe(0); // waived pledges are not counted as expected money
   });
 
   it('rejects bad amounts and a reused reference, audits manual payments, and keeps money from gate agents', async () => {
     const { t, g, evId } = await setup();
-    expect((await manual(t, { guestId: g.id, amountTzs: 0, method: 'cash' })).status).toBe(400);
-    expect((await manual(t, { guestId: g.id, amountTzs: 1.5, method: 'cash' })).status).toBe(400);
-    expect((await manual(t, { guestId: g.id, amountTzs: 1000, method: 'bitcoin' })).status).toBe(
-      400,
-    );
+    expect((await manual(t, { guestId: g.id, amount: 0, method: 'cash' })).status).toBe(400);
+    expect((await manual(t, { guestId: g.id, amount: 1.5, method: 'cash' })).status).toBe(400);
+    expect((await manual(t, { guestId: g.id, amount: 1000, method: 'bitcoin' })).status).toBe(400);
     expect((await pledge(t, g.id, -5)).status).toBe(400);
     expect(
-      (await manual(t, { guestId: g.id, amountTzs: 1000, method: 'bank', reference: 'TX-9' }))
-        .status,
+      (await manual(t, { guestId: g.id, amount: 1000, method: 'bank', reference: 'TX-9' })).status,
     ).toBe(201);
     expect(
-      (await manual(t, { guestId: g.id, amountTzs: 1000, method: 'bank', reference: 'TX-9' }))
-        .status,
+      (await manual(t, { guestId: g.id, amount: 1000, method: 'bank', reference: 'TX-9' })).status,
     ).toBe(409);
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(1000); // the duplicate was not counted
+    expect((await summary(t, evId)).totals.collected).toBe(1000); // the duplicate was not counted
 
     await api(ctx, 'POST', `/v1/events/${evId}/members`, {
       token: t,
@@ -135,13 +131,11 @@ describe('pledges and manual payments', () => {
     ] as const)
       expect((await api(ctx, m, path, { token: gate })).status).toBe(403);
     expect((await pledge(gate, g.id, 1000)).status).toBe(403);
-    expect((await manual(gate, { guestId: g.id, amountTzs: 1000, method: 'cash' })).status).toBe(
-      403,
-    );
+    expect((await manual(gate, { guestId: g.id, amount: 1000, method: 'cash' })).status).toBe(403);
     const gateStats = (
       await api(ctx, 'GET', `/v1/events/${evId}/invitations/stats`, { token: gate })
     ).body!;
-    expect(gateStats).not.toHaveProperty('collectedTzs');
+    expect(gateStats).not.toHaveProperty('collected');
   });
 });
 
@@ -152,8 +146,8 @@ describe('paying from the card', () => {
     ctx.payments.started.length = 0;
     const a = await startPay(g.cardToken, 'pay-key-0001');
     expect(a.status).toBe(201);
-    const start = (await a.json()) as { reference: string; amountTzs: number; phoneE164: string };
-    expect(start).toMatchObject({ amountTzs: 20_000, phoneE164: '+255712345678' });
+    const start = (await a.json()) as { reference: string; amount: number; phoneE164: string };
+    expect(start).toMatchObject({ amount: 20_000, phoneE164: '+255712345678' });
     expect(start.reference).toMatch(/^HP[0-9A-Z]{10}$/);
     // the same request again returns the same payment and does not ask the phone twice
     const again = (await (await startPay(g.cardToken, 'pay-key-0001')).json()) as {
@@ -161,35 +155,35 @@ describe('paying from the card', () => {
     };
     expect(again.reference).toBe(start.reference);
     expect(ctx.payments.started).toHaveLength(1);
-    expect(ctx.payments.started[0]).toMatchObject({ amountTzs: 20_000, method: 'mpesa' });
+    expect(ctx.payments.started[0]).toMatchObject({ amount: 20_000, method: 'mpesa' });
 
     const status = async () =>
       (await (await ctx.app.request(`/v1/payments/${start.reference}/status`)).json()) as Record<
         string,
         unknown
       >;
-    expect(await status()).toMatchObject({ status: 'pending', newBalanceTzs: null });
+    expect(await status()).toMatchObject({ status: 'pending', newBalance: null });
     const res = await hook(
       ctx.payments.webhookBody({
         reference: start.reference,
         status: 'success',
-        amountTzs: 20_000,
+        amount: 20_000,
       }),
     );
     expect(await res.json()).toMatchObject({ applied: true, duplicate: false });
     expect(await status()).toMatchObject({
       status: 'success',
-      amountTzs: 20_000,
-      newBalanceTzs: 0,
+      amount: 20_000,
+      newBalance: 0,
       duplicateWebhook: false,
     });
-    expect((await summary(t, evId)).guests[0]).toMatchObject({ paidTzs: 20_000, status: 'paid' });
+    expect((await summary(t, evId)).guests[0]).toMatchObject({ paid: 20_000, status: 'paid' });
     // the guest sees it on their card
     const card = (await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!;
     expect(card.pledge).toMatchObject({
-      amountTzs: 20_000,
-      paidTzs: 20_000,
-      balanceTzs: 0,
+      amount: 20_000,
+      paid: 20_000,
+      balance: 0,
       status: 'paid',
     });
     expect(card.event.pledgesEnabled).toBe(true);
@@ -204,7 +198,7 @@ describe('paying from the card', () => {
     const body = ctx.payments.webhookBody({
       reference: start.reference,
       status: 'success',
-      amountTzs: 20_000,
+      amount: 20_000,
     });
     const results = [];
     for (let i = 0; i < 5; i++) results.push(await (await hook(body)).json());
@@ -215,7 +209,7 @@ describe('paying from the card', () => {
       .from(payments)
       .where(and(eq(payments.guestId, g.id), eq(payments.status, 'success')));
     expect(rows[0]!.n).toBe(1);
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(20_000); // not 100,000
+    expect((await summary(t, evId)).totals.collected).toBe(20_000); // not 100,000
     expect(
       await (await ctx.app.request(`/v1/payments/${start.reference}/status`)).json(),
     ).toMatchObject({ duplicateWebhook: true });
@@ -226,13 +220,13 @@ describe('paying from the card', () => {
     const body2 = ctx.payments.webhookBody({
       reference: start2.reference,
       status: 'success',
-      amountTzs: 20_000,
+      amount: 20_000,
     });
     const burst = await Promise.all(
       Array.from({ length: 5 }, () => hook(body2).then((r) => r.json())),
     );
     expect(burst.filter((r) => r.applied)).toHaveLength(1);
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(40_000);
+    expect((await summary(t, evId)).totals.collected).toBe(40_000);
   });
 
   it('refuses unsigned or forged webhooks, ignores unknown references, and records failures without money', async () => {
@@ -243,7 +237,7 @@ describe('paying from the card', () => {
     const good = ctx.payments.webhookBody({
       reference: start.reference,
       status: 'success',
-      amountTzs: 20_000,
+      amount: 20_000,
     });
     expect((await hook({ raw: good.raw, headers: {} })).status).toBe(401);
     expect((await hook({ raw: good.raw, headers: { 'x-signature': 'a'.repeat(64) } })).status).toBe(
@@ -254,10 +248,10 @@ describe('paying from the card', () => {
     const unknown = ctx.payments.webhookBody({
       reference: 'HPUNKNOWN000',
       status: 'success',
-      amountTzs: 5000,
+      amount: 5000,
     });
     expect(await (await hook(unknown)).json()).toMatchObject({ known: false, applied: false });
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(0);
+    expect((await summary(t, evId)).totals.collected).toBe(0);
 
     const failed = ctx.payments.webhookBody({
       reference: start.reference,
@@ -270,7 +264,7 @@ describe('paying from the card', () => {
     ).toMatchObject({ status: 'failed', failureReason: 'insufficient_funds' });
     // a late "success" after a failure must not turn into money
     expect(await (await hook(good)).json()).toMatchObject({ applied: false, duplicate: true });
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(0);
+    expect((await summary(t, evId)).totals.collected).toBe(0);
   });
 
   it('counts what the aggregator says it took, expires unconfirmed requests, and validates input', async () => {
@@ -282,10 +276,10 @@ describe('paying from the card', () => {
       ctx.payments.webhookBody({
         reference: start.reference,
         status: 'success',
-        amountTzs: 15_000,
+        amount: 15_000,
       }),
     );
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(15_000); // not the 20,000 the guest typed
+    expect((await summary(t, evId)).totals.collected).toBe(15_000); // not the 20,000 the guest typed
 
     const pending = (await (await startPay(g.cardToken, 'pay-key-expire')).json()) as {
       reference: string;
@@ -294,12 +288,12 @@ describe('paying from the card', () => {
     expect(
       await (await ctx.app.request(`/v1/payments/${pending.reference}/status`)).json(),
     ).toMatchObject({ status: 'expired' });
-    expect((await summary(t, evId)).totals.collectedTzs).toBe(15_000); // an expired request is not money
+    expect((await summary(t, evId)).totals.collected).toBe(15_000); // an expired request is not money
 
     expect(
       (
         await startPay(g.cardToken, 'pay-key-low', {
-          amountTzs: 500,
+          amount: 500,
           phone: '0712345678',
           method: 'mpesa',
         })
@@ -308,7 +302,7 @@ describe('paying from the card', () => {
     expect(
       (
         await startPay(g.cardToken, 'pay-key-phone', {
-          amountTzs: 5000,
+          amount: 5000,
           phone: '12345',
           method: 'mpesa',
         })
@@ -317,7 +311,7 @@ describe('paying from the card', () => {
     expect(
       (
         await startPay(g.cardToken, 'pay-key-method', {
-          amountTzs: 5000,
+          amount: 5000,
           phone: '0712345678',
           method: 'cash',
         })
@@ -364,8 +358,8 @@ describe('pledge reminders', () => {
     const optedOut = await add('Ameacha', '0713990003');
     const noPhone = await add('Hana Simu', '', { inviteChannelPref: 'print' });
     for (const x of [owes, paid, optedOut, noPhone]) await pledge(t, x.id, 50_000);
-    await manual(t, { guestId: paid.id, amountTzs: 50_000, method: 'cash' });
-    await manual(t, { guestId: owes.id, amountTzs: 20_000, method: 'cash' });
+    await manual(t, { guestId: paid.id, amount: 50_000, method: 'cash' });
+    await manual(t, { guestId: owes.id, amount: 20_000, method: 'cash' });
     await api(ctx, 'POST', `/v1/c/${optedOut.cardToken}/reminders/opt-out`);
 
     ctx.whatsapp.sent.length = 0;
@@ -422,11 +416,11 @@ describe('exports', () => {
     await pledge(t, g.id, 50_000);
     await manual(t, {
       guestId: g.id,
-      amountTzs: 20_000,
+      amount: 20_000,
       method: 'cash',
       note: '=HYPERLINK("http://evil","x")',
     });
-    await manual(t, { guestId: g.id, amountTzs: 5_000, method: 'bank' });
+    await manual(t, { guestId: g.id, amount: 5_000, method: 'bank' });
     const p = await ctx.app.request(`/v1/events/${evId}/exports/pledges.csv`, {
       headers: { authorization: `Bearer ${t}` },
     });

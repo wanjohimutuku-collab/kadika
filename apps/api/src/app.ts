@@ -28,6 +28,7 @@ import { DeliveryService } from './services/delivery';
 import { PrintService } from './services/print';
 import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
+import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
 
@@ -42,9 +43,10 @@ function parse<T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> {
 }
 
 async function body(c: Context): Promise<unknown> {
-  return c.req.json().catch(() => {
+  const json = await c.req.json().catch(() => {
     throw new ApiError('validation', 'Body must be JSON');
   });
+  return fromLegacyKeys(json); // deprecated `*Tzs` names, see compat.ts
 }
 
 const phone = z.string().min(1).max(30);
@@ -63,7 +65,7 @@ const eventBase = z.object({
   greeting: z.string().trim().max(200).nullish(),
   languageDefault: z.enum(['sw', 'en']).optional(),
   rsvpDeadline: optionalDate,
-  contributionTargetTzs: z.number().int().min(0).nullish(),
+  contributionTarget: z.number().int().min(0).nullish(),
   pledgesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
 });
@@ -80,6 +82,20 @@ const guestBase = z.object({
 
 export function createApp(deps: Deps) {
   const app = new Hono<Env>();
+  // Deprecated `*Tzs` money names are added next to the new ones for one release (see compat.ts).
+  app.use('/v1/*', async (c, next) => {
+    await next();
+    const res = c.res;
+    if (!res.headers.get('content-type')?.includes('application/json')) return;
+    const text = await res.clone().text();
+    if (!text) return;
+    const headers = new Headers(res.headers);
+    headers.delete('content-length');
+    c.res = new Response(JSON.stringify(withLegacyAliases(JSON.parse(text))), {
+      status: res.status,
+      headers,
+    });
+  });
   // Security headers on every response (§9). The API only returns JSON, CSV and PDF, so nothing
   // it sends should ever be rendered or framed: a locked-down CSP costs nothing.
   app.use(
@@ -545,7 +561,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/guests/:id/pledges', async (c) => {
     const input = parse(
       z.object({
-        amountTzs: z.number().int().min(0).max(100_000_000),
+        amount: z.number().int().min(0).max(100_000_000),
         note: z.string().max(200).nullish(),
         waived: z.boolean().optional(),
       }),
@@ -557,7 +573,7 @@ export function createApp(deps: Deps) {
     const input = parse(
       z.object({
         guestId: z.string().uuid(),
-        amountTzs: z.number().int().min(1).max(100_000_000),
+        amount: z.number().int().min(1).max(100_000_000),
         method: z.enum(MANUAL_METHODS),
         reference: z.string().trim().max(60).optional(),
         note: z.string().trim().max(200).optional(),
@@ -611,7 +627,7 @@ export function createApp(deps: Deps) {
     await payStarts.check(`t:${c.req.param('token').slice(0, 8)}`);
     const input = parse(
       z.object({
-        amountTzs: z.number().int(),
+        amount: z.number().int(),
         phone: z.string().min(1).max(30),
         method: z.enum(MOBILE_METHODS),
       }),

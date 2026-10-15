@@ -96,7 +96,7 @@ export const shortCodeSchema = z.string().regex(SHORT_CODE_PATTERN, 'code.invali
 export const otpSchema = z.string().regex(/^\d{6}$/, 'otp.invalid');
 
 /** Amounts are whole TZS (§5). */
-export const amountTzsSchema = z.coerce
+export const amountSchema = z.coerce
   .number({ invalid_type_error: 'amount.invalid' })
   .int('amount.invalid')
   .positive('amount.positive')
@@ -153,7 +153,7 @@ export const eventInputSchema = z.object({
   coverGradient: z.string().optional().default(''),
   palette: paletteOverridesSchema.optional(),
   rsvpDeadline: z.string().optional().default(''),
-  contributionTargetTzs: z.coerce.number().int().min(0).optional().default(0),
+  contributionTarget: z.coerce.number().int().min(0).optional().default(0),
 });
 export type EventInput = z.input<typeof eventInputSchema>;
 
@@ -165,7 +165,7 @@ export type RsvpInput = z.infer<typeof rsvpInputSchema>;
 
 export const manualPaymentSchema = z.object({
   guestId: z.string().min(1, 'guest.required'),
-  amountTzs: amountTzsSchema,
+  amount: amountSchema,
   method: paymentMethodSchema,
   reference: z.string().trim().max(60).optional().default(''),
   note: z.string().trim().max(200).optional().default(''),

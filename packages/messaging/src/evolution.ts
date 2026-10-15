@@ -40,7 +40,7 @@ export class EvolutionWhatsAppProvider implements MessagingProvider {
     const json = (await res.json().catch(() => null)) as { key?: { id?: string } } | null;
     const id = json?.key?.id;
     if (!id) throw new Error('evolution: no message id in response');
-    return { providerMsgId: id, costTzs: 0 };
+    return { providerMsgId: id, cost: 0 };
   }
 }
 

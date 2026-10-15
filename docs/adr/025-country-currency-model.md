@@ -29,18 +29,29 @@ currency)` and `formatMoneyCompact` replace TZS-only formatting; with `TZS` they
 5. **Payment methods per country.** `paymentMethodsFor(country)`: TZ `mpesa, mixx, airtel, halopesa`; KE
    `mpesa, airtel`. Cash and bank are valid anywhere. The API rejects a method not valid for the event.
 
-## Deliberately deferred (Phase 1b)
+## Currency-neutral money names (Phase 1b, done)
 
-The physical rename of `*_tzs` columns and the `*Tzs` API fields (`amountTzs`, `collectedTzs`, ...) is not
-done. It touches about 47 files and installed mobile apps would break without a compatibility layer, and
-it adds no behaviour until a second currency is really stored. Until it is done, those fields mean
-"amount in the event's currency", and Kenyan events must stay behind the flag and out of production.
-Phase 1b: add `amount`/`currency` aliases in the API, migrate clients, then rename columns with a
-migration that keeps old names readable for one release.
+Amount columns and API fields no longer say TZS. Columns: `events.contribution_target`,
+`message_log.cost`, `payments.amount`, `pledges.amount` (migration `0013`, plain `RENAME COLUMN`). Fields:
+`amount`, `paid`, `balance`, `pledged`, `collected`, `outstanding`, `overpaid`, `newBalance`,
+`pledgeAmount`, `unpledgedPayments`, `contributionTarget`, `cost`, `estimatedSmsCost`, `smsCost`,
+`smsCost30d`, and `targetAmount` (was `targetTzs`; `target` alone clashes with the send target). Amounts
+are in the event's `currency`.
+
+Compatibility for one release (`apps/api/src/compat.ts`, with tests): every JSON response carries the old
+`*Tzs` name next to the new one (numbers and null only), and request bodies may still use the old names
+(the new name wins if both are sent). This keeps installed mobile apps and cached web bundles working.
+To end the window: delete `compat.ts`, its middleware in `app.ts` and `compat.test.ts`.
+
+The demo backend (browser `localStorage`, state version 3) migrates saved state to version 4 by renaming
+the keys. The staff panel keeps `formatTzs` because its totals add up events without a currency; revisit
+when Kenyan events exist.
 
 ## Consequences
 
 - Tanzania: no behaviour change with the flag off (pinned by golden tests and the existing suites).
+- Kenyan events no longer need to stay out of production because of the field names; they still wait for
+  Phases 2 and 3 (messaging, payments).
 - SMS, OTP and WhatsApp for `+254` still go through the Tanzanian providers (Phase 2); payments for KES
   use the fake provider only (Phase 3).
 - Hardcoded `Africa/Dar_es_Salaam` is replaced by the event's `timezone`.

@@ -333,7 +333,7 @@ export default function GuestDetailPage({
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          setPledgeAmount(String(g.pledge?.amountTzs ?? ''));
+                          setPledgeAmount(String(g.pledge?.amount ?? ''));
                           setPledgeOpen(true);
                         }}
                       >
@@ -341,14 +341,14 @@ export default function GuestDetailPage({
                       </Button>
                     }
                   >
-                    {g.pledge && g.pledge.amountTzs > 0 ? (
+                    {g.pledge && g.pledge.amount > 0 ? (
                       <dl className="grid grid-cols-3 gap-2">
                         <KeyValue label={tp('pledged')}>
-                          {formatMoney(g.pledge.amountTzs, cur)}
+                          {formatMoney(g.pledge.amount, cur)}
                         </KeyValue>
-                        <KeyValue label={tp('paid')}>{formatMoney(g.pledge.paidTzs, cur)}</KeyValue>
+                        <KeyValue label={tp('paid')}>{formatMoney(g.pledge.paid, cur)}</KeyValue>
                         <KeyValue label={tp('balance')}>
-                          {formatMoney(g.pledge.balanceTzs, cur)}
+                          {formatMoney(g.pledge.balance, cur)}
                         </KeyValue>
                       </dl>
                     ) : (
@@ -391,7 +391,7 @@ export default function GuestDetailPage({
                               ) : null}
                               <p className="text-sm text-muted">
                                 {fmt(m.createdAt)}
-                                {m.costTzs ? ` · ${formatMoney(m.costTzs, cur)}` : ''}
+                                {m.cost ? ` · ${formatMoney(m.cost, cur)}` : ''}
                               </p>
                             </div>
                           </li>

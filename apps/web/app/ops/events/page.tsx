@@ -88,8 +88,8 @@ export default function OpsEventsPage() {
                 <Td right>{e.guests}</Td>
                 <Td right>{e.sent}</Td>
                 <Td right>{e.failedMessages}</Td>
-                <Td right>{formatTzs(e.collectedTzs)}</Td>
-                <Td right>{formatTzs(e.smsCostTzs)}</Td>
+                <Td right>{formatTzs(e.collected)}</Td>
+                <Td right>{formatTzs(e.smsCost)}</Td>
                 <Td>
                   {canPlan ? (
                     <Button

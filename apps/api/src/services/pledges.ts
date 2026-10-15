@@ -13,22 +13,22 @@ import { recordAudit } from './audit';
 export type PledgeStatus = 'pledged' | 'partial' | 'paid' | 'waived';
 export const MANUAL_METHODS = ['cash', 'bank', 'mpesa', 'mixx', 'airtel', 'halopesa'] as const;
 export const MOBILE_METHODS = ['mpesa', 'mixx', 'airtel', 'halopesa'] as const;
-const MAX_TZS = 100_000_000;
-const MIN_ONLINE_TZS = 1_000;
+const MAX_AMOUNT = 100_000_000;
+const MIN_ONLINE_AMOUNT = 1_000;
 const PAY_TIMEOUT_MS = 60_000;
 const REF_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 /** A pledge's status follows what has been paid; "waived" is the committee's explicit choice. */
-export function pledgeStatus(amountTzs: number, paidTzs: number, waived: boolean): PledgeStatus {
+export function pledgeStatus(amount: number, paid: number, waived: boolean): PledgeStatus {
   if (waived) return 'waived';
-  if (amountTzs > 0 && paidTzs >= amountTzs) return 'paid';
-  return paidTzs > 0 ? 'partial' : 'pledged';
+  if (amount > 0 && paid >= amount) return 'paid';
+  return paid > 0 ? 'partial' : 'pledged';
 }
 
 export interface PledgeSummary {
-  amountTzs: number;
-  paidTzs: number;
-  balanceTzs: number;
+  amount: number;
+  paid: number;
+  balance: number;
   status: PledgeStatus;
 }
 
@@ -38,19 +38,19 @@ export async function pledgeSummaryOf(
   guestId: string,
 ): Promise<PledgeSummary | null> {
   const [p] = await db.select().from(pledges).where(eq(pledges.guestId, guestId));
-  const [paid] = await db
-    .select({ n: sql<number>`coalesce(sum(${payments.amountTzs}), 0)::int` })
+  const [paidRow] = await db
+    .select({ n: sql<number>`coalesce(sum(${payments.amount}), 0)::int` })
     .from(payments)
     .where(and(eq(payments.guestId, guestId), eq(payments.status, 'success')));
-  const paidTzs = paid?.n ?? 0;
-  if (!p && paidTzs === 0) return null;
-  const amountTzs = p?.amountTzs ?? 0;
+  const paid = paidRow?.n ?? 0;
+  if (!p && paid === 0) return null;
+  const amount = p?.amount ?? 0;
   const waived = p?.status === 'waived';
   return {
-    amountTzs,
-    paidTzs,
-    balanceTzs: waived ? 0 : Math.max(0, amountTzs - paidTzs),
-    status: p ? pledgeStatus(amountTzs, paidTzs, waived) : 'paid',
+    amount,
+    paid,
+    balance: waived ? 0 : Math.max(0, amount - paid),
+    status: p ? pledgeStatus(amount, paid, waived) : 'paid',
   };
 }
 
@@ -62,7 +62,7 @@ export function csvCell(v: string | number | null | undefined): string {
 }
 
 /**
- * Pledges and payments (§7.5). Money is integer TZS. A payment becomes real only when it is
+ * Pledges and payments (§7.5). Money is whole units of the event's currency. A payment becomes real only when it is
  * `success`: manual entries by the committee, or an aggregator webhook applied exactly once.
  */
 export class PledgeService {
@@ -112,7 +112,7 @@ export class PledgeService {
       .set({ pledgeId: p.id })
       .where(and(eq(payments.guestId, guestId), isNull(payments.pledgeId)));
     const s = await pledgeSummaryOf(this.deps.db, guestId);
-    const status = pledgeStatus(p.amountTzs, s?.paidTzs ?? 0, p.status === 'waived');
+    const status = pledgeStatus(p.amount, s?.paid ?? 0, p.status === 'waived');
     if (status !== p.status)
       await this.deps.db.update(pledges).set({ status }).where(eq(pledges.id, p.id));
   }
@@ -122,13 +122,13 @@ export class PledgeService {
   async upsertPledge(
     guestId: string,
     userId: string,
-    input: { amountTzs: number; note?: string | null; waived?: boolean },
+    input: { amount: number; note?: string | null; waived?: boolean },
   ) {
     const g = await this.guestEvent(guestId);
     await this.canManage(g.eventId, userId);
-    if (!Number.isInteger(input.amountTzs) || input.amountTzs < 0 || input.amountTzs > MAX_TZS)
+    if (!Number.isInteger(input.amount) || input.amount < 0 || input.amount > MAX_AMOUNT)
       throw new ApiError('validation', 'Amount must be a whole number', {
-        field: 'amountTzs',
+        field: 'amount',
       });
     const [existing] = await this.deps.db
       .select()
@@ -139,7 +139,7 @@ export class PledgeService {
       await this.deps.db
         .update(pledges)
         .set({
-          amountTzs: input.amountTzs,
+          amount: input.amount,
           note: input.note ?? existing.note,
           status,
           createdBy: userId,
@@ -149,7 +149,7 @@ export class PledgeService {
       await this.deps.db.insert(pledges).values({
         id: newId(),
         guestId,
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         note: input.note ?? null,
         status,
         createdBy: userId,
@@ -160,7 +160,7 @@ export class PledgeService {
       existing ? 'pledge.update' : 'pledge.create',
       guestId,
       {
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         waived: !!input.waived,
       },
       g.eventId,
@@ -192,7 +192,7 @@ export class PledgeService {
       : [];
     const paid = ids.length
       ? await this.deps.db
-          .select({ guestId: payments.guestId, n: sql<number>`sum(${payments.amountTzs})::int` })
+          .select({ guestId: payments.guestId, n: sql<number>`sum(${payments.amount})::int` })
           .from(payments)
           .where(and(inArray(payments.guestId, ids), eq(payments.status, 'success')))
           .groupBy(payments.guestId)
@@ -201,31 +201,27 @@ export class PledgeService {
     const paidBy = new Map(paid.map((r) => [r.guestId, r.n]));
     const rows = gs.map((g) => {
       const p = pledgeBy.get(g.id);
-      const paidTzs = paidBy.get(g.id) ?? 0;
+      const paid = paidBy.get(g.id) ?? 0;
       const waived = p?.status === 'waived';
-      const amountTzs = p?.amountTzs ?? 0;
+      const amount = p?.amount ?? 0;
       return {
         guestId: g.id,
         displayName: g.displayName,
         groupLabel: g.groupLabel,
         shortCode: g.shortCode,
-        amountTzs,
-        paidTzs,
-        balanceTzs: waived ? 0 : Math.max(0, amountTzs - paidTzs),
-        status: p
-          ? pledgeStatus(amountTzs, paidTzs, waived)
-          : paidTzs > 0
-            ? ('paid' as const)
-            : null,
+        amount,
+        paid,
+        balance: waived ? 0 : Math.max(0, amount - paid),
+        status: p ? pledgeStatus(amount, paid, waived) : paid > 0 ? ('paid' as const) : null,
         note: p?.note ?? null,
       };
     });
     const totals = {
-      targetTzs: event.contributionTargetTzs ?? 0,
-      pledgedTzs: rows.filter((r) => r.status !== 'waived').reduce((n, r) => n + r.amountTzs, 0),
-      collectedTzs: rows.reduce((n, r) => n + r.paidTzs, 0),
-      balanceTzs: rows.reduce((n, r) => n + r.balanceTzs, 0),
-      guestsWithBalance: rows.filter((r) => r.balanceTzs > 0).length,
+      targetAmount: event.contributionTarget ?? 0,
+      pledged: rows.filter((r) => r.status !== 'waived').reduce((n, r) => n + r.amount, 0),
+      collected: rows.reduce((n, r) => n + r.paid, 0),
+      balance: rows.reduce((n, r) => n + r.balance, 0),
+      guestsWithBalance: rows.filter((r) => r.balance > 0).length,
     };
     return { totals, guests: rows };
   }
@@ -241,7 +237,7 @@ export class PledgeService {
     userId: string,
     input: {
       guestId: string;
-      amountTzs: number;
+      amount: number;
       method: (typeof MANUAL_METHODS)[number];
       reference?: string;
       note?: string;
@@ -258,9 +254,9 @@ export class PledgeService {
         field: 'method',
         reason: 'method.not_available',
       });
-    if (!Number.isInteger(input.amountTzs) || input.amountTzs < 1 || input.amountTzs > MAX_TZS)
+    if (!Number.isInteger(input.amount) || input.amount < 1 || input.amount > MAX_AMOUNT)
       throw new ApiError('validation', 'Amount must be a whole number', {
-        field: 'amountTzs',
+        field: 'amount',
       });
     const ref = input.reference?.trim();
     const providerRef = ref ? `manual:${g.eventId}:${ref}` : `manual:${newId()}`;
@@ -276,7 +272,7 @@ export class PledgeService {
         guestId: input.guestId,
         provider: 'manual',
         providerRef,
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         status: 'success',
         method: input.method,
         note: input.note ?? null,
@@ -296,7 +292,7 @@ export class PledgeService {
       inserted[0]!.id,
       {
         guestId: input.guestId,
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         method: input.method,
       },
       g.eventId,
@@ -319,7 +315,7 @@ export class PledgeService {
       id: r.p.id,
       guestId: r.p.guestId,
       guestName: r.guestName,
-      amountTzs: r.p.amountTzs,
+      amount: r.p.amount,
       method: r.p.method,
       status: r.p.status,
       reference: r.p.providerRef,
@@ -364,7 +360,7 @@ export class PledgeService {
 
   async startPayment(
     token: string,
-    input: { amountTzs: number; phone: string; method: (typeof MOBILE_METHODS)[number] },
+    input: { amount: number; phone: string; method: (typeof MOBILE_METHODS)[number] },
     idempotencyKey: string,
   ) {
     const provider = this.deps.payments;
@@ -378,13 +374,13 @@ export class PledgeService {
         reason: 'payments_disabled',
       });
     if (
-      !Number.isInteger(input.amountTzs) ||
-      input.amountTzs < MIN_ONLINE_TZS ||
-      input.amountTzs > MAX_TZS
+      !Number.isInteger(input.amount) ||
+      input.amount < MIN_ONLINE_AMOUNT ||
+      input.amount > MAX_AMOUNT
     )
       throw new ApiError('validation', 'Amount out of range', {
-        field: 'amountTzs',
-        min: MIN_ONLINE_TZS,
+        field: 'amount',
+        min: MIN_ONLINE_AMOUNT,
       });
     if (!paymentMethodsFor(event.country).includes(input.method))
       throw new ApiError('validation', 'Payment method is not available for this event', {
@@ -410,7 +406,7 @@ export class PledgeService {
         guestId: guest.id,
         provider: provider.name,
         providerRef: reference,
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         status: 'pending',
         phoneE164: phone.e164,
         method: input.method,
@@ -426,7 +422,7 @@ export class PledgeService {
         .where(eq(payments.providerRef, reference));
       return {
         reference,
-        amountTzs: p!.amountTzs,
+        amount: p!.amount,
         phoneE164: p!.phoneE164,
         method: p!.method,
         expiresAt: (p!.expiresAt ?? expiresAt).toISOString(),
@@ -435,7 +431,7 @@ export class PledgeService {
     try {
       const r = await provider.startCollection({
         reference,
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         phoneE164: phone.e164,
         method: input.method,
         description: `Mchango - ${event.coupleNames}`,
@@ -455,7 +451,7 @@ export class PledgeService {
     }
     return {
       reference,
-      amountTzs: input.amountTzs,
+      amount: input.amount,
       phoneE164: phone.e164,
       method: input.method,
       expiresAt: expiresAt.toISOString(),
@@ -476,11 +472,11 @@ export class PledgeService {
     return {
       reference,
       status: expired ? ('expired' as const) : p.status,
-      amountTzs: p.amountTzs,
+      amount: p.amount,
       method: p.method,
       paidAt: p.paidAt?.toISOString() ?? null,
       duplicateWebhook: (raw.duplicateWebhooks ?? 0) > 0,
-      newBalanceTzs: summary ? summary.balanceTzs : null,
+      newBalance: summary ? summary.balance : null,
       failureReason: raw.failureReason ?? null,
     };
   }
@@ -513,23 +509,19 @@ export class PledgeService {
       return { ok: true, known: false, applied: false, duplicate: false };
     const raw = (p.raw ?? {}) as Record<string, unknown>;
     // The single atomic step: only the call that finds the row still pending can finish it.
-    const mismatch =
-      ev.status === 'success' && ev.amountTzs !== undefined && ev.amountTzs !== p.amountTzs;
+    const mismatch = ev.status === 'success' && ev.amount !== undefined && ev.amount !== p.amount;
     const [done] = await this.deps.db
       .update(payments)
       .set({
         status: ev.status,
         paidAt: ev.status === 'success' ? (ev.paidAt ?? this.deps.now()) : null,
         // money truth is what the provider says it took, not what the guest typed
-        amountTzs:
-          ev.status === 'success' && ev.amountTzs !== undefined ? ev.amountTzs : p.amountTzs,
+        amount: ev.status === 'success' && ev.amount !== undefined ? ev.amount : p.amount,
         raw: {
           ...raw,
           ...(ev.providerRef ? { providerRef: ev.providerRef } : {}),
           ...(ev.failureReason ? { failureReason: ev.failureReason } : {}),
-          ...(mismatch
-            ? { amountMismatch: { requested: p.amountTzs, received: ev.amountTzs } }
-            : {}),
+          ...(mismatch ? { amountMismatch: { requested: p.amount, received: ev.amount } } : {}),
         },
       })
       .where(and(eq(payments.id, p.id), eq(payments.status, 'pending')))
@@ -549,7 +541,7 @@ export class PledgeService {
         p.id,
         {
           reference: ev.reference,
-          amountTzs: ev.amountTzs ?? p.amountTzs,
+          amount: ev.amount ?? p.amount,
         },
         (await this.guestEvent(p.guestId)).eventId,
       );
@@ -561,6 +553,11 @@ export class PledgeService {
 
   async exportCsv(eventId: string, userId: string, kind: 'pledges' | 'payments'): Promise<string> {
     await this.canManage(eventId, userId);
+    const [ev] = await this.deps.db
+      .select({ currency: events.currency })
+      .from(events)
+      .where(eq(events.id, eventId));
+    const cur = ev?.currency ?? 'TZS';
     const BOM = '﻿';
     if (kind === 'pledges') {
       const { guests: rows } = await this.summaryRows(eventId);
@@ -568,24 +565,24 @@ export class PledgeService {
         'Jina',
         'Kikundi',
         'Namba',
-        'Ahadi (TZS)',
-        'Imelipwa (TZS)',
-        'Salio (TZS)',
+        `Ahadi (${cur})`,
+        `Imelipwa (${cur})`,
+        `Salio (${cur})`,
         'Hali',
       ];
       const lines = rows
         .filter((r) => r.status !== null)
         .map((r) =>
-          [r.displayName, r.groupLabel, r.shortCode, r.amountTzs, r.paidTzs, r.balanceTzs, r.status]
+          [r.displayName, r.groupLabel, r.shortCode, r.amount, r.paid, r.balance, r.status]
             .map(csvCell)
             .join(','),
         );
       return BOM + [head.map(csvCell).join(','), ...lines].join('\r\n') + '\r\n';
     }
     const { items } = await this.listPayments(eventId, userId);
-    const head = ['Tarehe', 'Jina', 'Kiasi (TZS)', 'Njia', 'Hali', 'Kumbukumbu', 'Maelezo'];
+    const head = ['Tarehe', 'Jina', `Kiasi (${cur})`, 'Njia', 'Hali', 'Kumbukumbu', 'Maelezo'];
     const lines = items.map((p) =>
-      [p.paidAt, p.guestName, p.amountTzs, p.method, p.status, p.reference, p.note]
+      [p.paidAt, p.guestName, p.amount, p.method, p.status, p.reference, p.note]
         .map(csvCell)
         .join(','),
     );

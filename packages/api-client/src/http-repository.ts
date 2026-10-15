@@ -90,7 +90,7 @@ interface ApiEvent {
   timezone: string;
   status: WeddingEvent['status'];
   rsvpDeadline: string | null;
-  contributionTargetTzs: number | null;
+  contributionTarget: number | null;
   plan: 'free' | 'paid';
   brandTheme: Record<string, unknown> | null;
   createdAt: string;
@@ -128,8 +128,8 @@ interface ApiStats {
   failedMessages: number;
   headcountConfirmed?: number;
   featurePhoneGuests?: number;
-  pledgedTzs?: number;
-  collectedTzs?: number;
+  pledged?: number;
+  collected?: number;
   guestsWithBalance?: number;
 }
 
@@ -147,8 +147,8 @@ function mapStats(s: ApiStats | null): WeddingEvent['stats'] {
     attended: n('checked_in'),
     headcountConfirmed: s?.headcountConfirmed ?? 0,
     headcountAttended: 0,
-    pledgedTzs: s?.pledgedTzs ?? 0,
-    collectedTzs: s?.collectedTzs ?? 0,
+    pledged: s?.pledged ?? 0,
+    collected: s?.collected ?? 0,
     guestsWithBalance: s?.guestsWithBalance ?? 0,
     failedMessages: s?.failedMessages ?? 0,
     featurePhoneGuests: s?.featurePhoneGuests ?? 0,
@@ -180,7 +180,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     coverGradient: String((e.brandTheme as { coverGradient?: string } | null)?.coverGradient ?? ''),
     palette: sanitizeOverrides((e.brandTheme as { palette?: unknown } | null)?.palette),
     rsvpDeadline: e.rsvpDeadline,
-    contributionTargetTzs: e.contributionTargetTzs ?? 0,
+    contributionTarget: e.contributionTarget ?? 0,
     senderName: e.senderName || defaultSender(e.eventKind, e.coupleNames),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
@@ -447,7 +447,7 @@ export function createHttpRepository(
         dressCode: input.dressCode || null,
         languageDefault: input.languageDefault,
         rsvpDeadline: input.rsvpDeadline || null,
-        contributionTargetTzs: input.contributionTargetTzs ?? null,
+        contributionTarget: input.contributionTarget ?? null,
         brandTheme: {
           themeId: input.themeId,
           coverGradient: input.coverGradient ?? '',
@@ -469,8 +469,8 @@ export function createHttpRepository(
       if (patch.dressCode !== undefined) body.dressCode = patch.dressCode || null;
       if (patch.languageDefault !== undefined) body.languageDefault = patch.languageDefault;
       if (patch.rsvpDeadline !== undefined) body.rsvpDeadline = patch.rsvpDeadline;
-      if (patch.contributionTargetTzs !== undefined)
-        body.contributionTargetTzs = patch.contributionTargetTzs;
+      if (patch.contributionTarget !== undefined)
+        body.contributionTarget = patch.contributionTarget;
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
       if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
@@ -731,9 +731,9 @@ export function createHttpRepository(
     );
   impl.getPledgeSummary = (eventId) =>
     call('GET', `/v1/events/${encodeURIComponent(eventId)}/pledges`);
-  impl.upsertPledge = async (guestId, amountTzs, note) => {
+  impl.upsertPledge = async (guestId, amount, note) => {
     await call('POST', `/v1/guests/${encodeURIComponent(guestId)}/pledges`, {
-      amountTzs,
+      amount,
       note: note || null,
     });
     return impl.getGuest!(guestId);
@@ -744,7 +744,7 @@ export function createHttpRepository(
       '/v1/payments/manual',
       {
         guestId: input.guestId,
-        amountTzs: input.amountTzs,
+        amount: input.amount,
         method: input.method,
         reference: input.reference || undefined,
         note: input.note || undefined,
@@ -758,7 +758,7 @@ export function createHttpRepository(
     const r = await raw(
       'POST',
       `/v1/c/${encodeURIComponent(token)}/pay`,
-      { amountTzs: input.amountTzs, phone: input.phoneE164, method: input.method },
+      { amount: input.amount, phone: input.phoneE164, method: input.method },
       { 'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey() },
       false,
     );

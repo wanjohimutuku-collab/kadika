@@ -174,21 +174,21 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <KpiTile
                     label={t('rec.pledged')}
-                    value={formatMoneyCompact(r.pledgeReconciliation.pledgedTzs, cur)}
+                    value={formatMoneyCompact(r.pledgeReconciliation.pledged, cur)}
                   />
                   <KpiTile
                     label={t('rec.collected')}
-                    value={formatMoneyCompact(r.pledgeReconciliation.collectedTzs, cur)}
+                    value={formatMoneyCompact(r.pledgeReconciliation.collected, cur)}
                     tone="success"
                   />
                   <KpiTile
                     label={t('rec.outstanding')}
-                    value={formatMoneyCompact(r.pledgeReconciliation.outstandingTzs, cur)}
+                    value={formatMoneyCompact(r.pledgeReconciliation.outstanding, cur)}
                     tone="warning"
                   />
                   <KpiTile
                     label={t('rec.overpaid')}
-                    value={formatMoney(r.pledgeReconciliation.overpaidTzs, cur)}
+                    value={formatMoney(r.pledgeReconciliation.overpaid, cur)}
                   />
                 </div>
                 <p className="mt-3 text-sm text-muted">
@@ -206,7 +206,7 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
                           .split(' ')
                           .slice(0, 2)
                           .join(' '),
-                        value: w.amountTzs,
+                        value: w.amount,
                       }))}
                       formatValue={(n) => formatMoneyCompact(n, cur).replace(`${cur} `, '')}
                     />

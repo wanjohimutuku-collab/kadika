@@ -35,7 +35,7 @@ interface FormState {
   languageDefault: 'sw' | 'en';
   pledgesEnabled: boolean;
   whatsappFallbackHours: number;
-  contributionTargetTzs: number;
+  contributionTarget: number;
 }
 
 function toForm(e: WeddingEvent): FormState {
@@ -54,7 +54,7 @@ function toForm(e: WeddingEvent): FormState {
     languageDefault: e.languageDefault,
     pledgesEnabled: e.pledgesEnabled,
     whatsappFallbackHours: e.whatsappFallbackHours,
-    contributionTargetTzs: e.contributionTargetTzs,
+    contributionTarget: e.contributionTarget,
   };
 }
 
@@ -146,7 +146,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
       languageDefault: form.languageDefault,
       pledgesEnabled: form.pledgesEnabled,
       whatsappFallbackHours: form.whatsappFallbackHours,
-      contributionTargetTzs: form.contributionTargetTzs,
+      contributionTarget: form.contributionTarget,
     });
   };
 
@@ -217,9 +217,9 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                     label={tw('target')}
                     prefix={cur}
                     inputMode="numeric"
-                    value={String(form.contributionTargetTzs)}
+                    value={String(form.contributionTarget)}
                     onChange={(ev) =>
-                      set('contributionTargetTzs', Number(ev.target.value.replace(/\D/g, '')) || 0)
+                      set('contributionTarget', Number(ev.target.value.replace(/\D/g, '')) || 0)
                     }
                   />
                 </div>

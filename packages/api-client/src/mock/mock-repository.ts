@@ -77,6 +77,7 @@ import { buildInviteSms, estimateSmsCost } from '../domain/sms';
 import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
 import { MockControls } from './controls';
+import { renameLegacyMoneyKeys } from './migrate';
 import { Rng } from './prng';
 import {
   createSeedState,
@@ -181,8 +182,12 @@ export class MockRepository implements Repository {
     try {
       const raw = this.storage?.getItem(STATE_KEY);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as MockState;
-      return parsed.version === 3 ? parsed : null;
+      const parsed = JSON.parse(raw) as { version?: number };
+      if (parsed.version === 4) return parsed as MockState;
+      // v3 predates the currency-neutral money names (ADR 025, Phase 1b).
+      if (parsed.version === 3)
+        return { ...(renameLegacyMoneyKeys(parsed) as MockState), version: 4 };
+      return null;
     } catch {
       return null;
     }
@@ -300,7 +305,7 @@ export class MockRepository implements Repository {
     const m = new Map<string, number>();
     for (const p of this.state.payments) {
       if (p.eventId === eventId && p.status === 'success')
-        m.set(p.guestId, (m.get(p.guestId) ?? 0) + p.amountTzs);
+        m.set(p.guestId, (m.get(p.guestId) ?? 0) + p.amount);
     }
     return m;
   }
@@ -317,19 +322,19 @@ export class MockRepository implements Repository {
 
   private toGuest(
     g: GuestRecord,
-    paid: Map<string, number>,
+    paidBy: Map<string, number>,
     last: Map<string, MessageLogEntry>,
   ): Guest {
-    const paidTzs = paid.get(g.id) ?? 0;
-    const { token: _t, deletedAt: _d, pledgeAmountTzs, pledgeWaived, ...rest } = g;
+    const paid = paidBy.get(g.id) ?? 0;
+    const { token: _t, deletedAt: _d, pledgeAmount, pledgeWaived, ...rest } = g;
     return {
       ...rest,
       lastMessageFailed: last.get(g.id)?.status === 'failed',
       pledge:
-        pledgeAmountTzs != null
-          ? summarizePledge(pledgeAmountTzs, paidTzs, pledgeWaived)
-          : paidTzs > 0
-            ? summarizePledge(0, paidTzs)
+        pledgeAmount != null
+          ? summarizePledge(pledgeAmount, paid, pledgeWaived)
+          : paid > 0
+            ? summarizePledge(0, paid)
             : null,
     };
   }
@@ -345,12 +350,12 @@ export class MockRepository implements Repository {
     const last = this.lastMessageByGuest(eventId);
     const totals = pledgeTotals(
       guests.map((g) =>
-        g.pledgeAmountTzs != null
-          ? summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived)
+        g.pledgeAmount != null
+          ? summarizePledge(g.pledgeAmount, paid.get(g.id) ?? 0, g.pledgeWaived)
           : null,
       ),
     );
-    const collectedTzs = [...paid.values()].reduce((a, b) => a + b, 0);
+    const collected = [...paid.values()].reduce((a, b) => a + b, 0);
     return {
       invited: funnel.created,
       sent: funnel.sent,
@@ -365,8 +370,8 @@ export class MockRepository implements Repository {
         0,
       ),
       headcountAttended: guests.reduce((n, g) => n + g.partyAdmitted, 0),
-      pledgedTzs: totals.pledgedTzs,
-      collectedTzs,
+      pledged: totals.pledged,
+      collected,
       guestsWithBalance: totals.guestsPartial + totals.guestsUnpaid,
       failedMessages: guests.filter((g) => last.get(g.id)?.status === 'failed').length,
       featurePhoneGuests: guests.filter((g) => !g.hasSmartphone).length,
@@ -619,7 +624,7 @@ export class MockRepository implements Repository {
         coverGradient: v.coverGradient,
         palette: checkedPalette(v.themeId, v.palette),
         rsvpDeadline: v.rsvpDeadline ? new Date(v.rsvpDeadline).toISOString() : null,
-        contributionTargetTzs: v.contributionTargetTzs,
+        contributionTarget: v.contributionTarget,
         senderName: defaultSender(
           v.eventKind,
           [v.partnerA, v.partnerB].filter(Boolean).join(' & '),
@@ -801,7 +806,7 @@ export class MockRepository implements Repository {
       channelLast: null,
       checkedInAt: null,
       partyAdmitted: 0,
-      pledgeAmountTzs: null,
+      pledgeAmount: null,
       pledgeWaived: false,
       createdAt: now,
       updatedAt: now,
@@ -1068,7 +1073,7 @@ export class MockRepository implements Repository {
         total: list.length,
         byChannel,
         smsSegments: cost.segments,
-        estimatedSmsCostTzs: cost.costTzs,
+        estimatedSmsCost: cost.cost,
         withoutPhone: list.filter((g) => !g.phoneE164).length,
       };
     });
@@ -1226,7 +1231,7 @@ export class MockRepository implements Repository {
         kind: job.kind,
         status: r.outcome === 'failed' ? 'failed' : 'delivered',
         error: r.error,
-        costTzs: r.channel === 'sms' && r.outcome !== 'failed' ? 25 : 0,
+        cost: r.channel === 'sms' && r.outcome !== 'failed' ? 25 : 0,
         createdAt: at,
       });
     }
@@ -1319,7 +1324,7 @@ export class MockRepository implements Repository {
             kind: 'payment',
             guestId: p.guestId,
             guestName: p.guestName,
-            amountTzs: p.amountTzs,
+            amount: p.amount,
           });
       }
       for (const s of this.state.scans) {
@@ -1479,16 +1484,16 @@ export class MockRepository implements Repository {
 
   // ---------------------------------------------------------------- pledges & payments
 
-  upsertPledge(guestId: string, amountTzs: number, note?: string): Promise<Guest> {
+  upsertPledge(guestId: string, amount: number, note?: string): Promise<Guest> {
     return this.run('write', 'Ahadi', () => {
       this.requireSession();
       const g = this.guestRecord(guestId);
-      g.pledgeAmountTzs = Math.max(0, Math.round(amountTzs));
+      g.pledgeAmount = Math.max(0, Math.round(amount));
       g.updatedAt = iso(this.now());
       this.audit(
         g.id,
         'pledge',
-        `Ahadi: TZS ${g.pledgeAmountTzs.toLocaleString('en-US')}${note ? ` — ${note}` : ''}`,
+        `Ahadi: TZS ${g.pledgeAmount.toLocaleString('en-US')}${note ? ` — ${note}` : ''}`,
       );
       return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
     });
@@ -1510,7 +1515,7 @@ export class MockRepository implements Repository {
           eventId,
           guestId: g.id,
           guestName: g.displayName,
-          amountTzs: v.amountTzs,
+          amount: v.amount,
           method: v.method,
           status: 'success' as const,
           reference:
@@ -1525,7 +1530,7 @@ export class MockRepository implements Repository {
         this.audit(
           g.id,
           'payment',
-          `Malipo TZS ${p.amountTzs.toLocaleString('en-US')} (${p.method}) yamerekodiwa`,
+          `Malipo TZS ${p.amount.toLocaleString('en-US')} (${p.method}) yamerekodiwa`,
         );
         const { eventId: _e, ...out } = p;
         return out;
@@ -1551,20 +1556,20 @@ export class MockRepository implements Repository {
             displayName: g.displayName,
             groupLabel: g.groupLabel || null,
             shortCode: g.shortCode,
-            amountTzs: p?.amountTzs ?? 0,
-            paidTzs: p?.paidTzs ?? 0,
-            balanceTzs: p?.balanceTzs ?? 0,
+            amount: p?.amount ?? 0,
+            paid: p?.paid ?? 0,
+            balance: p?.balance ?? 0,
             status: p?.status ?? null,
             note: null,
           };
         });
       return {
         totals: {
-          targetTzs: this.state.events.find((e) => e.id === eventId)?.contributionTargetTzs ?? 0,
-          pledgedTzs: guests.reduce((n, r) => n + r.amountTzs, 0),
-          collectedTzs: guests.reduce((n, r) => n + r.paidTzs, 0),
-          balanceTzs: guests.reduce((n, r) => n + r.balanceTzs, 0),
-          guestsWithBalance: guests.filter((r) => r.balanceTzs > 0).length,
+          targetAmount: this.state.events.find((e) => e.id === eventId)?.contributionTarget ?? 0,
+          pledged: guests.reduce((n, r) => n + r.amount, 0),
+          collected: guests.reduce((n, r) => n + r.paid, 0),
+          balance: guests.reduce((n, r) => n + r.balance, 0),
+          guestsWithBalance: guests.filter((r) => r.balance > 0).length,
         },
         guests,
       };
@@ -1598,7 +1603,7 @@ export class MockRepository implements Repository {
           kind: 'reminder',
           status: 'sent',
           error: null,
-          costTzs: g.hasSmartphone ? 0 : 25,
+          cost: g.hasSmartphone ? 0 : 25,
           createdAt: iso(this.now()),
         });
         queued++;
@@ -1634,8 +1639,8 @@ export class MockRepository implements Repository {
       const paid = this.paidByGuest(eventId);
       const totals = pledgeTotals(
         guests.map((g) =>
-          g.pledgeAmountTzs != null
-            ? summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived)
+          g.pledgeAmount != null
+            ? summarizePledge(g.pledgeAmount, paid.get(g.id) ?? 0, g.pledgeWaived)
             : null,
         ),
       );
@@ -1647,7 +1652,7 @@ export class MockRepository implements Repository {
           Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7)),
         );
         const key = monday.toISOString().slice(0, 10);
-        weeks.set(key, (weeks.get(key) ?? 0) + p.amountTzs);
+        weeks.set(key, (weeks.get(key) ?? 0) + p.amount);
       }
       return {
         stats,
@@ -1655,8 +1660,8 @@ export class MockRepository implements Repository {
         arrivalsByHour: arrivalsByHour(this.state.scans.filter((s) => s.eventId === eventId)),
         collectionsByWeek: [...weeks.entries()]
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([week, amountTzs]) => ({ week, amountTzs })),
-        pledgeReconciliation: { ...totals, collectedTzs: stats.collectedTzs },
+          .map(([week, amount]) => ({ week, amount })),
+        pledgeReconciliation: { ...totals, collected: stats.collected },
         headcountForecast: stats.headcountConfirmed,
         headcountTarget: guests.reduce((n, g) => n + g.partySizeAllowed, 0),
       };
@@ -1676,22 +1681,15 @@ export class MockRepository implements Repository {
         case 'pledges':
           rows = [['Jina', 'Kikundi', 'Ahadi (TZS)', 'Imelipwa (TZS)', 'Salio (TZS)', 'Hali']];
           for (const g of guests) {
-            if (g.pledgeAmountTzs == null) continue;
-            const s = summarizePledge(g.pledgeAmountTzs, paid.get(g.id) ?? 0, g.pledgeWaived);
-            rows.push([
-              g.displayName,
-              g.groupLabel,
-              s.amountTzs,
-              s.paidTzs,
-              s.balanceTzs,
-              s.status,
-            ]);
+            if (g.pledgeAmount == null) continue;
+            const s = summarizePledge(g.pledgeAmount, paid.get(g.id) ?? 0, g.pledgeWaived);
+            rows.push([g.displayName, g.groupLabel, s.amount, s.paid, s.balance, s.status]);
           }
           break;
         case 'payments':
           rows = [['Tarehe', 'Mgeni', 'Kiasi (TZS)', 'Njia', 'Kumbukumbu', 'Aliyerekodi']];
           for (const p of this.state.payments.filter((x) => x.eventId === eventId))
-            rows.push([p.paidAt, p.guestName, p.amountTzs, p.method, p.reference, p.recordedBy]);
+            rows.push([p.paidAt, p.guestName, p.amount, p.method, p.reference, p.recordedBy]);
           break;
         case 'scans':
           rows = [['Muda', 'Mgeni', 'Matokeo', 'Watu', 'Lango', 'Kifaa', 'Aliyeskani']];
@@ -1800,8 +1798,8 @@ export class MockRepository implements Repository {
         partySize: g.rsvpPartySize,
       },
       pledge: e.pledgesEnabled
-        ? g.pledgeAmountTzs != null
-          ? summarizePledge(g.pledgeAmountTzs, paid, g.pledgeWaived)
+        ? g.pledgeAmount != null
+          ? summarizePledge(g.pledgeAmount, paid, g.pledgeWaived)
           : paid > 0
             ? summarizePledge(0, paid)
             : null
@@ -1858,7 +1856,7 @@ export class MockRepository implements Repository {
 
   startPayment(
     token: string,
-    input: { amountTzs: number; phoneE164: string; method: PaymentMethod },
+    input: { amount: number; phoneE164: string; method: PaymentMethod },
     idempotencyKey: string,
   ): Promise<PaymentStart> {
     return this.run('online-only', 'pay', () =>
@@ -1867,7 +1865,7 @@ export class MockRepository implements Repository {
         if (view.state !== 'ok') throw new RepositoryError('invalid_token');
         if (!view.event?.pledgesEnabled)
           throw new RepositoryError('forbidden', 'payments_disabled');
-        if (!Number.isInteger(input.amountTzs) || input.amountTzs < 1000)
+        if (!Number.isInteger(input.amount) || input.amount < 1000)
           throw new RepositoryError('validation', 'amount', { min: 1000 });
         const g = this.state.guests.find((x) => x.token === token)!;
         const reference = `HP${this.rng.hex(10).toUpperCase()}`;
@@ -1875,7 +1873,7 @@ export class MockRepository implements Repository {
           reference,
           guestId: g.id,
           eventId: g.eventId,
-          amountTzs: input.amountTzs,
+          amount: input.amount,
           phoneE164: input.phoneE164,
           method: input.method,
           outcome: this.controls.get().payOutcome,
@@ -1885,7 +1883,7 @@ export class MockRepository implements Repository {
         this.persist();
         return {
           reference,
-          amountTzs: input.amountTzs,
+          amount: input.amount,
           phoneE164: input.phoneE164,
           method: input.method,
           expiresAt: iso(this.now() + PAY_TIMEOUT_MS),
@@ -1902,11 +1900,11 @@ export class MockRepository implements Repository {
       const view: PaymentStatusView = {
         reference,
         status: 'pending',
-        amountTzs: p.amountTzs,
+        amount: p.amount,
         method: p.method,
         paidAt: null,
         duplicateWebhook: false,
-        newBalanceTzs: null,
+        newBalance: null,
         failureReason: null,
       };
       const resolvesAt = p.outcome === 'declined' ? 4000 : 6000;
@@ -1928,7 +1926,7 @@ export class MockRepository implements Repository {
             eventId: p.eventId,
             guestId: g.id,
             guestName: g.displayName,
-            amountTzs: p.amountTzs,
+            amount: p.amount,
             method: p.method,
             status: 'success',
             reference,
@@ -1948,7 +1946,7 @@ export class MockRepository implements Repository {
         status: 'success',
         paidAt: iso(p.startedAt + resolvesAt),
         duplicateWebhook: p.outcome === 'duplicate_webhook',
-        newBalanceTzs: g.pledgeAmountTzs != null ? Math.max(0, g.pledgeAmountTzs - paid) : null,
+        newBalance: g.pledgeAmount != null ? Math.max(0, g.pledgeAmount - paid) : null,
       };
     });
   }
@@ -2032,8 +2030,8 @@ export class MockRepository implements Repository {
       sent: msgs.filter((m) => m.status !== 'failed').length,
       failedMessages: msgs.filter((m) => m.status === 'failed').length,
       confirmed: stats.confirmed,
-      collectedTzs: stats.collectedTzs,
-      smsCostTzs: msgs.reduce((n, m) => n + m.costTzs, 0),
+      collected: stats.collected,
+      smsCost: msgs.reduce((n, m) => n + m.cost, 0),
     };
   }
 
@@ -2072,13 +2070,13 @@ export class MockRepository implements Repository {
           failed: msgs.filter((m) => m.status === 'failed').length,
           total: msgs.length,
         },
-        smsCostTzs30d: msgs.reduce((n, m) => n + m.costTzs, 0),
+        smsCost30d: msgs.reduce((n, m) => n + m.cost, 0),
         failureRate30d: msgs.length
           ? msgs.filter((m) => m.status === 'failed').length / msgs.length
           : 0,
         contributions30d: {
           count: pays.length,
-          amountTzs: pays.reduce((n, p) => n + p.amountTzs, 0),
+          amount: pays.reduce((n, p) => n + p.amount, 0),
         },
         paidPlans: evs.filter((e) => e.plan === 'paid').length,
         messagesByDay: [...byDay.entries()]
@@ -2122,13 +2120,13 @@ export class MockRepository implements Repository {
           sent: list.length,
           delivered: list.filter((m) => m.status === 'delivered' || m.status === 'read').length,
           failed: list.filter((m) => m.status === 'failed').length,
-          costTzs: list.reduce((n, m) => n + m.costTzs, 0),
+          cost: list.reduce((n, m) => n + m.cost, 0),
         };
       };
       const days = new Map<string, { whatsapp: number; sms: number; failed: number }>();
       const perEvent = new Map<
         string,
-        { whatsapp: number; sms: number; failed: number; costTzs: number }
+        { whatsapp: number; sms: number; failed: number; cost: number }
       >();
       const reasons = new Map<string, number>();
       for (const m of msgs) {
@@ -2136,10 +2134,10 @@ export class MockRepository implements Repository {
         if (m.status === 'failed') d.failed++;
         else d[m.channel as 'whatsapp' | 'sms']++;
         days.set(m.createdAt.slice(0, 10), d);
-        const e = perEvent.get(m.eventId) ?? { whatsapp: 0, sms: 0, failed: 0, costTzs: 0 };
+        const e = perEvent.get(m.eventId) ?? { whatsapp: 0, sms: 0, failed: 0, cost: 0 };
         if (m.status === 'failed') e.failed++;
         else e[m.channel as 'whatsapp' | 'sms']++;
-        e.costTzs += m.costTzs;
+        e.cost += m.cost;
         perEvent.set(m.eventId, e);
         if (m.error) reasons.set(m.error, (reasons.get(m.error) ?? 0) + 1);
       }

@@ -3,8 +3,8 @@ export type MessageChannel = 'whatsapp' | 'sms';
 
 export interface SendResult {
   providerMsgId: string;
-  /** Provider cost in TZS when known. */
-  costTzs?: number;
+  /** Provider cost in the event's currency (TZS today) when known. */
+  cost?: number;
 }
 
 /**
@@ -50,7 +50,7 @@ export class FakeMessagingProvider implements MessagingProvider {
   async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
     if (this.failFor(to)) throw new Error('fake provider failure');
     this.sent.push({ to, body, template, channel: this.channel, at: new Date() });
-    return { providerMsgId: `fake-${++this.counter}`, costTzs: this.channel === 'sms' ? 25 : 0 };
+    return { providerMsgId: `fake-${++this.counter}`, cost: this.channel === 'sms' ? 25 : 0 };
   }
 
   /** The last body sent to a number — tests read OTP codes from here. */

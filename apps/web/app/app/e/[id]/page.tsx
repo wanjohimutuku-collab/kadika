@@ -108,8 +108,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
         const days = daysUntil(e.dateStart);
         const s = e.stats;
         const next = nextStep(e, days);
-        const pledgePct =
-          e.contributionTargetTzs > 0 ? s.collectedTzs / e.contributionTargetTzs : 0;
+        const pledgePct = e.contributionTarget > 0 ? s.collected / e.contributionTarget : 0;
         const deadlineDays = e.rsvpDeadline ? daysUntil(e.rsvpDeadline) : null;
         const alerts: { key: string; tone: 'danger' | 'warning'; text: string; href: string }[] =
           [];
@@ -188,11 +187,11 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
               {session.data?.role !== 'gate' ? (
                 <KpiTile
                   label={t('kpiPledges')}
-                  value={formatMoneyCompact(s.collectedTzs, cur)}
+                  value={formatMoneyCompact(s.collected, cur)}
                   sub={
-                    e.contributionTargetTzs
+                    e.contributionTarget
                       ? t('kpiOfTarget', {
-                          target: formatMoneyCompact(e.contributionTargetTzs, cur),
+                          target: formatMoneyCompact(e.contributionTarget, cur),
                         })
                       : undefined
                   }
@@ -308,13 +307,13 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                     {ts('declined')}: {s.declined}
                   </li>
                 </ul>
-                {e.contributionTargetTzs > 0 && session.data?.role !== 'gate' ? (
+                {e.contributionTarget > 0 && session.data?.role !== 'gate' ? (
                   <div className="mt-5 flex flex-col gap-2">
                     <p className="flex justify-between text-sm font-semibold">
                       <span>
                         {t('pledgeProgress', {
-                          collected: formatMoneyCompact(s.collectedTzs, cur),
-                          target: formatMoneyCompact(e.contributionTargetTzs, cur),
+                          collected: formatMoneyCompact(s.collected, cur),
+                          target: formatMoneyCompact(e.contributionTarget, cur),
                         })}
                       </span>
                       <span className="tabular">{Math.round(pledgePct * 100)}%</span>
@@ -322,7 +321,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                     <ProgressBar
                       value={pledgePct}
                       label={t('kpiPledges')}
-                      valueText={`${formatMoney(s.collectedTzs, cur)} / ${formatMoney(e.contributionTargetTzs, cur)}`}
+                      valueText={`${formatMoney(s.collected, cur)} / ${formatMoney(e.contributionTarget, cur)}`}
                       tone="accent"
                     />
                   </div>
@@ -346,7 +345,7 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
                               {t(`act.${a.kind}`, {
                                 name: a.guestName ?? '',
                                 count: a.count ?? 1,
-                                amount: formatMoney(a.amountTzs ?? 0, cur),
+                                amount: formatMoney(a.amount ?? 0, cur),
                               })}
                             </span>
                             <span className="text-sm text-muted">

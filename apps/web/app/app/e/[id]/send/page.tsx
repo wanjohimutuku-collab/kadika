@@ -529,7 +529,7 @@ function SendInner({ id }: { id: string }) {
                         {p.byChannel.print}
                       </p>
                       <p className="font-medium">
-                        {t('smsCost', { cost: formatMoney(p.estimatedSmsCostTzs, cur) })}
+                        {t('smsCost', { cost: formatMoney(p.estimatedSmsCost, cur) })}
                       </p>
                       {p.withoutPhone ? (
                         <p className="text-sm text-muted">
@@ -579,7 +579,7 @@ function SendInner({ id }: { id: string }) {
                       whatsapp: p?.byChannel.whatsapp ?? 0,
                       sms: p?.byChannel.sms ?? 0,
                       print: p?.byChannel.print ?? 0,
-                      cost: formatMoney(p?.estimatedSmsCostTzs ?? 0, cur),
+                      cost: formatMoney(p?.estimatedSmsCost ?? 0, cur),
                     })}
                   </p>
                   {when === 'later' && scheduleAt ? (

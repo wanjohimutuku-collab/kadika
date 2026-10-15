@@ -41,7 +41,7 @@ export function smsSegments(text: string): SmsSegments {
   };
 }
 
-/** Default SMS price per segment in TZS (assumption until a gateway is chosen — §15.3, ADR 007). */
+/** Default SMS price per segment in TZS (Tanzanian SMS only until Kenya pricing exists) (assumption until a gateway is chosen — §15.3, ADR 007). */
 export const SMS_PRICE_PER_SEGMENT_TZS = 25;
 
 export function estimateSmsCost(
@@ -50,7 +50,7 @@ export function estimateSmsCost(
   pricePerSegment = SMS_PRICE_PER_SEGMENT_TZS,
 ) {
   const seg = smsSegments(text);
-  return { ...seg, recipients, costTzs: seg.segments * recipients * pricePerSegment };
+  return { ...seg, recipients, cost: seg.segments * recipients * pricePerSegment };
 }
 
 export interface InviteTextInput {

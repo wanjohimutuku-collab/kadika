@@ -125,7 +125,7 @@ describe('Kenya support enabled', () => {
     const pay = (method: string) =>
       api(ctx, 'POST', '/v1/payments/manual', {
         token: s.accessToken,
-        body: { guestId: g.body!.id, amountTzs: 5000, method },
+        body: { guestId: g.body!.id, amount: 5000, method },
       });
     const bad = await pay('halopesa');
     expect(bad.status).toBe(400);

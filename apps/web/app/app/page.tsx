@@ -98,7 +98,7 @@ export default function EventsPage() {
                         <div className="rounded-input bg-bg p-2">
                           <dt className="text-xs text-muted">{t('statCollected')}</dt>
                           <dd className="tabular text-lg font-bold">
-                            {formatMoneyCompact(e.stats.collectedTzs, e.currency).replace(
+                            {formatMoneyCompact(e.stats.collected, e.currency).replace(
                               `${e.currency} `,
                               '',
                             )}

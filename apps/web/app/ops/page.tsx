@@ -110,10 +110,10 @@ export default function OpsOverviewPage() {
                   tone={o.failureRate30d > 0.05 ? 'danger' : 'neutral'}
                   sub={`${o.messages30d.failed} / ${o.messages30d.total}`}
                 />
-                <KpiTile label={t('overview.smsCost')} value={formatTzs(o.smsCostTzs30d)} />
+                <KpiTile label={t('overview.smsCost')} value={formatTzs(o.smsCost30d)} />
                 <KpiTile
                   label={t('overview.contributions')}
-                  value={formatTzsCompact(o.contributions30d.amountTzs)}
+                  value={formatTzsCompact(o.contributions30d.amount)}
                   sub={t('overview.contributionsCount', { count: o.contributions30d.count })}
                   icon={<HandCoins className="size-4" />}
                 />

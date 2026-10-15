@@ -75,7 +75,7 @@ export function applyGuestQuery(list: Guest[], query: GuestQuery = {}): Guest[] 
       case 'updated':
         return dir * a.updatedAt.localeCompare(b.updatedAt);
       case 'balance':
-        return dir * ((a.pledge?.balanceTzs ?? -1) - (b.pledge?.balanceTzs ?? -1));
+        return dir * ((a.pledge?.balance ?? -1) - (b.pledge?.balance ?? -1));
       default:
         return dir * a.displayName.localeCompare(b.displayName, 'sw');
     }

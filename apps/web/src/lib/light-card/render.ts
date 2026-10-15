@@ -272,11 +272,11 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
   const pledge =
     event.pledgesEnabled && !view.eventPassed
       ? `<section class="no-print"><h2>${esc(t.pledgeTitle)}</h2>${
-          view.pledge && view.pledge.amountTzs > 0
-            ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatMoney(view.pledge.amountTzs, cur), paid: formatMoney(view.pledge.paidTzs, cur), balance: formatMoney(view.pledge.balanceTzs, cur) }))}</p>`
+          view.pledge && view.pledge.amount > 0
+            ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatMoney(view.pledge.amount, cur), paid: formatMoney(view.pledge.paid, cur), balance: formatMoney(view.pledge.balance, cur) }))}</p>`
             : `<p class="muted">${esc(t.pledgeNone)}</p>`
         }${
-          view.pledge && view.pledge.amountTzs > 0 && view.pledge.balanceTzs === 0
+          view.pledge && view.pledge.amount > 0 && view.pledge.balance === 0
             ? `<p class="mt"><b>✔ ${esc(t.pledgePaidInFull)}</b></p>`
             : `<a class="btn primary block mt" href="/c/${encodeURIComponent(view.token)}/pay" data-testid="pay-link">${esc(t.pay)}</a>`
         }</section>`

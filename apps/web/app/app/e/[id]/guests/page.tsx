@@ -314,7 +314,7 @@ function GuestsInner({ id }: { id: string }) {
       header: t('col.balance'),
       cell: (c) => (
         <span className="tabular whitespace-nowrap">
-          {c.row.original.pledge ? formatMoney(c.row.original.pledge.balanceTzs, cur) : '—'}
+          {c.row.original.pledge ? formatMoney(c.row.original.pledge.balance, cur) : '—'}
         </span>
       ),
     }),

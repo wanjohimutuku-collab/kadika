@@ -78,7 +78,7 @@ export function RecordPaymentSheet({
     mutationFn: (n: number) =>
       getRepository().recordManualPayment(
         eventId,
-        { guestId: chosen!.id, amountTzs: n, method, reference, note },
+        { guestId: chosen!.id, amount: n, method, reference, note },
         idem.current,
       ),
     onMutate: async (n) => {
@@ -91,8 +91,8 @@ export function RecordPaymentSheet({
                 ...g,
                 pledge: {
                   ...g.pledge,
-                  paidTzs: g.pledge.paidTzs + n,
-                  balanceTzs: Math.max(0, g.pledge.balanceTzs - n),
+                  paid: g.pledge.paid + n,
+                  balance: Math.max(0, g.pledge.balance - n),
                 },
               }
             : g,
@@ -107,7 +107,7 @@ export function RecordPaymentSheet({
     onSuccess: async (p) => {
       toast({
         tone: 'success',
-        title: t('saved', { amount: formatMoney(p.amountTzs, cur), name: p.guestName }),
+        title: t('saved', { amount: formatMoney(p.amount, cur), name: p.guestName }),
       });
       onOpenChange(false);
       reset();
@@ -158,7 +158,7 @@ export function RecordPaymentSheet({
               <p className="text-sm text-muted">
                 {chosen.shortCode}
                 {chosen.pledge
-                  ? ` · ${t('balance')} ${formatMoney(chosen.pledge.balanceTzs, cur)}`
+                  ? ` · ${t('balance')} ${formatMoney(chosen.pledge.balance, cur)}`
                   : ''}
               </p>
             </div>
@@ -199,7 +199,7 @@ export function RecordPaymentSheet({
                       <span className="block font-medium">{g.displayName}</span>
                       <span className="text-sm text-muted">
                         {g.shortCode}
-                        {g.pledge ? ` · ${formatMoney(g.pledge.balanceTzs, cur)}` : ''}
+                        {g.pledge ? ` · ${formatMoney(g.pledge.balance, cur)}` : ''}
                       </span>
                     </span>
                   </button>

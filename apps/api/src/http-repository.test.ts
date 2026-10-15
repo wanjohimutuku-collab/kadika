@@ -70,7 +70,7 @@ describe('HttpRepository against the real API', () => {
       themeId: 'navy-silver',
       coverGradient: '',
       rsvpDeadline: '',
-      contributionTargetTzs: 0,
+      contributionTarget: 0,
     });
     expect(ev).toMatchObject({ partnerA: 'Neema', partnerB: 'Daudi', themeId: 'navy-silver' });
     expect((await r.listEvents()).map((e) => e.id)).toEqual([ev.id]);
@@ -150,7 +150,7 @@ describe('HttpRepository against the real API', () => {
       themeId: 'emerald-gold',
       coverGradient: '',
       rsvpDeadline: '',
-      contributionTargetTzs: 0,
+      contributionTarget: 0,
     });
     const invited = await owner.inviteMember(ev.id, {
       name: 'Mjumbe Mpya',
@@ -189,7 +189,7 @@ describe('HttpRepository against the real API', () => {
       themeId: 'terracotta',
       coverGradient: '',
       rsvpDeadline: '',
-      contributionTargetTzs: 0,
+      contributionTarget: 0,
     });
     // The client hides the one-time card token, so create the guest over raw HTTP to read it.
     const res = await ctx.app.request(`/v1/events/${ev.id}/guests`, {
@@ -239,7 +239,7 @@ describe('HttpRepository against the real API', () => {
       themeId: 'emerald-gold',
       coverGradient: '',
       rsvpDeadline: '',
-      contributionTargetTzs: 0,
+      contributionTarget: 0,
     });
     const guest = (name: string, phone: string) =>
       r.createGuest(ev.id, {
@@ -306,7 +306,7 @@ describe('HttpRepository against the real API', () => {
       themeId: 'emerald-gold',
       coverGradient: '',
       rsvpDeadline: '',
-      contributionTargetTzs: 500_000,
+      contributionTarget: 500_000,
     });
     const g = await r.createGuest(ev.id, {
       displayName: 'Bibi Pendo',
@@ -319,26 +319,26 @@ describe('HttpRepository against the real API', () => {
     });
     const guest = await r.upsertPledge(g.id, 50_000, 'ahadi');
     expect(guest.pledge).toMatchObject({
-      amountTzs: 50_000,
-      paidTzs: 0,
-      balanceTzs: 50_000,
+      amount: 50_000,
+      paid: 0,
+      balance: 50_000,
       status: 'pledged',
     });
 
     const cash = await r.recordManualPayment(
       ev.id,
-      { guestId: g.id, amountTzs: 10_000, method: 'cash', reference: 'RCPT-77', note: '' },
+      { guestId: g.id, amount: 10_000, method: 'cash', reference: 'RCPT-77', note: '' },
       'manual-key-0001',
     );
     expect(cash).toMatchObject({
-      amountTzs: 10_000,
+      amount: 10_000,
       method: 'cash',
       status: 'success',
       guestName: 'Bibi Pendo',
     });
     expect((await r.getGuest(g.id)).pledge).toMatchObject({
-      paidTzs: 10_000,
-      balanceTzs: 40_000,
+      paid: 10_000,
+      balance: 40_000,
       status: 'partial',
     });
 
@@ -348,17 +348,17 @@ describe('HttpRepository against the real API', () => {
       headers: { authorization: `Bearer ${tokens.get()!.accessToken}` },
     });
     const token = ((await reissue.json()) as { cardToken: string }).cardToken;
-    expect((await r.getCard(token)).pledge).toMatchObject({ balanceTzs: 40_000 });
+    expect((await r.getCard(token)).pledge).toMatchObject({ balance: 40_000 });
     const start = await r.startPayment(
       token,
-      { amountTzs: 40_000, phoneE164: '+255712345678', method: 'mixx' },
+      { amount: 40_000, phoneE164: '+255712345678', method: 'mixx' },
       'card-pay-key-01',
     );
     expect(await r.getPaymentStatus(start.reference)).toMatchObject({ status: 'pending' });
     const wh = ctx.payments.webhookBody({
       reference: start.reference,
       status: 'success',
-      amountTzs: 40_000,
+      amount: 40_000,
     });
     const res = await ctx.app.request('/v1/payments/webhook/fake', {
       method: 'POST',
@@ -368,23 +368,23 @@ describe('HttpRepository against the real API', () => {
     expect(res.status).toBe(200);
     expect(await r.getPaymentStatus(start.reference)).toMatchObject({
       status: 'success',
-      newBalanceTzs: 0,
+      newBalance: 0,
     });
 
     const summary = await r.getPledgeSummary(ev.id);
     expect(summary.totals).toMatchObject({
-      targetTzs: 500_000,
-      pledgedTzs: 50_000,
-      collectedTzs: 50_000,
-      balanceTzs: 0,
+      targetAmount: 500_000,
+      pledged: 50_000,
+      collected: 50_000,
+      balance: 0,
       guestsWithBalance: 0,
     });
-    expect((await r.listPayments(ev.id)).map((p) => p.amountTzs).sort((a, b) => a - b)).toEqual([
+    expect((await r.listPayments(ev.id)).map((p) => p.amount).sort((a, b) => a - b)).toEqual([
       10_000, 40_000,
     ]);
     expect((await r.getEvent(ev.id)).stats).toMatchObject({
-      pledgedTzs: 50_000,
-      collectedTzs: 50_000,
+      pledged: 50_000,
+      collected: 50_000,
     });
     const csv = await (await r.exportCsv(ev.id, 'payments')).text();
     expect(csv).toContain('"Bibi Pendo"');

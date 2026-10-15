@@ -76,14 +76,13 @@ Exit: written decisions, vendor accounts opened, lawyer's memo received.
 
 ### Phase 1: country foundation (about 2 to 3 weeks; no new external provider)
 
-**Status (2026-10-15): done except the column rename, see ADR 025 and Phase 1b below.** Delivered:
+**Status (2026-10-15): done, including Phase 1b (see ADR 025).** Delivered:
 `events.country/currency` (migration 0012), `COUNTRY_INFO`, `normalizePhone` with a golden test against the
 old Tanzanian behaviour, `formatMoney`, per-country payment methods, event-timezone reminders and dates,
 the `KENYA_ENABLED` flag in API, web and mobile, and Kenya tests.
 
-**Phase 1b (not done):** rename `*_tzs` columns and `*Tzs` API fields to currency-neutral names with
-compatibility aliases. Until then those fields mean "amount in the event's currency", and Kenyan events
-must stay behind the flag and out of production.
+**Phase 1b (done 2026-10-15):** `*_tzs` columns and `*Tzs` API fields renamed to currency-neutral names, with
+response aliases and request compatibility for one release (`apps/api/src/compat.ts`); see ADR 025.
 
 Behind a feature flag (`KENYA_ENABLED`, off by default) so Tanzania is untouched.
 

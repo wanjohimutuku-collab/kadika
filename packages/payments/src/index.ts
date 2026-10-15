@@ -5,7 +5,7 @@ export type MobileMoneyMethod = 'mpesa' | 'mixx' | 'airtel' | 'halopesa';
 export interface StartCollectionInput {
   /** Our own reference (`HP…`), unique per attempt; the provider echoes it back in webhooks. */
   reference: string;
-  amountTzs: number;
+  amount: number;
   phoneE164: string;
   method: MobileMoneyMethod;
   description: string;
@@ -21,7 +21,7 @@ export interface PaymentWebhookEvent {
   reference: string;
   providerRef?: string;
   status: 'success' | 'failed';
-  amountTzs?: number;
+  amount?: number;
   paidAt?: Date;
   failureReason?: string;
 }
@@ -87,7 +87,7 @@ export class FakePaymentProvider implements PaymentProvider {
       reference?: string;
       providerRef?: string;
       status?: string;
-      amountTzs?: number;
+      amount?: number;
       paidAt?: string;
       failureReason?: string;
     } | null;
@@ -96,7 +96,7 @@ export class FakePaymentProvider implements PaymentProvider {
       reference: b.reference,
       providerRef: b.providerRef,
       status: b.status,
-      amountTzs: typeof b.amountTzs === 'number' ? b.amountTzs : undefined,
+      amount: typeof b.amount === 'number' ? b.amount : undefined,
       paidAt: b.paidAt ? new Date(b.paidAt) : undefined,
       failureReason: b.failureReason,
     };
@@ -106,7 +106,7 @@ export class FakePaymentProvider implements PaymentProvider {
   webhookBody(event: {
     reference: string;
     status: 'success' | 'failed';
-    amountTzs?: number;
+    amount?: number;
     failureReason?: string;
   }): { raw: string; headers: Record<string, string> } {
     const raw = JSON.stringify(event);

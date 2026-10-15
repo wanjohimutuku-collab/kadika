@@ -19,7 +19,7 @@ describe('FakePaymentProvider', () => {
     const p = new FakePaymentProvider('k', (phone) => phone === '+255700000000');
     const r = await p.startCollection({
       reference: 'HP1',
-      amountTzs: 5000,
+      amount: 5000,
       phoneE164: '+255712345678',
       method: 'mpesa',
       description: 'x',
@@ -28,7 +28,7 @@ describe('FakePaymentProvider', () => {
     await expect(
       p.startCollection({
         reference: 'HP2',
-        amountTzs: 5000,
+        amount: 5000,
         phoneE164: '+255700000000',
         method: 'mixx',
         description: 'x',
@@ -37,7 +37,7 @@ describe('FakePaymentProvider', () => {
     const { raw, headers } = p.webhookBody({
       reference: 'HP1',
       status: 'success',
-      amountTzs: 5000,
+      amount: 5000,
     });
     expect(p.verifyWebhook(raw, headers)).toBe(true);
     expect(p.verifyWebhook(raw + 'x', headers)).toBe(false);
@@ -45,7 +45,7 @@ describe('FakePaymentProvider', () => {
     expect(p.parseWebhook(JSON.parse(raw))).toMatchObject({
       reference: 'HP1',
       status: 'success',
-      amountTzs: 5000,
+      amount: 5000,
     });
     expect(p.parseWebhook({ status: 'success' })).toBeNull();
     expect(p.parseWebhook({ reference: 'HP1', status: 'weird' })).toBeNull();

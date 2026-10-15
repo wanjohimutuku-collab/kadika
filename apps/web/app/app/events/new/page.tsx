@@ -44,7 +44,7 @@ const STEP_FIELDS: Record<Step, (keyof EventInput)[]> = {
     'title',
     'dateStart',
     'rsvpDeadline',
-    'contributionTargetTzs',
+    'contributionTarget',
   ],
   venue: ['venueName', 'venueMapUrl', 'dressCode', 'languageDefault'],
   style: ['themeId', 'coverGradient'],
@@ -72,7 +72,7 @@ const EMPTY: EventInput = {
   themeId: 'emerald-gold',
   coverGradient: '',
   rsvpDeadline: '',
-  contributionTargetTzs: 0,
+  contributionTarget: 0,
 };
 
 function readDraft(): { values: EventInput; step: Step } | null {
@@ -306,8 +306,8 @@ export default function NewEventPage() {
                   inputMode="numeric"
                   prefix={currencyOf(values.country ?? 'TZ')}
                   optionalLabel={tc('optional')}
-                  {...register('contributionTargetTzs')}
-                  error={fieldError(formState.errors.contributionTargetTzs)}
+                  {...register('contributionTarget')}
+                  error={fieldError(formState.errors.contributionTarget)}
                 />
               </div>
             </>

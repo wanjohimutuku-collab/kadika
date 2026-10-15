@@ -29,7 +29,7 @@ rather than product claims:
 | Gap | Where | Needed for Kenya |
 |---|---|---|
 | Phone numbers | `packages/schemas/src/phone.ts` accepts only `+255` mobiles; guests, login and gate lookups depend on it | Accept `+254` (Safaricom, Airtel, Telkom ranges), per-event country, formatting and masking |
-| Currency | Amounts are integer TZS everywhere (schema, API, UI, exports) | Per-event currency (KES) and formatting |
+| Currency | Done in Phase 1 and 1b (ADR 025): per-event currency, neutral field names, formatting and exports | KES prices and payments (Phase 3) |
 | Mobile money | Payment provider adapter targets Tanzanian wallets | M-Pesa Kenya (Daraja STK push, till/paybill) or an aggregator, plus webhook verification |
 | Messaging | SMS and WhatsApp providers are configured for Tanzania | Kenyan sender ID registration, SMS gateway and WhatsApp templates |
 | Time zone | Default `Africa/Dar_es_Salaam` | `Africa/Nairobi` per event |

@@ -65,7 +65,7 @@ export const useRecordPayment = (eventId: string) =>
   useInvalidating(
     (v: {
       guestId: string;
-      amountTzs: number;
+      amount: number;
       method: ManualMethod;
       reference: string;
       note: string;
@@ -75,7 +75,7 @@ export const useRecordPayment = (eventId: string) =>
         eventId,
         {
           guestId: v.guestId,
-          amountTzs: v.amountTzs,
+          amount: v.amount,
           method: v.method,
           reference: v.reference,
           note: v.note,
@@ -91,8 +91,8 @@ export const useRecordPayment = (eventId: string) =>
   );
 export const useSetPledge = (eventId: string) =>
   useInvalidating(
-    (v: { guestId: string; amountTzs: number; note?: string }) =>
-      repo().upsertPledge(v.guestId, v.amountTzs, v.note),
+    (v: { guestId: string; amount: number; note?: string }) =>
+      repo().upsertPledge(v.guestId, v.amount, v.note),
     (v) => [['pledges', eventId], keys.event(eventId), keys.guest(v.guestId)],
   );
 export const useReissue = (eventId: string) =>

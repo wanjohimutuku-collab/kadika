@@ -1167,7 +1167,8 @@
       "payments": "Malipo",
       "support": "Msaada",
       "requests": "Maombi ya data",
-      "audit": "Kumbukumbu za wafanyakazi"
+      "audit": "Kumbukumbu za wafanyakazi",
+      "pilot": "Majaribio"
     },
     "overview": {
       "organizers": "Wateja",
@@ -1347,6 +1348,63 @@
       "support": "Msaada",
       "billing": "Malipo",
       "admin": "Msimamizi"
+    },
+    "pilot": {
+      "title": "Majaribio na vigezo vya uzinduzi",
+      "intro": "Namba zinazoamua kama nchi inaweza kufunguliwa. Kwa wafanyakazi tu; hakuna majina wala namba za simu za wageni hapa.",
+      "country": "Nchi",
+      "all": "Nchi zote",
+      "days": "Siku {days} zilizopita",
+      "gates": "Vigezo vya uzinduzi",
+      "gateCol": "Kigezo",
+      "valueCol": "Sasa",
+      "targetCol": "Lengo",
+      "statusCol": "Hali",
+      "sampleCol": "Sampuli",
+      "status": {
+        "met": "Kimefikiwa",
+        "not_met": "Hakijafikiwa",
+        "no_data": "Data hazitoshi"
+      },
+      "blocking": "Kinazuia uzinduzi",
+      "watch": "Cha kuangalia tu",
+      "gate": {
+        "reach": "Wageni waliofikiwa kwa njia yoyote",
+        "firstScan": "Mafanikio ya skani ya kwanza langoni",
+        "gateSpeed": "Wastani wa sekunde kati ya waliongia",
+        "lostScans": "Skani za nje ya mtandao zisizosawazishwa baada ya saa 1",
+        "duplicateAdmissions": "Wageni walioingia mara mbili",
+        "smsDelivery": "Kufika kwa SMS, mtandao dhaifu zaidi",
+        "paymentSuccess": "Kiwango cha malipo yaliyofanikiwa",
+        "paymentSpeed": "Wastani wa sekunde kuthibitisha malipo",
+        "manualShare": "Walioingizwa kwa mkono"
+      },
+      "rule": {
+        "min": "angalau {limit}",
+        "max": "zisizozidi {limit}"
+      },
+      "sms": "Kufika kwa SMS kwa mtandao",
+      "smsEmpty": "Hakuna ripoti za kufika kwa SMS kwa kipindi hiki.",
+      "operator": "Mtandao",
+      "total": "Zilizotumwa",
+      "delivered": "Zilizofika",
+      "failed": "Zilizoshindwa",
+      "inFlight": "Zinasubiri",
+      "rate": "Kiwango cha kufika",
+      "payments": "Malipo",
+      "method": "Njia",
+      "started": "Yaliyoanza",
+      "success": "Yaliyofanikiwa",
+      "collected": "Yaliyokusanywa",
+      "extras": "Yanayoangaliwa pia",
+      "timeouts": "Yaliyokwisha muda",
+      "late": "Mafanikio ya kuchelewa",
+      "mismatch": "Tofauti za kiasi",
+      "smsShare": "Wageni waliofikiwa kwa SMS",
+      "duplicates": "Skani zilizorudiwa",
+      "assumption": "Majina ya mitandao yanatoka kwenye msimbo wa mtandao kwenye ripoti za kufika na yanakamilika kadri mtoa huduma anavyotoa. Namba ya kasi ni pengo kati ya walioingia kwenye lango moja, kipimo mbadala cha muda kwa kila mgeni.",
+      "untilFlag": "Kenya imezimwa kwenye toleo hili, kwa hiyo Tanzania pekee inaonyeshwa.",
+      "period": "Kipindi"
     }
   },
   "mobile": {

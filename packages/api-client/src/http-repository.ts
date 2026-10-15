@@ -6,6 +6,7 @@ import {
   type Currency,
   type EventInput,
   type GuestInput,
+  type PilotMetrics,
 } from '@harusi/schemas';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
@@ -426,6 +427,13 @@ export function createHttpRepository(
     async updateProfile(patch) {
       await call('PATCH', '/v1/me', patch);
       return sessionOf(await call<ApiUser>('GET', '/v1/me'));
+    },
+
+    async opsPilotMetrics(opts = {}) {
+      const q = new URLSearchParams();
+      if (opts.country) q.set('country', opts.country);
+      if (opts.days) q.set('days', String(opts.days));
+      return call<PilotMetrics>('GET', `/v1/ops/pilot-metrics${q.size ? `?${q}` : ''}`);
     },
 
     async listEvents() {

@@ -221,6 +221,8 @@ export const messageLog = pgTable(
     status: text('status').notNull(),
     error: text('error'),
     cost: integer('cost'),
+    /** Mobile network (MCC+MNC) the delivery report named, when the provider says (Phase 5 metrics). */
+    network: text('network'),
     ...timestamps,
   },
   (t) => [

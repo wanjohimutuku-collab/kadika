@@ -1,8 +1,10 @@
 import type {
+  Country,
   EventInput,
   GuestInput,
   ManualPaymentInput,
   PaymentMethod,
+  PilotMetrics,
   RsvpInput,
 } from '@harusi/schemas';
 import type {
@@ -160,6 +162,8 @@ export interface Repository {
   opsListOrganizers(): Promise<OpsOrganizer[]>;
   opsListEvents(): Promise<OpsEvent[]>;
   opsUsage(): Promise<OpsUsage>;
+  /** Launch-gate numbers for one country (or all), for the pilot dashboard (Phase 5). */
+  opsPilotMetrics(opts?: { country?: Country | 'all'; days?: number }): Promise<PilotMetrics>;
   opsListPayments(): Promise<OpsPayment[]>;
   opsLookup(query: string): Promise<OpsLookupResult>;
   opsRevealPhone(

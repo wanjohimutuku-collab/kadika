@@ -14,6 +14,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Users,
+  Gauge,
 } from 'lucide-react';
 import { useSession } from '@/lib/queries';
 import { getRepository } from '@/lib/repo';
@@ -29,6 +30,7 @@ const ITEMS = [
   { key: 'organizers', href: '/ops/organizers', icon: Users },
   { key: 'events', href: '/ops/events', icon: CalendarHeart },
   { key: 'usage', href: '/ops/usage', icon: Activity },
+  { key: 'pilot', href: '/ops/pilot', icon: Gauge },
   { key: 'payments', href: '/ops/payments', icon: CreditCard },
   { key: 'support', href: '/ops/support', icon: LifeBuoy },
   { key: 'requests', href: '/ops/requests', icon: ShieldCheck },

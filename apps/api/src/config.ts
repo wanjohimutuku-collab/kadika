@@ -9,6 +9,10 @@ export interface Config {
   shortBaseUrl: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
+  /** Rollback levers for Kenya without turning it off (docs/ops/kenya-pilot-runbook.md): no new Kenyan
+   * messages, or no new Kenyan payment prompts. Callbacks and reconciliation keep running. */
+  kenyaSendingPaused: boolean;
+  kenyaPaymentsPaused: boolean;
   /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
   shortBaseUrls: Partial<Record<Country, string>>;
   /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
@@ -81,6 +85,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
+    kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',
+    kenyaPaymentsPaused: env.KENYA_PAYMENTS_PAUSED === '1' || env.KENYA_PAYMENTS_PAUSED === 'true',
     shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
     paymentProviderKe: env.PAYMENT_PROVIDER_KE ?? 'fake',
     paymentKe:

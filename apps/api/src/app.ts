@@ -30,6 +30,7 @@ import { PrintService } from './services/print';
 import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
 import { fromLegacyKeys, withLegacyAliases } from './compat';
+import { PilotMetricsService } from './services/pilot-metrics';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
 
@@ -145,6 +146,7 @@ export function createApp(deps: Deps) {
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
+  const pilotSvc = new PilotMetricsService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
@@ -360,7 +362,14 @@ export function createApp(deps: Deps) {
     const id = typeof form.id === 'string' ? form.id : '';
     if (!id) throw new ApiError('validation', 'Missing message id');
     const status = typeof form.status === 'string' ? form.status : undefined;
-    const known = await deliverySvc.recordDelivery(id, parseAfricasTalkingStatus(status));
+    const known = await deliverySvc.recordDelivery(id, parseAfricasTalkingStatus(status), {
+      network:
+        typeof form.networkCode === 'string' && form.networkCode ? form.networkCode : undefined,
+      failureReason:
+        typeof form.failureReason === 'string' && form.failureReason
+          ? form.failureReason
+          : undefined,
+    });
     return c.json({ ok: true, known });
   });
   app.post('/v1/c/:token/rsvp', async (c) => {
@@ -662,6 +671,17 @@ export function createApp(deps: Deps) {
     const headers: Record<string, string> = {};
     c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
     return c.json(await pledgeSvc.webhook(c.req.param('provider'), raw, headers));
+  });
+  // ---- staff: launch-gate numbers per country (Phase 5, docs/ops/kenya-pilot-runbook.md)
+  app.get('/v1/ops/pilot-metrics', async (c) => {
+    const q = parse(
+      z.object({
+        country: z.enum(['TZ', 'KE', 'all']).optional(),
+        days: z.coerce.number().int().min(1).max(365).optional(),
+      }),
+      c.req.query(),
+    );
+    return c.json(await pilotSvc.report(c.get('userId'), q));
   });
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),

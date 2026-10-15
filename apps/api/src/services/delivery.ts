@@ -208,6 +208,9 @@ export class DeliveryService {
     daysLeft?: number,
     built?: { text: string; template: MessageTemplate },
   ): Promise<{ ok: true; channel: MessageChannel } | { ok: false; error: string }> {
+    // Rollback lever: nothing new goes out for Kenya; the invitation stays `created` for a later resend.
+    if (event.country !== 'TZ' && this.deps.config.kenyaSendingPaused)
+      return { ok: false, error: 'sending paused' };
     const { text, template } = built ?? (await this.text(guest, inv, event, daysLeft));
     let lastError = 'no provider configured';
     for (const ch of channels) {
@@ -238,7 +241,11 @@ export class DeliveryService {
    * Delivery webhook (WhatsApp `messages.update`, SMS reports). Moves the message and, for a
    * delivered/read message, the invitation forward — never backwards (§5, P8).
    */
-  async recordDelivery(providerMsgId: string, state: DeliveryState): Promise<boolean> {
+  async recordDelivery(
+    providerMsgId: string,
+    state: DeliveryState,
+    extra: { network?: string; failureReason?: string } = {},
+  ): Promise<boolean> {
     const [m] = await this.deps.db
       .select()
       .from(messageLog)
@@ -247,7 +254,14 @@ export class DeliveryService {
     if (state === 'pending') return true;
     const status = state === 'failed' ? 'failed' : state;
     if (m.status !== 'read') {
-      await this.deps.db.update(messageLog).set({ status }).where(eq(messageLog.id, m.id));
+      await this.deps.db
+        .update(messageLog)
+        .set({
+          status,
+          ...(extra.network ? { network: extra.network } : {}),
+          ...(state === 'failed' && extra.failureReason ? { error: extra.failureReason } : {}),
+        })
+        .where(eq(messageLog.id, m.id));
     }
     if (state === 'delivered' || state === 'read') {
       await this.deps.db

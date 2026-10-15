@@ -8,8 +8,10 @@ import {
   type GuestInput,
   type InvitationStatus,
   type ManualPaymentInput,
+  type Country,
   type MessageChannel,
   type PaymentMethod,
+  type PilotMetrics,
   type RsvpInput,
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
@@ -2107,6 +2109,100 @@ export class MockRepository implements Repository {
         .filter((e) => !e.deletedAt)
         .map((e) => this.eventRow(e))
         .sort((a, b) => b.dateStart.localeCompare(a.dateStart));
+    });
+  }
+
+  /** Demo numbers from the browser state (Tanzania only); the real API computes them from the database. */
+  opsPilotMetrics(opts: { country?: Country | 'all'; days?: number } = {}): Promise<PilotMetrics> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      const country = opts.country ?? 'all';
+      const days = opts.days ?? 30;
+      const since = this.now() - days * DAY;
+      const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 1000 : null);
+      const evs = this.state.events.filter((e) => country === 'all' || e.country === country);
+      const ids = new Set(evs.map((e) => e.id));
+      const guests = this.state.guests.filter(
+        (g) => ids.has(g.eventId) && !g.deletedAt && g.phoneE164,
+      );
+      const reached = guests.filter((g) =>
+        ['delivered', 'opened', 'confirmed', 'declined', 'checked_in'].includes(g.status),
+      ).length;
+      const sentGuests = guests.filter((g) => g.channelLast);
+      const viaSms = sentGuests.filter((g) => g.channelLast === 'sms').length;
+      const msgs = this.state.messages.filter(
+        (m) => ids.has(m.eventId) && Date.parse(m.createdAt) >= since && m.channel !== 'print',
+      );
+      const channel = (c: 'sms' | 'whatsapp') => {
+        const list = msgs.filter((m) => m.channel === c);
+        const delivered = list.filter(
+          (m) => m.status === 'delivered' || m.status === 'read',
+        ).length;
+        const failed = list.filter((m) => m.status === 'failed').length;
+        return {
+          channel: c,
+          total: list.length,
+          delivered,
+          failed,
+          inFlight: list.length - delivered - failed,
+          deliveryRate: rate(delivered, list.length),
+        };
+      };
+      const pays = this.state.payments.filter(
+        (p) => ids.has(p.eventId) && p.method !== 'cash' && p.method !== 'bank',
+      );
+      const ok = pays.filter((p) => p.status === 'success');
+      const methods = [...new Set(pays.map((p) => p.method))];
+      const scans = this.state.scans.filter(
+        (s) => ids.has(s.eventId) && Date.parse(s.scannedAt) >= since,
+      );
+      const n = (r: string) => scans.filter((s) => s.result === r).length;
+      const bad = n('invalid_sig') + n('wrong_event') + n('not_found');
+      return {
+        country,
+        windowDays: days,
+        generatedAt: new Date(this.now()).toISOString(),
+        events: evs.length,
+        reach: { guestsWithPhone: guests.length, reached, rate: rate(reached, guests.length) },
+        smsPath: { invited: sentGuests.length, viaSms, share: rate(viaSms, sentGuests.length) },
+        messages: [channel('sms'), channel('whatsapp')],
+        smsByNetwork: [],
+        payments: {
+          started: pays.length,
+          success: ok.length,
+          failed: pays.filter((p) => p.status === 'failed').length,
+          pending: pays.filter((p) => p.status === 'pending').length,
+          successRate: rate(ok.length, pays.length),
+          medianSecondsToConfirm: null,
+          timeouts: 0,
+          lateSuccesses: 0,
+          amountMismatches: 0,
+          byMethod: methods.map((m) => {
+            const rows = pays.filter((p) => p.method === m);
+            const s = rows.filter((p) => p.status === 'success').length;
+            return {
+              method: m,
+              started: rows.length,
+              success: s,
+              successRate: rate(s, rows.length),
+            };
+          }),
+          collected: ok.length
+            ? [{ currency: 'TZS', amount: ok.reduce((a, p) => a + p.amount, 0) }]
+            : [],
+        },
+        gate: {
+          scans: scans.length,
+          admitted: n('ok') + n('manual_ok'),
+          firstScanSuccessRate: rate(n('ok'), n('ok') + bad),
+          manualShare: rate(n('manual_ok'), n('ok') + n('manual_ok')),
+          duplicateScans: n('duplicate'),
+          duplicateAdmissions: 0,
+          offlineScans: 0,
+          unsyncedOffline: 0,
+          medianSecondsBetweenAdmissions: null,
+        },
+      };
     });
   }
 

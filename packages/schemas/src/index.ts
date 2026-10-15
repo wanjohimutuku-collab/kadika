@@ -3,6 +3,8 @@ export * from './country';
 export * from './phone';
 export * from './money';
 export * from './time';
+export * from './operators';
+export * from './pilot';
 export * from './import';
 export * from './short-code';
 export * from './domain';

@@ -11,6 +11,8 @@
     "./country": "./src/country.ts",
     "./money": "./src/money.ts",
     "./time": "./src/time.ts",
+    "./operators": "./src/operators.ts",
+    "./pilot": "./src/pilot.ts",
     "./import": "./src/import.ts",
     "./short-code": "./src/short-code.ts"
   },

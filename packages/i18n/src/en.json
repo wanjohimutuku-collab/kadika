@@ -1163,7 +1163,8 @@
       "payments": "Payments",
       "support": "Support",
       "requests": "Data requests",
-      "audit": "Staff audit log"
+      "audit": "Staff audit log",
+      "pilot": "Pilot"
     },
     "overview": {
       "organizers": "Customers",
@@ -1343,6 +1344,63 @@
       "support": "Support",
       "billing": "Billing",
       "admin": "Admin"
+    },
+    "pilot": {
+      "title": "Pilot and launch gates",
+      "intro": "Numbers that decide whether a country can open. Staff only; no guest names or phone numbers appear here.",
+      "country": "Country",
+      "all": "All countries",
+      "days": "Last {days} days",
+      "gates": "Launch gates",
+      "gateCol": "Gate",
+      "valueCol": "Now",
+      "targetCol": "Target",
+      "statusCol": "Status",
+      "sampleCol": "Sample",
+      "status": {
+        "met": "Met",
+        "not_met": "Not met",
+        "no_data": "Not enough data"
+      },
+      "blocking": "Blocks launch",
+      "watch": "Watch only",
+      "gate": {
+        "reach": "Guests reached by any channel",
+        "firstScan": "First-scan success at the gate",
+        "gateSpeed": "Median seconds between admissions",
+        "lostScans": "Offline scans not synced after 1 hour",
+        "duplicateAdmissions": "Guests admitted twice",
+        "smsDelivery": "SMS delivery, weakest operator",
+        "paymentSuccess": "Payment success rate",
+        "paymentSpeed": "Median seconds to confirm a payment",
+        "manualShare": "Manual admissions"
+      },
+      "rule": {
+        "min": "at least {limit}",
+        "max": "at most {limit}"
+      },
+      "sms": "SMS delivery by operator",
+      "smsEmpty": "No SMS delivery reports in this period.",
+      "operator": "Operator",
+      "total": "Sent",
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "inFlight": "Waiting",
+      "rate": "Delivery rate",
+      "payments": "Payments",
+      "method": "Method",
+      "started": "Started",
+      "success": "Succeeded",
+      "collected": "Collected",
+      "extras": "Also watched",
+      "timeouts": "Timed out",
+      "late": "Late successes",
+      "mismatch": "Amount differences",
+      "smsShare": "Guests reached by SMS",
+      "duplicates": "Duplicate scans",
+      "assumption": "Operator names come from the network code in delivery reports and are only as complete as the provider makes them. The speed number is the gap between admissions at one gate, a proxy for time per guest.",
+      "untilFlag": "Kenya is switched off in this build, so only Tanzania is shown.",
+      "period": "Period"
     }
   },
   "mobile": {

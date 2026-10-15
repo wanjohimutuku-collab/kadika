@@ -170,6 +170,15 @@ Exit: counsel sign-off; native review complete; site copy matches what works.
 
 ### Phase 5: pilot and launch gates (about 3 to 4 weeks, including the weddings)
 
+**Status (2026-10-15): runbook, gates and instrumentation done; the pilot itself is not run.** See
+`docs/ops/kenya-pilot-runbook.md` (pre-flight, roles and support checklist, gates, event review, rollback
+levers, severity). Instrumentation behind `KENYA_ENABLED`: SMS delivery reports record the mobile network;
+`GET /v1/ops/pilot-metrics` (staff only) computes reach, SMS delivery per operator, payment success and
+time to confirm, and the gate numbers per country; `/ops/pilot` shows them against the gates
+(`evaluateGates`); `KENYA_SENDING_PAUSED` and `KENYA_PAYMENTS_PAUSED` are rollback levers, tested. Open:
+the owner confirms the proposed SMS and payment limits, names the support owner and engineer on call, and
+the pre-flight items (providers, counsel, ODPC, native review) are closed before any real event.
+
 - Run 2 or 3 real Kenyan events with a named support owner and a rollback plan.
 - Measure the spec section 14 KPIs per country: reach at least 95% via any channel, first-scan success at
   least 95%, median gate time under 8 seconds, zero lost scans, share of SMS-only guests; plus payment

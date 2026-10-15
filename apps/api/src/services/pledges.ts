@@ -380,6 +380,11 @@ export class PledgeService {
       throw new ApiError('forbidden', 'Payments are closed for this event', {
         reason: 'payments_disabled',
       });
+    // Rollback lever: no new Kenyan prompts, while callbacks and reconciliation keep settling old ones.
+    if (event.country !== 'TZ' && this.deps.config.kenyaPaymentsPaused)
+      throw new ApiError('forbidden', 'Payments are paused for this country', {
+        reason: 'payments_paused',
+      });
     const limits = onlinePaymentLimits(event.country);
     if (!Number.isInteger(input.amount) || input.amount < limits.min || input.amount > limits.max)
       throw new ApiError('validation', 'Amount out of range', {

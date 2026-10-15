@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-react';
 import type { CardView, PaymentStart, PaymentStatusView } from '@harusi/api-client';
 import type { PaymentMethod } from '@harusi/schemas';
-import { paymentMethodsFor } from '@harusi/schemas/country';
+import { onlinePaymentLimits, paymentMethodsFor } from '@harusi/schemas/country';
 import { parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { Button, buttonClasses } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { themeStyle } from '@/lib/theme';
 import { readCachedCard } from '@/lib/card-cache';
 import { cn } from '@/lib/cn';
 
-const MIN_AMOUNT = 1000;
 const WAIT_SECONDS = 60;
 
 type Step =
@@ -36,6 +35,7 @@ export function PayFlow({ token }: { token: string }) {
   const [card, setCard] = useState<CardView | null>(null);
   const currency = card?.event?.currency ?? 'TZS';
   const country = card?.event?.country ?? 'TZ';
+  const minAmount = onlinePaymentLimits(country).min;
   const [loadError, setLoadError] = useState(false);
   const [step, setStep] = useState<Step>({ kind: 'form' });
   const [amount, setAmount] = useState('');
@@ -112,9 +112,9 @@ export function PayFlow({ token }: { token: string }) {
     const next: typeof errors = {};
     const n = Number(amount.replace(/[^\d]/g, ''));
     if (!amount.trim() || !Number.isFinite(n)) next.amount = tv('amount.invalid');
-    else if (n < MIN_AMOUNT)
+    else if (n < minAmount)
       next.amount = tv('amount.min', {
-        min: formatMoney(MIN_AMOUNT, currency).replace(`${currency} `, ''),
+        min: formatMoney(minAmount, currency).replace(`${currency} `, ''),
       });
     const p = parsePhone(phone, country);
     if (!p.ok) next.phone = tv(`phone.${p.error}`);

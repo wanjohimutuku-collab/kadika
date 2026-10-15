@@ -12,6 +12,16 @@ export interface Config {
   /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
   shortBaseUrls: Partial<Record<Country, string>>;
   /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
+  /** Mobile-money provider for Kenya: `fake` or `aggregator` (only used when Kenya is enabled, ADR 027). */
+  paymentProviderKe: string;
+  paymentKe: {
+    baseUrl: string;
+    apiKey: string;
+    webhookSecret: string;
+    callbackUrl: string;
+  } | null;
+  /** Webhook secret for the Kenyan fake provider (falls back to `paymentWebhookSecret`). */
+  paymentWebhookSecretKe: string | null;
   smsProviderKe: string;
   africasTalking: { username: string; apiKey: string; senderId?: string; baseUrl?: string } | null;
   smsProvider: string;
@@ -72,6 +82,20 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
+    paymentProviderKe: env.PAYMENT_PROVIDER_KE ?? 'fake',
+    paymentKe:
+      env.PAYMENT_API_URL_KE &&
+      env.PAYMENT_API_KEY_KE &&
+      env.PAYMENT_WEBHOOK_SECRET_KE &&
+      env.PAYMENT_CALLBACK_URL_KE
+        ? {
+            baseUrl: env.PAYMENT_API_URL_KE.replace(/\/$/, ''),
+            apiKey: env.PAYMENT_API_KEY_KE,
+            webhookSecret: env.PAYMENT_WEBHOOK_SECRET_KE,
+            callbackUrl: env.PAYMENT_CALLBACK_URL_KE,
+          }
+        : null,
+    paymentWebhookSecretKe: env.PAYMENT_WEBHOOK_SECRET_KE ?? null,
     smsProviderKe: env.SMS_PROVIDER_KE ?? 'fake',
     africasTalking:
       env.AT_USERNAME && env.AT_API_KEY

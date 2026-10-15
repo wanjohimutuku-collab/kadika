@@ -19,6 +19,8 @@ export interface Deps {
   rateStore?: RateStore;
   /** Mobile-money aggregator (fake in dev and tests until one is chosen, ADR 023). */
   payments?: PaymentProvider;
+  /** Mobile-money providers for countries other than Tanzania (Kenya, ADR 027). */
+  paymentsByCountry?: Partial<Record<Country, PaymentProvider>>;
   /** WhatsApp Cloud API adapter (primary channel, §7.2). Optional: without it everything goes by SMS. */
   whatsapp?: MessagingProvider;
   /** NextSMS delivery report lookup (polled; there is no assumed callback format). */

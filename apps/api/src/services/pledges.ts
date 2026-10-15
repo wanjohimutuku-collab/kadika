@@ -1,12 +1,14 @@
 import { createHash } from 'node:crypto';
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { events, guests, newId, payments, pledges, users } from '@harusi/db';
 import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { hashGuestToken } from '@harusi/crypto';
 import { invitations } from '@harusi/db';
-import { allowedCountries, paymentMethodsFor } from '@harusi/schemas/country';
+import { allowedCountries, onlinePaymentLimits, paymentMethodsFor } from '@harusi/schemas/country';
+import type { PaymentProvider, PaymentWebhookEvent } from '@harusi/payments';
+import { allPaymentProviders, paymentsFor } from '../payment-routing';
 import { eventCountry, type EventService } from './events';
 import { recordAudit } from './audit';
 
@@ -14,8 +16,13 @@ export type PledgeStatus = 'pledged' | 'partial' | 'paid' | 'waived';
 export const MANUAL_METHODS = ['cash', 'bank', 'mpesa', 'mixx', 'airtel', 'halopesa'] as const;
 export const MOBILE_METHODS = ['mpesa', 'mixx', 'airtel', 'halopesa'] as const;
 const MAX_AMOUNT = 100_000_000;
-const MIN_ONLINE_AMOUNT = 1_000;
 const PAY_TIMEOUT_MS = 60_000;
+/** A provider that has no record of a reference this long after its prompt expired never got it. */
+const UNKNOWN_GRACE_MS = 2 * 60_000;
+/** A payment still pending this long after it started is given up as a timeout. */
+const PENDING_LIMIT_MS = 30 * 60_000;
+/** A timed-out payment is still checked for a late success for this long (money wins). */
+const LATE_SUCCESS_WINDOW_MS = 24 * 3_600_000;
 const REF_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 /** A pledge's status follows what has been paid; "waived" is the committee's explicit choice. */
@@ -363,24 +370,22 @@ export class PledgeService {
     input: { amount: number; phone: string; method: (typeof MOBILE_METHODS)[number] },
     idempotencyKey: string,
   ) {
-    const provider = this.deps.payments;
+    const { guest, event } = await this.guestByToken(token);
+    const provider = paymentsFor(this.deps, event.country);
     if (!provider)
       throw new ApiError('forbidden', 'Payments are not configured', {
         reason: 'payments_disabled',
       });
-    const { guest, event } = await this.guestByToken(token);
     if (!event.pledgesEnabled || event.status === 'archived')
       throw new ApiError('forbidden', 'Payments are closed for this event', {
         reason: 'payments_disabled',
       });
-    if (
-      !Number.isInteger(input.amount) ||
-      input.amount < MIN_ONLINE_AMOUNT ||
-      input.amount > MAX_AMOUNT
-    )
+    const limits = onlinePaymentLimits(event.country);
+    if (!Number.isInteger(input.amount) || input.amount < limits.min || input.amount > limits.max)
       throw new ApiError('validation', 'Amount out of range', {
         field: 'amount',
-        min: MIN_ONLINE_AMOUNT,
+        min: limits.min,
+        max: limits.max,
       });
     if (!paymentMethodsFor(event.country).includes(input.method))
       throw new ApiError('validation', 'Payment method is not available for this event', {
@@ -432,6 +437,7 @@ export class PledgeService {
       const r = await provider.startCollection({
         reference,
         amount: input.amount,
+        currency: event.currency,
         phoneE164: phone.e164,
         method: input.method,
         description: `Mchango - ${event.coupleNames}`,
@@ -488,9 +494,8 @@ export class PledgeService {
     rawBody: string,
     headers: Record<string, string | undefined>,
   ) {
-    const provider = this.deps.payments;
-    if (!provider || provider.name !== providerName)
-      throw new ApiError('not_found', 'Unknown provider');
+    const provider = allPaymentProviders(this.deps).find((p) => p.name === providerName);
+    if (!provider) throw new ApiError('not_found', 'Unknown provider');
     if (!provider.verifyWebhook(rawBody, headers))
       throw new ApiError('unauthorized', 'Bad webhook signature');
     let body: unknown;
@@ -501,15 +506,52 @@ export class PledgeService {
     }
     const ev = provider.parseWebhook(body);
     if (!ev) throw new ApiError('validation', 'Unrecognised webhook');
-    const [p] = await this.deps.db
-      .select()
+    return this.applyOutcome(provider, ev, 'payment.webhook');
+  }
+
+  /**
+   * The one place a provider's answer (callback or reconciliation query) changes a payment. Atomic:
+   * only the call that finds the row still open can finish it. A late success also reopens a payment
+   * we gave up on as a timeout, because money that arrived must not be lost.
+   */
+  private async applyOutcome(
+    provider: PaymentProvider,
+    ev: PaymentWebhookEvent,
+    action: 'payment.webhook' | 'payment.reconciled',
+  ) {
+    const [row] = await this.deps.db
+      .select({ p: payments, currency: events.currency, eventId: events.id })
       .from(payments)
+      .innerJoin(guests, eq(guests.id, payments.guestId))
+      .innerJoin(events, eq(events.id, guests.eventId))
       .where(eq(payments.providerRef, ev.reference));
-    if (!p || p.provider !== provider.name)
+    if (!row || row.p.provider !== provider.name)
       return { ok: true, known: false, applied: false, duplicate: false };
+    const p = row.p;
+    // Never credit money in another currency than the event's (ADR 027).
+    if (ev.currency && ev.currency.toUpperCase() !== row.currency) {
+      await this.audit(
+        null,
+        'payment.currency_mismatch',
+        p.id,
+        { reference: ev.reference, expected: row.currency, got: ev.currency },
+        row.eventId,
+      );
+      throw new ApiError('validation', 'Currency does not match the event', {
+        reason: 'currency_mismatch',
+      });
+    }
     const raw = (p.raw ?? {}) as Record<string, unknown>;
-    // The single atomic step: only the call that finds the row still pending can finish it.
     const mismatch = ev.status === 'success' && ev.amount !== undefined && ev.amount !== p.amount;
+    const open =
+      ev.status === 'success'
+        ? or(
+            eq(payments.status, 'pending'),
+            and(eq(payments.status, 'failed'), sql`${payments.raw}->>'failureReason' = 'timeout'`),
+          )
+        : eq(payments.status, 'pending');
+    const late = p.status === 'failed';
+    const { failureReason: _drop, ...rawKept } = raw;
     const [done] = await this.deps.db
       .update(payments)
       .set({
@@ -518,13 +560,14 @@ export class PledgeService {
         // money truth is what the provider says it took, not what the guest typed
         amount: ev.status === 'success' && ev.amount !== undefined ? ev.amount : p.amount,
         raw: {
-          ...raw,
+          ...(ev.status === 'success' ? rawKept : raw),
           ...(ev.providerRef ? { providerRef: ev.providerRef } : {}),
           ...(ev.failureReason ? { failureReason: ev.failureReason } : {}),
           ...(mismatch ? { amountMismatch: { requested: p.amount, received: ev.amount } } : {}),
+          ...(late && ev.status === 'success' ? { lateSuccess: true } : {}),
         },
       })
-      .where(and(eq(payments.id, p.id), eq(payments.status, 'pending')))
+      .where(and(eq(payments.id, p.id), open))
       .returning({ id: payments.id });
     if (!done) {
       await this.deps.db
@@ -537,16 +580,91 @@ export class PledgeService {
       await this.recompute(p.guestId);
       await this.audit(
         null,
-        'payment.webhook',
+        action,
         p.id,
         {
           reference: ev.reference,
           amount: ev.amount ?? p.amount,
+          ...(late ? { late: true } : {}),
+          ...(mismatch ? { requested: p.amount } : {}),
         },
-        (await this.guestEvent(p.guestId)).eventId,
+        row.eventId,
       );
     }
     return { ok: true, known: true, applied: true, duplicate: false };
+  }
+
+  /**
+   * Scheduled reconciliation (ADR 027): asks the provider about payments still open past their prompt
+   * window and applies the answer through the same atomic step as a callback. A payment the provider
+   * never received, or that is still pending after 30 minutes, becomes `failed` (`timeout`); a late
+   * success on such a payment still wins for 24 hours.
+   */
+  async reconcilePending(
+    limit = 100,
+  ): Promise<{ checked: number; applied: number; timedOut: number }> {
+    const now = this.deps.now();
+    const rows = await this.deps.db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          sql`${payments.provider} <> 'manual'`,
+          or(
+            and(eq(payments.status, 'pending'), sql`${payments.expiresAt} <= ${now}`),
+            and(
+              eq(payments.status, 'failed'),
+              sql`${payments.raw}->>'failureReason' = 'timeout'`,
+              sql`${payments.expiresAt} > ${new Date(now.getTime() - LATE_SUCCESS_WINDOW_MS)}`,
+            ),
+          ),
+        ),
+      )
+      .limit(limit);
+    const providers = allPaymentProviders(this.deps);
+    const out = { checked: 0, applied: 0, timedOut: 0 };
+    for (const p of rows) {
+      const provider = providers.find((x) => x.name === p.provider);
+      if (!provider?.queryCollection) continue;
+      let r;
+      try {
+        r = await provider.queryCollection(p.providerRef);
+      } catch {
+        continue; // retried on the next tick
+      }
+      out.checked++;
+      const wasTimeout = p.status === 'failed';
+      if (r.status === 'success' || (r.status === 'failed' && !wasTimeout)) {
+        const res = await this.applyOutcome(
+          provider,
+          {
+            reference: p.providerRef,
+            status: r.status,
+            amount: r.amount,
+            currency: r.currency,
+            paidAt: r.paidAt,
+            failureReason: r.failureReason,
+          },
+          'payment.reconciled',
+        );
+        if (res.applied) out.applied++;
+        continue;
+      }
+      if (wasTimeout) continue;
+      const expiredFor = now.getTime() - (p.expiresAt ?? p.createdAt).getTime();
+      // Anchored on `expiresAt` (set from the service clock) rather than the row's insert time.
+      const age = expiredFor + PAY_TIMEOUT_MS;
+      const giveUp =
+        (r.status === 'unknown' && expiredFor >= UNKNOWN_GRACE_MS) || age >= PENDING_LIMIT_MS;
+      if (!giveUp) continue;
+      const [gone] = await this.deps.db
+        .update(payments)
+        .set({ status: 'failed', raw: { ...((p.raw ?? {}) as object), failureReason: 'timeout' } })
+        .where(and(eq(payments.id, p.id), eq(payments.status, 'pending')))
+        .returning({ id: payments.id });
+      if (gone) out.timedOut++;
+    }
+    return out;
   }
 
   // ---- exports

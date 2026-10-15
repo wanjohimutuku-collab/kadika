@@ -23,6 +23,8 @@ export interface CountryInfo {
   currency: Currency;
   timezone: string;
   methods: readonly MobileMoneyMethodId[];
+  /** Whole-unit limits for one online (mobile-money) payment; assumptions to confirm (ADR 027). */
+  onlinePayment: { min: number; max: number };
 }
 
 export const COUNTRY_INFO: Record<Country, CountryInfo> = {
@@ -34,6 +36,7 @@ export const COUNTRY_INFO: Record<Country, CountryInfo> = {
     currency: 'TZS',
     timezone: 'Africa/Dar_es_Salaam',
     methods: ['mpesa', 'mixx', 'airtel', 'halopesa'],
+    onlinePayment: { min: 1_000, max: 100_000_000 },
   },
   KE: {
     code: 'KE',
@@ -44,6 +47,7 @@ export const COUNTRY_INFO: Record<Country, CountryInfo> = {
     currency: 'KES',
     timezone: 'Africa/Nairobi',
     methods: ['mpesa', 'airtel'],
+    onlinePayment: { min: 10, max: 250_000 },
   },
 };
 
@@ -54,6 +58,8 @@ export function allowedCountries(kenyaEnabled: boolean): readonly Country[] {
 
 export const currencyOf = (country: Country): Currency => COUNTRY_INFO[country].currency;
 export const timezoneOf = (country: Country): string => COUNTRY_INFO[country].timezone;
+
+export const onlinePaymentLimits = (country: Country) => COUNTRY_INFO[country].onlinePayment;
 
 export function paymentMethodsFor(country: Country): readonly MobileMoneyMethodId[] {
   return COUNTRY_INFO[country].methods;

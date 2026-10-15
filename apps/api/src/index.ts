@@ -8,7 +8,11 @@ import {
   NextSmsProvider,
   type MessagingProvider,
 } from '@harusi/messaging';
-import { FakePaymentProvider, type PaymentProvider } from '@harusi/payments';
+import {
+  AggregatorPaymentProvider,
+  FakePaymentProvider,
+  type PaymentProvider,
+} from '@harusi/payments';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { systemRandom, type Deps } from './context';
@@ -99,6 +103,29 @@ if (config.paymentProvider === 'fake') {
   );
 }
 
+// Kenyan mobile money (ADR 027): only when Kenya is enabled. `fake` needs a webhook secret, the
+// aggregator needs its URL, key, secret and public callback URL; anything else stops startup.
+const paymentsByCountry: Deps['paymentsByCountry'] = {};
+if (config.kenyaEnabled) {
+  if (config.paymentProviderKe === 'aggregator') {
+    if (!config.paymentKe)
+      throw new Error(
+        'PAYMENT_PROVIDER_KE=aggregator needs PAYMENT_API_URL_KE, PAYMENT_API_KEY_KE, PAYMENT_WEBHOOK_SECRET_KE and PAYMENT_CALLBACK_URL_KE',
+      );
+    paymentsByCountry.KE = new AggregatorPaymentProvider({
+      name: 'aggregator-ke',
+      ...config.paymentKe,
+    });
+  } else if (config.paymentProviderKe === 'fake') {
+    const secret = config.paymentWebhookSecretKe ?? config.paymentWebhookSecret;
+    if (secret) paymentsByCountry.KE = new FakePaymentProvider(secret, undefined, 'fake-ke');
+  } else {
+    throw new Error(
+      `Unknown PAYMENT_PROVIDER_KE "${config.paymentProviderKe}" (fake | aggregator)`,
+    );
+  }
+}
+
 const reportError = initObservability(
   config.sentryDsn ?? undefined,
   process.env.NODE_ENV ?? 'development',
@@ -110,6 +137,7 @@ const deps: Deps = {
   smsByCountry,
   whatsapp,
   payments,
+  paymentsByCountry,
   reportError,
   smsReport,
   config,

@@ -32,6 +32,12 @@ export async function createTestContext(
   const smsKe = new FakeMessagingProvider('sms', (to) => fail.sms(to), 'fake-ke');
   const whatsapp = new FakeMessagingProvider('whatsapp', (to) => fail.wa(to));
   const payments = new FakePaymentProvider('pay-secret-for-tests', (phone) => fail.pay(phone));
+  // The Kenyan mobile-money route (used only by Kenyan events, which need KENYA_ENABLED).
+  const paymentsKe = new FakePaymentProvider(
+    'pay-secret-ke-for-tests',
+    (phone) => fail.pay(phone),
+    'fake-ke',
+  );
   // mulberry32: a real PRNG (a Weyl sequence correlates badly with the short-code generator).
   let seed = 0x9e3779b9;
   const next = () => {
@@ -48,6 +54,7 @@ export async function createTestContext(
     smsByCountry: { KE: smsKe },
     whatsapp,
     payments,
+    paymentsByCountry: { KE: paymentsKe },
     sleep: async () => {},
     config: loadConfig({
       DATABASE_URL: 'pglite',
@@ -74,6 +81,7 @@ export async function createTestContext(
     smsKe,
     whatsapp,
     payments,
+    paymentsKe,
     fail,
     clock,
     db,

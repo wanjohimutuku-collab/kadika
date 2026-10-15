@@ -127,6 +127,13 @@ statuses flow back; a 200-guest simulated send ends in correct statuses (same ba
 
 ### Phase 3: M-Pesa Kenya payments (about 3 to 4 weeks plus onboarding time)
 
+**Status (2026-10-15): code done behind `KENYA_ENABLED`, model C (aggregator), see ADR 027.** Provider per
+country, an aggregator-shaped adapter (STK push, signed callbacks, query), per-country method lists and
+online limits, a currency guard on callbacks, a reconciliation job in the worker tick with late-success
+handling, and KES statements. Still open: choosing and onboarding a real aggregator (credentials, KYC,
+sandbox, one live real-money test), the wire-format mapping for that aggregator, and confirming the KES
+limits and fees with it; model A (custody) is not built.
+
 - Adapter implementing `PaymentProvider` for the chosen route: STK push (customer approves on phone, no
   PIN seen by us) and a confirmation callback; HMAC or provider signature verification on the raw body;
   idempotency by provider reference (replay 5 times records one payment).

@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 import type { Deps } from './context';
 import { DeliveryService, type SendInput } from './services/delivery';
 import { EventService } from './services/events';
+import { PledgeService } from './services/pledges';
 
 const QUEUE = 'harusi-delivery';
 const TICK_EVERY_MS = 15 * 60_000;
@@ -14,11 +15,13 @@ export interface SendJobData {
 }
 
 /** The scheduled work: WhatsApp→SMS fallback, T-14/7/1 reminders, SMS delivery reports. */
-export async function runTick(deps: Deps, delivery: DeliveryService) {
+export async function runTick(deps: Deps, delivery: DeliveryService, pledges?: PledgeService) {
   const fallback = await delivery.fallbackUndelivered(deps.config.whatsappFallbackHours);
   const reminders = await delivery.sendReminders();
   const reports = await delivery.pollSmsReports();
-  return { fallback, reminders, reports };
+  // Provider payments still open past their prompt window are settled by asking the provider (ADR 027).
+  const payments = pledges ? await pledges.reconcilePending() : null;
+  return { fallback, reminders, reports, payments };
 }
 
 /**
@@ -29,7 +32,9 @@ export function startWorker(deps: Deps, redisUrl: string) {
   const connection = new Redis(redisUrl, {
     maxRetriesPerRequest: null,
   }) as unknown as ConnectionOptions;
-  const delivery = new DeliveryService(deps, new EventService(deps));
+  const events = new EventService(deps);
+  const delivery = new DeliveryService(deps, events);
+  const pledges = new PledgeService(deps, events);
   const queue = new Queue(QUEUE, { connection });
   void queue.add(
     'tick',
@@ -39,7 +44,7 @@ export function startWorker(deps: Deps, redisUrl: string) {
   const worker = new Worker(
     QUEUE,
     async (job) => {
-      if (job.name === 'tick') return runTick(deps, delivery);
+      if (job.name === 'tick') return runTick(deps, delivery, pledges);
       if (job.name === 'send') {
         const d = job.data as SendJobData;
         return delivery.send(d.eventId, d.userId, d.input);

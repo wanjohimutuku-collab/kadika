@@ -12,7 +12,7 @@ import {
   type ManualMethod,
 } from '../../../../../src/lib/queries';
 import { getRepository } from '../../../../../src/lib/repo';
-import { useT } from '../../../../../src/lib/i18n';
+import { useCountryT } from '../../../../../src/lib/i18n';
 import { formatMoney } from '../../../../../src/lib/format';
 import { useEventLocale } from '../../../../../src/lib/country';
 import { useColors } from '../../../../../src/lib/theme';
@@ -49,8 +49,8 @@ const TONE = { paid: 'success', partial: 'warning', pledged: 'neutral', waived: 
 /** Michango (§17.4): totals, who owes what, record a payment, export. Hidden from gate agents. */
 export default function Pledges() {
   const { id } = useGlobalSearchParams<{ id: string }>();
-  const { currency } = useEventLocale(id);
-  const t = useT();
+  const { currency, country } = useEventLocale(id);
+  const t = useCountryT(country);
   const c = useColors();
   const ev = useEvent(id);
   const q = usePledgeSummary(id);

@@ -8,33 +8,41 @@ language on `/ke` pages (`/ke?lang=sw` for Swahili).
 Five pages under `/ke`, in `apps/web/src/content/pages/kenya.ts`, rendered by the same content system as
 the Tanzania pages (answer box, sections, FAQ, JSON-LD, breadcrumbs `Home > Kenya > page`).
 
-| Path | Targets | Counterpart (Tanzania) |
-|---|---|---|
-| `/ke` | digital wedding invitations Kenya | `/kadi-ya-harusi-mtandaoni` |
-| `/ke/wedding-committee-guide` | how to run a wedding committee Kenya | none |
-| `/ke/wedding-contributions-guide` | wedding contributions, harambee, M-Pesa | `/michango-ya-harusi` |
-| `/ke/wedding-invitation-wording` | wedding, ruracio, introduction, kitchen party wording | `/maneno-ya-kadi-ya-harusi` |
-| `/ke/is-a-digital-wedding-invitation-safe` | is a digital invitation a scam, Kenya | `/usalama-wa-kadi-za-mtandaoni` |
+| Path                                       | Targets                                               | Counterpart (Tanzania)          |
+| ------------------------------------------ | ----------------------------------------------------- | ------------------------------- |
+| `/ke`                                      | digital wedding invitations Kenya                     | `/kadi-ya-harusi-mtandaoni`     |
+| `/ke/wedding-committee-guide`              | how to run a wedding committee Kenya                  | none                            |
+| `/ke/wedding-contributions-guide`          | wedding contributions, harambee, M-Pesa               | `/michango-ya-harusi`           |
+| `/ke/wedding-invitation-wording`           | wedding, ruracio, introduction, kitchen party wording | `/maneno-ya-kadi-ya-harusi`     |
+| `/ke/is-a-digital-wedding-invitation-safe` | is a digital invitation a scam, Kenya                 | `/usalama-wa-kadi-za-mtandaoni` |
 
 Technical: hreflang is region-specific where a page has a counterpart (`sw-TZ`, `en-TZ`, `sw-KE`,
 `en-KE`, `x-default` = Tanzania Swahili) and reciprocal from both sides (tested). Kenya-only pages use
 `en-KE`, `sw-KE`. Sitemap (22 URLs), footer "Kenya" column and `/llms.txt` include them. The call to
 action on Kenya pages is "Want this in Kenya? Tell us" (contact page), not "Get started".
 
-## 2. Why the pages do not claim Kenyan support
+## 2. Why the pages do not claim Kenya is live (updated Phase 4)
+
+Since this was first written, Phases 1 to 3 of `docs/plan/kenya-product-support.md` built the product side
+(+254 numbers, KES, SMS and WhatsApp routing, M-Pesa and Airtel Money through a payment provider) behind
+`KENYA_ENABLED`, tested with simulators. The pages now say that, and still say it is not open, because no
+live SMS, WhatsApp or payment provider is connected and the legal review is pending. The table below is
+the original gap list for history; most rows are now code-complete.
+
+### Original gap list
 
 The product cannot serve a Kenyan organiser today, so the pages say so on every page and are useful guides
 rather than product claims:
 
-| Gap | Where | Needed for Kenya |
-|---|---|---|
-| Phone numbers | `packages/schemas/src/phone.ts` accepts only `+255` mobiles; guests, login and gate lookups depend on it | Accept `+254` (Safaricom, Airtel, Telkom ranges), per-event country, formatting and masking |
-| Currency | Done in Phase 1 and 1b (ADR 025): per-event currency, neutral field names, formatting and exports | KES prices and payments (Phase 3) |
-| Mobile money | Code done with fakes (ADR 027): provider per country, aggregator-shaped adapter, reconciliation | A real aggregator (credentials, KYC, sandbox, one live payment) |
-| Messaging | SMS and WhatsApp providers are configured for Tanzania | Kenyan sender ID registration, SMS gateway and WhatsApp templates |
-| Time zone | Default `Africa/Dar_es_Salaam` | `Africa/Nairobi` per event |
-| Legal | Privacy and terms cite Tanzania's 2022 data protection law | Kenya's Data Protection Act, 2019 and registration with its data commissioner; counsel to confirm |
-| Language and copy | Swahili and English exist; Kenyan wording and idioms need a Kenyan reviewer | Review by a Kenyan Swahili and English speaker |
+| Gap               | Where                                                                                                    | Needed for Kenya                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Phone numbers     | `packages/schemas/src/phone.ts` accepts only `+255` mobiles; guests, login and gate lookups depend on it | Accept `+254` (Safaricom, Airtel, Telkom ranges), per-event country, formatting and masking       |
+| Currency          | Done in Phase 1 and 1b (ADR 025): per-event currency, neutral field names, formatting and exports        | KES prices and payments (Phase 3)                                                                 |
+| Mobile money      | Code done with fakes (ADR 027): provider per country, aggregator-shaped adapter, reconciliation          | A real aggregator (credentials, KYC, sandbox, one live payment)                                   |
+| Messaging         | SMS and WhatsApp providers are configured for Tanzania                                                   | Kenyan sender ID registration, SMS gateway and WhatsApp templates                                 |
+| Time zone         | Default `Africa/Dar_es_Salaam`                                                                           | `Africa/Nairobi` per event                                                                        |
+| Legal             | Privacy and terms cite Tanzania's 2022 data protection law                                               | Kenya's Data Protection Act, 2019 and registration with its data commissioner; counsel to confirm |
+| Language and copy | Swahili and English exist; Kenyan wording and idioms need a Kenyan reviewer                              | Review by a Kenyan Swahili and English speaker                                                    |
 
 Until these exist, do not add "works in Kenya", "pay with M-Pesa in Kenya" or KES prices to any page. When
 the first item ships, update the availability notes and the FAQ answers on the Kenya pages.

@@ -3,9 +3,10 @@ import type { ContentPageDef } from '../types';
 const UPDATED = '2026-10-15';
 
 /**
- * Kenya pages. The product itself does not yet accept Kenyan phone numbers, KES or Kenyan mobile
- * money, so these pages are useful guides plus an honest availability note. Do not add claims of
- * Kenyan support until it exists (see docs/seo/kenya-readiness.md).
+ * Kenya pages. Kenya support is built (+254 numbers, KES, SMS and WhatsApp routes, M-Pesa and Airtel Money
+ * through a payment provider) and tested with simulators, but it is not open: no live SMS, WhatsApp or
+ * payment provider is connected and the legal review is pending. These pages are useful guides plus an
+ * honest availability note; do not claim it is live until it is (see docs/seo/kenya-readiness.md).
  */
 export const KENYA_PAGES: ContentPageDef[] = [
   {
@@ -25,7 +26,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
       nav: 'Kenya home',
       title: 'Digital Wedding Invitations Kenya | Harusi Pass',
       description:
-        'How digital wedding invitations with RSVP, QR gate check-in and contribution tracking work, plus free guides for Kenyan wedding committees. Kenya launch is next.',
+        'How digital wedding invitations with RSVP, QR gate check-in and contribution tracking work, plus free guides for Kenyan wedding committees. Kenya is being prepared.',
       h1: 'Digital wedding invitations for Kenyan weddings and committees',
       answer:
         'Harusi Pass gives each guest their own invitation with RSVP, a QR and a short number, tracks pledges and admits guests at the gate even offline. It is live as a pilot in Tanzania; Kenya support is being planned. The free guides here work with any tool.',
@@ -67,7 +68,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass is in a pilot in Tanzania. Kenyan phone numbers (+254), prices in KES and Kenyan M-Pesa payments are not supported yet. We are planning Kenya next and would like to hear from committees who want it. Use the contact page to tell us.',
+              text: 'Kenya support is built and being tested, but it is not open yet. It covers Kenyan phone numbers (+254), prices in KES, Nairobi time, SMS and WhatsApp invitations, and M-Pesa and Airtel Money contributions through a payment provider. So far it has been tested with simulators only. Before it opens we still need live SMS and WhatsApp approvals, a payment provider and a Kenyan legal review. Use the contact page to tell us if you would like to join the first pilot.',
             },
           ],
         },
@@ -90,11 +91,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
       faq: [
         {
           q: 'Can I use Harusi Pass in Kenya now?',
-          a: 'Not yet. It currently accepts Tanzanian phone numbers and TZS only. Kenya is planned; tell us through the contact page if you want it.',
+          a: 'Not yet. Kenyan numbers, KES and M-Pesa are built and being tested, but the service for Kenya is not open. Tell us through the contact page if you want to join the first pilot.',
         },
         {
           q: 'Will it support M-Pesa in Kenya?',
-          a: 'That is the plan for the Kenya launch, but it is not available today and we will not claim it until it works.',
+          a: 'The prompts for M-Pesa and Airtel Money payments through a payment provider are built and tested with simulators. They are not live: we still need a payment provider agreement and a live test, and we will say so here when it works.',
         },
         {
           q: 'Is there a cost?',
@@ -148,7 +149,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass iko kwenye majaribio nchini Tanzania. Namba za simu za Kenya (+254), bei kwa shilingi za Kenya (KES) na malipo ya M-Pesa ya Kenya bado hazitumiki. Tunapanga Kenya kufuata na tungependa kusikia kutoka kwa kamati zinazoitaka. Tumia ukurasa wa mawasiliano kutuambia.',
+              text: 'Msaada wa Kenya umejengwa na unajaribiwa, lakini bado haujafunguliwa. Unahusu namba za simu za Kenya (+254), bei kwa KES, saa ya Nairobi, mialiko ya SMS na WhatsApp, na michango ya M-Pesa na Airtel Money kupitia mtoa huduma wa malipo. Hadi sasa umejaribiwa kwa vifaa vya majaribio tu. Kabla haujafunguliwa bado tunahitaji idhini za SMS na WhatsApp, mtoa huduma wa malipo na uhakiki wa kisheria wa Kenya. Tumia ukurasa wa mawasiliano kutuambia ukitaka kuwa kwenye majaribio ya kwanza.',
             },
           ],
         },
@@ -171,11 +172,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
       faq: [
         {
           q: 'Naweza kutumia Harusi Pass Kenya sasa?',
-          a: 'Bado. Kwa sasa inapokea namba za simu za Tanzania na TZS tu. Kenya imepangwa; tuambie kupitia ukurasa wa mawasiliano ukiitaka.',
+          a: 'Bado. Namba za Kenya, KES na M-Pesa zimejengwa na zinajaribiwa, lakini huduma kwa Kenya haijafunguliwa. Tuambie kupitia ukurasa wa mawasiliano ukitaka kuwa kwenye majaribio ya kwanza.',
         },
         {
           q: 'Je, itasaidia M-Pesa ya Kenya?',
-          a: 'Ndiyo ni mpango wa uzinduzi wa Kenya, lakini haipatikani leo na hatutadai hivyo hadi ifanye kazi.',
+          a: 'Mfumo wa kuomba malipo ya M-Pesa na Airtel Money kupitia mtoa huduma wa malipo umejengwa na kujaribiwa kwa vifaa vya majaribio. Haujaanza kutumika: bado tunahitaji makubaliano na mtoa huduma wa malipo na jaribio la kweli, na tutasema hapa utakapofanya kazi.',
         },
         {
           q: 'Kuna gharama?',
@@ -314,7 +315,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass can hold the guest list, RSVPs, pledges and the gate in one place. It is in a pilot in Tanzania and not yet available for Kenyan numbers or KES; this guide works with any tool, including a shared spreadsheet.',
+              text: 'Harusi Pass can hold the guest list, RSVPs, pledges and the gate in one place. Support for Kenya (Kenyan numbers, KES) is built and being tested but is not open yet; this guide works with any tool, including a shared spreadsheet.',
             },
           ],
         },
@@ -458,7 +459,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass inaweza kushika orodha ya wageni, majibu, ahadi na lango mahali pamoja. Iko kwenye majaribio nchini Tanzania na bado haipokei namba za Kenya wala KES; mwongozo huu unafaa kwa zana yoyote, ikiwemo jedwali la pamoja.',
+              text: 'Harusi Pass inaweza kushika orodha ya wageni, majibu, ahadi na lango mahali pamoja. Msaada wa Kenya (namba za Kenya, KES) umejengwa na unajaribiwa lakini bado haujafunguliwa; mwongozo huu unafaa kwa zana yoyote, ikiwemo jedwali la pamoja.',
             },
           ],
         },
@@ -597,7 +598,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'In Harusi Pass, pledges and payments sit on each guest’s invitation and the committee sees collected, pledged and balance in one view. It is in a pilot in Tanzania and does not yet support Kenyan M-Pesa or KES, so for a Kenyan wedding today use the steps above with your own sheet or a platform you trust.',
+              text: 'In Harusi Pass, pledges and payments sit on each guest’s invitation and the committee sees collected, pledged and balance in one view. M-Pesa and Airtel Money payments in KES are built and tested with simulators, but Kenya is not open and no live payment provider is connected yet, so for a Kenyan wedding today use the steps above with your own sheet or a platform you trust.',
             },
           ],
         },
@@ -722,7 +723,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Kwenye Harusi Pass, ahadi na malipo viko kwenye mwaliko wa kila mgeni na kamati inaona kilichokusanywa, kilichoahidiwa na salio kwa mtazamo mmoja. Iko kwenye majaribio nchini Tanzania na bado haisaidii M-Pesa ya Kenya wala KES, kwa hiyo kwa harusi ya Kenya leo tumia hatua zilizo juu pamoja na jedwali lako au jukwaa unaloliamini.',
+              text: 'Kwenye Harusi Pass, ahadi na malipo viko kwenye mwaliko wa kila mgeni na kamati inaona kilichokusanywa, kilichoahidiwa na salio kwa mtazamo mmoja. Malipo ya M-Pesa na Airtel Money kwa KES yamejengwa na kujaribiwa kwa vifaa vya majaribio, lakini Kenya haijafunguliwa na hakuna mtoa huduma wa malipo aliyeunganishwa bado, kwa hiyo kwa harusi ya Kenya leo tumia hatua zilizo juu pamoja na jedwali lako au jukwaa unaloliamini.',
             },
           ],
         },
@@ -997,7 +998,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass cards show the sender and committee phone, ask for no password or PIN, and send no apps or attachments. The service is in a pilot in Tanzania and is not yet available for Kenyan numbers; if you receive a message claiming to be from Harusi Pass about a Kenyan event, verify it with the committee first.',
+              text: 'Harusi Pass cards show the sender and committee phone, ask for no password or PIN, and send no apps or attachments. The service for Kenya is built and being tested but is not open yet; if you receive a message claiming to be from Harusi Pass about a Kenyan event, verify it with the committee first.',
             },
           ],
         },
@@ -1070,7 +1071,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Kadi za Harusi Pass zinaonyesha mtumaji na simu ya kamati, hazioombi nenosiri wala PIN, na hazitumi programu wala viambatisho. Huduma iko kwenye majaribio nchini Tanzania na bado haipatikani kwa namba za Kenya; ukipokea ujumbe unaodai kuwa kutoka Harusi Pass kuhusu tukio la Kenya, uthibitishe na kamati kwanza.',
+              text: 'Kadi za Harusi Pass zinaonyesha mtumaji na simu ya kamati, hazioombi nenosiri wala PIN, na hazitumi programu wala viambatisho. Huduma kwa Kenya imejengwa na inajaribiwa lakini bado haijafunguliwa; ukipokea ujumbe unaodai kuwa kutoka Harusi Pass kuhusu tukio la Kenya, uthibitishe na kamati kwanza.',
             },
           ],
         },

@@ -25,7 +25,7 @@ ${by('guide').join('\n')}
 ## Company
 ${by('company').join('\n')}
 
-## Kenya (guides; the service itself is not yet available for Kenyan numbers or KES)
+## Kenya (guides and legal drafts; Kenya support is built and being tested but is not open yet)
 ${kenya.join('\n')}
 
 ## Legal (drafts until reviewed by a lawyer)

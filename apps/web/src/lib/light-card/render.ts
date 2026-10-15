@@ -203,13 +203,17 @@ export function renderProblem(
 
 export function renderCard(view: CardView, o: LightCardOptions): string {
   const { locale } = o;
-  const m = pickMessages(locale, ['card', 'states', 'common']) as unknown as {
+  const event = view.event!;
+  const m = pickMessages(
+    locale,
+    ['card', 'states', 'common'],
+    event.country ?? 'TZ',
+  ) as unknown as {
     card: Msg;
     states: Msg;
     common: Msg;
   };
   const t = m.card;
-  const event = view.event!;
   const cur = event.currency ?? 'TZS';
   const guest = view.guest!;
   const people = (n: number) => fmt(m.common.people!, { count: n });

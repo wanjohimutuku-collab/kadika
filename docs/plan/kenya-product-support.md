@@ -151,6 +151,13 @@ payment; five-replay idempotency test passes; reconciliation job handles failure
 
 ### Phase 4: localisation, legal and site (about 1 to 2 weeks, parallel with Phase 3)
 
+**Status (2026-10-15): drafted, see ADR 028.** Country-keyed wording overlays (KES labels, Kenyan
+vocabulary) wired into the guest card, pay page, organiser console and mobile pledges; Kenya privacy,
+terms and data-requests drafts under `/ke` (Kenya Data Protection Act, 2019 and ODPC notes, every point a
+lawyer must confirm); the `/ke` pages updated to say Kenya is built and being tested but not open. Still
+open: native Kenyan review of all text, counsel sign-off and ODPC registration if required, KES pricing,
+and updating the pages again when a live aggregator, SMS sender ID and WhatsApp templates exist.
+
 - Copy: `en-KE` wording, KES formatting, Kenyan wallet names, harambee and committee vocabulary; native
   review by Kenyan speakers (also required by the spec).
 - Legal: Kenya variants of privacy and terms; data commissioner registration if required; update the

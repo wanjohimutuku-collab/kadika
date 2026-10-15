@@ -2,6 +2,7 @@ import type { Locale } from '@harusi/i18n';
 import { COMPANY_PAGES } from './pages/company';
 import { GUIDE_PAGES } from './pages/guides';
 import { KENYA_PAGES } from './pages/kenya';
+import { KENYA_LEGAL_PAGES } from './pages/kenya-legal';
 import { LEGAL_PAGES } from './pages/legal';
 import { PRODUCT_PAGES } from './pages/products';
 import type { ContentPageDef, Market, PageGroup, PageText } from './types';
@@ -12,6 +13,7 @@ export const ALL_PAGES: ContentPageDef[] = [
   ...COMPANY_PAGES,
   ...LEGAL_PAGES,
   ...KENYA_PAGES,
+  ...KENYA_LEGAL_PAGES,
 ];
 
 export const marketOf = (p: ContentPageDef): Market => p.market ?? 'tz';

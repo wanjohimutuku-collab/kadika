@@ -1,5 +1,6 @@
 import sw from './sw.json';
 import en from './en.json';
+import { mergeVariant, type MessageCountry } from './variants';
 
 export type Messages = typeof sw;
 export const locales = ['sw', 'en'] as const;
@@ -22,14 +23,21 @@ export function t(key: string, locale: Locale = defaultLocale): string {
   return typeof node === 'string' ? node : key;
 }
 
+/** The messages for a locale with a country's wording on top (currency, local vocabulary). */
+export function messagesFor(locale: Locale, country: MessageCountry = 'TZ'): Messages {
+  return mergeVariant(messages[locale], locale, country);
+}
+
 /** Picks top-level namespaces, so client bundles only receive what a route needs. */
 export function pickMessages<K extends keyof Messages>(
   locale: Locale,
   namespaces: readonly K[],
+  country: MessageCountry = 'TZ',
 ): Pick<Messages, K> {
-  const all = messages[locale];
+  const all = messagesFor(locale, country);
   const out = {} as Pick<Messages, K>;
   for (const ns of namespaces) out[ns] = all[ns];
   return out;
 }
+export { variants, mergeVariant, type MessageCountry } from './variants';
 export { formatIcu, type Values, type Msgs } from './icu';

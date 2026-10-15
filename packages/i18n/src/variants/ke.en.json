@@ -1,0 +1,31 @@
+{
+  "common": {
+    "tzs": "KES {amount}"
+  },
+  "validation": {
+    "amount": {
+      "min": "Minimum amount is KES {min}"
+    }
+  },
+  "pay": {
+    "amount": "Amount (KES)"
+  },
+  "wizard": {
+    "target": "Contribution target (KES)"
+  },
+  "guestDetail": {
+    "pledgeAmount": "Pledge amount (KES)"
+  },
+  "pledges": {
+    "amount": "Amount (KES)"
+  },
+  "nav": {
+    "pledges": "Contributions"
+  },
+  "settings": {
+    "pledgesEnabled": "Allow contributions (harambee) on cards"
+  },
+  "card": {
+    "pledgeNone": "You can contribute to this event with mobile money."
+  }
+}

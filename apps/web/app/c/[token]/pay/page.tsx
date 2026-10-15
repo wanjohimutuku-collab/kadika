@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { pickMessages, type Locale } from '@harusi/i18n';
 import { PayFlow } from '@/components/card/pay-flow';
+import { previewCardOnServer } from '@/lib/server-card';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('pay');
@@ -12,10 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PayPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const locale = (await getLocale()) as Locale;
+  // The event's country picks the wording (currency, local vocabulary; ADR 028).
+  const country = (await previewCardOnServer(token))?.event?.country ?? 'TZ';
   return (
     <NextIntlClientProvider
       locale={locale}
-      messages={pickMessages(locale, ['pay', 'card', 'common', 'states', 'validation'])}
+      messages={pickMessages(locale, ['pay', 'card', 'common', 'states', 'validation'], country)}
     >
       <PayFlow token={token} />
     </NextIntlClientProvider>

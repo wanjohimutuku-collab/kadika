@@ -7,7 +7,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { defaultLocale, formatIcu, isLocale, messages, type Locale } from '@harusi/i18n';
+import {
+  defaultLocale,
+  formatIcu,
+  isLocale,
+  messages,
+  messagesFor,
+  type Locale,
+  type MessageCountry,
+} from '@harusi/i18n';
 import { store } from './storage';
 
 const KEY = 'harusi.locale';
@@ -25,8 +33,8 @@ const I18nContext = createContext<Ctx>({
   t: (k) => k,
 });
 
-function lookup(locale: Locale, key: string): string {
-  let node: unknown = messages[locale];
+function lookup(locale: Locale, key: string, source: unknown = messages[locale]): string {
+  let node: unknown = source;
   for (const part of key.split('.'))
     node = node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined;
   return typeof node === 'string' ? node : key;
@@ -50,6 +58,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 }
 
 export const useT = () => useContext(I18nContext).t;
+
+/** Translator with a country's wording (currency, local vocabulary) for event screens (ADR 028). */
+export function useCountryT(country: MessageCountry): T {
+  const { locale } = useContext(I18nContext);
+  return useMemo<T>(() => {
+    const source = messagesFor(locale, country);
+    return (key, values) => formatIcu(lookup(locale, key, source), values);
+  }, [locale, country]);
+}
 export const useLocale = () => {
   const { locale, setLocale } = useContext(I18nContext);
   return { locale, setLocale };

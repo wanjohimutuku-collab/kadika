@@ -1,16 +1,36 @@
 # syntax=docker/dockerfile:1
 # Build from the repo root: docker build -f infra/docker/Dockerfile.api .
 FROM node:22-alpine AS base
-RUN corepack enable
+ENV CI=true npm_config_store_dir=/pnpm/store
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /repo
 
-FROM base AS build
+# Dependencies only. This layer is reused until a package.json or the lockfile changes.
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/mobile/package.json apps/mobile/
+COPY packages/api-client/package.json packages/api-client/
+COPY packages/crypto/package.json packages/crypto/
+COPY packages/db/package.json packages/db/
+COPY packages/gate/package.json packages/gate/
+COPY packages/i18n/package.json packages/i18n/
+COPY packages/messaging/package.json packages/messaging/
+COPY packages/payments/package.json packages/payments/
+COPY packages/schemas/package.json packages/schemas/
+COPY packages/ui-tokens/package.json packages/ui-tokens/
+# The repo uses node-linker=hoisted for Expo, which installs the whole workspace (~1400 packages).
+# The API only needs its own dependency tree, so the image uses the isolated linker.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter @harusi/api... --config.node-linker=isolated
+
+FROM deps AS build
 COPY . .
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter @harusi/api...
 RUN pnpm --filter @harusi/api build
 # Production-only node_modules for the API (workspace deps are bundled by tsup).
-RUN pnpm --filter @harusi/api deploy --prod /out
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm --filter @harusi/api deploy --prod --prefer-offline --config.node-linker=isolated /out
 
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production API_PORT=3001

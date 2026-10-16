@@ -197,4 +197,21 @@ describe('config', () => {
     expect(loadConfig({ ...base }).logRequests).toBe(true);
     expect(loadConfig({ ...base, LOG_REQUESTS: '0' }).logRequests).toBe(false);
   });
+
+  it('treats empty variables as unset', () => {
+    const base = { DATABASE_URL: 'x', JWT_SECRET: 'a-long-enough-secret', KEY_ENC_SECRET: 'k' };
+    const c = loadConfig({
+      ...base,
+      WHATSAPP_PROVIDER: '',
+      PAYMENT_PROVIDER: '',
+      WEBHOOK_SECRET: '',
+      WHATSAPP_FALLBACK_HOURS: '',
+      REDIS_URL: '',
+    });
+    expect(c.whatsappProvider).toBe('fake');
+    expect(c.paymentProvider).toBe('fake');
+    expect(c.webhookSecret).toBeNull();
+    expect(c.whatsappFallbackHours).toBe(6);
+    expect(c.redisUrl).toBeNull();
+  });
 });

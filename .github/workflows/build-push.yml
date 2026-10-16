@@ -156,28 +156,20 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # The deploy URLs are the "Webhook" URLs Coolify shows for each application. If the token is not
-      # set yet, the images are still pushed and the deploy is skipped with a warning.
+      # One Coolify resource (docker-compose.coolify.yml) holds api, web, postgres and redis, so one
+      # call redeploys everything; the stack's depends_on starts the API (and its migrations) before
+      # the web app. COOLIFY_DEPLOY_URL is the stack's "Deploy Webhook" URL. Without the secrets the
+      # images are still pushed and the deploy is skipped with a warning.
       - name: Ask Coolify to deploy
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy }}
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_API_DEPLOY_URL: ${{ secrets.COOLIFY_API_DEPLOY_URL }}
-          COOLIFY_WEB_DEPLOY_URL: ${{ secrets.COOLIFY_WEB_DEPLOY_URL }}
+          COOLIFY_DEPLOY_URL: ${{ secrets.COOLIFY_DEPLOY_URL }}
         run: |
-          if [ -z "$COOLIFY_TOKEN" ]; then
-            echo "::warning::COOLIFY_TOKEN is not set for this environment. The images are pushed; nothing was deployed."
+          if [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_DEPLOY_URL" ]; then
+            echo "::warning::COOLIFY_TOKEN or COOLIFY_DEPLOY_URL is not set for this environment. The images are pushed; nothing was deployed."
             exit 0
           fi
-          deploy() { # $1 = service, $2 = webhook URL
-            if [ -z "$2" ]; then
-              echo "::warning::No deploy URL is set for $1, so it was not deployed."
-              return
-            fi
-            curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
-              --header "Authorization: Bearer $COOLIFY_TOKEN" "$2" > /dev/null
-            echo "Deploy requested for $1."
-          }
-          # The API goes first so its migrations are in place before the new web app calls it.
-          deploy api "$COOLIFY_API_DEPLOY_URL"
-          deploy web "$COOLIFY_WEB_DEPLOY_URL"
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
+            --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_DEPLOY_URL" > /dev/null
+          echo "Deploy requested."

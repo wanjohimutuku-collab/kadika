@@ -858,6 +858,17 @@
     "confirmTitle": "Send cards to {count, plural, one {# guest} other {# guests}}?",
     "confirmBody": "WhatsApp: {whatsapp} · SMS: {sms} · Paper: {print}. SMS cost: about {cost}.",
     "confirmScheduled": "They will be sent on {date}.",
+    "scheduled": {
+      "title": "Waiting to be sent",
+      "invite": "Invitations",
+      "reminder": "Reminders",
+      "guests": "{count, plural, one {# guest} other {# guests}}",
+      "note": "Who receives each one is worked out when it goes out, so guests who are added or who reply before then are taken into account.",
+      "cancel": "Cancel",
+      "cancelLabel": "Cancel the {kind} on {date}",
+      "cancelled": "Cancelled",
+      "cancelFailed": "Could not cancel. It may have already started."
+    },
     "progressTitle": "Sending cards…",
     "progressDone": "Sending complete",
     "progressScheduled": "Sending scheduled",

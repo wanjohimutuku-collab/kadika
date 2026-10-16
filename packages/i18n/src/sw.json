@@ -862,6 +862,17 @@
     "confirmTitle": "Tuma kadi kwa {count, plural, one {mgeni #} other {wageni #}}?",
     "confirmBody": "WhatsApp: {whatsapp} · SMS: {sms} · Karatasi: {print}. Gharama ya SMS: takriban {cost}.",
     "confirmScheduled": "Zitatumwa {date}.",
+    "scheduled": {
+      "title": "Zinasubiri kutumwa",
+      "invite": "Mialiko",
+      "reminder": "Vikumbusho",
+      "guests": "{count, plural, one {mgeni #} other {wageni #}}",
+      "note": "Wanaopokea hupatikana wakati ujumbe unatumwa, kwa hiyo wageni walioongezwa au waliojibu kabla ya hapo huzingatiwa.",
+      "cancel": "Ghairi",
+      "cancelLabel": "Ghairi {kind} ya {date}",
+      "cancelled": "Imeghairiwa",
+      "cancelFailed": "Haikuweza kughairiwa. Huenda tayari imeanza."
+    },
     "progressTitle": "Inatuma kadi…",
     "progressDone": "Utumaji umekamilika",
     "progressScheduled": "Utumaji umepangwa",

@@ -28,6 +28,7 @@ import { eventKindLabel, type MessageChannel } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
+import { ScheduledSends } from '@/components/console/scheduled-sends';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, KpiTile, ProgressBar, Skeleton } from '@/components/ui/display';
 import { SegmentedControl, Switch } from '@/components/ui/navigation';
@@ -130,8 +131,11 @@ function SendInner({ id }: { id: string }) {
     queryKey: qk.job(jobId ?? 'none'),
     queryFn: () => getRepository().getSendJob(jobId!),
     enabled: !!jobId,
-    refetchInterval: (q) =>
-      (q.state.data as SendJob | undefined)?.status === 'done' ? false : 700,
+    // a scheduled send does not change until its time comes, so it is not polled
+    refetchInterval: (q) => {
+      const status = (q.state.data as SendJob | undefined)?.status;
+      return status === 'done' || status === 'scheduled' ? false : 700;
+    },
   });
   useEffect(() => {
     if (job.data?.status === 'done')
@@ -333,6 +337,7 @@ function SendInner({ id }: { id: string }) {
                 {t('offline')}
               </Banner>
             ) : null}
+            <ScheduledSends eventId={id} />
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_1fr]">
               <div className="flex flex-col gap-5">
                 <Card>

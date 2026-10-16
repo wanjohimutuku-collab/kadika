@@ -1,0 +1,1 @@
+ALTER TABLE "scheduled_sends" ADD COLUMN "card_kind" "card_kind";

@@ -16,7 +16,7 @@ import {
   type RsvpInput,
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
-import { defaultSender } from '@harusi/schemas';
+import { defaultSender, type CardKind } from '@harusi/schemas';
 import {
   paletteContrastIssues,
   resolvePalette,
@@ -45,6 +45,7 @@ import type {
   GateOverview,
   Guest,
   GuestQuery,
+  ImportOptions,
   ImportResult,
   ImportRowInput,
   Member,
@@ -76,7 +77,7 @@ import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
 import { pledgeTotals, summarizePledge } from '../domain/pledge';
-import { buildInviteSms, estimateSmsCostFor } from '../domain/sms';
+import { buildSampleSms, estimateSmsCostFor } from '../domain/sms';
 import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
 import { MockControls } from './controls';
@@ -381,6 +382,8 @@ export class MockRepository implements Repository {
       guestsWithBalance: totals.guestsPartial + totals.guestsUnpaid,
       failedMessages: guests.filter((g) => last.get(g.id)?.status === 'failed').length,
       featurePhoneGuests: guests.filter((g) => !g.hasSmartphone).length,
+      contributionGuests: this.guestsOf(eventId).filter((g) => g.cardKind === 'contribution')
+        .length,
     };
   }
 
@@ -866,6 +869,7 @@ export class MockRepository implements Repository {
         throw new RepositoryError('conflict', 'Duplicate phone', { field: 'phone' });
       }
       const changes = Object.keys(patch).join(', ');
+      const cardWas = g.cardKind;
       Object.assign(g, {
         displayName: merged.displayName,
         phoneE164: merged.phone,
@@ -878,6 +882,14 @@ export class MockRepository implements Repository {
         notes: merged.notes,
         updatedAt: iso(this.now()),
       });
+      if (g.cardKind !== cardWas && ['sent', 'delivered', 'opened'].includes(g.status)) {
+        // They now hold a card that has not gone out, so they are "not sent" again (ADR 031).
+        g.status = 'created';
+        delete g.timeline.queued;
+        delete g.timeline.sent;
+        delete g.timeline.delivered;
+        delete g.timeline.opened;
+      }
       this.audit(g.id, 'update', `Imebadilishwa: ${changes}`);
       return this.toGuest(g, this.paidByGuest(g.eventId), this.lastMessageByGuest(g.eventId));
     });
@@ -933,6 +945,7 @@ export class MockRepository implements Repository {
     eventId: string,
     rows: ImportRowInput[],
     idempotencyKey: string,
+    options?: ImportOptions,
   ): Promise<ImportResult> {
     return this.run('write', `Ingiza wageni ${rows.length}`, () =>
       this.remember(`import:${idempotencyKey}`, () => {
@@ -962,6 +975,7 @@ export class MockRepository implements Repository {
             phone: e164 ?? '',
             groupLabel: r.groupLabel,
             partySizeAllowed: r.partySizeAllowed,
+            cardKind: options?.cardKind,
             inviteChannelPref: r.inviteChannelPref,
             hasSmartphone: r.hasSmartphone,
             language: 'sw',
@@ -1026,8 +1040,9 @@ export class MockRepository implements Repository {
     eventId: string,
     a: SendRequest['audience'],
     kind: SendRequest['kind'],
+    cardKind?: CardKind,
   ): GuestRecord[] {
-    const all = this.guestsOf(eventId);
+    const all = this.guestsOf(eventId).filter((g) => !cardKind || g.cardKind === cardKind);
     if (kind === 'reminder') {
       // Like the API: only invitation cards that went out; "unsent" means "not answered yet" here (ADR 030).
       const open = (g: GuestRecord) => ['sent', 'delivered', 'opened'].includes(g.status);
@@ -1077,17 +1092,31 @@ export class MockRepository implements Repository {
     return 'whatsapp';
   }
 
-  private sampleSms(e: EventRecord, kind: SendRequest['kind'], body?: string): string {
-    if (kind === 'thank_you' && body) return body;
-    return buildInviteSms({
+  private sampleSms(e: EventRecord, req: Pick<SendRequest, 'kind' | 'body' | 'cardKind'>): string {
+    if (req.kind === 'thank_you' && req.body) return req.body;
+    return buildSampleSms({
+      kind:
+        req.kind === 'reminder'
+          ? 'reminder'
+          : req.cardKind === 'contribution'
+            ? 'contribution'
+            : 'invite',
       locale: 'sw',
       partnerA: e.partnerA,
       partnerB: e.partnerB,
-      kind: e.eventKind,
+      eventKind: e.eventKind,
+      sender: e.senderName,
       dateText: '14 Des 2026',
-      shortLink: 'hrs.example/s/KH-4826',
-      code: 'KH-4826',
     });
+  }
+
+  /** The same rule as the API: a contribution card is a first message, followed up by pledge reminders. */
+  private assertCardKindFits(req: Pick<SendRequest, 'kind' | 'cardKind'>): void {
+    if (req.kind === 'reminder' && req.cardKind === 'contribution')
+      throw new RepositoryError(
+        'validation',
+        'Contribution cards are followed up with pledge reminders, not invitation reminders',
+      );
   }
 
   previewSend(
@@ -1097,14 +1126,11 @@ export class MockRepository implements Repository {
     return this.run('read', 'preview', () => {
       this.requireSession();
       const e = this.event(eventId);
-      const list = this.audience(eventId, req.audience, req.kind);
+      this.assertCardKindFits(req);
+      const list = this.audience(eventId, req.audience, req.kind, req.cardKind);
       const byChannel: Record<MessageChannel, number> = { whatsapp: 0, sms: 0, print: 0 };
       for (const g of list) byChannel[this.channelFor(g, req)] += 1;
-      const cost = estimateSmsCostFor(
-        this.sampleSms(e, req.kind, req.body),
-        byChannel.sms,
-        e.currency,
-      );
+      const cost = estimateSmsCostFor(this.sampleSms(e, req), byChannel.sms, e.currency);
       return {
         total: list.length,
         byChannel,
@@ -1120,8 +1146,13 @@ export class MockRepository implements Repository {
       const existingId = this.state.idempotency[`send:${req.idempotencyKey}`];
       if (existingId) return this.jobView(this.job(JSON.parse(existingId) as string));
       this.requireSession();
-      this.event(eventId);
-      const list = this.audience(eventId, req.audience, req.kind);
+      const e = this.event(eventId);
+      this.assertCardKindFits(req);
+      if (req.cardKind === 'contribution' && !e.pledgesEnabled)
+        throw new RepositoryError('conflict', 'Contributions are switched off for this event', {
+          reason: 'contributions_off',
+        });
+      const list = this.audience(eventId, req.audience, req.kind, req.cardKind);
       if (!list.length) throw new RepositoryError('validation', 'No recipients');
       const failureRate = 0.03 + this.controls.get().failureRate;
       const spread = Math.min(12_000, 40 * list.length) + 1000;
@@ -1150,6 +1181,7 @@ export class MockRepository implements Repository {
         recipients,
         scheduled ? req.scheduleAt : null,
         null,
+        req.cardKind,
       );
       this.state.idempotency[`send:${req.idempotencyKey}`] = JSON.stringify(job.id);
       if (req.kind === 'invite' && !scheduled) {
@@ -1170,6 +1202,7 @@ export class MockRepository implements Repository {
     recipients: JobRecipient[],
     scheduledFor: string | null,
     retryOf: string | null,
+    cardKind?: CardKind,
   ): JobRecord {
     const byChannel: Record<MessageChannel, number> = { whatsapp: 0, sms: 0, print: 0 };
     for (const r of recipients) byChannel[r.channel] += 1;
@@ -1177,6 +1210,7 @@ export class MockRepository implements Repository {
       id: this.rng.uuid(),
       eventId,
       kind,
+      cardKind: cardKind ?? null,
       total: recipients.length,
       byChannel,
       scheduledFor,
@@ -1252,6 +1286,7 @@ export class MockRepository implements Repository {
       id: job.id,
       eventId: job.eventId,
       kind: job.kind,
+      cardKind: job.cardKind ?? null,
       total: job.total,
       byChannel: job.byChannel,
       scheduledFor: job.scheduledFor,
@@ -1337,7 +1372,14 @@ export class MockRepository implements Repository {
           at: 300 + i * 120,
         };
       });
-      const job = this.createJob(prev.eventId, prev.kind, recipients, null, prev.id);
+      const job = this.createJob(
+        prev.eventId,
+        prev.kind,
+        recipients,
+        null,
+        prev.id,
+        prev.cardKind ?? undefined,
+      );
       this.persist();
       return this.jobView(job);
     });

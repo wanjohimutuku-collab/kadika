@@ -1,7 +1,8 @@
 'use client';
 
-import { use, useMemo, useRef, useState } from 'react';
+import { Suspense, use, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
@@ -27,7 +28,9 @@ import {
   type ImportRowInput,
   type PreviewRow,
 } from '@harusi/api-client';
+import type { CardKind } from '@harusi/schemas';
 import { PageHeader } from '@/components/console/page-header';
+import { CardKindPicker } from '@/components/console/guests/card-kind-picker';
 import { ContactsSheet } from '@/components/console/guests/contacts-sheet';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Banner, KpiTile } from '@/components/ui/display';
@@ -45,9 +48,9 @@ type Source = 'paste' | 'csv' | 'contacts';
 type Step = 'source' | 'preview' | 'confirm' | 'done';
 const FIELDS: ImportField[] = ['name', 'phone', 'group', 'party', 'smartphone', 'ignore'];
 
-export default function ImportPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function ImportInner({ id }: { id: string }) {
   const t = useTranslations('import');
+  const tf = useTranslations('guestForm');
   const tv = useTranslations('validation');
   const tc = useTranslations('common');
   const tg = useTranslations('guestDetail');
@@ -59,6 +62,10 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
     queryFn: () => getRepository().listGuests(id),
   });
 
+  // a link from the send page arrives with ?card=contribution: the whole list is asked for a contribution
+  const [cardKind, setCardKind] = useState<CardKind>(
+    useSearchParams().get('card') === 'contribution' ? 'contribution' : 'invitation',
+  );
   const [step, setStep] = useState<Step>('source');
   const [source, setSource] = useState<Source>('paste');
   const [pasted, setPasted] = useState('');
@@ -126,7 +133,8 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
   };
 
   const commit = useMutation({
-    mutationFn: (rows: ImportRowInput[]) => getRepository().importGuests(id, rows, idem.current),
+    mutationFn: (rows: ImportRowInput[]) =>
+      getRepository().importGuests(id, rows, idem.current, { cardKind }),
     onSuccess: async (r) => {
       setResult(r);
       setStep('done');
@@ -222,6 +230,18 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
           className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 md:p-6"
           data-testid="import-source"
         >
+          <CardKindPicker
+            name="importCardKind"
+            testId="import-card-kind"
+            legend={t('cardKind')}
+            help={tf('cardKindHelp')}
+            labels={{
+              invitation: tf('cardKinds.invitation'),
+              contribution: tf('cardKinds.contribution'),
+            }}
+            value={cardKind}
+            onChange={setCardKind}
+          />
           <SegmentedControl<Source>
             label={t('steps.source')}
             value={source}
@@ -500,6 +520,7 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
         >
           <h2 className="text-xl font-semibold">{t('confirmTitle', { count: included.length })}</h2>
           <p>{t('confirmBody', { skipped: summary.total - included.length })}</p>
+          {cardKind === 'contribution' ? <p>{t('confirmContribution')}</p> : null}
           <p className="text-sm text-muted">{t('nothingSaved')}</p>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
             <Button variant="secondary" onClick={() => setStep('preview')}>
@@ -541,8 +562,11 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
             <Link href={`/app/e/${id}/guests`} className={buttonClasses('secondary')}>
               {t('goGuests')}
             </Link>
-            <Link href={`/app/e/${id}/send`} className={buttonClasses('primary')}>
-              {t('goSend')}
+            <Link
+              href={`/app/e/${id}/send${cardKind === 'contribution' ? '?card=contribution' : ''}`}
+              className={buttonClasses('primary')}
+            >
+              {cardKind === 'contribution' ? t('goSendContribution') : t('goSend')}
             </Link>
           </div>
         </section>
@@ -578,7 +602,17 @@ export default function ImportPage({ params }: { params: Promise<{ id: string }>
             eventScopedKeys(id).map((k) => queryClient.invalidateQueries({ queryKey: k })),
           )
         }
+        cardKind={cardKind}
       />
     </div>
+  );
+}
+
+export default function ImportPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  return (
+    <Suspense>
+      <ImportInner id={id} />
+    </Suspense>
   );
 }

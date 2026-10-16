@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { MapPin, ShieldCheck, Shirt } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { defaultSender, eventKindLabel, hostNames } from '@harusi/schemas';
+import { defaultSender, eventKindLabel, eventKindOf, hostNames } from '@harusi/schemas';
 import { QrBlock } from '@/components/ui/qr-block';
 import { OrnamentBand, OrnamentDiamond } from '@/components/card/ornament';
 import {
@@ -58,7 +58,10 @@ export function CardPreview({ data, compact }: { data: CardPreviewData; compact?
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.38))]" />
           <div className="relative flex flex-col items-center gap-0.5 px-3 pt-5 pb-5">
             <p className="text-[10px] tracking-[0.2em] uppercase opacity-90">
-              {t('weddingOf', { kind: eventKindLabel(data.eventKind, locale) })}
+              {t('weddingOf', {
+                kind: eventKindLabel(data.eventKind, locale),
+                kindOf: eventKindOf(data.eventKind, locale),
+              })}
             </p>
             <p className="font-display text-3xl leading-tight font-semibold">
               {hostNames(data.partnerA || '—', data.partnerB)}

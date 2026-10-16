@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
+import { CARD_KINDS, type CardKind } from '@harusi/schemas';
 import { useCreateGuest } from '../../../../../src/lib/queries';
 import { parsePhone, useEventLocale } from '../../../../../src/lib/country';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { AppHeader } from '../../../../../src/ui/header';
-import { Banner, Button, Field, Screen, Stepper, Txt } from '../../../../../src/ui/kit';
+import { Banner, Button, Field, Screen, Segmented, Stepper, Txt } from '../../../../../src/ui/kit';
 import { Chip } from '../../../../../src/ui/kit';
 
 export default function NewGuest() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const t = useT();
   const { locale } = useLocale();
   const create = useCreateGuest(id);
@@ -18,6 +19,10 @@ export default function NewGuest() {
   const [phone, setPhone] = useState('');
   const [group, setGroup] = useState('');
   const [party, setParty] = useState(1);
+  // links from the send screen and the import screen arrive with ?card=contribution
+  const [cardKind, setCardKind] = useState<CardKind>(
+    card === 'contribution' ? 'contribution' : 'invitation',
+  );
   const [smart, setSmart] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; phone?: string; form?: string }>({});
 
@@ -37,7 +42,8 @@ export default function NewGuest() {
         displayName: name.trim(),
         phone: normalized || undefined,
         groupLabel: group.trim(),
-        partySizeAllowed: party,
+        partySizeAllowed: cardKind === 'contribution' ? 1 : party,
+        cardKind,
         inviteChannelPref: !normalized ? 'print' : smart ? 'whatsapp' : 'sms',
         hasSmartphone: smart,
         language: locale,
@@ -75,6 +81,15 @@ export default function NewGuest() {
         }
       >
         {errors.form ? <Banner tone="danger" text={errors.form} /> : null}
+        <Txt size={14} bold>
+          {t('guestForm.cardKind')}
+        </Txt>
+        <Segmented<CardKind>
+          value={cardKind}
+          onChange={setCardKind}
+          options={CARD_KINDS.map((k) => ({ value: k, label: t(`guestForm.cardKinds.${k}`) }))}
+        />
+        <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>
         <Field
           label={t('guestForm.name')}
           hint={t('guestForm.nameHint')}
@@ -96,17 +111,21 @@ export default function NewGuest() {
           value={group}
           onChangeText={setGroup}
         />
-        <Txt size={14} bold>
-          {t('guestForm.party')}
-        </Txt>
-        <Stepper
-          value={party}
-          min={1}
-          max={10}
-          onChange={setParty}
-          decLabel={t('guestForm.decrease')}
-          incLabel={t('guestForm.increase')}
-        />
+        {cardKind === 'invitation' ? (
+          <>
+            <Txt size={14} bold>
+              {t('guestForm.party')}
+            </Txt>
+            <Stepper
+              value={party}
+              min={1}
+              max={10}
+              onChange={setParty}
+              decLabel={t('guestForm.decrease')}
+              incLabel={t('guestForm.increase')}
+            />
+          </>
+        ) : null}
         <Chip
           label={t('guestForm.noSmartphone')}
           active={!smart}

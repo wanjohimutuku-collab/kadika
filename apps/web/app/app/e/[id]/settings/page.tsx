@@ -2,11 +2,12 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
-import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
+import { eventKindSuggestions } from '@harusi/schemas';
+import type { Locale } from '@harusi/i18n';
 import { parsePhone, useCurrency, usePhoneCountry } from '@/lib/country';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -63,6 +64,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
   const cur = useCurrency();
   const { id } = use(params);
   const t = useTranslations('settings');
+  const locale = useLocale() as Locale;
   const tw = useTranslations('wizard');
   const tn = useTranslations('nav');
   const tv = useTranslations('validation');
@@ -183,7 +185,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                     wrapperClassName="sm:col-span-2"
                   />
                   <datalist id="event-kind-suggestions">
-                    {EVENT_KIND_SUGGESTIONS.map((k) => (
+                    {eventKindSuggestions(locale).map((k) => (
                       <option key={k} value={k} />
                     ))}
                   </datalist>

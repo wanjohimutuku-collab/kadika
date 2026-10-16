@@ -3,12 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ImagePlus } from 'lucide-react';
-import { EVENT_KIND_SUGGESTIONS, eventInputSchema, type EventInput } from '@harusi/schemas';
+import {
+  defaultEventTitle,
+  eventInputSchema,
+  eventKindSuggestions,
+  hostNames,
+  type EventInput,
+} from '@harusi/schemas';
+import type { Locale } from '@harusi/i18n';
 import {
   contrastRatio,
   lightColors,
@@ -88,6 +95,7 @@ export default function NewEventPage() {
   const t = useTranslations('wizard');
   const tc = useTranslations('common');
   const tl = useTranslations('common.languageName');
+  const locale = useLocale() as Locale;
   const fieldError = useFieldError();
   const router = useRouter();
   const toast = useToast();
@@ -95,9 +103,14 @@ export default function NewEventPage() {
   const [step, setStep] = useState<Step>('names');
   const [restored, setRestored] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  // the event type starts as the first suggestion in the language of the screen (Wedding / Harusi)
+  const empty = useMemo<EventInput>(
+    () => ({ ...EMPTY, eventKind: eventKindSuggestions(locale)[0] }),
+    [locale],
+  );
   const form = useForm<EventInput>({
     resolver: zodResolver(eventInputSchema),
-    defaultValues: EMPTY,
+    defaultValues: empty,
     mode: 'onTouched',
   });
   const { register, control, formState, trigger, setValue, reset, handleSubmit } = form;
@@ -107,11 +120,11 @@ export default function NewEventPage() {
   useEffect(() => {
     const d = readDraft();
     if (d && (d.values.partnerA || d.values.partnerB || d.values.venueName)) {
-      reset({ ...EMPTY, ...d.values });
+      reset({ ...empty, ...d.values });
       setStep(d.step);
       setRestored(true);
     }
-  }, [reset]);
+  }, [reset, empty]);
   useEffect(() => {
     const id = setTimeout(() => {
       try {
@@ -133,12 +146,9 @@ export default function NewEventPage() {
     if (!titleTouched && (values.partnerA || values.partnerB))
       setValue(
         'title',
-        `${values.eventKind?.trim() || 'Mwaliko'} ya ${[values.partnerA, values.partnerB]
-          .map((n) => n?.trim())
-          .filter(Boolean)
-          .join(' & ')}`,
+        defaultEventTitle(values.eventKind, hostNames(values.partnerA, values.partnerB), locale),
       );
-  }, [values.eventKind, values.partnerA, values.partnerB, titleTouched, setValue]);
+  }, [values.eventKind, values.partnerA, values.partnerB, titleTouched, setValue, locale]);
 
   const create = useMutation({
     mutationFn: (input: EventInput) =>
@@ -215,7 +225,7 @@ export default function NewEventPage() {
               variant="ghost"
               onClick={() => {
                 localStorage.removeItem(DRAFT_KEY);
-                reset(EMPTY);
+                reset(empty);
                 setStep('names');
                 setRestored(false);
               }}
@@ -262,7 +272,7 @@ export default function NewEventPage() {
                 error={fieldError(formState.errors.eventKind)}
               />
               <datalist id="event-kind-suggestions">
-                {EVENT_KIND_SUGGESTIONS.map((k) => (
+                {eventKindSuggestions(locale).map((k) => (
                   <option key={k} value={k} />
                 ))}
               </datalist>

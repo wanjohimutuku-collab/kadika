@@ -1,7 +1,7 @@
 import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
-import { formatMoney, hostNames, toZoned } from '@harusi/schemas';
+import { formatMoney, hostNames, toZoned, type CardKind } from '@harusi/schemas';
 import { pledgeSummaryOf } from './pledges';
 import { composeSms, dateText, senderOf } from './messages';
 import type { Country } from '@harusi/schemas/country';
@@ -29,6 +29,11 @@ export interface SendInput {
   channel?: 'auto' | 'whatsapp' | 'sms';
   /** `invite` (the default) is the first message; `reminder` nudges guests already invited. */
   kind?: SendKind;
+  /**
+   * Which cards to send: `invitation` (RSVP and QR) or `contribution` (asks for a contribution only).
+   * Left out, both kinds match, as before (ADR 031).
+   */
+  cardKind?: CardKind;
 }
 
 /** A guest who was reminded in this window is not reminded again, so a double tap or a re-run is safe. */
@@ -42,6 +47,27 @@ export function assertTargetFits(kind: SendKind, t: SendTarget): void {
   const fits =
     kind === 'invite' ? t === 'remaining' || t === 'failed' : t === 'unanswered' || t === 'all';
   if (!fits) throw new ApiError('validation', `The audience "${t}" does not fit a ${kind}`);
+}
+
+/** A contribution card is a first message; its follow-ups are pledge reminders, which know who still owes. */
+export function assertCardKindFits(kind: SendKind, cardKind?: CardKind): void {
+  if (kind === 'reminder' && cardKind === 'contribution')
+    throw new ApiError(
+      'validation',
+      'Contribution cards are followed up with pledge reminders, not invitation reminders',
+      { field: 'cardKind' },
+    );
+}
+
+/** A contribution card asks for money; with contributions switched off it would only say "closed". */
+export function assertContributionsOpen(
+  event: Pick<typeof events.$inferSelect, 'pledgesEnabled'>,
+  cardKind?: CardKind,
+): void {
+  if (cardKind === 'contribution' && !event.pledgesEnabled)
+    throw new ApiError('conflict', 'Contributions are switched off for this event', {
+      reason: 'contributions_off',
+    });
 }
 export interface SendSummary {
   total: number;
@@ -474,6 +500,7 @@ export class DeliveryService {
   private async pick(eventId: string, input: SendInput) {
     const kind = input.kind ?? 'invite';
     assertTargetFits(kind, input.target);
+    assertCardKindFits(kind, input.cardKind);
     const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
     if (!event) throw new ApiError('not_found', 'Event not found');
 
@@ -481,7 +508,13 @@ export class DeliveryService {
       .select({ guest: guests, inv: invitations })
       .from(guests)
       .innerJoin(invitations, eq(invitations.guestId, guests.id))
-      .where(and(eq(guests.eventId, eventId), isNull(guests.deletedAt)));
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          input.cardKind ? eq(guests.cardKind, input.cardKind) : undefined,
+        ),
+      );
 
     const t = input.target;
     if (kind === 'reminder') {
@@ -525,12 +558,61 @@ export class DeliveryService {
     return (await this.pick(eventId, input)).picked.length;
   }
 
+  /** Guests reminded inside the cooldown window; a reminder skips them, so a double tap texts nobody twice. */
+  private async recentlyReminded(guestIds: string[], now: Date): Promise<Set<string>> {
+    if (guestIds.length === 0) return new Set();
+    const rows = await this.deps.db
+      .select({ guestId: messageLog.guestId })
+      .from(messageLog)
+      .where(
+        and(
+          inArray(messageLog.guestId, guestIds),
+          inArray(messageLog.kind, REMINDER_KINDS),
+          eq(messageLog.status, 'sent'),
+          gt(messageLog.createdAt, new Date(now.getTime() - REMINDER_COOLDOWN_MS)),
+        ),
+      );
+    return new Set(rows.map((r) => r.guestId));
+  }
+
+  /**
+   * What a send would do right now, with nothing sent: who it reaches and how. It uses the same audience
+   * and skip rules as `run`, so the numbers match what the send then does (ADR 031).
+   */
+  async preview(eventId: string, userId: string, input: SendInput) {
+    await this.assertCanSend(eventId, userId);
+    const { kind, picked } = await this.pick(eventId, input);
+    const reminded =
+      kind === 'reminder'
+        ? await this.recentlyReminded(
+            picked.map((p) => p.guest.id),
+            this.deps.now(),
+          )
+        : new Set<string>();
+    const byChannel = { whatsapp: 0, sms: 0, print: 0 };
+    let total = 0;
+    let withoutPhone = 0;
+    for (const { guest } of picked) {
+      // A guest who stopped reminders, or was just reminded, is not part of a reminder.
+      if (kind === 'reminder' && (guest.remindersOptOut || reminded.has(guest.id))) continue;
+      total++;
+      if (!guest.phoneE164) withoutPhone++;
+      const channels = this.channelsFor(guest, input.channel ?? 'auto');
+      // Nothing to send electronically: a printed card, or no phone number.
+      byChannel[
+        channels.length === 0 ? 'print' : channels[0] === 'whatsapp' ? 'whatsapp' : 'sms'
+      ]++;
+    }
+    return { total, byChannel, withoutPhone };
+  }
+
   /**
    * Sends to an audience with no user check: the caller has already authorised it, either a member
    * who asked just now or a scheduled send whose creator asked earlier (ADR 030).
    */
   async run(eventId: string, input: SendInput): Promise<SendSummary> {
     const { event, kind, picked } = await this.pick(eventId, input);
+    assertContributionsOpen(event, input.cardKind);
     const now = this.deps.now();
 
     // Reminders only make sense before the day, and only once in a while per guest.
@@ -541,25 +623,10 @@ export class DeliveryService {
         throw new ApiError('conflict', 'The event has already happened');
       const dayOf = (d: Date) => Math.floor(toZoned(d, event.timezone).getTime() / 86_400_000);
       daysLeft = Math.max(0, dayOf(event.dateStart) - dayOf(now));
-      if (picked.length > 0)
-        reminded = new Set(
-          (
-            await this.deps.db
-              .select({ guestId: messageLog.guestId })
-              .from(messageLog)
-              .where(
-                and(
-                  inArray(
-                    messageLog.guestId,
-                    picked.map((p) => p.guest.id),
-                  ),
-                  inArray(messageLog.kind, REMINDER_KINDS),
-                  eq(messageLog.status, 'sent'),
-                  gt(messageLog.createdAt, new Date(now.getTime() - REMINDER_COOLDOWN_MS)),
-                ),
-              )
-          ).map((r) => r.guestId),
-        );
+      reminded = await this.recentlyReminded(
+        picked.map((p) => p.guest.id),
+        now,
+      );
     }
 
     const summary: SendSummary = {

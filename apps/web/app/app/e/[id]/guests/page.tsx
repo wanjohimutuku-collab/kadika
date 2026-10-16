@@ -25,6 +25,7 @@ import {
   Search,
   Send,
   Tags,
+  WalletCards,
   Trash2,
   UserPlus,
   Users,
@@ -38,13 +39,14 @@ import {
   type GuestFilter,
   type GuestQuery,
 } from '@harusi/api-client';
+import { CARD_KINDS, type CardKind } from '@harusi/schemas';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { ChannelIcon, GuestStatusPill } from '@/components/console/status';
 import { GuestForm } from '@/components/console/guests/guest-form';
 import { ContactsSheet } from '@/components/console/guests/contacts-sheet';
 import { Button, IconButton } from '@/components/ui/button';
-import { Avatar, Chip, EmptyState, Skeleton } from '@/components/ui/display';
+import { Avatar, Chip, EmptyState, Skeleton, StatusPill } from '@/components/ui/display';
 import { ListRow } from '@/components/ui/data';
 import { BottomSheet, ConfirmSheet } from '@/components/ui/overlay';
 import { TextField } from '@/components/ui/form';
@@ -80,6 +82,7 @@ function GuestsInner({ id }: { id: string }) {
   const t = useTranslations('guests');
   const tc = useTranslations('common');
   const ts = useTranslations('states');
+  const tf = useTranslations('guestForm');
   const router = useRouter();
   const params = useSearchParams();
   const toast = useToast();
@@ -100,6 +103,12 @@ function GuestsInner({ id }: { id: string }) {
       ? (params.get('filter') as GuestFilter)
       : 'all',
   );
+  // which cards to list: everyone, or only invitation or contribution cards (ADR 031)
+  const [cardKind, setCardKind] = useState<'all' | CardKind>(
+    (CARD_KINDS as readonly string[]).includes(params.get('card') ?? '')
+      ? (params.get('card') as CardKind)
+      : 'all',
+  );
   const [group, setGroup] = useState('');
   const [sort, setSort] = useState<{ by: SortBy; dir: 'asc' | 'desc' }>({ by: 'name', dir: 'asc' });
   const [selection, setSelection] = useState<RowSelectionState>({});
@@ -109,6 +118,7 @@ function GuestsInner({ id }: { id: string }) {
   const [editing, setEditing] = useState<Guest | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
+  const [cardKindOpen, setCardKindOpen] = useState(false);
   const [newGroup, setNewGroup] = useState('');
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
@@ -131,10 +141,25 @@ function GuestsInner({ id }: { id: string }) {
   };
 
   const all = useMemo(() => guests.data ?? [], [guests.data]);
-  const counts = useMemo(() => filterCounts(all), [all]);
+  const contributionTotal = useMemo(
+    () => all.filter((g) => g.cardKind === 'contribution').length,
+    [all],
+  );
+  const ofKind = useMemo(
+    () => (cardKind === 'all' ? all : all.filter((g) => g.cardKind === cardKind)),
+    [all, cardKind],
+  );
+  const counts = useMemo(() => filterCounts(ofKind), [ofKind]);
   const rows = useMemo(
-    () => applyGuestQuery(all, { search: debounced, filter, group: group || undefined, sort }),
-    [all, debounced, filter, group, sort],
+    () =>
+      applyGuestQuery(all, {
+        search: debounced,
+        filter,
+        group: group || undefined,
+        sort,
+        cardKind: cardKind === 'all' ? undefined : cardKind,
+      }),
+    [all, debounced, filter, group, sort, cardKind],
   );
   const selectedIds = Object.keys(selection).filter((k) => selection[k]);
   const anySelected = selectedIds.length > 0;
@@ -200,6 +225,21 @@ function GuestsInner({ id }: { id: string }) {
     onError: () => toast({ tone: 'error', title: ts('rolledBack') }),
   });
 
+  const recard = useMutation({
+    mutationFn: async ({ ids, kind }: { ids: string[]; kind: CardKind }) => {
+      for (const gid of ids) await getRepository().updateGuest(gid, { cardKind: kind });
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      toast({ tone: 'success', title: t('cardKindUpdated', { count: n }) });
+      setCardKindOpen(false);
+      setSelection({});
+      setSelectMode(false);
+      void invalidate();
+    },
+    onError: () => toast({ tone: 'error', title: ts('rolledBack') }),
+  });
+
   const print = useMutation({
     mutationFn: (ids: string[]) =>
       getRepository().requestCardsPdf(id, { format: 'A6', layout: 'single', guestIds: ids }),
@@ -218,7 +258,12 @@ function GuestsInner({ id }: { id: string }) {
 
   const goSendSelected = () => {
     sessionStorage.setItem(SELECTED_KEY, JSON.stringify(selectedIds));
-    router.push(`/app/e/${id}/send?audience=selected`);
+    const chosen = all.filter((g) => selection[g.id]);
+    const onlyContribution =
+      chosen.length > 0 && chosen.every((g) => g.cardKind === 'contribution');
+    router.push(
+      `/app/e/${id}/send?audience=selected${onlyContribution ? '&card=contribution' : ''}`,
+    );
   };
 
   const toggleSort = (by: SortBy) =>
@@ -259,6 +304,9 @@ function GuestsInner({ id }: { id: string }) {
         >
           <Avatar name={c.getValue()} size={32} />
           <span className="truncate">{c.getValue()}</span>
+          {c.row.original.cardKind === 'contribution' ? (
+            <StatusPill tone="info">{t('cardKindContribution')}</StatusPill>
+          ) : null}
         </Link>
       ),
     }),
@@ -396,6 +444,31 @@ function GuestsInner({ id }: { id: string }) {
             data-testid="guest-search"
           />
         </label>
+        {contributionTotal > 0 || cardKind !== 'all' ? (
+          <div
+            className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+            role="group"
+            aria-label={t('cardTypeLabel')}
+            data-testid="card-kind-filter"
+          >
+            {(['all', ...CARD_KINDS] as const).map((k) => (
+              <Chip
+                key={k}
+                pressed={cardKind === k}
+                onClick={() => setCardKind(k)}
+                count={
+                  k === 'all'
+                    ? all.length
+                    : k === 'contribution'
+                      ? contributionTotal
+                      : all.length - contributionTotal
+                }
+              >
+                {t(`cardTypes.${k}`)}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
         <div
           className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
           role="group"
@@ -646,7 +719,7 @@ function GuestsInner({ id }: { id: string }) {
                           )
                         }
                         title={g.displayName}
-                        subtitle={`${g.groupLabel || '—'} · ${g.shortCode}${g.hasSmartphone ? '' : ` · ${t('featurePhone')}`}`}
+                        subtitle={`${g.groupLabel || '—'} · ${g.shortCode}${g.hasSmartphone ? '' : ` · ${t('featurePhone')}`}${g.cardKind === 'contribution' ? ` · ${t('cardKindContribution')}` : ''}`}
                         trailing={
                           <>
                             <ChannelIcon
@@ -731,6 +804,15 @@ function GuestsInner({ id }: { id: string }) {
               onClick={() => setGroupOpen(true)}
             >
               {t('bulkGroup')}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<WalletCards className="size-4" aria-hidden="true" />}
+              onClick={() => setCardKindOpen(true)}
+              data-testid="bulk-card-kind"
+            >
+              {t('bulkCardKind')}
             </Button>
             <Button
               size="sm"
@@ -853,6 +935,29 @@ function GuestsInner({ id }: { id: string }) {
             <option key={g} value={g} />
           ))}
         </datalist>
+      </BottomSheet>
+
+      <BottomSheet
+        open={cardKindOpen}
+        onOpenChange={setCardKindOpen}
+        title={t('cardKindTitle', { count: selectedIds.length })}
+        closeLabel={tc('close')}
+      >
+        <div className="flex flex-col gap-3">
+          <p>{t('cardKindBody')}</p>
+          {CARD_KINDS.map((k) => (
+            <Button
+              key={k}
+              variant="secondary"
+              block
+              loading={recard.isPending && recard.variables?.kind === k}
+              onClick={() => recard.mutate({ ids: selectedIds, kind: k })}
+              data-testid={`set-card-kind-${k}`}
+            >
+              {tf(`cardKinds.${k}`)}
+            </Button>
+          ))}
+        </div>
       </BottomSheet>
 
       <BottomSheet

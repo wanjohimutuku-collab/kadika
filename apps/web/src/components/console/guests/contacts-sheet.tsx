@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ShieldAlert } from 'lucide-react';
+import type { CardKind } from '@harusi/schemas';
 import { parsePhone, usePhoneCountry } from '@/lib/country';
 import { BottomSheet } from '@/components/ui/overlay';
 import { Button } from '@/components/ui/button';
@@ -41,11 +42,14 @@ export function ContactsSheet({
   open,
   onOpenChange,
   onImported,
+  cardKind,
 }: {
   eventId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onImported: () => void;
+  /** What the people picked become: invitation cards (the default) or contribution cards (ADR 031). */
+  cardKind?: CardKind;
 }) {
   const t = useTranslations('guests');
   const ts = useTranslations('states');
@@ -91,7 +95,9 @@ export function ContactsSheet({
             inviteChannelPref: p.ok ? ('whatsapp' as const) : ('print' as const),
           };
         });
-      const r = await getRepository().importGuests(eventId, rows, newIdempotencyKey());
+      const r = await getRepository().importGuests(eventId, rows, newIdempotencyKey(), {
+        cardKind,
+      });
       toast({ tone: 'success', title: t('contactsAdded', { count: r.created }) });
       onImported();
       onOpenChange(false);

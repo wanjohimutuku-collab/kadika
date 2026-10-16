@@ -527,3 +527,140 @@ describe('saved demo state from before the money rename', () => {
     expect(JSON.parse(storage.getItem('harusi.mock.v1')!).version).toBe(5);
   });
 });
+
+describe('sending by card type (ADR 031)', () => {
+  const base = { channel: 'auto' as const, whatsappFallbackToSms: true };
+  const unsent = { kind: 'unsent' as const };
+
+  /** Three people who are only asked for a contribution, on the demo wedding. */
+  async function contributionGuests() {
+    const ev = (await repo.listEvents())[0]!;
+    repo.controls.set({ failureRate: 0 });
+    const made = [];
+    for (const [i, name] of [
+      'Mchangiaji Mmoja',
+      'Mchangiaji Wawili',
+      'Mchangiaji Watatu',
+    ].entries())
+      made.push(
+        await repo.createGuest(ev.id, {
+          displayName: name,
+          phone: `0712 991 00${i}`,
+          partySizeAllowed: 1,
+          cardKind: 'contribution',
+          inviteChannelPref: 'sms',
+          hasSmartphone: false,
+          language: 'sw',
+        }),
+      );
+    return { ev, made };
+  }
+
+  it('previews and sends only the cards asked for, so contribution cards can go before invitations', async () => {
+    const { ev, made } = await contributionGuests();
+    const total = (cardKind?: 'invitation' | 'contribution') =>
+      repo
+        .previewSend(ev.id, { ...base, audience: unsent, kind: 'invite', cardKind })
+        .then((p) => p.total);
+    const invitations = await total('invitation');
+    expect(invitations).toBeGreaterThan(0);
+    expect(await total('contribution')).toBe(3);
+    expect(await total()).toBe(invitations + 3); // no card type: both, as before
+
+    const job = await repo.sendInvitations(ev.id, {
+      ...base,
+      audience: unsent,
+      kind: 'invite',
+      cardKind: 'contribution',
+      scheduleAt: null,
+      idempotencyKey: 'card-type-1',
+    });
+    expect(job).toMatchObject({ kind: 'invite', cardKind: 'contribution', total: 3 });
+    clock += 120_000;
+    await repo.getSendJob(job.id); // lets the simulated delivery happen
+    expect((await repo.getGuest(made[0]!.id)).status).toBe('delivered');
+    // the invitation guests were not touched, and nobody is left to ask for a contribution
+    expect(await total('invitation')).toBe(invitations);
+    expect(await total('contribution')).toBe(0);
+  });
+
+  it('estimates the cost from the contribution text when contribution cards are chosen', async () => {
+    const { ev } = await contributionGuests();
+    const p = await repo.previewSend(ev.id, {
+      ...base,
+      channel: 'sms',
+      audience: unsent,
+      kind: 'invite',
+      cardKind: 'contribution',
+    });
+    expect(p).toMatchObject({ total: 3, byChannel: { sms: 3 } });
+    expect(p.smsSegments).toBeGreaterThan(0);
+    expect(p.estimatedSmsCost).toBe(p.smsSegments * 3 * 25);
+  });
+
+  it('refuses reminders for contribution cards, and contribution cards while contributions are off', async () => {
+    const { ev } = await contributionGuests();
+    await expect(
+      repo.sendInvitations(ev.id, {
+        ...base,
+        audience: unsent,
+        kind: 'reminder',
+        cardKind: 'contribution',
+        scheduleAt: null,
+        idempotencyKey: 'card-type-2',
+      }),
+    ).rejects.toMatchObject({ code: 'validation' });
+    await repo.updateEvent(ev.id, { pledgesEnabled: false });
+    await expect(
+      repo.sendInvitations(ev.id, {
+        ...base,
+        audience: unsent,
+        kind: 'invite',
+        cardKind: 'contribution',
+        scheduleAt: null,
+        idempotencyKey: 'card-type-3',
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+
+  it('imports a whole list as contribution cards and counts them apart from the invitations', async () => {
+    const ev = (await repo.listEvents())[0]!;
+    const before = ev.stats;
+    const result = await repo.importGuests(
+      ev.id,
+      [
+        {
+          displayName: 'Ndugu Mmoja',
+          phoneRaw: '0712 992 001',
+          groupLabel: 'Ndugu',
+          partySizeAllowed: 1,
+          hasSmartphone: true,
+          inviteChannelPref: 'whatsapp',
+        },
+      ],
+      'import-card-type',
+      { cardKind: 'contribution' },
+    );
+    expect(result).toMatchObject({ created: 1 });
+    const after = (await repo.getEvent(ev.id)).stats;
+    expect(after.contributionGuests).toBe(before.contributionGuests + 1);
+    expect(after.invited).toBe(before.invited);
+  });
+
+  it('puts a guest back in line when their card type changes, so the same person gets both cards', async () => {
+    const { ev, made } = await contributionGuests();
+    const job = await repo.sendInvitations(ev.id, {
+      ...base,
+      audience: { kind: 'selected', guestIds: [made[0]!.id] },
+      kind: 'invite',
+      cardKind: 'contribution',
+      scheduleAt: null,
+      idempotencyKey: 'card-type-4',
+    });
+    clock += 120_000;
+    await repo.getSendJob(job.id);
+    expect((await repo.getGuest(made[0]!.id)).status).toBe('delivered');
+    const switched = await repo.updateGuest(made[0]!.id, { cardKind: 'invitation' });
+    expect(switched).toMatchObject({ cardKind: 'invitation', status: 'created' });
+  });
+});

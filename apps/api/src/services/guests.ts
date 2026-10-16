@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, ilike, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import { guests, invitations, newId, retiredCardTokens, shortOf, signingKeys } from '@harusi/db';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
@@ -283,6 +283,20 @@ export class GuestService {
       .set(set)
       .where(eq(guests.id, guestId))
       .returning();
+    if (set.cardKind !== undefined && set.cardKind !== g.cardKind) {
+      // The guest now holds a different card and it has not gone out, so they are "not sent" again. That
+      // is how a contribution card first and an invitation later reach the same person (ADR 031).
+      // Someone who already answered keeps their answer.
+      await this.deps.db
+        .update(invitations)
+        .set({ status: 'created', sentAt: null, deliveredAt: null, openedAt: null })
+        .where(
+          and(
+            eq(invitations.guestId, guestId),
+            inArray(invitations.status, ['sent', 'delivered', 'opened']),
+          ),
+        );
+    }
     return updated!;
   }
 

@@ -118,11 +118,40 @@ export const guestInputSchema = z.object({
 export type GuestInput = z.input<typeof guestInputSchema>;
 export type GuestInputParsed = z.output<typeof guestInputSchema>;
 
+/**
+ * The kinds of event the app knows by name. What the organiser picks or types is stored as written; for a
+ * known kind the word follows the language of whoever reads it, so an English guest's card says
+ * "engagement" where a Swahili one says "uchumba". Anything else typed is shown as written (ADR 024, 031).
+ */
+export const EVENT_KINDS = [
+  { sw: 'Harusi', en: 'Wedding', aliases: ['harusi', 'wedding'] },
+  { sw: 'Send-off', en: 'Send-off', aliases: ['send-off', 'sendoff', 'send off'] },
+  { sw: 'Uchumba', en: 'Engagement', aliases: ['uchumba', 'engagement'] },
+] as const;
 /** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
 export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const;
-/** The kind to show: what the organiser wrote, else the default for the language. */
+/**
+ * The kind with the "of" that goes with it: "Harusi ya" but "Uchumba wa" in Swahili, because the little word
+ * agrees with the noun ("uchumba" takes "wa"); "Engagement of" in English. A kind the organiser typed is
+ * assumed to take "ya", the most common ending. Use it wherever a text reads "<kind> of <hosts>".
+ */
+export function eventKindOf(kind: string | null | undefined, locale: 'sw' | 'en'): string {
+  const label = eventKindLabel(kind, locale);
+  if (locale === 'en') return `${label} of`;
+  return `${label} ${label.toLowerCase() === 'uchumba' ? 'wa' : 'ya'}`;
+}
+/** The suggestions in the reader's language: Wedding, Send-off, Engagement, or Harusi, Send-off, Uchumba. */
+export function eventKindSuggestions(locale: 'sw' | 'en'): string[] {
+  return EVENT_KINDS.map((k) => k[locale]);
+}
+/** The kind to show: what the organiser wrote (a known kind in the reader's language), else the default. */
 export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | 'en'): string {
-  return kind?.trim() || (locale === 'sw' ? 'Harusi' : 'Wedding');
+  const text = kind?.trim();
+  if (!text) return locale === 'sw' ? 'Harusi' : 'Wedding';
+  const known = EVENT_KINDS.find((k) =>
+    (k.aliases as readonly string[]).includes(text.toLowerCase()),
+  );
+  return known ? known[locale] : text;
 }
 /** Host names joined for display; a single host has no dangling ampersand. */
 export function hostNames(a: string, b?: string | null): string {
@@ -139,11 +168,22 @@ export function defaultSender(
   senderKind: 'family' | 'committee' | 'couple' | 'host' | 'custom' = 'committee',
   locale: 'sw' | 'en' = 'sw',
 ): string {
-  const k = kind?.trim();
-  if (senderKind === 'family')
-    return locale === 'sw' ? `Familia ya ${hosts}` : `The ${hosts} family`;
+  const sw = locale === 'sw';
+  // a known kind is named in the reader's language: "Kamati ya Uchumba ya …" or "The engagement committee of …"
+  const k = kind?.trim() ? eventKindLabel(kind, locale) : '';
+  if (senderKind === 'family') return sw ? `Familia ya ${hosts}` : `The ${hosts} family`;
   if (senderKind === 'couple' || senderKind === 'host' || senderKind === 'custom') return hosts;
-  return k ? `Kamati ya ${k} ya ${hosts}` : `Kamati ya ${hosts}`;
+  if (sw) return k ? `Kamati ya ${eventKindOf(kind, 'sw')} ${hosts}` : `Kamati ya ${hosts}`;
+  return k ? `The ${k.toLowerCase()} committee of ${hosts}` : `The ${hosts} committee`;
+}
+
+/** The title a new event starts with: "Harusi ya Asha & Juma", or "Wedding of Asha & Juma" in English. */
+export function defaultEventTitle(
+  kind: string | null | undefined,
+  hosts: string,
+  locale: 'sw' | 'en',
+): string {
+  return `${eventKindOf(kind, locale)} ${hosts}`;
 }
 
 export const eventKindSchema = z.string().trim().max(40, 'name.too_long');

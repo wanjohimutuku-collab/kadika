@@ -1,4 +1,4 @@
-import { eventKindLabel } from '@harusi/schemas';
+import { eventKindOf } from '@harusi/schemas';
 import { previewCardOnServer } from '@/lib/server-card';
 
 /** Per-card PWA manifest so "Add to home screen" opens this guest's card (§7.3). */
@@ -7,7 +7,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const v = await previewCardOnServer(token);
   const name =
     v?.state === 'ok' && v.event
-      ? `${eventKindLabel(v.event.eventKind, 'sw')} ya ${v.event.coupleNames}`
+      ? `${eventKindOf(v.event.eventKind, 'sw')} ${v.event.coupleNames}`
       : 'Kadi ya mwaliko';
   const body = {
     name,

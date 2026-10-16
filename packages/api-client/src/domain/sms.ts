@@ -1,4 +1,4 @@
-import { eventKindLabel, hostNames, type Currency } from '@harusi/schemas';
+import { eventKindOf, hostNames, type Currency } from '@harusi/schemas';
 /** GSM 03.38 basic charset (+ extension chars that cost 2 septets). */
 const GSM_BASIC =
   '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
@@ -78,19 +78,20 @@ export interface InviteTextInput {
 
 /** §7.2 SMS template (≤ 160 chars when names are of normal length). */
 export function buildInviteSms(i: InviteTextInput): string {
-  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 031)
+  const kindOf = eventKindOf(i.kind, i.locale).toLowerCase();
   const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `Karibu kwenye ${kind} ya ${hosts}, ${i.dateText}. Kadi yako: ${i.shortLink} Namba: ${i.code}`
-    : `You're invited to the ${kind} of ${hosts}, ${i.dateText}. Your card: ${i.shortLink} Code: ${i.code}`;
+    ? `Karibu kwenye ${kindOf} ${hosts}, ${i.dateText}. Kadi yako: ${i.shortLink} Namba: ${i.code}`
+    : `You're invited to the ${kindOf} ${hosts}, ${i.dateText}. Your card: ${i.shortLink} Code: ${i.code}`;
 }
 
 export function buildReminderSms(i: InviteTextInput & { daysLeft: number }): string {
-  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const kindOf = eventKindOf(i.kind, i.locale).toLowerCase();
   const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `Kumbukumbu: ${kind} ya ${hosts} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
-    : `Reminder: the ${kind} of ${hosts} is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
+    ? `Kumbukumbu: ${kindOf} ${hosts} ni baada ya siku ${i.daysLeft}. Kadi: ${i.shortLink} Namba: ${i.code}`
+    : `Reminder: the ${kindOf} ${hosts} is in ${i.daysLeft} days. Card: ${i.shortLink} Code: ${i.code}`;
 }
 
 export interface ContributionTextInput {
@@ -103,11 +104,42 @@ export interface ContributionTextInput {
   shortLink: string;
 }
 
+/** What a send is for when estimating its cost or previewing its text (ADR 031). */
+export interface SampleSmsInput {
+  kind: 'invite' | 'reminder' | 'contribution';
+  locale: 'sw' | 'en';
+  partnerA: string;
+  partnerB: string;
+  eventKind?: string | null;
+  /** Who is asking, for a contribution card. */
+  sender: string;
+  dateText: string;
+  daysLeft?: number;
+  shortLink?: string;
+  code?: string;
+}
+
+/** A sample of the text a send uses, for the cost estimate and the preview. */
+export function buildSampleSms(i: SampleSmsInput): string {
+  const base = {
+    locale: i.locale,
+    partnerA: i.partnerA,
+    partnerB: i.partnerB,
+    kind: i.eventKind,
+    shortLink: i.shortLink ?? 'hrs.example/s/KH-4826',
+  };
+  if (i.kind === 'contribution') return buildContributionSms({ ...base, sender: i.sender });
+  const dated = { ...base, dateText: i.dateText, code: i.code ?? 'KH-4826' };
+  return i.kind === 'reminder'
+    ? buildReminderSms({ ...dated, daysLeft: i.daysLeft ?? 7 })
+    : buildInviteSms(dated);
+}
+
 /** Default SMS for a contribution card (ADR 029): who asks, for which event, and the link to give. */
 export function buildContributionSms(i: ContributionTextInput): string {
-  const kind = eventKindLabel(i.kind, i.locale).toLowerCase();
+  const kindOf = eventKindOf(i.kind, i.locale).toLowerCase();
   const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
-    ? `${i.sender} wanakuomba mchango kwa ${kind} ya ${hosts}. Changia hapa: ${i.shortLink}`
-    : `${i.sender} invite you to contribute to the ${kind} of ${hosts}. Contribute here: ${i.shortLink}`;
+    ? `${i.sender} wanakuomba mchango kwa ${kindOf} ${hosts}. Changia hapa: ${i.shortLink}`
+    : `${i.sender} invite you to contribute to the ${kindOf} ${hosts}. Contribute here: ${i.shortLink}`;
 }

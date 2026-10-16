@@ -18,13 +18,21 @@ import {
   XCircle,
 } from 'lucide-react';
 import {
+  buildContributionSms,
   buildInviteSms,
   buildReminderSms,
+  senderNameFor,
   smsSegments,
   type SendJob,
   type SendRequest,
 } from '@harusi/api-client';
-import { eventKindLabel, type MessageChannel } from '@harusi/schemas';
+import {
+  CARD_KINDS,
+  eventKindLabel,
+  eventKindOf,
+  type CardKind,
+  type MessageChannel,
+} from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -77,13 +85,22 @@ function SendInner({ id }: { id: string }) {
   const [audience, setAudience] = useState<AudienceKind>(
     params.get('audience') === 'selected' ? 'selected' : 'unsent',
   );
-  const [kind, setKind] = useState<Kind>(params.get('kind') === 'reminder' ? 'reminder' : 'invite');
+  // which cards to send (ADR 031); a contribution card is only ever a first message
+  const [cardKind, setCardKind] = useState<CardKind>(
+    params.get('card') === 'contribution' ? 'contribution' : 'invitation',
+  );
+  const [kindChoice, setKindChoice] = useState<Kind>(
+    params.get('kind') === 'reminder' ? 'reminder' : 'invite',
+  );
+  const kind: Kind = cardKind === 'contribution' ? 'invite' : kindChoice;
   const [group, setGroup] = useState('');
   const [channel, setChannel] = useState<Channel>('auto');
   const [fallback, setFallback] = useState(true);
   const [when, setWhen] = useState<'now' | 'later'>('now');
   const [scheduleAt, setScheduleAt] = useState('');
   const [previewLang, setPreviewLang] = useState<Locale>(locale);
+  // switching the language of the screen switches the preview with it, so the two never disagree
+  useEffect(() => setPreviewLang(locale), [locale]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const idem = useRef(newIdempotencyKey());
@@ -105,24 +122,26 @@ function SendInner({ id }: { id: string }) {
   }, [audience, group, selectedIds]);
 
   const preview = useQuery({
-    queryKey: ['send-preview', id, audienceReq, channel, fallback, kind],
+    queryKey: ['send-preview', id, audienceReq, channel, fallback, kind, cardKind],
     queryFn: () =>
       getRepository().previewSend(id, {
         audience: audienceReq,
         channel,
         whatsappFallbackToSms: fallback,
         kind,
+        cardKind,
       }),
     enabled: !(audience === 'group' && !group) && !(audience === 'selected' && !selectedIds.length),
   });
   const autoBreakdown = useQuery({
-    queryKey: ['send-preview', id, audienceReq, 'auto', true, kind],
+    queryKey: ['send-preview', id, audienceReq, 'auto', true, kind, cardKind],
     queryFn: () =>
       getRepository().previewSend(id, {
         audience: audienceReq,
         channel: 'auto',
         whatsappFallbackToSms: true,
         kind,
+        cardKind,
       }),
     enabled: !(audience === 'group' && !group) && !(audience === 'selected' && !selectedIds.length),
   });
@@ -152,6 +171,7 @@ function SendInner({ id }: { id: string }) {
         whatsappFallbackToSms: fallback,
         scheduleAt: when === 'later' && scheduleAt ? fromLocalInput(scheduleAt) : null,
         kind,
+        cardKind,
         idempotencyKey: idem.current,
       }),
     onSuccess: (j) => {
@@ -193,8 +213,21 @@ function SendInner({ id }: { id: string }) {
         const host = typeof window === 'undefined' ? APP_DOMAIN : window.location.host;
         const shortLink = `${host}/s/KH-4826`;
         const dateText = formatDateShort(e.dateStart, previewLang);
-        const smsText =
-          kind === 'reminder'
+        const contribution = cardKind === 'contribution';
+        // the sender in the language being previewed, as the API picks it for each guest
+        const sender = senderNameFor(e, previewLang);
+        const contributionGuests = e.stats.contributionGuests ?? 0;
+        const contributionsOff = contribution && !e.pledgesEnabled;
+        const smsText = contribution
+          ? buildContributionSms({
+              locale: previewLang,
+              partnerA: e.partnerA,
+              partnerB: e.partnerB,
+              kind: e.eventKind,
+              sender,
+              shortLink,
+            })
+          : kind === 'reminder'
             ? buildReminderSms({
                 locale: previewLang,
                 partnerA: e.partnerA,
@@ -328,7 +361,8 @@ function SendInner({ id }: { id: string }) {
         }
 
         const total = p?.total ?? 0;
-        const canSend = total > 0 && net.online && !(when === 'later' && !scheduleAt);
+        const canSend =
+          total > 0 && net.online && !(when === 'later' && !scheduleAt) && !contributionsOff;
         return (
           <div className="pb-24 md:pb-0">
             <PageHeader title={t('title')} />
@@ -342,15 +376,81 @@ function SendInner({ id }: { id: string }) {
               <div className="flex flex-col gap-5">
                 <Card>
                   <div className="flex flex-col gap-4">
-                    <SegmentedControl<Kind>
-                      label={t('title')}
-                      value={kind}
-                      onChange={setKind}
-                      options={[
-                        { value: 'invite', label: tk('invite') },
-                        { value: 'reminder', label: tk('reminder') },
-                      ]}
+                    <SegmentedControl<CardKind>
+                      label={t('cardType')}
+                      value={cardKind}
+                      onChange={setCardKind}
+                      options={CARD_KINDS.map((k) => ({
+                        value: k,
+                        // the count sits under the name so both fit side by side on a phone
+                        label: (
+                          <span className="flex flex-col items-center leading-tight">
+                            <span>{t(`cardTypes.${k}`)}</span>
+                            <span className="tabular text-xs font-normal">
+                              {k === 'contribution' ? contributionGuests : e.stats.invited}
+                            </span>
+                          </span>
+                        ),
+                      }))}
                     />
+                    {contribution ? (
+                      <div className="flex flex-col gap-3" data-testid="contribution-help">
+                        <p className="text-sm text-muted">{t('contributionHelp')}</p>
+                        {contributionsOff ? (
+                          <Banner
+                            tone="warning"
+                            action={
+                              <Link
+                                href={`/app/e/${id}/settings`}
+                                className="inline-flex min-h-11 items-center font-semibold text-primary"
+                              >
+                                {t('openSettings')}
+                              </Link>
+                            }
+                          >
+                            {t('contributionsOff')}
+                          </Banner>
+                        ) : null}
+                        {contributionGuests === 0 ? (
+                          <Banner tone="info" data-testid="no-contribution-guests">
+                            <p>{t('noContributionGuests')}</p>
+                            <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-semibold">
+                              <Link
+                                href={`/app/e/${id}/guests/new?card=contribution`}
+                                className="inline-flex min-h-11 items-center text-primary"
+                              >
+                                {t('addGuestLink')}
+                              </Link>
+                              <Link
+                                href={`/app/e/${id}/guests/import?card=contribution`}
+                                className="inline-flex min-h-11 items-center text-primary"
+                              >
+                                {t('importLink')}
+                              </Link>
+                            </p>
+                          </Banner>
+                        ) : null}
+                        <p className="text-sm text-muted">
+                          {t('contributionFollowUp')}{' '}
+                          <Link
+                            href={`/app/e/${id}/pledges`}
+                            className="font-semibold text-primary underline-offset-2 hover:underline"
+                          >
+                            {t('contributionsTab')}
+                          </Link>
+                        </p>
+                      </div>
+                    ) : (
+                      <SegmentedControl<Kind>
+                        label={t('title')}
+                        value={kindChoice}
+                        onChange={setKindChoice}
+                        options={[
+                          { value: 'invite', label: tk('invite') },
+                          { value: 'reminder', label: tk('reminder') },
+                        ]}
+                      />
+                    )}
                     <div className="flex flex-col gap-2">
                       <h2 className="font-semibold">{t('audience')}</h2>
                       <SegmentedControl<AudienceKind>
@@ -454,17 +554,19 @@ function SendInner({ id }: { id: string }) {
                   ) : null}
                 </Card>
 
-                <Card title={t('reminders')} titleId="rem-h">
-                  <p className="mb-2 text-sm text-muted">{t('remindersHelp')}</p>
-                  {(['t14', 't7', 't1'] as const).map((k) => (
-                    <Switch
-                      key={k}
-                      checked={e.reminders[k]}
-                      onCheckedChange={(v) => reminders.mutate({ ...e.reminders, [k]: v })}
-                      label={t(`reminder.${k}`)}
-                    />
-                  ))}
-                </Card>
+                {contribution ? null : (
+                  <Card title={t('reminders')} titleId="rem-h">
+                    <p className="mb-2 text-sm text-muted">{t('remindersHelp')}</p>
+                    {(['t14', 't7', 't1'] as const).map((k) => (
+                      <Switch
+                        key={k}
+                        checked={e.reminders[k]}
+                        onCheckedChange={(v) => reminders.mutate({ ...e.reminders, [k]: v })}
+                        label={t(`reminder.${k}`)}
+                      />
+                    ))}
+                  </Card>
+                )}
               </div>
 
               <div className="flex flex-col gap-5">
@@ -499,14 +601,21 @@ function SendInner({ id }: { id: string }) {
                         className="rounded-2xl rounded-bl-sm bg-success/12 p-3 text-sm"
                         lang={previewLang}
                       >
-                        {t('whatsappTemplate', {
-                          guest: 'Asha',
-                          couple: e.coupleNames,
-                          kind: eventKindLabel(e.eventKind, previewLang),
-                          date: dateText,
-                          venue: e.venueName,
-                          link: `${host}/c/…`,
-                        })}
+                        {contribution
+                          ? t('whatsappTemplateContribution', {
+                              sender,
+                              couple: e.coupleNames,
+                              kindOf: eventKindOf(e.eventKind, previewLang).toLowerCase(),
+                              link: `${host}/c/…`,
+                            })
+                          : t('whatsappTemplate', {
+                              guest: 'Asha',
+                              couple: e.coupleNames,
+                              kind: eventKindLabel(e.eventKind, previewLang),
+                              date: dateText,
+                              venue: e.venueName,
+                              link: `${host}/c/…`,
+                            })}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -576,7 +685,11 @@ function SendInner({ id }: { id: string }) {
               open={confirmOpen}
               onOpenChange={setConfirmOpen}
               tone="primary"
-              title={t('confirmTitle', { count: total })}
+              title={
+                contribution
+                  ? t('confirmTitleContribution', { count: total })
+                  : t('confirmTitle', { count: total })
+              }
               consequence={
                 <div className="flex flex-col gap-2">
                   <p>

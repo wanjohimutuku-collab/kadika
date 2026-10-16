@@ -3,7 +3,12 @@ import { View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { formatPhone } from '@harusi/schemas/phone';
-import { useDeleteGuest, useGuest, useReissue } from '../../../../../src/lib/queries';
+import {
+  useDeleteGuest,
+  useGuest,
+  useReissue,
+  useUpdateGuest,
+} from '../../../../../src/lib/queries';
 import { useT } from '../../../../../src/lib/i18n';
 import { useEventLocale } from '../../../../../src/lib/country';
 import { statusKey } from '../../../../../src/lib/format';
@@ -41,11 +46,16 @@ export default function GuestDetail() {
   const { country } = useEventLocale(id);
   const reissue = useReissue(id);
   const del = useDeleteGuest(id);
-  const [confirm, setConfirm] = useState<'reissue' | 'delete' | null>(null);
+  const update = useUpdateGuest(id);
+  const [confirm, setConfirm] = useState<'reissue' | 'delete' | 'cardKind' | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
   const g = q.data;
   const reached = g ? (ORDER[g.status] ?? 0) : 0;
+  // a contribution card has no reply and no gate, so its story ends at "opened"
+  const contribution = g?.cardKind === 'contribution';
+  const steps = contribution ? STEPS.filter((s) => s !== 'confirmed' && s !== 'checked_in') : STEPS;
+  const nextKind = contribution ? 'invitation' : 'contribution';
   return (
     <View style={{ flex: 1 }}>
       <AppHeader title={g?.displayName ?? t('common.loading')} onBack={() => router.back()} />
@@ -80,18 +90,26 @@ export default function GuestDetail() {
                   {t('guestDetail.group')}: {g!.groupLabel}
                 </Txt>
               ) : null}
-              <Txt color={c.muted}>
-                {t('guestDetail.partyAllowed', { count: g!.partySizeAllowed })}
-              </Txt>
-              <Txt size={14} color={c.muted}>
-                {t('guestDetail.version', { version: g!.tokenVersion })}
-              </Txt>
+              {contribution ? (
+                <Txt color={c.muted}>
+                  {t('guestDetail.cardKind')}: {t('guests.cardKindContribution')}
+                </Txt>
+              ) : (
+                <>
+                  <Txt color={c.muted}>
+                    {t('guestDetail.partyAllowed', { count: g!.partySizeAllowed })}
+                  </Txt>
+                  <Txt size={14} color={c.muted}>
+                    {t('guestDetail.version', { version: g!.tokenVersion })}
+                  </Txt>
+                </>
+              )}
             </Card>
             <Card>
               <Txt bold size={20}>
-                {t('guestDetail.timeline')}
+                {t(contribution ? 'guestDetail.timelineContribution' : 'guestDetail.timeline')}
               </Txt>
-              {STEPS.map((s, i) => (
+              {steps.map((s, i) => (
                 <View key={s} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Txt color={i <= reached ? c.success : c.muted}>{i <= reached ? '●' : '○'}</Txt>
                   <Txt color={i <= reached ? c.ink : c.muted}>{t(`timelineStatus.${s}`)}</Txt>
@@ -104,6 +122,11 @@ export default function GuestDetail() {
                 <Pill label={t('status.failed')} tone="danger" />
               ) : null}
             </Card>
+            <Button
+              variant="secondary"
+              label={t('guestDetail.changeCardKind')}
+              onPress={() => setConfirm('cardKind')}
+            />
             <Button
               variant="secondary"
               label={t('guestDetail.reissue')}
@@ -131,6 +154,21 @@ export default function GuestDetail() {
           setMsg(
             u ? t('guestDetail.reissued', { version: u.tokenVersion }) : t('states.errorBody'),
           );
+        }}
+      />
+      <ConfirmSheet
+        open={confirm === 'cardKind'}
+        title={t(contribution ? 'guestDetail.toInvitation' : 'guestDetail.toContribution')}
+        body={t(contribution ? 'guestDetail.toInvitationBody' : 'guestDetail.toContributionBody', {
+          name: g?.displayName ?? '',
+        })}
+        confirmLabel={t(contribution ? 'guestDetail.toInvitation' : 'guestDetail.toContribution')}
+        onClose={() => setConfirm(null)}
+        onConfirm={async () => {
+          const u = await update
+            .mutateAsync({ guestId: gid, patch: { cardKind: nextKind } })
+            .catch(() => null);
+          setMsg(u ? t('guests.cardKindUpdated', { count: 1 }) : t('states.errorBody'));
         }}
       />
       <ConfirmSheet

@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
 import { previewCardOnServer } from '@/lib/server-card';
-import { eventKindLabel, hostNames } from '@harusi/schemas';
+import { eventKindOf, hostNames } from '@harusi/schemas';
 import { formatDate } from '@/lib/format';
 
 export const size = { width: 1200, height: 630 };
@@ -29,7 +29,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
       }}
     >
       <div style={{ fontSize: 34, letterSpacing: 8, textTransform: 'uppercase', opacity: 0.9 }}>
-        {eventKindLabel(ev?.eventKind, 'sw')} ya
+        {eventKindOf(ev?.eventKind, 'sw')}
       </div>
       <div style={{ fontSize: 110, fontWeight: 700, marginTop: 10 }}>
         {ev ? hostNames(ev.partnerA, ev.partnerB) : 'Harusi Pass'}

@@ -120,6 +120,13 @@
       "when": 1792076879681,
       "tag": "0016_scheduled_sends",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792125532655,
+      "tag": "0017_scheduled_card_kind",
+      "breakpoints": true
     }
   ]
 }

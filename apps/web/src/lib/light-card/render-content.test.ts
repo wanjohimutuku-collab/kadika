@@ -184,7 +184,9 @@ describe('contribution card', () => {
     expect(html).not.toContain('id="hp-yes"');
     expect(html).not.toContain('id="hp-rsvp-section"');
     expect(html).toContain('"cardKind":"contribution"');
-    expect(html).toContain('Habari Bibi Pendo. Tunakuomba uchangie harusi yetu.');
+    expect(html).toContain(
+      'Habari Bibi Pendo. Tunakuomba uchangie katika harusi ya Asha &amp; Juma.',
+    );
   });
 
   it('uses the organiser’s words, suggested amounts, deadline and payment note', () => {
@@ -245,6 +247,36 @@ describe('contribution card', () => {
     expect(closed).not.toContain('data-testid="pay-link"');
   });
 
+  it('says "wa" after uchumba and "wedding of" in English, never "uchumba ya" (ADR 031)', () => {
+    const uchumba = { ...view().event!, eventKind: 'Uchumba' };
+    const sw = renderCard(contribution({}, { event: uchumba }), opts);
+    expect(visible(sw)).toContain('Tunakuomba uchangie katika uchumba wa Asha &amp; Juma');
+    expect(sw).toContain('Mchango wa uchumba');
+    expect(sw).not.toContain('uchumba ya');
+    expect(sw).not.toContain('uchumba yetu');
+    const en = renderCard(contribution({}, { event: uchumba }), { ...opts, locale: 'en' });
+    expect(visible(en)).toContain('contribute to the engagement of Asha &amp; Juma');
+    const invite = renderCard(view({}, { event: uchumba }), opts);
+    expect(invite).toContain('Mwaliko wa Uchumba wa Asha &amp; Juma');
+    expect(invite).not.toContain('Uchumba ya');
+  });
+
+  it('words the default sender in English for an English reader, but keeps the organiser’s own', () => {
+    const family = { cardContent: { sender: { kind: 'family' as const } } };
+    const event = { ...view().event!, ...family };
+    const en = renderCard(contribution({}, { event }), { ...opts, locale: 'en' });
+    expect(visible(en)).toContain('The Asha &amp; Juma family');
+    expect(visible(en)).not.toContain('Familia ya');
+    const sw = renderCard(contribution({}, { event }), opts);
+    expect(visible(sw)).toContain('Familia ya Asha &amp; Juma');
+    const own = { cardContent: { sender: { kind: 'family' as const, name: 'Kamati ya Mwanga' } } };
+    const kept = renderCard(contribution({}, { event: { ...view().event!, ...own } }), {
+      ...opts,
+      locale: 'en',
+    });
+    expect(visible(kept)).toContain('Kamati ya Mwanga');
+  });
+
   it('uses Kenya’s privacy page and the guest’s language for a Kenyan event', () => {
     const ke = renderCard(
       contribution(
@@ -261,7 +293,8 @@ describe('contribution card', () => {
       { ...opts, locale: 'en' },
     );
     expect(ke).toContain('href="/ke/privacy"');
-    expect(ke).toContain('Contribution for the harusi');
+    // an English reader gets "wedding" for the stored "Harusi" (ADR 031)
+    expect(ke).toContain('Contribution for the wedding');
     expect(ke).toContain('Contribution goal: KES 2,000,000');
   });
 });

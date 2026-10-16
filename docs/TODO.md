@@ -6,7 +6,7 @@ Legend: ☑ done · ◐ built, not verified · ☐ not started · ⏭ deferred. 
 
 - ☑ `main` holds everything built so far: Phases 0–7 (part 1), the mobile UI redesign, free-text event kinds, the SEO pages, Kenya support Phases 1–5 behind `KENYA_ENABLED`, organiser-written card content and scheduled sends (API, scheduler and the web waiting list). Most of it arrived in PR #8; PR #9 fixed an axe failure on scrollable tables; PR #10 added the web waiting list and ADR 029 and 030, which missed PR #8 by two seconds
 - ☑ CI is green on `main` (run for the PR #9 merge): typecheck, lint, format check, 394 unit tests (API 159, schemas 64, web 62, api-client 42, mobile 11, other packages 56), build, Storybook build, `pnpm audit --prod` at high; Playwright 162 passed and 1 skipped (axe on every route); Lighthouse CI
-- ☐ Not deployed: `build-push.yml` is written but has not run yet and `mobile-eas.yml` is a placeholder, so the `v0.1.0` tag built nothing (see "Deployment and release")
+- ☐ Not deployed: `build-push.yml` builds and pushes the images (`staging` ones from `main`) but nothing runs them yet, and `mobile-eas.yml` is a placeholder, so the `v0.1.0` tag built nothing (see "Deployment and release")
 - ☑ PRs #2–#7 are closed. They were a stack (each targeted the previous phase branch) and every one of those branches was already in `main` through #8, so each was closed with a comment saying so. The branches themselves are still on the remote
 
 ## Needs you or an outside party
@@ -184,10 +184,11 @@ Plan: `docs/plan/kenya-product-support.md`; ADR 025–028; pilot runbook `docs/o
 ## Deployment and release (CLAUDE.md §11)
 
 - ☑ `ci.yml`: install, typecheck, lint, format check, tests, build, Storybook build, `pnpm audit --prod --audit-level=high`; a second job runs the Playwright e2e (axe) and Lighthouse CI
-- ◐ `infra/docker/Dockerfile.api` and `Dockerfile.web` exist. The web one now takes the `NEXT_PUBLIC_*` build arguments (it used to build in mock mode) and copies `public/` (it used to leave out `sw.js`). The build stages were run by hand; the images have not been built with Docker yet
-- ◐ `build-push.yml` builds both images, pushes them to GHCR (`staging` from `main`; `production` and the version from a `v*` tag that has passed CI) and calls the Coolify deploy webhooks. Not run yet. Still open: the GitHub environments with their variables and secrets (see `infra/coolify/README.md`), and running migrations before the API starts (`node dist/migrate.js`)
+- ◐ `infra/docker/Dockerfile.api` and `Dockerfile.web` exist. The web one now takes the `NEXT_PUBLIC_*` build arguments (it used to build in mock mode) and copies `public/` (it used to leave out `sw.js`). GitHub has built and pushed both (the `staging` images from `main`); nobody has pulled or run them yet
+- ◐ `build-push.yml` builds both images, pushes them to GHCR (`staging` from `main`; `production` and the version from a `v*` tag that has passed CI) and calls the Coolify deploy webhooks. It ran green on its branch and on `main`, with the deploy step skipped. The `staging` and `production` GitHub environments exist with their API URL variables; `production` has no required reviewer yet. Still open: the `COOLIFY_*` secrets (see `infra/coolify/README.md`), the first `v*` tag, and running migrations before the API starts (`node dist/migrate.js`)
+- ◐ Host routing (ADR 032): one web image serves `kadisasa.com` and `www` (public site and guest card), `app.` (console) and `my.` (staff panel); a surface on another host is redirected there. Unit tests and a real-server check pass. `NEXT_PUBLIC_APP_DOMAIN=kadisasa.com` is set on `production` only. `blog.` and `mail.` are not built: there is no blog or mail server in this repo
 - ☐ `mobile-eas.yml` is a placeholder: EAS preview on a PR label, production on a tag. The `v0.1.0` tag therefore built nothing
-- ☐ Coolify: `infra/coolify/README.md` now describes the flow and the setup, but no Coolify services exist yet; create api, web, postgres, redis and S3-compatible storage, staging before production
+- ☐ Coolify: `infra/coolify/README.md` now describes the flow and the setup, but no Coolify services exist yet; create api, web, postgres, redis and S3-compatible storage, staging before production. DNS for `kadisasa.com`, `www`, `app`, `my` and `mail` exists (Cloudflare) and answers 503 with no app behind it; `api` and `blog` have no record yet
 - ☐ Run the backup and restore drill, set up Uptime Kuma and connect a real Sentry project (see Phase 7)
 
 ## Housekeeping

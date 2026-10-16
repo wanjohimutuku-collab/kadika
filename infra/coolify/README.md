@@ -25,15 +25,15 @@ builds the API and web images, pushes them to GitHub Container Registry (GHCR) a
 Create two environments, `staging` and `production`, under Settings → Environments. On `production`, add a
 required reviewer and limit it to `v*` tags. The workflow reads these from the environment it deploys to:
 
-| Kind     | Name                        | Value                                                                                          |
-| -------- | --------------------------- | ---------------------------------------------------------------------------------------------- |
-| Variable | `NEXT_PUBLIC_API_URL`       | Public `https://` address of that environment's API. **Required**; the build stops without it. |
-| Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The domain shown as the official link. Defaults to `harusipass.co.tz`.               |
-| Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                  |
-| Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                         |
-| Secret   | `COOLIFY_TOKEN`             | A Coolify API token that is allowed to deploy.                                                 |
-| Secret   | `COOLIFY_API_DEPLOY_URL`    | The deploy webhook URL of the API application in Coolify.                                      |
-| Secret   | `COOLIFY_WEB_DEPLOY_URL`    | The deploy webhook URL of the web application in Coolify.                                      |
+| Kind     | Name                        | Value                                                                                                                                                                                                  |
+| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Variable | `NEXT_PUBLIC_API_URL`       | Public `https://` address of that environment's API. **Required**; the build stops without it.                                                                                                         |
+| Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The domain shown as the official link, and when set it also turns on the host routing below. Set it on `production` only, to `kadisasa.com`. Defaults to `harusipass.co.tz` with no routing. |
+| Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                                                                                                                          |
+| Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                                                 |
+| Secret   | `COOLIFY_TOKEN`             | A Coolify API token that is allowed to deploy.                                                                                                                                                         |
+| Secret   | `COOLIFY_API_DEPLOY_URL`    | The deploy webhook URL of the API application in Coolify.                                                                                                                                              |
+| Secret   | `COOLIFY_WEB_DEPLOY_URL`    | The deploy webhook URL of the web application in Coolify.                                                                                                                                              |
 
 The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not
 just a restart. Images are never built in mock mode. If the Coolify secrets are missing, the images are still
@@ -59,6 +59,43 @@ differ a little between Coolify versions; look for the application's Webhooks se
 **Migrations.** Run `node dist/migrate.js` in the new API image before it starts serving (`MIGRATIONS_DIR` is
 already set to the bundled migration files). Check which Coolify hook runs a command in the new image rather than
 the container being replaced, and use that one.
+
+## Production hostnames (kadisasa.com)
+
+One web image serves three surfaces, and the hostname decides which one a request reaches
+([ADR 032](../../docs/adr/032-host-routing.md)). A request for a surface that lives on another host is redirected
+there, so the staff panel never answers on the public host.
+
+| Host                               | Serves                                            | Where                 |
+| ---------------------------------- | ------------------------------------------------- | --------------------- |
+| `kadisasa.com`, `www.kadisasa.com` | Public site and the guest card (`/c`, `/s`, `/k`) | the `web` application |
+| `app.kadisasa.com`                 | Customer and reseller console (`/app`)            | the `web` application |
+| `my.kadisasa.com`                  | Staff panel (`/ops`)                              | the `web` application |
+| `api.kadisasa.com`                 | The API                                           | the `api` application |
+| `blog.kadisasa.com`                | Nothing yet: there is no blog in this repo        | not deployed          |
+| `mail.kadisasa.com`                | Nothing yet: there is no mail server in this repo | not deployed          |
+
+In Coolify, give the **one** `web` application all four web domains (`kadisasa.com`, `www.kadisasa.com`,
+`app.kadisasa.com`, `my.kadisasa.com`) and the `api` application `api.kadisasa.com`. Build the production image
+with `NEXT_PUBLIC_APP_DOMAIN=kadisasa.com` and `NEXT_PUBLIC_API_URL=https://api.kadisasa.com`.
+
+Settings for the `api` application in Coolify (see [`/.env.example`](../../.env.example) for the rest):
+
+| Variable         | Value                                                                                            | Why                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `CORS_ORIGINS`   | `https://kadisasa.com,https://www.kadisasa.com,https://app.kadisasa.com,https://my.kadisasa.com` | The browser calls the API from all four web hosts.               |
+| `SHORT_BASE_URL` | `https://kadisasa.com`                                                                           | Card links in SMS and WhatsApp messages open on the public host. |
+| `APP_BASE_URL`   | `https://app.kadisasa.com`                                                                       | Used for the gate-join link and as the default allowed origin.   |
+
+A staff member signs in at `my.kadisasa.com` and a customer at `app.kadisasa.com`. The session belongs to the host,
+so signing in on the wrong one sends you to the right host to sign in again.
+
+**DNS (Cloudflare).** `kadisasa.com`, `www`, `app`, `my` and `mail` already have records. `api` and `blog` do not;
+add `api` before the first deploy, or the web app has no API to call. Turn the Cloudflare proxy off for anything
+that carries mail (the `MX` target and the SMTP and IMAP hosts), because the proxy only carries web traffic. The
+free Cloudflare certificate covers `kadisasa.com` and `*.kadisasa.com` only, so a name two levels down, such as
+`api.staging.kadisasa.com`, will not get a valid certificate while it is proxied. For staging use a single-level
+name such as `staging-api.kadisasa.com`.
 
 ## Rolling back
 

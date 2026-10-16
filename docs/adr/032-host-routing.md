@@ -37,8 +37,10 @@ Keep one image and decide per request, in middleware, which surface a hostname m
 
 - One image and one Coolify application serve all four web hosts. Each host is added as a domain on that
   application.
-- The staff panel can no longer be reached on the public or the console host, and its sign-in lives on its own
-  origin, so a customer-side script cannot read a staff session.
+- The staff panel is no longer served on the public or the console host, and its sign-in lives on its own
+  origin, so a customer-side script cannot read a staff session. This reduces exposure; it is not an access
+  control. The `Host` header is set by the client, so a request for any host that reaches the app still needs
+  staff authentication to get anywhere in `/ops`.
 - `NEXT_PUBLIC_APP_DOMAIN` now has two jobs: the official link shown on cards, and the host rules. It is baked in
   at build time, so changing it needs a new build.
 - Staff who open `/ops` after signing in on `app.` are sent to `my.` and sign in again there. Signing in on the

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { areaOf, bareHost, decide, hostFor, surfaceOf } from './surfaces';
+import { areaOf, bareHost, decide, hostFor, rootDomain, surfaceOf } from './surfaces';
 
 const ROOT = 'kadisasa.com';
 
@@ -32,6 +32,19 @@ describe('which surface a host belongs to (ADR 032)', () => {
     ])
       expect(surfaceOf(h, ROOT), h).toBeNull();
     expect(surfaceOf(null, ROOT)).toBeNull();
+  });
+
+  it('tidies a mistyped root domain instead of silently matching nothing', () => {
+    for (const r of [
+      'https://Kadisasa.com/',
+      'www.kadisasa.com',
+      ' kadisasa.com ',
+      'http://kadisasa.com:443/x?y',
+    ])
+      expect(rootDomain(r), r).toBe('kadisasa.com');
+    expect(surfaceOf('my.kadisasa.com', 'https://kadisasa.com/')).toBe('admin');
+    expect(hostFor('console', 'www.kadisasa.com')).toBe('app.kadisasa.com');
+    expect(rootDomain(undefined)).toBe('');
   });
 
   it('gates nothing when no root domain is set', () => {

@@ -36,6 +36,20 @@ export function areaOf(pathname: string): Area {
   return 'public';
 }
 
+/**
+ * The bare domain from the setting, so 'https://Kadisasa.com/' or 'www.kadisasa.com' still mean kadisasa.com. A
+ * value that does not parse is not worth failing open on silently, so it is tidied rather than compared as is.
+ */
+export function rootDomain(root: string | null | undefined): string {
+  return (root ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//, '')
+    .replace(/[/?#].*$/, '')
+    .replace(/:\d+$/, '')
+    .replace(/^www\./, '');
+}
+
 /** The host with any port removed and in lower case. */
 export function bareHost(host: string | null | undefined): string {
   return (host ?? '').trim().toLowerCase().replace(/:\d+$/, '');
@@ -46,7 +60,7 @@ export function surfaceOf(
   host: string | null | undefined,
   root: string | undefined,
 ): Surface | null {
-  const r = root?.trim().toLowerCase();
+  const r = rootDomain(root);
   if (!r) return null;
   const h = bareHost(host);
   if (h === r || h === `www.${r}`) return 'public';
@@ -56,7 +70,7 @@ export function surfaceOf(
 }
 
 export function hostFor(surface: Surface, root: string): string {
-  const r = root.trim().toLowerCase();
+  const r = rootDomain(root);
   return surface === 'public' ? r : `${SURFACE_LABEL[surface]}.${r}`;
 }
 

@@ -56,9 +56,9 @@ Create these services for each environment (staging before production):
 Each application's deploy webhook URL and a Coolify API token go into the GitHub secrets above. The menu names
 differ a little between Coolify versions; look for the application's Webhooks section and the API tokens page.
 
-**Migrations.** Run `node dist/migrate.js` in the new API image before it starts serving (`MIGRATIONS_DIR` is
-already set to the bundled migration files). Check which Coolify hook runs a command in the new image rather than
-the container being replaced, and use that one.
+**Migrations.** The API image applies them itself on every start (`node dist/migrate.js && node dist/index.js`),
+so no Coolify pre-deployment hook is needed; a failed migration stops the container before it serves traffic.
+Run one API replica: the migrator takes no lock, so two containers starting at once could race.
 
 ## Rolling back
 

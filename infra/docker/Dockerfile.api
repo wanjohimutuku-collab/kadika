@@ -21,7 +21,7 @@ COPY --from=build --chown=node:node /repo/packages/db/drizzle ./drizzle
 ENV MIGRATIONS_DIR=/app/drizzle
 USER node
 EXPOSE 3001
-HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=3s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+process.env.API_PORT+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-# Release step (run before start): node dist/migrate.js
-CMD ["node", "dist/index.js"]
+# Release step: migrations run before the API starts (single API instance; §11).
+CMD ["sh", "-c", "node dist/migrate.js && exec node dist/index.js"]

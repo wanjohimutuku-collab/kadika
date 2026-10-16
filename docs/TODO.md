@@ -1,17 +1,17 @@
 # Harusi Pass — project TODO
 
-Legend: ☑ done · ◐ built, not verified · ☐ not started · ⏭ deferred. Last checked 2026-10-16 against `main` at 782afad (tag `v0.1.0`) plus PR #10 (`e478361`). Node 22 + pnpm installed to ~/.local/node (add `~/.local/node/bin` to PATH).
+Legend: ☑ done · ◐ built, not verified · ☐ not started · ⏭ deferred. Last checked 2026-10-16 against `main` at e515d6a (PR #10 merged; the `v0.1.0` tag is on 782afad, just before it). Node 22 + pnpm installed to ~/.local/node (add `~/.local/node/bin` to PATH).
 
 ## Where things stand
 
 - ☑ `main` holds everything built so far: Phases 0–7 (part 1), the mobile UI redesign, free-text event kinds, the SEO pages, Kenya support Phases 1–5 behind `KENYA_ENABLED`, organiser-written card content and scheduled sends (API, scheduler and the web waiting list). Most of it arrived in PR #8; PR #9 fixed an axe failure on scrollable tables; PR #10 added the web waiting list and ADR 029 and 030, which missed PR #8 by two seconds
 - ☑ CI is green on `main` (run for the PR #9 merge): typecheck, lint, format check, 394 unit tests (API 159, schemas 64, web 62, api-client 42, mobile 11, other packages 56), build, Storybook build, `pnpm audit --prod` at high; Playwright 162 passed and 1 skipped (axe on every route); Lighthouse CI
 - ☐ Not deployed: `build-push.yml` and `mobile-eas.yml` are placeholders, so the `v0.1.0` tag built nothing (see "Deployment and release")
-- ☐ PRs #2–#7 are still open on GitHub. They are a stack (each targets the previous phase branch), and every one of those branches is already in `main` through #8, so they are superseded
+- ☑ PRs #2–#7 are closed. They were a stack (each targeted the previous phase branch) and every one of those branches was already in `main` through #8, so each was closed with a comment saying so. The branches themselves are still on the remote
 
 ## Needs you or an outside party
 
-- ☐ Close PRs #2–#7 as superseded and delete the merged branches
+- ☐ Delete the merged branches (kept for now): all 12 remote branches other than `main` are merged into it, and `git branch -r --merged origin/main` lists them
 - ☐ Deployment: Coolify services, image build and push, EAS (see "Deployment and release")
 - ☐ Tanzania providers: pick the payment aggregator (§15.4) and run its sandbox; get the Meta WhatsApp templates approved (ADR 020); try WhatsApp and SMS on live accounts
 - ☐ Reviews only people can do: a lawyer on the privacy and terms drafts (including the retention period), a native Swahili speaker on `sw.json` (`reviewed: false`) and the public pages, Kenyan readers on the Kenya text

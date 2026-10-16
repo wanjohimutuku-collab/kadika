@@ -1,10 +1,183 @@
-# Placeholder (Phase 7): build images -> GHCR -> Coolify deploy webhook.
+# Builds the API and web images, pushes them to GHCR and asks Coolify to redeploy.
+#
+#   push to main    ->  :staging       (+ :main, :sha-<short>)    deploys the "staging" environment
+#   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   deploys the "production" environment
+#   manual run      ->  :sha-<short> and :<branch>; deploys only if "deploy" is ticked
+#
+# Production only builds from a commit that already passed CI, and a GitHub environment can add a
+# required reviewer on top. Setup (environments, variables, secrets, Coolify): infra/coolify/README.md
 name: Build and push images
+
 on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Also ask Coolify to deploy
+        type: boolean
+        default: false
+
+# Never cancel a run half way through a push or a deploy; a newer run waits its turn.
+concurrency:
+  group: build-push-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  placeholder:
+  verify-ci:
+    # A release only goes out from a commit CI has already passed on.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
     steps:
-      - run: echo "Not implemented in Phase 0. See CLAUDE.md section 11."
+      - name: Require a passing CI run for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          passed=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --json conclusion \
+            --jq '[.[] | select(.conclusion == "success")] | length')
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::CI has not passed for $GITHUB_SHA. Tag a commit that is green on main."
+            exit 1
+          fi
+
+  build-push:
+    needs: verify-ci
+    # verify-ci is skipped for branch pushes and manual runs; it must have passed for a tag.
+    if: ${{ !cancelled() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # Supplies the web build variables and the Coolify secrets for this run, and lets production
+    # require an approval before anything is pushed.
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The web app bakes NEXT_PUBLIC_* in at build time. Without the API address the image would
+      # call http://localhost:3001, so refuse to build it.
+      - name: Require the web build variables
+        env:
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::error::Set the NEXT_PUBLIC_API_URL variable on this GitHub environment (see infra/coolify/README.md)."
+            exit 1
+          fi
+
+      # GHCR image names must be lower case.
+      - name: Work out the image names
+        id: names
+        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: API image tags
+        id: meta-api
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.names.outputs.prefix }}-api
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build and push the API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/Dockerfile.api
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          provenance: false # one plain image manifest, which is simplest for Coolify to pull
+
+      - name: Web image tags
+        id: meta-web
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.names.outputs.prefix }}-web
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build and push the web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/Dockerfile.web
+          push: true
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
+          provenance: false
+          # Never a mock build. Empty optional values are ignored by the Dockerfile.
+          build-args: |
+            NEXT_PUBLIC_USE_MOCKS=0
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_APP_DOMAIN=${{ vars.NEXT_PUBLIC_APP_DOMAIN }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_KENYA_ENABLED=${{ vars.NEXT_PUBLIC_KENYA_ENABLED || '0' }}
+
+      - name: List what was pushed
+        env:
+          API_TAGS: ${{ steps.meta-api.outputs.tags }}
+          WEB_TAGS: ${{ steps.meta-web.outputs.tags }}
+        run: |
+          {
+            echo "### Images pushed"
+            echo
+            echo "**API**"
+            echo '```'
+            echo "$API_TAGS"
+            echo '```'
+            echo "**Web**"
+            echo '```'
+            echo "$WEB_TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The deploy URLs are the "Webhook" URLs Coolify shows for each application. If the token is not
+      # set yet, the images are still pushed and the deploy is skipped with a warning.
+      - name: Ask Coolify to deploy
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy }}
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_API_DEPLOY_URL: ${{ secrets.COOLIFY_API_DEPLOY_URL }}
+          COOLIFY_WEB_DEPLOY_URL: ${{ secrets.COOLIFY_WEB_DEPLOY_URL }}
+        run: |
+          if [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::warning::COOLIFY_TOKEN is not set for this environment. The images are pushed; nothing was deployed."
+            exit 0
+          fi
+          deploy() { # $1 = service, $2 = webhook URL
+            if [ -z "$2" ]; then
+              echo "::warning::No deploy URL is set for $1, so it was not deployed."
+              return
+            fi
+            curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
+              --header "Authorization: Bearer $COOLIFY_TOKEN" "$2" > /dev/null
+            echo "Deploy requested for $1."
+          }
+          # The API goes first so its migrations are in place before the new web app calls it.
+          deploy api "$COOLIFY_API_DEPLOY_URL"
+          deploy web "$COOLIFY_WEB_DEPLOY_URL"

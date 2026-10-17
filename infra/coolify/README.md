@@ -15,7 +15,8 @@ builds the API and web images, pushes them to GitHub Container Registry (GHCR) a
 - The images are `ghcr.io/<owner>/<repo>-api` and `ghcr.io/<owner>/<repo>-web` (lower case).
 - `staging` and `production` move with each build. `sha-<short>` and the version tag never move, so use them to
   pin or roll back.
-- The API is deployed before the web app, so new migrations are in place before the new web app calls it.
+- One Coolify stack per environment ([`docker-compose.coolify.yml`](../../docker-compose.coolify.yml)) runs api,
+  web, postgres and redis, so one webhook call redeploys it. The API (and its migrations) starts before the web app.
 - The images are built for `linux/amd64`.
 
 ## One-time setup
@@ -32,8 +33,7 @@ required reviewer and limit it to `v*` tags. The workflow reads these from the e
 | Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                  |
 | Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                         |
 | Secret   | `COOLIFY_TOKEN`             | A Coolify API token that is allowed to deploy.                                                 |
-| Secret   | `COOLIFY_API_DEPLOY_URL`    | The deploy webhook URL of the API application in Coolify.                                      |
-| Secret   | `COOLIFY_WEB_DEPLOY_URL`    | The deploy webhook URL of the web application in Coolify.                                      |
+| Secret   | `COOLIFY_DEPLOY_URL`        | The stack's "Deploy Webhook" URL in Coolify (Webhooks tab).                                    |
 
 The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not
 just a restart. Images are never built in mock mode. If the Coolify secrets are missing, the images are still
@@ -44,31 +44,42 @@ pushed and the deploy step is skipped with a warning.
 The first push creates the two packages, private by default. Either make them public, or give Coolify a GitHub
 personal access token with the `read:packages` scope as a registry credential so it can pull them.
 
-### 3. Coolify
+### 3. Coolify (one stack per environment)
 
-Create these services for each environment (staging before production):
+On coolify.korahost.com, for staging (production is the same with the production values):
 
-- `api`: a Docker image application running `ghcr.io/<owner>/<repo>-api:staging` (or `:production`), port 3001.
-  Environment: see [`/.env.example`](../../.env.example). The image's health check calls `/health`.
-- `web`: a Docker image application running the `-web` image, port 3000. Its health check calls `/api/health`.
-- `postgres`, `redis` and S3-compatible storage.
+1. **+ New → Application → Public/Private GitHub repository**, branch `main`, build pack **Docker Compose**.
+   Base directory `/`, Docker Compose location `/docker-compose.coolify.yml`. Coolify only reads the compose file
+   from the repo; it pulls the prebuilt GHCR images and builds nothing on the VPS.
+2. **Domains.** Coolify lists `api` and `web`. Set e.g. `https://api.staging.<domain>` on `api` and
+   `https://staging.<domain>` on `web`. The `api` domain must equal the `NEXT_PUBLIC_API_URL` GitHub variable.
+   DNS: an A record per domain pointing at the VPS. Behind Cloudflare's proxy, set SSL/TLS to **Full (strict)**.
+3. **Environment variables.** Coolify generates the database and Redis passwords, `JWT_SECRET`,
+   `KEY_ENC_SECRET` and `WEBHOOK_SECRET` (the `SERVICE_*` magic variables) and keeps them. Fill in:
+   - `SHORT_BASE_URL` (required; the short link domain, or the web URL),
+   - `IMAGE_TAG`: leave `staging`; use `production` on the production stack,
+   - the SMS, WhatsApp and payment provider values when they are chosen (all default to `fake`).
 
-Each application's deploy webhook URL and a Coolify API token go into the GitHub secrets above. The menu names
-differ a little between Coolify versions; look for the application's Webhooks section and the API tokens page.
+   Never regenerate or edit `KEY_ENC_SECRET` once events exist: it decrypts every event's signing key.
 
-**Migrations.** Run `node dist/migrate.js` in the new API image before it starts serving (`MIGRATIONS_DIR` is
-already set to the bundled migration files). Check which Coolify hook runs a command in the new image rather than
-the container being replaced, and use that one.
+4. **GHCR pull access** (step 2) on the server, then **Deploy** once by hand.
+5. **Webhooks tab → Deploy Webhook** URL goes into the `COOLIFY_DEPLOY_URL` secret, and a token from
+   **Keys & Tokens → API tokens** (deploy permission) into `COOLIFY_TOKEN`.
+
+**Migrations.** The stack's `api` command runs `node dist/migrate.js` before the server starts, in the new
+image, so no Coolify pre-deployment hook is needed. Keep one `api` container: the migrator takes no lock.
+
+**Backups.** Postgres lives in the stack's `pgdata` volume. Schedule `infra/backup/pg-backup.sh` (see
+[`RESTORE.md`](RESTORE.md)); Coolify's built-in scheduled backups only cover standalone database resources.
 
 ## Rolling back
 
-Point the Coolify application at an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
+Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
 roll back with the image, so check an old image still works with the current schema first.
 
 ## Not covered yet
 
-- The workflow has not run end to end. It needs the environments, variables and secrets above, and Coolify
-  services to deploy to.
+- The stack has not been deployed yet: it needs the Coolify setup and the secrets above.
 - The images are not cached between builds: both Dockerfiles copy the whole repo before installing, so every
   build installs from scratch. Copying the lockfile and manifests first would let the install layer be reused.
 - Backups, restore and uptime checks: see [`RESTORE.md`](RESTORE.md) and [`UPTIME.md`](UPTIME.md).

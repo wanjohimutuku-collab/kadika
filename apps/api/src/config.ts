@@ -73,7 +73,10 @@ function required(env: Record<string, string | undefined>, key: string): string 
   return v;
 }
 
-export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
+export function loadConfig(input: Record<string, string | undefined> = process.env): Config {
+  // An empty value means unset. Coolify passes blank optional variables as "", which would
+  // otherwise slip past `??` (e.g. WHATSAPP_PROVIDER="" stopping startup, a blank fallback = 0 h).
+  const env = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== ''));
   const production = env.NODE_ENV === 'production';
   const jwtSecret = required(env, 'JWT_SECRET');
   const keyEncSecret = required(env, 'KEY_ENC_SECRET');

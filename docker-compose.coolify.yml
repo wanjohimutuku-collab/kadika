@@ -40,6 +40,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       # Providers: everything is `fake` until filled in (fake = nothing is really sent or charged).
       # With SMS fake, organizers never receive their login OTP.
+      # SMS/WhatsApp are easier to set in /ops/messaging (ADR 031); saved settings override these.
       SMS_PROVIDER: ${SMS_PROVIDER:-fake}
       NEXTSMS_USERNAME: ${NEXTSMS_USERNAME:-}
       NEXTSMS_PASSWORD: ${NEXTSMS_PASSWORD:-}

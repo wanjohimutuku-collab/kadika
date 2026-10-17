@@ -469,3 +469,16 @@ export const retiredCardTokens = pgTable(
   },
   (t) => [uniqueIndex('retired_card_tokens_hash_uq').on(t.tokenHash)],
 );
+
+/**
+ * SMS and WhatsApp provider settings, edited by staff in /ops (ADR 031). One row per route
+ * (`sms_tz`, `sms_ke`, `whatsapp`). The whole provider config, secrets included, is AES-GCM
+ * encrypted with KEY_ENC_SECRET. A route without a row uses the environment variables.
+ */
+export const messagingSettings = pgTable('messaging_settings', {
+  route: text('route').primaryKey(),
+  provider: text('provider').notNull(),
+  configEnc: text('config_enc').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});

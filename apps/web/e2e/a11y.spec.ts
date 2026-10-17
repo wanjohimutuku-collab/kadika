@@ -31,6 +31,7 @@ const ROUTES = [
   '/ops/support',
   '/ops/requests',
   '/ops/audit',
+  '/ops/messaging',
 ];
 
 for (const locale of ['sw', 'en'] as const) {

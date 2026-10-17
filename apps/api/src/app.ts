@@ -33,6 +33,8 @@ import { GateService, type GateActor } from './services/gate';
 import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content';
 import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
+import { MessagingSettingsService } from './services/messaging-settings';
+import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
 
@@ -163,6 +165,7 @@ export function createApp(deps: Deps) {
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
   const pilotSvc = new PilotMetricsService(deps);
+  const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
@@ -713,6 +716,26 @@ export function createApp(deps: Deps) {
       c.req.query(),
     );
     return c.json(await pilotSvc.report(c.get('userId'), q));
+  });
+  // ---- staff: SMS and WhatsApp provider settings (ADR 031, admin staff only)
+  const routeParam = (c: Context) => parse(z.enum(MESSAGING_ROUTES), c.req.param('route'));
+  app.get('/v1/ops/messaging', async (c) => c.json(await messagingSvc.view(c.get('userId'))));
+  app.put('/v1/ops/messaging/:route', async (c) => {
+    const input = parse(
+      z.object({
+        provider: z.string().min(1).max(40),
+        fields: z.record(z.string().max(2000)).default({}),
+      }),
+      await body(c),
+    );
+    return c.json(await messagingSvc.save(c.get('userId'), routeParam(c), input));
+  });
+  app.delete('/v1/ops/messaging/:route', async (c) =>
+    c.json(await messagingSvc.reset(c.get('userId'), routeParam(c))),
+  );
+  app.post('/v1/ops/messaging/:route/test', async (c) => {
+    const { to } = parse(z.object({ to: phone }), await body(c));
+    return c.json(await messagingSvc.test(c.get('userId'), routeParam(c), to));
   });
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),

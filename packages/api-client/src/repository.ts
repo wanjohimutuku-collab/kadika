@@ -1,4 +1,9 @@
 import type {
+  MessagingRoute,
+  MessagingSettingsInput,
+  MessagingSettingsView,
+} from '@harusi/schemas/messaging-settings';
+import type {
   Country,
   EventInput,
   GuestInput,
@@ -187,4 +192,17 @@ export interface Repository {
     status: 'done' | 'rejected',
     note: string,
   ): Promise<DataRequest>;
+  /** SMS and WhatsApp provider settings (ADR 031), admin staff only. Secrets come back masked. */
+  opsMessagingSettings(): Promise<MessagingSettingsView>;
+  /** A secret left empty keeps the saved one. Refused (`validation`) when required fields are missing. */
+  opsSaveMessaging(
+    route: MessagingRoute,
+    input: MessagingSettingsInput,
+  ): Promise<MessagingSettingsView>;
+  /** Drops the saved settings for a route; the environment variables apply again. */
+  opsResetMessaging(route: MessagingRoute): Promise<MessagingSettingsView>;
+  opsTestMessaging(
+    route: MessagingRoute,
+    to: string,
+  ): Promise<{ ok: boolean; provider: string; error: string | null }>;
 }

@@ -1,3 +1,4 @@
+import type { MessagingSettingsView } from '@harusi/schemas/messaging-settings';
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import {
   defaultSender,
@@ -451,6 +452,23 @@ export function createHttpRepository(
       if (opts.country) q.set('country', opts.country);
       if (opts.days) q.set('days', String(opts.days));
       return call<PilotMetrics>('GET', `/v1/ops/pilot-metrics${q.size ? `?${q}` : ''}`);
+    },
+
+    async opsMessagingSettings() {
+      return call<MessagingSettingsView>('GET', '/v1/ops/messaging');
+    },
+    async opsSaveMessaging(route, input) {
+      return call<MessagingSettingsView>('PUT', `/v1/ops/messaging/${route}`, input);
+    },
+    async opsResetMessaging(route) {
+      return call<MessagingSettingsView>('DELETE', `/v1/ops/messaging/${route}`);
+    },
+    async opsTestMessaging(route, to) {
+      return call<{ ok: boolean; provider: string; error: string | null }>(
+        'POST',
+        `/v1/ops/messaging/${route}/test`,
+        { to },
+      );
     },
 
     async listEvents() {

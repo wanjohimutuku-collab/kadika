@@ -1,3 +1,4 @@
+import type { MessagingSettingsView } from '@harusi/schemas/messaging-settings';
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import {
   defaultSender,
@@ -27,6 +28,7 @@ import type {
   SendJob,
   SendRequest,
   Session,
+  StaffRole,
   WeddingEvent,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
@@ -74,6 +76,7 @@ interface ApiUser {
   name: string;
   phoneE164: string;
   roleGlobal: 'user' | 'admin';
+  staffRole?: StaffRole | null;
 }
 
 interface ApiEvent {
@@ -397,7 +400,13 @@ export function createHttpRepository(
   }
 
   const sessionOf = (u: ApiUser): Session => ({
-    user: { id: u.id, name: u.name, phoneE164: u.phoneE164, roleGlobal: u.roleGlobal },
+    user: {
+      id: u.id,
+      name: u.name,
+      phoneE164: u.phoneE164,
+      roleGlobal: u.roleGlobal,
+      staffRole: u.staffRole ?? undefined,
+    },
     role: 'owner',
     expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   });
@@ -451,6 +460,23 @@ export function createHttpRepository(
       if (opts.country) q.set('country', opts.country);
       if (opts.days) q.set('days', String(opts.days));
       return call<PilotMetrics>('GET', `/v1/ops/pilot-metrics${q.size ? `?${q}` : ''}`);
+    },
+
+    async opsMessagingSettings() {
+      return call<MessagingSettingsView>('GET', '/v1/ops/messaging');
+    },
+    async opsSaveMessaging(route, input) {
+      return call<MessagingSettingsView>('PUT', `/v1/ops/messaging/${route}`, input);
+    },
+    async opsResetMessaging(route) {
+      return call<MessagingSettingsView>('DELETE', `/v1/ops/messaging/${route}`);
+    },
+    async opsTestMessaging(route, to) {
+      return call<{ ok: boolean; provider: string; error: string | null }>(
+        'POST',
+        `/v1/ops/messaging/${route}/test`,
+        { to },
+      );
     },
 
     async listEvents() {

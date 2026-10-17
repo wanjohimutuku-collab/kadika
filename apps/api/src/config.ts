@@ -73,7 +73,10 @@ function required(env: Record<string, string | undefined>, key: string): string 
   return v;
 }
 
-export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
+export function loadConfig(input: Record<string, string | undefined> = process.env): Config {
+  // An empty value means unset. Coolify passes blank optional variables as "", which would
+  // otherwise slip past `??` (e.g. WHATSAPP_PROVIDER="" stopping startup, a blank fallback = 0 h).
+  const env = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== ''));
   const production = env.NODE_ENV === 'production';
   const jwtSecret = required(env, 'JWT_SECRET');
   const keyEncSecret = required(env, 'KEY_ENC_SECRET');
@@ -168,7 +171,12 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
         : null,
     redisUrl: env.REDIS_URL ?? null,
     whatsappFallbackHours: Number(env.WHATSAPP_FALLBACK_HOURS ?? 6),
-    corsOrigins: (env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000')
+    // CORS_EXTRA_ORIGINS adds hosts to the list, e.g. the console and staff hosts in production (ADR 032).
+    corsOrigins: [
+      env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000',
+      env.CORS_EXTRA_ORIGINS ?? '',
+    ]
+      .join(',')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),

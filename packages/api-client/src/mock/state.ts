@@ -116,6 +116,13 @@ export interface MockState {
   dataRequests: DataRequest[];
   /** Staff actions, including every view of a full phone number. */
   opsAudit: OpsAuditEntry[];
+  /** SMS/WhatsApp settings saved in /ops (ADR 031); a route without one shows the env defaults. */
+  messaging?: Partial<
+    Record<
+      'sms_tz' | 'sms_ke' | 'whatsapp',
+      { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
+    >
+  >;
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
 }

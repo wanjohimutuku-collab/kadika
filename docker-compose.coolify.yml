@@ -1,0 +1,113 @@
+# Coolify stack: api + web + postgres + redis as ONE resource (Docker Compose build pack).
+# Setup: infra/coolify/README.md. Not for local dev (that is docker-compose.yml).
+#
+# SERVICE_* values are Coolify magic variables: Coolify generates them once and keeps them.
+#   SERVICE_URL_<SVC>_<PORT>  public https URL routed to that container port (set the domain in the UI)
+#   SERVICE_PASSWORD_*        random password; SERVICE_REALBASE64_32_* = base64 of 32 random bytes
+# ${VAR:?} blocks the deploy until it is filled in; ${VAR:-x} is an editable default.
+#
+# The images are built and pushed by .github/workflows/build-push.yml. IMAGE_TAG picks the
+# channel: `staging` (every push to main) or `production` (v* tags).
+
+services:
+  api:
+    image: ghcr.io/wanjohimutuku-collab/kadika-api:${IMAGE_TAG:-staging}
+    pull_policy: always
+    # Migrations first; a failed migration stops the container before it serves traffic.
+    # Keep ONE api replica: the migrator takes no lock.
+    command: ['sh', '-c', 'node dist/migrate.js && exec node dist/index.js']
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SERVICE_URL_API_3001:
+      NODE_ENV: production
+      API_PORT: 3001
+      DATABASE_URL: postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/harusi
+      REDIS_URL: redis://default:${SERVICE_PASSWORD_REDIS}@redis:6379
+      JWT_SECRET: ${SERVICE_PASSWORD_64_JWT}
+      # Decrypts every event's signing key. Never regenerate or edit it once events exist.
+      KEY_ENC_SECRET: ${SERVICE_REALBASE64_32_KEYENC}
+      APP_BASE_URL: ${SERVICE_URL_WEB_3000}
+      CORS_ORIGINS: ${SERVICE_URL_WEB_3000}
+      # Production: the other web hosts, comma-separated (https://www.<domain>,https://app.<domain>,https://my.<domain>).
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
+      # Link domain in SMS/WhatsApp. Fill in the short domain, or the web URL if there is none.
+      SHORT_BASE_URL: ${SHORT_BASE_URL:?}
+      # Delivery webhooks send this in the x-webhook-secret header.
+      WEBHOOK_SECRET: ${SERVICE_PASSWORD_WEBHOOK}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      # Providers: everything is `fake` until filled in (fake = nothing is really sent or charged).
+      # With SMS fake, organizers never receive their login OTP.
+      # SMS/WhatsApp are easier to set in /ops/messaging (ADR 031); saved settings override these.
+      SMS_PROVIDER: ${SMS_PROVIDER:-fake}
+      NEXTSMS_USERNAME: ${NEXTSMS_USERNAME:-}
+      NEXTSMS_PASSWORD: ${NEXTSMS_PASSWORD:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-fake}
+      EVOLUTION_BASE_URL: ${EVOLUTION_BASE_URL:-}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_TEMPLATE_INVITE: ${WHATSAPP_TEMPLATE_INVITE:-}
+      WHATSAPP_TEMPLATE_REMINDER: ${WHATSAPP_TEMPLATE_REMINDER:-}
+      WHATSAPP_TEMPLATE_PLEDGE: ${WHATSAPP_TEMPLATE_PLEDGE:-}
+      WHATSAPP_TEMPLATE_CONTRIBUTION: ${WHATSAPP_TEMPLATE_CONTRIBUTION:-}
+      WHATSAPP_FALLBACK_HOURS: ${WHATSAPP_FALLBACK_HOURS:-6}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-fake}
+      # Payments stay off while this is empty.
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-}
+      KENYA_ENABLED: ${KENYA_ENABLED:-0}
+    # Healthcheck (/health) comes from the image.
+
+  web:
+    image: ghcr.io/wanjohimutuku-collab/kadika-web:${IMAGE_TAG:-staging}
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    # NEXT_PUBLIC_* are baked in when GitHub Actions builds the image (GitHub environment variables),
+    # not set here. NEXT_PUBLIC_API_URL there must equal this stack's api URL.
+    environment:
+      SERVICE_URL_WEB_3000:
+    # Healthcheck (/api/health) comes from the image.
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_DB: harusi
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d harusi']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${SERVICE_PASSWORD_REDIS}']
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
+
+volumes:
+  pgdata:
+  redisdata:

@@ -79,6 +79,15 @@ import { pledgeTotals, summarizePledge } from '../domain/pledge';
 import { buildInviteSms, estimateSmsCostFor } from '../domain/sms';
 import { toCsv } from '@harusi/schemas/import';
 import { mockQrPayload } from '../domain/token';
+import {
+  MESSAGING_PROVIDERS,
+  MESSAGING_ROUTES,
+  providerFields,
+  type MessagingRoute,
+  type MessagingRouteView,
+  type MessagingSettingsInput,
+  type MessagingSettingsView,
+} from '@harusi/schemas/messaging-settings';
 import { MockControls } from './controls';
 import { addCardFields, renameLegacyMoneyKeys } from './migrate';
 import { Rng } from './prng';
@@ -2494,6 +2503,116 @@ export class MockRepository implements Repository {
         `${r.kind}: ${status}${note.trim() ? ` — ${note.trim()}` : ''}`,
       );
       return { ...r, phoneE164: maskPhoneLocal(r.phoneE164) };
+    });
+  }
+
+  // ---- SMS and WhatsApp settings (ADR 031). Mock: kept in state, nothing is ever sent.
+  /** The mock has no KENYA_ENABLED flag: the Kenyan route shows once a Kenyan wedding exists. */
+  private get kenyaEnabled() {
+    return this.state.events.some((e) => e.country === 'KE');
+  }
+
+  private messagingView(): MessagingSettingsView {
+    const saved = this.state.messaging ?? {};
+    const routes = MESSAGING_ROUTES.filter((r) => r !== 'sms_ke' || this.kenyaEnabled).map(
+      (route): MessagingRouteView => {
+        const row = saved[route];
+        const provider = row?.provider ?? 'fake';
+        const fields: Record<string, string> = {};
+        const secrets: Record<string, string> = {};
+        for (const f of providerFields(route, provider)) {
+          const v = row?.fields[f.key];
+          if (!v) continue;
+          if ('secret' in f && f.secret) secrets[f.key] = `…${v.slice(-4)}`;
+          else fields[f.key] = v;
+        }
+        return {
+          route,
+          provider,
+          source: row ? 'database' : 'environment',
+          fields,
+          secrets,
+          active: provider === 'cloud' ? 'whatsapp-cloud' : provider,
+          updatedAt: row?.updatedAt ?? null,
+          updatedBy: row?.updatedBy ?? null,
+        };
+      },
+    );
+    return {
+      kenyaEnabled: this.kenyaEnabled,
+      routes,
+      webhooks: [
+        { route: 'whatsapp', provider: 'evolution', path: '/v1/webhooks/whatsapp' },
+        { route: 'whatsapp', provider: 'cloud', path: '/v1/webhooks/whatsapp-cloud' },
+        { route: 'sms_tz', provider: 'nextsms', path: '/v1/webhooks/sms' },
+      ],
+    };
+  }
+
+  opsMessagingSettings(): Promise<MessagingSettingsView> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff('settings');
+      return this.messagingView();
+    });
+  }
+
+  opsSaveMessaging(
+    route: MessagingRoute,
+    input: MessagingSettingsInput,
+  ): Promise<MessagingSettingsView> {
+    return this.run('write', 'ops-messaging', () => {
+      const u = this.requireStaff('settings');
+      const saved = (this.state.messaging ??= {});
+      const current = saved[route];
+      const defs = providerFields(route, input.provider);
+      if (!(input.provider in MESSAGING_PROVIDERS[route]))
+        throw new RepositoryError('validation', 'Unknown provider', { field: 'provider' });
+      const fields: Record<string, string> = {};
+      for (const f of defs) {
+        const v = (input.fields[f.key] ?? '').trim();
+        if (!v && 'secret' in f && f.secret && current?.provider === input.provider) {
+          if (current.fields[f.key]) fields[f.key] = current.fields[f.key]!;
+          continue;
+        }
+        if (v) fields[f.key] = v;
+      }
+      const missing = defs
+        .filter((f) => 'required' in f && f.required && !fields[f.key])
+        .map((f) => f.key);
+      if (missing.length)
+        throw new RepositoryError('validation', `Missing ${missing.join(', ')}`, {
+          field: 'fields',
+          missing,
+        });
+      saved[route] = {
+        provider: input.provider,
+        fields,
+        updatedAt: iso(this.now()),
+        updatedBy: u.name,
+      };
+      this.opsLog('messaging', route, `Mtoa huduma: ${input.provider}`);
+      return this.messagingView();
+    });
+  }
+
+  opsResetMessaging(route: MessagingRoute): Promise<MessagingSettingsView> {
+    return this.run('write', 'ops-messaging', () => {
+      this.requireStaff('settings');
+      if (this.state.messaging) delete this.state.messaging[route];
+      this.opsLog('messaging', route, 'Mipangilio ya mazingira');
+      return this.messagingView();
+    });
+  }
+
+  opsTestMessaging(
+    route: MessagingRoute,
+    to: string,
+  ): Promise<{ ok: boolean; provider: string; error: string | null }> {
+    return this.run('write', 'ops-messaging', () => {
+      this.requireStaff('settings');
+      const provider = this.state.messaging?.[route]?.provider ?? 'fake';
+      this.opsLog('messaging', route, `Majaribio …${to.replace(/\D/g, '').slice(-3)}`);
+      return { ok: true, provider, error: null };
     });
   }
 

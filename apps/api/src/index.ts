@@ -1,13 +1,6 @@
 import { serve } from '@hono/node-server';
 import { createDb } from '@harusi/db';
-import {
-  AfricasTalkingProvider,
-  EvolutionWhatsAppProvider,
-  WhatsAppCloudProvider,
-  FakeMessagingProvider,
-  NextSmsProvider,
-  type MessagingProvider,
-} from '@harusi/messaging';
+import { FakeMessagingProvider, type MessagingProvider } from '@harusi/messaging';
 import {
   AggregatorPaymentProvider,
   FakePaymentProvider,
@@ -21,77 +14,30 @@ import { RedisRateStore } from './rate-limit';
 import { initObservability } from './observability';
 import { startWorker } from './worker';
 import { startScheduler } from './scheduler';
+import {
+  applyMessaging,
+  envSettings,
+  MessagingSettingsService,
+} from './services/messaging-settings';
 
 const config = loadConfig();
 const { db } = createDb(config.databaseUrl);
 
-// Providers (ADR 017, ADR 018): Evolution API for WhatsApp, NextSMS for SMS; fakes otherwise.
-let sms: MessagingProvider = new FakeMessagingProvider('sms');
-let smsReport: Deps['smsReport'];
-if (config.smsProvider === 'nextsms') {
-  if (!config.nextSms)
-    throw new Error(
-      'SMS_PROVIDER=nextsms needs NEXTSMS_USERNAME, NEXTSMS_PASSWORD and SMS_SENDER_ID',
-    );
-  const next = new NextSmsProvider(config.nextSms);
-  sms = next;
-  smsReport = (id) => next.report(id);
-}
-// Kenyan numbers need their own SMS route (ADR 026); only built when Kenya is enabled.
-const smsByCountry: Deps['smsByCountry'] = {};
-if (config.kenyaEnabled) {
-  if (config.smsProviderKe === 'africastalking') {
-    if (!config.africasTalking)
-      throw new Error('SMS_PROVIDER_KE=africastalking needs AT_USERNAME and AT_API_KEY');
-    smsByCountry.KE = new AfricasTalkingProvider(config.africasTalking);
-  } else if (config.smsProviderKe === 'fake') {
-    smsByCountry.KE = new FakeMessagingProvider('sms', undefined, 'fake-ke');
-  } else {
-    throw new Error(`Unknown SMS_PROVIDER_KE "${config.smsProviderKe}" (fake | africastalking)`);
-  }
-}
-let whatsapp: MessagingProvider = new FakeMessagingProvider('whatsapp');
-if (config.whatsappProvider === 'evolution') {
-  if (!config.evolution)
-    throw new Error(
-      'WHATSAPP_PROVIDER=evolution needs EVOLUTION_BASE_URL, EVOLUTION_INSTANCE and EVOLUTION_API_KEY',
-    );
-  whatsapp = new EvolutionWhatsAppProvider(config.evolution);
-} else if (config.whatsappProvider === 'cloud') {
-  if (!config.whatsappCloud)
-    throw new Error('WHATSAPP_PROVIDER=cloud needs WHATSAPP_TOKEN and WHATSAPP_PHONE_ID');
-  if (!config.whatsappCloud.templates.invite)
-    console.log(
-      JSON.stringify({
-        level: 'warn',
-        msg: 'WHATSAPP_TEMPLATE_INVITE not set: first-contact invitations will fail on WhatsApp and fall back to SMS',
-      }),
-    );
-  whatsapp = new WhatsAppCloudProvider({
-    token: config.whatsappCloud.token,
-    phoneNumberId: config.whatsappCloud.phoneNumberId,
-    apiVersion: config.whatsappCloud.apiVersion,
-    templates: config.whatsappCloud.templates,
-    templatesByCountry: config.whatsappCloud.templatesByCountry,
-  });
-} else if (config.whatsappProvider !== 'fake') {
-  throw new Error(
-    `Unknown WHATSAPP_PROVIDER "${config.whatsappProvider}" (fake | evolution | cloud)`,
-  );
-}
+// Messaging providers (ADR 017, 018, 026, 031): built from the environment here, then replaced by
+// whatever staff saved in /ops once the database is read (below). Incomplete env settings stop startup.
+const log = (line: Record<string, unknown>) => console.log(JSON.stringify(line));
 // §12: OTPs are never logged. For local development only, DEV_LOG_OTP=1 prints the SMS body.
-if (process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production') {
-  const devLog = (inner: MessagingProvider): MessagingProvider => ({
-    name: `${inner.name}-dev`,
-    channel: 'sms',
-    async send(to, body) {
-      console.log(JSON.stringify({ level: 'dev', msg: 'sms (DEV_LOG_OTP)', to, body }));
-      return inner.send(to, body);
-    },
-  });
-  sms = devLog(sms);
-  if (smsByCountry.KE) smsByCountry.KE = devLog(smsByCountry.KE);
-}
+const wrapSms =
+  process.env.DEV_LOG_OTP === '1' && process.env.NODE_ENV !== 'production'
+    ? (inner: MessagingProvider): MessagingProvider => ({
+        name: `${inner.name}-dev`,
+        channel: 'sms',
+        async send(to, body) {
+          console.log(JSON.stringify({ level: 'dev', msg: 'sms (DEV_LOG_OTP)', to, body }));
+          return inner.send(to, body);
+        },
+      })
+    : undefined;
 
 // Mobile-money aggregator (ADR 023): none is chosen yet, so only the fake exists. It needs a webhook
 // secret; without one, payments are simply off. Any other value stops the API at startup.
@@ -134,17 +80,23 @@ const reportError = initObservability(
 
 const deps: Deps = {
   db,
-  sms,
-  smsByCountry,
-  whatsapp,
+  sms: new FakeMessagingProvider('sms'),
   payments,
   paymentsByCountry,
   reportError,
-  smsReport,
   config,
   now: () => new Date(),
   random: systemRandom,
 };
+applyMessaging(deps, envSettings(config), { wrapSms, log });
+deps.messagingSettings = new MessagingSettingsService(deps, { wrapSms, log });
+await deps.messagingSettings
+  .refresh(true)
+  .catch((e: Error) =>
+    log({ level: 'error', msg: 'messaging settings not loaded', error: e.message }),
+  );
+// Every API instance re-reads the saved settings each minute, so a save on one reaches the others.
+setInterval(() => void deps.messagingSettings?.refresh().catch(() => undefined), 60_000).unref();
 if (config.redisUrl) {
   // Rate-limit counters in Redis so several API instances share one budget (§9).
   const limiterRedis = new Redis(config.redisUrl, {

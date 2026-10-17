@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, cmyk, type PDFFont, type PDFPage } from 'pdf-lib';
-import QRCodeCore from 'qrcode/lib/core/qrcode';
+import QRCodeCore from 'qrcode/lib/core/qrcode.js';
 import {
   BLEED_MM,
   MIN_CODE_PT,

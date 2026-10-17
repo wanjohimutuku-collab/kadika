@@ -29,6 +29,12 @@ beforeAll(async () => {
 afterAll(() => ctx.close());
 
 describe('messaging settings in /ops (ADR 031)', () => {
+  it('/v1/me carries the staff level, so the panel knows what to show', async () => {
+    expect((await api(ctx, 'GET', '/v1/me', { token: admin })).body!.staffRole).toBe('admin');
+    expect((await api(ctx, 'GET', '/v1/me', { token: support })).body!.staffRole).toBe('support');
+    expect((await api(ctx, 'GET', '/v1/me', { token: customer })).body!.staffRole).toBeNull();
+  });
+
   it('is admin staff only', async () => {
     expect((await api(ctx, 'GET', '/v1/ops/messaging', { token: customer })).status).toBe(403);
     const r = await api(ctx, 'GET', '/v1/ops/messaging', { token: support });

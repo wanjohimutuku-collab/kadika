@@ -279,7 +279,14 @@ export function createApp(deps: Deps) {
       .select()
       .from(users)
       .where(eq(users.id, c.get('userId')));
-    return c.json({ id: u!.id, name: u!.name, phoneE164: u!.phoneE164, roleGlobal: u!.roleGlobal });
+    return c.json({
+      id: u!.id,
+      name: u!.name,
+      phoneE164: u!.phoneE164,
+      roleGlobal: u!.roleGlobal,
+      // Staff level (ADR 012) so /ops shows only the actions this person may use.
+      staffRole: u!.roleGlobal === 'admin' ? (u!.staffRole ?? 'support') : null,
+    });
   });
   app.patch('/v1/me', async (c) => {
     const { name } = parse(z.object({ name: z.string().trim().min(2).max(80) }), await body(c));

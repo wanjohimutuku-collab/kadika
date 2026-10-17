@@ -14,7 +14,7 @@ Status: accepted
 - **Suspension** blocks dashboard login (`forbidden`) but guests' cards keep working, so a suspended organizer cannot silently break a wedding that is already in progress.
 - **Data requests**: customers file them from Akaunti; staff resolve them in `/ops/requests`. Completing a deletion removes the account and soft-deletes the weddings they own.
 - **Billing stays manual** (open decision 5 is unanswered): staff mark a wedding as paid/free. No pricing, invoices or provider reconciliation yet; refunds and disputes belong to Phase 6 with the real payment provider.
-- Staff accounts: in mocks the staff login is `0700 000 999` + `123456` and lands on `/ops`. In production, staff accounts are created by direct database/CLI action, never by self-signup.
+- Staff accounts: in mocks the staff login is `0700 000 999` + `123456` and lands on `/ops`. In production, staff accounts are created by direct database/CLI action, never by self-signup. The person logs in once (so the account exists), then someone with database access runs `pnpm --filter @harusi/db make-staff <phone> <support|billing|admin|remove>` and they sign in again.
 
 ## Also fixed (found while designing this)
 

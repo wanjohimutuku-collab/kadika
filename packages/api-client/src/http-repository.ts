@@ -28,6 +28,7 @@ import type {
   SendJob,
   SendRequest,
   Session,
+  StaffRole,
   WeddingEvent,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
@@ -75,6 +76,7 @@ interface ApiUser {
   name: string;
   phoneE164: string;
   roleGlobal: 'user' | 'admin';
+  staffRole?: StaffRole | null;
 }
 
 interface ApiEvent {
@@ -398,7 +400,13 @@ export function createHttpRepository(
   }
 
   const sessionOf = (u: ApiUser): Session => ({
-    user: { id: u.id, name: u.name, phoneE164: u.phoneE164, roleGlobal: u.roleGlobal },
+    user: {
+      id: u.id,
+      name: u.name,
+      phoneE164: u.phoneE164,
+      roleGlobal: u.roleGlobal,
+      staffRole: u.staffRole ?? undefined,
+    },
     role: 'owner',
     expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   });

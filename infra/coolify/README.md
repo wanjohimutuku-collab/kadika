@@ -77,9 +77,34 @@ image, so no Coolify pre-deployment hook is needed. Keep one `api` container: th
 Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
 roll back with the image, so check an old image still works with the current schema first.
 
+## Keeping deploys fast
+
+**The pipeline.** A push to `main` builds both images in parallel in GitHub Actions (`docker buildx bake`,
+[`infra/docker/docker-bake.hcl`](../docker/docker-bake.hcl)), with the layer cache in the GitHub Actions cache.
+The dependency install is reused until the lockfile or a `package.json` changes, so a code-only change rebuilds
+just the app (about a minute, versus about four before). Each image is then booted and its `/health` checked
+before Coolify is asked to deploy, so an image that cannot start never reaches the server. Coolify only pulls.
+
+**The server.** Coolify, its deployments and every app share one VPS, so anything that builds on it slows the
+rest, including the Coolify UI (504/524 timeouts through Cloudflare).
+
+1. **Never build on the VPS.** The older `kadika-api-*` / `kadika-web-*` applications (Dockerfile build pack, GitHub
+   App) rebuild from source, `pnpm install` and `next build` each, on every push to `main`, for staging _and_
+   production, which is four builds per merge. The compose stack replaces them: turn off their auto-deploy, or
+   delete them once nothing depends on them.
+2. **One deployment at a time.** Server → Settings: set concurrent builds to 1, so a burst of deploys queues instead
+   of competing for CPU and memory.
+3. **Docker cleanup.** Server → Settings → Docker cleanup: enable the scheduled cleanup (e.g. daily) with a disk
+   threshold around 80%. Old images and build cache otherwise fill the disk and slow Docker down.
+4. **Headroom.** On the VPS check `free -m`, `df -h` and `docker stats --no-stream`. With 4 GB RAM or less, add swap
+   (2–4 GB) so a spike swaps instead of freezing; set resource limits on the heaviest stacks.
+5. **Real-time service.** The Coolify UI logs "Cannot connect to real-time service": its websocket ports are not
+   reachable through Cloudflare, which makes pages slower and status updates stale. Follow Coolify's Cloudflare
+   guide for the real-time ports.
+
 ## Not covered yet
 
 - The stack has not been deployed yet: it needs the Coolify setup and the secrets above.
-- The images are not cached between builds: both Dockerfiles copy the whole repo before installing, so every
-  build installs from scratch. Copying the lockfile and manifests first would let the install layer be reused.
+- The API image carries React Native and Expo packages (`drizzle-orm`'s optional `expo-sqlite` peer is resolved
+  against the mobile app), roughly 300 MB the server never uses. Slimming it would make every pull faster.
 - Backups, restore and uptime checks: see [`RESTORE.md`](RESTORE.md) and [`UPTIME.md`](UPTIME.md).

@@ -171,7 +171,12 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
         : null,
     redisUrl: env.REDIS_URL ?? null,
     whatsappFallbackHours: Number(env.WHATSAPP_FALLBACK_HOURS ?? 6),
-    corsOrigins: (env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000')
+    // CORS_EXTRA_ORIGINS adds hosts to the list, e.g. the console and staff hosts in production (ADR 032).
+    corsOrigins: [
+      env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000',
+      env.CORS_EXTRA_ORIGINS ?? '',
+    ]
+      .join(',')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),

@@ -198,6 +198,23 @@ describe('config', () => {
     expect(loadConfig({ ...base, LOG_REQUESTS: '0' }).logRequests).toBe(false);
   });
 
+  it('adds CORS_EXTRA_ORIGINS to the allowed origins', () => {
+    const base = { DATABASE_URL: 'x', JWT_SECRET: 'a-long-enough-secret', KEY_ENC_SECRET: 'k' };
+    const c = loadConfig({
+      ...base,
+      CORS_ORIGINS: 'https://kadisasa.com',
+      CORS_EXTRA_ORIGINS: 'https://app.kadisasa.com, https://my.kadisasa.com',
+    });
+    expect(c.corsOrigins).toEqual([
+      'https://kadisasa.com',
+      'https://app.kadisasa.com',
+      'https://my.kadisasa.com',
+    ]);
+    expect(loadConfig({ ...base, CORS_EXTRA_ORIGINS: '' }).corsOrigins).toEqual([
+      'http://localhost:3000',
+    ]);
+  });
+
   it('treats empty variables as unset', () => {
     const base = { DATABASE_URL: 'x', JWT_SECRET: 'a-long-enough-secret', KEY_ENC_SECRET: 'k' };
     const c = loadConfig({

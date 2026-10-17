@@ -33,6 +33,8 @@ services:
       KEY_ENC_SECRET: ${SERVICE_REALBASE64_32_KEYENC}
       APP_BASE_URL: ${SERVICE_URL_WEB_3000}
       CORS_ORIGINS: ${SERVICE_URL_WEB_3000}
+      # Production: the other web hosts, comma-separated (https://www.<domain>,https://app.<domain>,https://my.<domain>).
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
       # Link domain in SMS/WhatsApp. Fill in the short domain, or the web URL if there is none.
       SHORT_BASE_URL: ${SHORT_BASE_URL:?}
       # Delivery webhooks send this in the x-webhook-secret header.

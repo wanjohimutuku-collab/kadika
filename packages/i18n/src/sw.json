@@ -1206,7 +1206,8 @@
       "support": "Msaada",
       "requests": "Maombi ya data",
       "audit": "Kumbukumbu za wafanyakazi",
-      "pilot": "Majaribio"
+      "pilot": "Majaribio",
+      "messaging": "SMS na WhatsApp"
     },
     "overview": {
       "organizers": "Wateja",
@@ -1377,7 +1378,8 @@
         "reactivate": "Alirudisha",
         "set_plan": "Alibadilisha mpango",
         "resolve_request": "Alishughulikia ombi",
-        "lookup": "Alitafuta"
+        "lookup": "Alitafuta",
+        "messaging": "Alibadilisha SMS/WhatsApp"
       },
       "empty": "Hakuna kumbukumbu."
     },
@@ -1443,6 +1445,69 @@
       "assumption": "Majina ya mitandao yanatoka kwenye msimbo wa mtandao kwenye ripoti za kufika na yanakamilika kadri mtoa huduma anavyotoa. Namba ya kasi ni pengo kati ya walioingia kwenye lango moja, kipimo mbadala cha muda kwa kila mgeni.",
       "untilFlag": "Kenya imezimwa kwenye toleo hili, kwa hiyo Tanzania pekee inaonyeshwa.",
       "period": "Kipindi"
+    },
+    "messaging": {
+      "title": "SMS na WhatsApp",
+      "intro": "Watoa huduma wanaotuma kadi, vikumbusho na namba za kuingia. Mabadiliko yanaanza kutumika mara moja, bila kuwasha upya seva.",
+      "route": {
+        "sms_tz": "SMS · Tanzania",
+        "sms_ke": "SMS · Kenya",
+        "whatsapp": "WhatsApp"
+      },
+      "provider": "Mtoa huduma",
+      "providers": {
+        "fake": "Majaribio (haitumi chochote)",
+        "nextsms": "NextSMS",
+        "africastalking": "Africa's Talking",
+        "evolution": "Evolution API",
+        "cloud": "WhatsApp Cloud API (Meta)"
+      },
+      "fakeWarning": "Hakuna ujumbe utakaotumwa kwa mtoa huduma huyu. Waandaaji hawatapokea namba za kuingia.",
+      "source": {
+        "database": "Imehifadhiwa hapa · {when} na {by}",
+        "environment": "Inatoka kwenye vigezo vya mazingira (env) ya seva"
+      },
+      "active": "Inayotuma sasa: {name}",
+      "secretSaved": "Imehifadhiwa ({hint}). Acha tupu kuiweka.",
+      "secretNew": "Haijawekwa",
+      "templates": "Violezo vya WhatsApp vilivyoidhinishwa",
+      "templatesKe": "Violezo vya Kenya",
+      "save": "Hifadhi",
+      "saved": "Mipangilio ya {route} imehifadhiwa",
+      "reset": "Rudi kwenye env",
+      "resetTitle": "Rudisha {route} kwenye vigezo vya mazingira?",
+      "resetBody": "Mipangilio iliyohifadhiwa hapa itafutwa na seva itatumia tena vigezo vya env.",
+      "resetDone": "{route} inatumia vigezo vya env tena",
+      "test": "Tuma ujumbe wa majaribio",
+      "testTo": "Namba ya kupokea",
+      "testSend": "Tuma",
+      "testOk": "Ujumbe umetumwa kupitia {provider}",
+      "testFailed": "Haukutumwa: {error}",
+      "webhooks": "Anwani za taarifa za kufika (webhooks)",
+      "webhooksIntro": "Weka anwani hizi kwenye dashibodi ya mtoa huduma. Zinahitaji WEBHOOK_SECRET (au App Secret ya Meta).",
+      "noPermission": "Ni wafanyakazi wenye ngazi ya admin pekee wanaoweza kuona na kubadilisha mipangilio hii.",
+      "field": {
+        "username": "Jina la mtumiaji",
+        "password": "Nenosiri",
+        "senderId": "Jina la mtumaji (Sender ID)",
+        "apiKey": "API key",
+        "baseUrl": "Anwani ya API (URL)",
+        "instance": "Jina la instance",
+        "token": "Access token",
+        "phoneNumberId": "Phone number ID",
+        "apiVersion": "Toleo la Graph API",
+        "verifyToken": "Verify token ya webhook",
+        "appSecret": "App secret",
+        "templateInvite": "Mwaliko",
+        "templateReminder": "Kikumbusho",
+        "templatePledge": "Ahadi",
+        "templateContribution": "Kadi ya mchango",
+        "templateInviteKe": "Mwaliko (Kenya)",
+        "templateReminderKe": "Kikumbusho (Kenya)",
+        "templatePledgeKe": "Ahadi (Kenya)",
+        "templateContributionKe": "Kadi ya mchango (Kenya)"
+      },
+      "missing": "Jaza sehemu hizi kwanza: {fields}"
     }
   },
   "mobile": {

@@ -140,3 +140,23 @@ test('support staff cannot suspend or change plans; billing staff cannot look up
     billing.getByRole('button', { name: /Weka imelipiwa|Rudisha kuwa bure/ }).first(),
   ).toBeVisible();
 });
+
+test('staff admin: SMS settings are saved with the secret masked, then reset', async ({ page }) => {
+  await loginStaff(page);
+  await page.goto('/ops/messaging');
+  const sms = page.getByTestId('messaging-sms_tz');
+  await expect(sms).toContainText('vigezo vya mazingira');
+  await sms.getByLabel('Mtoa huduma').selectOption('nextsms');
+  await sms.getByRole('button', { name: 'Hifadhi' }).click();
+  await expect(sms.getByRole('alert')).toContainText('Nenosiri');
+  await sms.getByLabel('Jina la mtumiaji').fill('harusi');
+  await sms.getByLabel('Nenosiri').fill('siri-kubwa-1234');
+  await sms.getByLabel('Jina la mtumaji (Sender ID)').fill('HARUSI');
+  await sms.getByRole('button', { name: 'Hifadhi' }).click();
+  await expect(sms).toContainText('Imehifadhiwa (…1234)');
+  await expect(sms.getByLabel('Nenosiri')).toHaveValue('');
+  await shot(page, 'ops-messaging');
+  await sms.getByRole('button', { name: 'Rudi kwenye env' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Rudi kwenye env' }).click();
+  await expect(sms).toContainText('vigezo vya mazingira');
+});

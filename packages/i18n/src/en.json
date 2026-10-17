@@ -1202,7 +1202,8 @@
       "support": "Support",
       "requests": "Data requests",
       "audit": "Staff audit log",
-      "pilot": "Pilot"
+      "pilot": "Pilot",
+      "messaging": "SMS & WhatsApp"
     },
     "overview": {
       "organizers": "Customers",
@@ -1373,7 +1374,8 @@
         "reactivate": "Reactivated",
         "set_plan": "Changed plan",
         "resolve_request": "Resolved request",
-        "lookup": "Searched"
+        "lookup": "Searched",
+        "messaging": "Changed SMS/WhatsApp"
       },
       "empty": "No entries."
     },
@@ -1439,6 +1441,69 @@
       "assumption": "Operator names come from the network code in delivery reports and are only as complete as the provider makes them. The speed number is the gap between admissions at one gate, a proxy for time per guest.",
       "untilFlag": "Kenya is switched off in this build, so only Tanzania is shown.",
       "period": "Period"
+    },
+    "messaging": {
+      "title": "SMS & WhatsApp",
+      "intro": "The providers that send cards, reminders and login codes. Changes apply straight away, without restarting the server.",
+      "route": {
+        "sms_tz": "SMS · Tanzania",
+        "sms_ke": "SMS · Kenya",
+        "whatsapp": "WhatsApp"
+      },
+      "provider": "Provider",
+      "providers": {
+        "fake": "Test (sends nothing)",
+        "nextsms": "NextSMS",
+        "africastalking": "Africa's Talking",
+        "evolution": "Evolution API",
+        "cloud": "WhatsApp Cloud API (Meta)"
+      },
+      "fakeWarning": "Nothing is sent with this provider. Organizers will not receive their login codes.",
+      "source": {
+        "database": "Saved here · {when} by {by}",
+        "environment": "From the server's environment variables"
+      },
+      "active": "Sending now: {name}",
+      "secretSaved": "Saved ({hint}). Leave empty to keep it.",
+      "secretNew": "Not set",
+      "templates": "Approved WhatsApp templates",
+      "templatesKe": "Kenya templates",
+      "save": "Save",
+      "saved": "{route} settings saved",
+      "reset": "Back to env",
+      "resetTitle": "Reset {route} to the environment variables?",
+      "resetBody": "The settings saved here are deleted and the server uses its env variables again.",
+      "resetDone": "{route} uses the env variables again",
+      "test": "Send a test message",
+      "testTo": "Recipient number",
+      "testSend": "Send",
+      "testOk": "Message sent through {provider}",
+      "testFailed": "Not sent: {error}",
+      "webhooks": "Delivery report addresses (webhooks)",
+      "webhooksIntro": "Enter these in the provider's dashboard. They need WEBHOOK_SECRET (or Meta's App Secret).",
+      "noPermission": "Only admin-level staff can see and change these settings.",
+      "field": {
+        "username": "Username",
+        "password": "Password",
+        "senderId": "Sender ID",
+        "apiKey": "API key",
+        "baseUrl": "API URL",
+        "instance": "Instance name",
+        "token": "Access token",
+        "phoneNumberId": "Phone number ID",
+        "apiVersion": "Graph API version",
+        "verifyToken": "Webhook verify token",
+        "appSecret": "App secret",
+        "templateInvite": "Invitation",
+        "templateReminder": "Reminder",
+        "templatePledge": "Pledge",
+        "templateContribution": "Contribution card",
+        "templateInviteKe": "Invitation (Kenya)",
+        "templateReminderKe": "Reminder (Kenya)",
+        "templatePledgeKe": "Pledge (Kenya)",
+        "templateContributionKe": "Contribution card (Kenya)"
+      },
+      "missing": "Fill in these fields first: {fields}"
     }
   },
   "mobile": {

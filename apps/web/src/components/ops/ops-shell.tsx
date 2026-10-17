@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Users,
   Gauge,
+  MessageSquare,
 } from 'lucide-react';
 import { useSession } from '@/lib/queries';
 import { getRepository } from '@/lib/repo';
@@ -35,6 +36,7 @@ const ITEMS = [
   { key: 'support', href: '/ops/support', icon: LifeBuoy },
   { key: 'requests', href: '/ops/requests', icon: ShieldCheck },
   { key: 'audit', href: '/ops/audit', icon: FileClock },
+  { key: 'messaging', href: '/ops/messaging', icon: MessageSquare },
 ] as const;
 
 /** Harusi Pass staff area. Customers (role_global = user) are refused; the data layer enforces it too. */

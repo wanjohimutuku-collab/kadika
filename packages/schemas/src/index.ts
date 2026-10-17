@@ -9,3 +9,4 @@ export * from './import';
 export * from './short-code';
 export * from './domain';
 export * from './card-content';
+export * from './messaging-settings';

@@ -1,11 +1,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { token } from './helpers';
+import { token, SW_COOKIE } from './helpers';
 
 // §17.14: the guest card must match §17.6 at 360 px and 412 px.
 test.describe('guest card at 412 px', () => {
   test.use({
-    storageState: { cookies: [], origins: [] },
+    storageState: { cookies: [SW_COOKIE], origins: [] },
     viewport: { width: 412, height: 892 },
   });
 

@@ -203,6 +203,32 @@ jobs:
           echo "Deploy requested: $DEPLOY_BRANCH -> ${GITHUB_SHA::7}" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "moved=true" >> "$GITHUB_OUTPUT"
 
+      # Production on coolify.kadisasa.com is a compose service pasted into Coolify, not linked to the
+      # repository, so moving deploy/production alone does not redeploy it. When the environment has
+      # COOLIFY_DEPLOY_WEBHOOK (variable) and COOLIFY_TOKEN (secret), call the service's deploy webhook.
+      # Staging tracks deploy/staging and sets neither, so this step does nothing there.
+      - name: Ask Coolify to redeploy
+        if: steps.handoff.outputs.moved == 'true'
+        env:
+          WEBHOOK: ${{ vars.COOLIFY_DEPLOY_WEBHOOK }}
+          TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "No COOLIFY_DEPLOY_WEBHOOK on this environment; Coolify deploys from the branch push."
+            exit 0
+          fi
+          if [ -z "$TOKEN" ]; then
+            echo "::error::COOLIFY_DEPLOY_WEBHOOK is set but the COOLIFY_TOKEN secret is missing (infra/coolify/README.md)."
+            exit 1
+          fi
+          code=$(curl -s -o /tmp/coolify.json -w '%{http_code}' --max-time 30 \
+            -H "Authorization: Bearer $TOKEN" "$WEBHOOK")
+          if [ "$code" != 200 ]; then
+            echo "::error::Coolify answered $code to the deploy request: $(head -c 300 /tmp/coolify.json)"
+            exit 1
+          fi
+          echo "Coolify redeploy requested." | tee -a "$GITHUB_STEP_SUMMARY"
+
       # Coolify builds nothing, so a deploy takes a pull and a restart (migrations run first). Poll the
       # public health endpoints until both report this commit. If Coolify never starts, the migration
       # fails or the new container never turns healthy, this times out and the run goes red.

@@ -35,3 +35,10 @@ previous build.
   `:staging`/`:production` image.
 - The older `kadika-api-*` / `kadika-web-*` Coolify applications that build from `main` on the VPS should have Auto
   Deploy turned off, as the README already asks, or each merge triggers them too.
+
+## Amendment (2026-10-19): production deploy webhook
+
+Production on coolify.kadisasa.com is a compose service pasted into Coolify, not a repository resource, so a push
+to `deploy/production` cannot reach it. For an environment that sets the `COOLIFY_DEPLOY_WEBHOOK` variable, the
+workflow also calls that Coolify deploy webhook with the `COOLIFY_TOKEN` secret, a token limited to the deploy
+permission. Only `production` sets them; staging still deploys from its branch alone.

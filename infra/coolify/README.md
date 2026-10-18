@@ -54,7 +54,7 @@ personal access token with the `read:packages` scope as a registry credential so
 
 ### 3. Coolify (one stack per environment)
 
-On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coolify.korahost.com), project
+On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`), project
 `kadika`, for staging (production is the same with the production values):
 
 1. **+ New → Application → Private Repository (with GitHub App)**, branch **`deploy/staging`** (`deploy/production`
@@ -145,6 +145,26 @@ migration stops the `api` container, and `web` waits for `api`, so the site may 
   success** and **Deployment failed**, plus **Container status changes** to hear when a container stops later.
   Telegram is the quickest to set up and reaches your phone.
 
+## Production deploy webhook
+
+Production redeploys through Coolify's API, because its service is not linked to the repository. The `production`
+GitHub environment holds:
+
+| Kind     | Name                     | Value                                                                                  |
+| -------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| Variable | `COOLIFY_DEPLOY_WEBHOOK` | `https://coolify.kadisasa.com/api/v1/deploy?uuid=fw4a6jwmwabjkk5mccmbjwze&force=false` |
+| Secret   | `COOLIFY_TOKEN`          | A Coolify API token with the **deploy** permission (Keys & Tokens → API tokens).       |
+
+To create the token: in Coolify, **Settings → Advanced → API access** on, then **Keys & Tokens → API tokens**,
+name it `github-deploy`, tick only **deploy**, and copy it. Save it without it landing in your shell history:
+
+```bash
+gh secret set COOLIFY_TOKEN --env production
+```
+
+(it prompts for the value). Revoke it in Coolify to cut GitHub off. A release run then pushes the images, calls
+the webhook, and waits until `api.kadisasa.com` and `kadisasa.com` report the new commit.
+
 ## Rolling back
 
 Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
@@ -180,9 +200,7 @@ rest, including the Coolify UI (504/524 timeouts through Cloudflare).
 
 - Staging is set up as above on coolify.kadisasa.com (environment `staging`, tracking `deploy/staging`).
 - Production on coolify.kadisasa.com is a Docker Compose **service** pasted into Coolify, not linked to the
-  repository, so moving `deploy/production` does not redeploy it. Until it is recreated as a repository resource
-  tracking `deploy/production`, redeploy it by hand (**Pull latest and restart**) after a release tag builds; the
-  release run's "Wait for the new version" step then confirms it, or times out if nobody redeployed.
+  repository, so a branch push cannot redeploy it. A release run calls its deploy webhook instead (below).
 - The API image carries React Native and Expo packages (`drizzle-orm`'s optional `expo-sqlite` peer is resolved
   against the mobile app), roughly 300 MB the server never uses. Slimming it would make every pull faster.
 - Backups, restore and uptime checks: see [`RESTORE.md`](RESTORE.md) and [`UPTIME.md`](UPTIME.md).

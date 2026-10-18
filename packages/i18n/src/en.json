@@ -155,6 +155,11 @@
   "card": {
     "metaTitle": "{kind} invitation from {couple}",
     "metaDescription": "{date} · {venue}. Open your invitation card.",
+    "occWeddingBody": "We warmly invite you to witness and share the joy of our wedding. Your presence will complete the day.",
+    "occEngagementBody": "We invite you to witness and share the joy of our engagement. Your presence will bless us.",
+    "occSendoffBody": "We invite you to our send-off party before the wedding. Please join us in celebrating.",
+    "occEngagementContrib": "Your contribution, small or large, helps us make our engagement party a success. Thank you for being with us.",
+    "occSendoffContrib": "Your contribution, small or large, helps us make our send-off party a success. Thank you for being with us.",
     "weddingOf": "The {kind} of",
     "invitesYou": "invite you, {guest}",
     "dateLine": "{weekday} {date}",

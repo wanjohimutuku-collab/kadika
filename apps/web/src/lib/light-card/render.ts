@@ -1,4 +1,4 @@
-import { eventKindLabel } from '@harusi/schemas';
+import { eventKindLabel, occasionOf } from '@harusi/schemas';
 import {
   flag,
   pick,
@@ -239,6 +239,23 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const L = (v?: { sw?: string; en?: string }) => pick(v, locale);
   const kindName = eventKindLabel(event.eventKind, locale);
   const kindLower = kindName.toLowerCase();
+  // Built-in wording per card category (uchumba, send-off); the organiser's own text always wins.
+  const occasion = occasionOf(event.eventKind);
+  const occBody =
+    occasion === 'engagement'
+      ? t.occEngagementBody
+      : occasion === 'sendoff'
+        ? t.occSendoffBody
+        : // Events made before kinds existed (no kind) keep their cards as they were.
+          occasion === 'wedding' && event.eventKind?.trim()
+          ? t.occWeddingBody
+          : undefined;
+  const occContrib =
+    occasion === 'engagement'
+      ? t.occEngagementContrib
+      : occasion === 'sendoff'
+        ? t.occSendoffContrib
+        : undefined;
   const senderKind = senderKindOf(content);
   const sender = content.sender?.name?.trim() || event.senderName;
   const phoneRaw = content.sender?.phone?.trim() || event.committeePhone || '';
@@ -391,10 +408,12 @@ ${hasPhone ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(
         ? `<p class="lead">${esc(event.greeting)}.<span><b>${esc(fmt(t.dearGuest!, { guest: guest.displayName }))}</b></span></p>`
         : `<p class="lead">${esc(fmt(t.invitesYou!, { guest: guest.displayName }))}</p>`;
   const message = isContribution
-    ? `<section class="msg">${paras(L(con.message) ?? t.contribMessage!)}</section>`
+    ? `<section class="msg">${paras(L(con.message) ?? occContrib ?? t.contribMessage!)}</section>`
     : L(inv.body)
       ? `<section class="msg">${paras(L(inv.body)!)}</section>`
-      : '';
+      : occBody
+        ? `<section class="msg">${paras(occBody)}</section>`
+        : '';
   const programme =
     !isContribution && inv.programme?.length
       ? `<section><h2>${esc(t.programmeTitle)}</h2><ul class="prog" data-testid="programme">${inv.programme.map((p) => `<li><b>${esc(p.time)}</b><span>${esc(say(p.title))}</span></li>`).join('')}</ul></section>`

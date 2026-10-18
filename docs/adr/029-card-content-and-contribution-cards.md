@@ -40,3 +40,13 @@ and to ask some people only for a contribution, with no RSVP and no gate entry.
   `packages/i18n` under `content.*`, and the API accepts `cardContent` on create and update.
 - A native-speaker review of the new Swahili strings (`sw.json` is still marked unreviewed).
 - Cover photo and per-section reordering stay as they were.
+
+## Addendum: card categories (occasions)
+
+`occasionOf(kind)` (`packages/schemas/src/domain.ts`) maps the free-text event kind to `wedding | engagement |
+sendoff | other` (Harusi, Uchumba/engagement, Send-off). It only picks built-in wording; the kind stays free
+text (ADR 024). Each category has a default invitation message (`card.occWeddingBody`, `occEngagementBody`,
+`occSendoffBody`) and engagement/send-off have their own contribution-card message
+(`occEngagementContrib`, `occSendoffContrib`). The organiser's own text always wins. Events with no kind keep
+their cards exactly as before. The three categories are therefore: invitation cards for wedding, engagement and
+send-off, and contribution cards for each of those occasions (a guest with `card_kind = contribution`).

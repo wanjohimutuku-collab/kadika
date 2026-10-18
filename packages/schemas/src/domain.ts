@@ -124,6 +124,19 @@ export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const
 export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | 'en'): string {
   return kind?.trim() || (locale === 'sw' ? 'Harusi' : 'Wedding');
 }
+/**
+ * The three card categories the product ships presets for (uchumba, send-off, wedding). The kind itself stays
+ * free text (ADR 024); this only chooses default wording, so any other kind behaves as before.
+ */
+export const OCCASIONS = ['wedding', 'engagement', 'sendoff', 'other'] as const;
+export type Occasion = (typeof OCCASIONS)[number];
+export function occasionOf(kind: string | null | undefined): Occasion {
+  const k = kind?.trim().toLowerCase().replace(/[\s_-]+/g, '') ?? '';
+  if (!k || k.includes('harusi') || k.includes('wedding')) return 'wedding';
+  if (k.includes('uchumba') || k.includes('engagement') || k.includes('ruracio')) return 'engagement';
+  if (k.includes('sendoff') || k.includes('kitchenparty')) return 'sendoff';
+  return 'other';
+}
 /** Host names joined for display; a single host has no dangling ampersand. */
 export function hostNames(a: string, b?: string | null): string {
   return [a, b]

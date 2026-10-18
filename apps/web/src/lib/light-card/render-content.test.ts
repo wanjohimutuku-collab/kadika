@@ -102,11 +102,22 @@ describe('customised invitation card', () => {
     expect(html).toMatch(/id="hp-no"[^>]*>Siwezi</);
   });
 
+  it('uses the built-in wording of the engagement and send-off categories', () => {
+    const kind = (k: string) => {
+      const v = view();
+      v.event!.eventKind = k;
+      return v;
+    };
+    expect(renderCard(kind('Uchumba'), opts)).toContain('uchumba wetu');
+    expect(renderCard(kind('Send-off'), opts)).toContain('kuaga (send-off)');
+    expect(renderCard(kind(''), opts)).not.toContain('class="msg"');
+  });
+
   it('falls back to the other language and to the built-in text', () => {
     const html = renderCard(view({ invitation: { body: { en: 'Only in English' } } }), opts);
     expect(html).toContain('Only in English');
     const plain = renderCard(view(), opts);
-    expect(plain).not.toContain('class="msg"');
+    expect(plain).toContain('harusi yetu'); // built-in wedding wording
     expect(plain).toContain('Harusi ya'); // built-in eyebrow
   });
 

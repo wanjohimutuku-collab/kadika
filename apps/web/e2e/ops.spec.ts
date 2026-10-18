@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { loginStaff, shot } from './helpers';
+import { loginStaff, shot, SW_COOKIE } from './helpers';
 
-test.use({ storageState: { cookies: [], origins: [] } });
+test.use({ storageState: { cookies: [SW_COOKIE], origins: [] } });
 
 test('customers are refused from /ops; staff land there after login', async ({ page, browser }) => {
   await page.goto('/login');
@@ -43,7 +43,9 @@ test('staff: suspend a customer, who then cannot log in', async ({ page, browser
   await page.getByRole('dialog').getByRole('button', { name: 'Simamisha' }).click();
   await expect(row).toContainText('Amesimamishwa');
   const state = await page.context().storageState();
-  const ctx = await browser.newContext({ storageState: { cookies: [], origins: state.origins } });
+  const ctx = await browser.newContext({
+    storageState: { cookies: [SW_COOKIE], origins: state.origins },
+  });
   const p2 = await ctx.newPage();
   await p2.goto('/login');
   await p2.evaluate(() => sessionStorage.clear());
@@ -86,7 +88,9 @@ test('a team invitation is accepted when the invitee logs in', async ({ page, br
   await page.getByRole('button', { name: 'Tuma mwaliko' }).click();
   await expect(page.getByTestId('members')).toContainText('Mjumbe Mpya');
   const state = await page.context().storageState();
-  const ctx = await browser.newContext({ storageState: { cookies: [], origins: state.origins } });
+  const ctx = await browser.newContext({
+    storageState: { cookies: [SW_COOKIE], origins: state.origins },
+  });
   const p2 = await ctx.newPage();
   await p2.goto('/login');
   await p2.evaluate(() => sessionStorage.clear());

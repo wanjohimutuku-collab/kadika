@@ -20,3 +20,5 @@ docs/ui/lighthouse
 apps/web/.lighthouseci
 apps/web/e2e/.auth
 .next-live
+
+.claude/settings.local.json

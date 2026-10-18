@@ -57,7 +57,23 @@ export function trackConsoleErrors(page: Page): string[] {
   return errors;
 }
 
+/** The suite asserts Swahili wording; English is the app default, so every context pins the language cookie. */
+export const SW_COOKIE = {
+  name: 'NEXT_LOCALE',
+  value: 'sw',
+  domain: 'localhost',
+  path: '/',
+  expires: -1,
+  httpOnly: false,
+  secure: false,
+  sameSite: 'Lax' as const,
+};
+
 export async function login(page: Page) {
+  // The suite asserts Swahili wording; English is the app default, so pin the language cookie.
+  await page
+    .context()
+    .addCookies([{ name: 'NEXT_LOCALE', value: 'sw', url: 'http://localhost:3100' }]);
   await page.goto('/login');
   await page.getByLabel('Namba ya simu').fill(OWNER_PHONE);
   await page.getByTestId('send-code').click();

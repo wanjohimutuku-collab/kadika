@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { retiredToken, setControls, shot, token, trackConsoleErrors } from './helpers';
+import { retiredToken, setControls, shot, token, trackConsoleErrors, SW_COOKIE } from './helpers';
 
 test.describe('guest card', () => {
-  test.use({ storageState: { cookies: [], origins: [] } });
+  test.use({ storageState: { cookies: [SW_COOKIE], origins: [] } });
 
   test('open card → RSVP → download QR → offline → QR still visible', async ({ page, context }) => {
     const errors = trackConsoleErrors(page);

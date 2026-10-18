@@ -683,6 +683,10 @@
     }
   },
   "guestForm": {
+    "cardKind": "Card type",
+    "cardKindInvitation": "Invitation card",
+    "cardKindContribution": "Contribution card (asks for a contribution only)",
+    "cardKindHint": "A contribution card has no RSVP and no gate QR.",
     "title": "Add guest",
     "editTitle": "Edit guest",
     "name": "Full name",

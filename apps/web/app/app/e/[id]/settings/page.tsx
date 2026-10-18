@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
 import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
+import { KindChips } from '@/components/console/kind-chips';
 import { parsePhone, useCurrency, usePhoneCountry } from '@/lib/country';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -173,6 +174,13 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
             >
               <Card title={t('event')} titleId="ev-h">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <KindChips
+                      label={tw('kind')}
+                      value={form.eventKind}
+                      onChange={(k) => set('eventKind', k)}
+                    />
+                  </div>
                   <TextField
                     label={tw('kind')}
                     hint={tw('kindHint')}

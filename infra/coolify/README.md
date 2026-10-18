@@ -54,15 +54,17 @@ personal access token with the `read:packages` scope as a registry credential so
 
 ### 3. Coolify (one stack per environment)
 
-On coolify.korahost.com, for staging (production is the same with the production values):
+On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coolify.korahost.com), project
+`kadika`, for staging (production is the same with the production values):
 
 1. **+ New → Application → Private Repository (with GitHub App)**, branch **`deploy/staging`** (`deploy/production`
    for production), build pack **Docker Compose**. Base directory `/`, Docker Compose location
    `/docker-compose.coolify.yml`. Coolify only reads the compose file from the repo; it pulls the prebuilt GHCR
    images and builds nothing on the VPS. The branch exists after the first workflow run that deploys; run the
    workflow on `main` with "deploy" ticked if it does not exist yet.
-2. **Domains.** Coolify lists `api` and `web`. Set e.g. `https://api.staging.<domain>` on `api` and
-   `https://staging.<domain>` on `web`. The `api` domain must equal the `NEXT_PUBLIC_API_URL` GitHub variable.
+2. **Domains.** Coolify lists `api` and `web`. Staging uses `https://staging-api.kadisasa.com` (port 3001) on
+   `api` and `https://staging.kadisasa.com` (port 3000) on `web`; single-level names, so Cloudflare's free
+   certificate covers them. The `api` domain must equal the `NEXT_PUBLIC_API_URL` GitHub variable.
    DNS: an A record per domain pointing at the VPS. Behind Cloudflare's proxy, set SSL/TLS to **Full (strict)**.
 3. **Environment variables.** Coolify generates the database and Redis passwords, `JWT_SECRET`,
    `KEY_ENC_SECRET` and `WEBHOOK_SECRET` (the `SERVICE_*` magic variables) and keeps them. Fill in:
@@ -176,7 +178,11 @@ rest, including the Coolify UI (504/524 timeouts through Cloudflare).
 
 ## Not covered yet
 
-- The stack has not been deployed yet: it needs the Coolify setup and the secrets above.
+- Staging is set up as above on coolify.kadisasa.com (environment `staging`, tracking `deploy/staging`).
+- Production on coolify.kadisasa.com is a Docker Compose **service** pasted into Coolify, not linked to the
+  repository, so moving `deploy/production` does not redeploy it. Until it is recreated as a repository resource
+  tracking `deploy/production`, redeploy it by hand (**Pull latest and restart**) after a release tag builds; the
+  release run's "Wait for the new version" step then confirms it, or times out if nobody redeployed.
 - The API image carries React Native and Expo packages (`drizzle-orm`'s optional `expo-sqlite` peer is resolved
   against the mobile app), roughly 300 MB the server never uses. Slimming it would make every pull faster.
 - Backups, restore and uptime checks: see [`RESTORE.md`](RESTORE.md) and [`UPTIME.md`](UPTIME.md).

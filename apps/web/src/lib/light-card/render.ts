@@ -89,7 +89,7 @@ h2{font-size:18px;font-weight:600}
 .trust>div{display:flex;gap:12px;align-items:flex-start;font-size:14px}
 .trust .ic{color:var(--success);width:24px;height:24px;margin-top:2px}
 .muted{color:var(--muted)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:600 16px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:600 16px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer}
 .btn:disabled{opacity:.5}
 .btn.block{width:100%}
 .btn.primary{background:var(--hp-primary);border-color:var(--hp-primary);color:var(--hp-on-primary)}

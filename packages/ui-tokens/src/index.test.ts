@@ -29,10 +29,9 @@ describe('contrast', () => {
   it('computes black on white as 21:1', () => {
     expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21, 5);
   });
-  // §17.2 claims >= 7:1 but its own values give 4.2-6.5:1; tracked in ADR 006 for Phase 5.
-  it('gate fills reach at least the large-text AA ratio with white text', () => {
+  it('gate fills reach 7:1 with white text (the web tokens use the same values)', () => {
     for (const fill of Object.values(gateColors)) {
-      expect(contrastRatio('#FFFFFF', fill)).toBeGreaterThanOrEqual(3);
+      expect(contrastRatio('#FFFFFF', fill)).toBeGreaterThanOrEqual(7);
     }
   });
 });
@@ -80,15 +79,5 @@ describe('palette customisation', () => {
 
   it('mixes tints', () => {
     expect(mixHex('#FFFFFF', '#000000', 0.5)).toBe('#808080');
-  });
-});
-
-import { gateColorsAaa } from './colors';
-import { contrastRatio as ratio } from './contrast';
-
-describe('gate result fills (AAA)', () => {
-  it('white text reaches 7:1 on every darkened gate fill', () => {
-    for (const fill of Object.values(gateColorsAaa))
-      expect(ratio('#FFFFFF', fill)).toBeGreaterThanOrEqual(7);
   });
 });

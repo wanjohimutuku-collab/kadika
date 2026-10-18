@@ -35,6 +35,10 @@ COPY --from=build --chown=node:node /out/node_modules ./node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist ./dist
 COPY --from=build --chown=node:node /repo/packages/db/drizzle ./drizzle
 ENV MIGRATIONS_DIR=/app/drizzle
+# The commit this image was built from, reported by /health so a deploy can be confirmed (ADR 035).
+# Set last so it never invalidates the build layers above.
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
 USER node
 EXPOSE 3001
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

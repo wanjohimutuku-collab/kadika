@@ -3,7 +3,9 @@
 How a commit becomes a running server: [`.github/workflows/build-push.yml`](../../.github/workflows/build-push.yml)
 builds the API and web images, pushes them to GitHub Container Registry (GHCR), then moves a deploy branch to that
 commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
-redeploys it, and only once the new images exist ([ADR 034](../../docs/adr/034-deploy-branch-webhook.md)).
+redeploys it, and only once the new images exist ([ADR 034](../../docs/adr/034-deploy-branch-webhook.md)). The run
+then waits until the live API and web app report the new commit, so a green run means the deploy is live
+([ADR 035](../../docs/adr/035-confirm-deploys-went-live.md)).
 
 ## The flow
 
@@ -39,6 +41,7 @@ required reviewer and limit it to `v*` tags. The workflow reads these from the e
 | Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The official link domain; when set it also turns on host routing (below). Set it on `production` only, to `kadisasa.com`. Defaults to `harusipass.co.tz`, no routing. |
 | Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                                                                                                   |
 | Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                          |
+| Variable | `DEPLOY_WEB_URL`            | Optional. Public `https://` address of that environment's web app, used to confirm the deploy. Defaults to `NEXT_PUBLIC_SITE_URL`; without either only the API is confirmed.    |
 
 The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not
 just a restart. Images are never built in mock mode. No Coolify secret is needed in GitHub: the workflow's own
@@ -119,6 +122,27 @@ free Cloudflare certificate covers `kadisasa.com` and `*.kadisasa.com` only, so 
 `api.staging.kadisasa.com`, will not get a valid certificate while it is proxied. For staging use a single-level
 name such as `staging-api.kadisasa.com`.
 
+## Did the deploy work?
+
+Look at the run of **Build and push images** for your commit in GitHub → Actions:
+
+| Run ends with                                  | Meaning                                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Green, summary says `Live on staging: <sha>`   | The new version is serving on both the API and the web app.                                  |
+| Red at **Build and push** or **Smoke-test**    | The images did not build or cannot start. Nothing was deployed; the old version is still up. |
+| Red at **Wait for the new version to go live** | Coolify was asked to deploy but the new version never answered within 15 minutes.            |
+
+For the last case, open the stack's **Deployments** tab in Coolify, then the `api` and `web` logs. A failed
+migration stops the `api` container, and `web` waits for `api`, so the site may be down until it is fixed.
+
+**Get told instead of checking.**
+
+- GitHub emails whoever pushed when a run fails (GitHub → Settings → Notifications → Actions: "Only notify for
+  failed workflows" is the default). The GitHub mobile app can push these too.
+- In Coolify, **Notifications** (per team): set up Email, Telegram, Discord or Slack and tick **Deployment
+  success** and **Deployment failed**, plus **Container status changes** to hear when a container stops later.
+  Telegram is the quickest to set up and reaches your phone.
+
 ## Rolling back
 
 Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
@@ -130,7 +154,8 @@ roll back with the image, so check an old image still works with the current sch
 [`infra/docker/docker-bake.hcl`](../docker/docker-bake.hcl)), with the layer cache in the GitHub Actions cache.
 The dependency install is reused until the lockfile or a `package.json` changes, so a code-only change rebuilds
 just the app (about a minute, versus about four before). Each image is then booted and its `/health` checked
-before the deploy branch moves, so an image that cannot start never reaches the server. Coolify only pulls.
+before the deploy branch moves, so an image that cannot start never reaches the server. Coolify only pulls, so the
+deploy itself is a pull and a restart; the run reports how long it took to go live.
 
 **The server.** Coolify, its deployments and every app share one VPS, so anything that builds on it slows the
 rest, including the Coolify UI (504/524 timeouts through Cloudflare).

@@ -229,7 +229,12 @@ export function createApp(deps: Deps) {
     }
   });
   app.get('/health', (c) => {
-    const res: HealthResponse = { status: 'ok', service: 'api', time: deps.now().toISOString() };
+    const res: HealthResponse = {
+      status: 'ok',
+      service: 'api',
+      time: deps.now().toISOString(),
+      version: process.env.GIT_SHA || 'dev',
+    };
     return c.json(res);
   });
 

@@ -27,7 +27,7 @@ async function setup(content?: Record<string, unknown>) {
   return { t, ev, evId: ev.id as string };
 }
 const addGuest = async (t: string, evId: string, body: Record<string, unknown>) =>
-  (await api(ctx, 'POST', `/v1/events/${evId}/guests`, { token: t, body })).body as {
+  (await api(ctx, 'POST', `/v1/events/${evId}/guests`, { token: t, body: { language: 'sw', ...body } })).body as {
     id: string;
     cardToken: string;
     cardKind: string;

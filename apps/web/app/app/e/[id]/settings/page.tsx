@@ -2,11 +2,12 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
-import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
+import { eventKindSuggestions } from '@harusi/schemas';
+import { KindChips } from '@/components/console/kind-chips';
 import { parsePhone, useCurrency, usePhoneCountry } from '@/lib/country';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -62,6 +63,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
   const country = usePhoneCountry();
   const cur = useCurrency();
   const { id } = use(params);
+  const locale = useLocale() as 'sw' | 'en';
   const t = useTranslations('settings');
   const tw = useTranslations('wizard');
   const tn = useTranslations('nav');
@@ -173,6 +175,13 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
             >
               <Card title={t('event')} titleId="ev-h">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <KindChips
+                      label={tw('kind')}
+                      value={form.eventKind}
+                      onChange={(k) => set('eventKind', k)}
+                    />
+                  </div>
                   <TextField
                     label={tw('kind')}
                     hint={tw('kindHint')}
@@ -183,7 +192,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                     wrapperClassName="sm:col-span-2"
                   />
                   <datalist id="event-kind-suggestions">
-                    {EVENT_KIND_SUGGESTIONS.map((k) => (
+                    {eventKindSuggestions(locale).map((k) => (
                       <option key={k} value={k} />
                     ))}
                   </datalist>

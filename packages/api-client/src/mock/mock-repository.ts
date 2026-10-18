@@ -973,7 +973,7 @@ export class MockRepository implements Repository {
             partySizeAllowed: r.partySizeAllowed,
             inviteChannelPref: r.inviteChannelPref,
             hasSmartphone: r.hasSmartphone,
-            language: 'sw',
+            language: 'en',
             notes: '',
           });
           this.state.guests.push(this.newGuestRecord(eventId, v));
@@ -1089,7 +1089,7 @@ export class MockRepository implements Repository {
   private sampleSms(e: EventRecord, kind: SendRequest['kind'], body?: string): string {
     if (kind === 'thank_you' && body) return body;
     return buildInviteSms({
-      locale: 'sw',
+      locale: 'en',
       partnerA: e.partnerA,
       partnerB: e.partnerB,
       kind: e.eventKind,

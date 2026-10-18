@@ -31,7 +31,7 @@ async function setup(phone: string, dateStart: Date) {
   return { ev, t: owner.accessToken };
 }
 const add = (evId: string, t: string, body: Record<string, unknown>) =>
-  api(ctx, 'POST', `/v1/events/${evId}/guests`, { token: t, body });
+  api(ctx, 'POST', `/v1/events/${evId}/guests`, { token: t, body: { language: 'sw', ...body } });
 const sendAll = (evId: string, t: string) =>
   api(ctx, 'POST', `/v1/events/${evId}/invitations/send`, {
     token: t,

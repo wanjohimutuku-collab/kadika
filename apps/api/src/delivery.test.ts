@@ -31,7 +31,7 @@ const send = (evId: string, t: string, body: unknown, headers?: Record<string, s
     body: JSON.stringify(body),
   });
 const addGuest = (evId: string, t: string, body: Record<string, unknown>) =>
-  api(ctx, 'POST', `/v1/events/${evId}/guests`, { token: t, body });
+  api(ctx, 'POST', `/v1/events/${evId}/guests`, { token: t, body: { language: 'sw', ...body } });
 
 describe('invitation delivery (§7.2)', () => {
   it('sends by WhatsApp or SMS per guest, skips print-only, and writes a readable message', async () => {

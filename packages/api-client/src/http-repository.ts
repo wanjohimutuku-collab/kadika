@@ -193,7 +193,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     rsvpDeadline: e.rsvpDeadline,
     contributionTarget: e.contributionTarget ?? 0,
     senderName:
-      e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
+      e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
     requirePledgeBeforeCard: false,
@@ -256,7 +256,7 @@ function mapCard(token: string, c: ApiCard): CardView {
           rsvpDeadline: e.rsvpDeadline,
           senderName:
             e.senderName ||
-            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
+            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
           committeePhone: e.committeePhone ?? '',
           pledgesEnabled: e.pledgesEnabled ?? false,
           cardContent: e.cardContent ?? {},

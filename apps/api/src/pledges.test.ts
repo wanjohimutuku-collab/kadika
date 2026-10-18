@@ -29,7 +29,7 @@ async function setup(opts: { target?: number } = {}) {
   const g = (
     await api(ctx, 'POST', `/v1/events/${ev.id}/guests`, {
       token: t,
-      body: { displayName: 'Bibi Pendo', phone: `0713${String(500000 + seq)}` },
+      body: { displayName: 'Bibi Pendo', phone: `0713${String(500000 + seq)}`, language: 'sw' },
     })
   ).body!;
   return { t, phone, ev, g: g as { id: string; cardToken: string }, evId: ev.id as string };
@@ -349,7 +349,7 @@ describe('pledge reminders', () => {
       (
         await api(ctx, 'POST', `/v1/events/${evId}/guests`, {
           token: t,
-          body: { displayName: name, phone, ...extra },
+          body: { displayName: name, phone, language: 'sw', ...extra },
         })
       ).body as { id: string; cardToken: string };
     const owes = g;

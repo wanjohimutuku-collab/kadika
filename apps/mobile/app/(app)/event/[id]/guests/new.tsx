@@ -19,6 +19,7 @@ export default function NewGuest() {
   const [group, setGroup] = useState('');
   const [party, setParty] = useState(1);
   const [smart, setSmart] = useState(true);
+  const [contribution, setContribution] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; phone?: string; form?: string }>({});
 
   const save = async (another: boolean) => {
@@ -38,6 +39,7 @@ export default function NewGuest() {
         phone: normalized || undefined,
         groupLabel: group.trim(),
         partySizeAllowed: party,
+        cardKind: contribution ? 'contribution' : 'invitation',
         inviteChannelPref: !normalized ? 'print' : smart ? 'whatsapp' : 'sms',
         hasSmartphone: smart,
         language: locale,
@@ -113,6 +115,12 @@ export default function NewGuest() {
           onPress={() => setSmart(!smart)}
         />
         {!smart ? <Txt size={14}>{t('guestForm.noSmartphoneHelp')}</Txt> : null}
+        <Chip
+          label={t('guestForm.cardKindContribution')}
+          active={contribution}
+          onPress={() => setContribution(!contribution)}
+        />
+        {contribution ? <Txt size={14}>{t('guestForm.cardKindHint')}</Txt> : null}
       </Screen>
     </View>
   );

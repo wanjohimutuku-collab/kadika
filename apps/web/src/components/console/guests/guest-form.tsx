@@ -22,6 +22,7 @@ export function guestToInput(g: Guest): GuestInput {
     phone: g.phoneE164 ? formatPhone(g.phoneE164).slice(1) : '',
     groupLabel: g.groupLabel,
     partySizeAllowed: g.partySizeAllowed,
+    cardKind: g.cardKind,
     inviteChannelPref: g.inviteChannelPref,
     hasSmartphone: g.hasSmartphone,
     language: g.language,
@@ -34,9 +35,10 @@ const EMPTY: GuestInput = {
   phone: '',
   groupLabel: '',
   partySizeAllowed: 1,
+  cardKind: 'invitation',
   inviteChannelPref: 'whatsapp',
   hasSmartphone: true,
-  language: 'sw',
+  language: 'en',
   notes: '',
 };
 
@@ -199,6 +201,16 @@ export function GuestForm({
             }}
           />
         )}
+      />
+      <Select
+        label={t('cardKind')}
+        hint={t('cardKindHint')}
+        data-testid="guest-card-kind"
+        {...register('cardKind')}
+        options={[
+          { value: 'invitation', label: t('cardKindInvitation') },
+          { value: 'contribution', label: t('cardKindContribution') },
+        ]}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Select

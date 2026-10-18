@@ -159,6 +159,11 @@
   "card": {
     "metaTitle": "Mwaliko wa {kind} ya {couple}",
     "metaDescription": "{date} · {venue}. Fungua kadi yako ya mwaliko.",
+    "occWeddingBody": "Tunakualika kwa heshima kushuhudia na kushiriki furaha ya harusi yetu. Uwepo wako utakamilisha siku hii.",
+    "occEngagementBody": "Tunakualika kushuhudia na kushiriki furaha ya uchumba wetu. Uwepo wako utatupa baraka.",
+    "occSendoffBody": "Tunakualika kwenye sherehe ya kuaga (send-off) kabla ya harusi. Karibu tushiriki furaha hii pamoja.",
+    "occEngagementContrib": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha sherehe ya uchumba. Asante kwa kuwa nasi.",
+    "occSendoffContrib": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha sherehe ya send-off. Asante kwa kuwa nasi.",
     "weddingOf": "{kind} ya",
     "invitesYou": "Wanakualika, {guest}",
     "dateLine": "{weekday} {date}",
@@ -682,6 +687,10 @@
     }
   },
   "guestForm": {
+    "cardKind": "Aina ya kadi",
+    "cardKindInvitation": "Kadi ya mwaliko",
+    "cardKindContribution": "Kadi ya michango (inaomba mchango tu)",
+    "cardKindHint": "Kadi ya michango haina RSVP wala QR ya lango.",
     "title": "Ongeza mgeni",
     "editTitle": "Badilisha mgeni",
     "name": "Jina kamili",

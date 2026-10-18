@@ -1,11 +1,14 @@
-# Builds the API and web images, pushes them to GHCR and asks Coolify to redeploy.
+# Builds the API and web images, pushes them to GHCR, then moves a deploy branch to the commit.
+# Each Coolify stack tracks its deploy branch with Auto Deploy on, so Coolify's own push webhook
+# redeploys it only once fresh images exist (ADR 034). No Coolify token lives in GitHub.
 #
-#   push to main    ->  :staging       (+ :main, :sha-<short>)    deploys the "staging" environment
-#   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   deploys the "production" environment
-#   manual run      ->  :sha-<short> and :<branch>; deploys only if "deploy" is ticked
+#   push to main    ->  :staging       (+ :main, :sha-<short>)    moves deploy/staging
+#   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   moves deploy/production
+#   manual run      ->  :sha-<short> and :<branch> (+ :staging on main); moves deploy/staging only
+#                       when run on main with "deploy" ticked
 #
 # Production only builds from a commit that already passed CI, and a GitHub environment can add a
-# required reviewer on top. Setup (environments, variables, secrets, Coolify): infra/coolify/README.md
+# required reviewer on top. Setup (environments, variables, Coolify): infra/coolify/README.md
 name: Build and push images
 
 on:
@@ -15,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: Also ask Coolify to deploy
+        description: Also deploy to staging (main only)
         type: boolean
         default: false
 
@@ -54,11 +57,11 @@ jobs:
     if: ${{ !cancelled() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # Supplies the web build variables and the Coolify secrets for this run, and lets production
-    # require an approval before anything is pushed.
+    # Supplies the web build variables for this run, and lets production require an approval
+    # before anything is pushed.
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
     permissions:
-      contents: read
+      contents: write # moves the deploy branch
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -175,20 +178,19 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # One Coolify resource (docker-compose.coolify.yml) holds api, web, postgres and redis, so one
-      # call redeploys everything; the stack's depends_on starts the API (and its migrations) before
-      # the web app. COOLIFY_DEPLOY_URL is the stack's "Deploy Webhook" URL. Without the secrets the
-      # images are still pushed and the deploy is skipped with a warning.
-      - name: Ask Coolify to deploy
+      # One Coolify stack (docker-compose.coolify.yml) per environment tracks deploy/<environment>
+      # with Auto Deploy on. Moving the branch fires Coolify's GitHub push webhook, and the stack pulls
+      # the images this run just pushed and smoke-tested. Its depends_on starts the API (and its
+      # migrations) before the web app. Forced, so re-running an older tag's build moves it back.
+      - name: Hand the commit to Coolify
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy }}
         env:
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_DEPLOY_URL: ${{ secrets.COOLIFY_DEPLOY_URL }}
+          DEPLOY_BRANCH: deploy/${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
         run: |
-          if [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_DEPLOY_URL" ]; then
-            echo "::warning::COOLIFY_TOKEN or COOLIFY_DEPLOY_URL is not set for this environment. The images are pushed; nothing was deployed."
+          # A manual run on another branch has no :staging image, so the stack would redeploy the old one.
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::warning::Deploys only run from main. The images are pushed as :sha-${GITHUB_SHA::7}; nothing was deployed."
             exit 0
           fi
-          curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
-            --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_DEPLOY_URL" > /dev/null
-          echo "Deploy requested."
+          git push --force origin "$GITHUB_SHA:refs/heads/$DEPLOY_BRANCH"
+          echo "Deploy requested: $DEPLOY_BRANCH -> ${GITHUB_SHA::7}" | tee -a "$GITHUB_STEP_SUMMARY"

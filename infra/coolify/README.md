@@ -1,22 +1,29 @@
 # Build, push and deploy
 
 How a commit becomes a running server: [`.github/workflows/build-push.yml`](../../.github/workflows/build-push.yml)
-builds the API and web images, pushes them to GitHub Container Registry (GHCR) and asks Coolify to redeploy.
+builds the API and web images, pushes them to GitHub Container Registry (GHCR), then moves a deploy branch to that
+commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
+redeploys it, and only once the new images exist ([ADR 034](../../docs/adr/034-deploy-branch-webhook.md)).
 
 ## The flow
 
-| You do                               | Images are tagged                                  | Coolify deploys |
-| ------------------------------------ | -------------------------------------------------- | --------------- |
-| Merge or push to `main`              | `staging`, `main`, `sha-<short>`                   | staging         |
-| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>`               | production      |
-| Run the workflow by hand on a branch | `<branch>`, `sha-<short>` (deploys only if ticked) | staging         |
+| You do                               | Images are tagged                    | Branch moved                           | Coolify deploys |
+| ------------------------------------ | ------------------------------------ | -------------------------------------- | --------------- |
+| Merge or push to `main`              | `staging`, `main`, `sha-<short>`     | `deploy/staging`                       | staging         |
+| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>` | `deploy/production`                    | production      |
+| Run the workflow by hand on `main`   | `staging`, `main`, `sha-<short>`     | `deploy/staging` if "deploy" is ticked | staging         |
+| Run the workflow by hand on a branch | `<branch>`, `sha-<short>`            | none                                   | nothing         |
 
 - A release tag only builds if CI already passed on that commit, so tag a commit that is green on `main`.
 - The images are `ghcr.io/<owner>/<repo>-api` and `ghcr.io/<owner>/<repo>-web` (lower case).
 - `staging` and `production` move with each build. `sha-<short>` and the version tag never move, so use them to
   pin or roll back.
 - One Coolify stack per environment ([`docker-compose.coolify.yml`](../../docker-compose.coolify.yml)) runs api,
-  web, postgres and redis, so one webhook call redeploys it. The API (and its migrations) starts before the web app.
+  web, postgres and redis, so one push to its deploy branch redeploys it. The API (and its migrations) starts
+  before the web app.
+- The branch moves only after both images are pushed and pass the smoke test. The stack never tracks `main`
+  directly: a push to `main` reaches Coolify minutes before the new images exist, so it would redeploy the old ones.
+- Never commit to `deploy/*` by hand. The workflow force-moves them, and nothing else should.
 - The images are built for `linux/amd64`.
 
 ## One-time setup
@@ -32,12 +39,10 @@ required reviewer and limit it to `v*` tags. The workflow reads these from the e
 | Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The official link domain; when set it also turns on host routing (below). Set it on `production` only, to `kadisasa.com`. Defaults to `harusipass.co.tz`, no routing. |
 | Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                                                                                                   |
 | Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                          |
-| Secret   | `COOLIFY_TOKEN`             | A Coolify API token that is allowed to deploy.                                                                                                                                  |
-| Secret   | `COOLIFY_DEPLOY_URL`        | The stack's "Deploy Webhook" URL in Coolify (Webhooks tab).                                                                                                                     |
 
 The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not
-just a restart. Images are never built in mock mode. If the Coolify secrets are missing, the images are still
-pushed and the deploy step is skipped with a warning.
+just a restart. Images are never built in mock mode. No Coolify secret is needed in GitHub: the workflow's own
+token moves the deploy branch, and Coolify hears about it through its GitHub App.
 
 ### 2. GHCR access
 
@@ -48,9 +53,11 @@ personal access token with the `read:packages` scope as a registry credential so
 
 On coolify.korahost.com, for staging (production is the same with the production values):
 
-1. **+ New → Application → Public/Private GitHub repository**, branch `main`, build pack **Docker Compose**.
-   Base directory `/`, Docker Compose location `/docker-compose.coolify.yml`. Coolify only reads the compose file
-   from the repo; it pulls the prebuilt GHCR images and builds nothing on the VPS.
+1. **+ New → Application → Private Repository (with GitHub App)**, branch **`deploy/staging`** (`deploy/production`
+   for production), build pack **Docker Compose**. Base directory `/`, Docker Compose location
+   `/docker-compose.coolify.yml`. Coolify only reads the compose file from the repo; it pulls the prebuilt GHCR
+   images and builds nothing on the VPS. The branch exists after the first workflow run that deploys; run the
+   workflow on `main` with "deploy" ticked if it does not exist yet.
 2. **Domains.** Coolify lists `api` and `web`. Set e.g. `https://api.staging.<domain>` on `api` and
    `https://staging.<domain>` on `web`. The `api` domain must equal the `NEXT_PUBLIC_API_URL` GitHub variable.
    DNS: an A record per domain pointing at the VPS. Behind Cloudflare's proxy, set SSL/TLS to **Full (strict)**.
@@ -63,8 +70,11 @@ On coolify.korahost.com, for staging (production is the same with the production
    Never regenerate or edit `KEY_ENC_SECRET` once events exist: it decrypts every event's signing key.
 
 4. **GHCR pull access** (step 2) on the server, then **Deploy** once by hand.
-5. **Webhooks tab → Deploy Webhook** URL goes into the `COOLIFY_DEPLOY_URL` secret, and a token from
-   **Keys & Tokens → API tokens** (deploy permission) into `COOLIFY_TOKEN`.
+5. **Configuration → General → Auto Deploy: on.** The GitHub App already delivers push events, so there is no
+   webhook to add in GitHub. To check it: run the workflow on `main` with "deploy" ticked, look for
+   `Deploy requested: deploy/staging -> <sha>` in the run summary, and a new deployment in Coolify's Deployments tab
+   a few seconds later. If nothing arrives, open the GitHub App's **Advanced → Recent Deliveries** in GitHub
+   (Settings → Developer settings → GitHub Apps) and check the `push` delivery for `deploy/staging`.
 
 **Migrations.** The stack's `api` command runs `node dist/migrate.js` before the server starts, in the new
 image, so no Coolify pre-deployment hook is needed. Keep one `api` container: the migrator takes no lock.
@@ -120,7 +130,7 @@ roll back with the image, so check an old image still works with the current sch
 [`infra/docker/docker-bake.hcl`](../docker/docker-bake.hcl)), with the layer cache in the GitHub Actions cache.
 The dependency install is reused until the lockfile or a `package.json` changes, so a code-only change rebuilds
 just the app (about a minute, versus about four before). Each image is then booted and its `/health` checked
-before Coolify is asked to deploy, so an image that cannot start never reaches the server. Coolify only pulls.
+before the deploy branch moves, so an image that cannot start never reaches the server. Coolify only pulls.
 
 **The server.** Coolify, its deployments and every app share one VPS, so anything that builds on it slows the
 rest, including the Coolify UI (504/524 timeouts through Cloudflare).

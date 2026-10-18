@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL, hreflangMap, localeUrl, marketOfPath } from '@/lib/seo';
+import { SITE_URL, hreflangMap, localeUrl } from '@/lib/seo';
 import { ALL_PAGES, counterpartOf, pagePath } from '@/content';
 
 export default function sitemap(): MetadataRoute.Sitemap {

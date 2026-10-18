@@ -40,7 +40,13 @@ const add = async (evId: string, t: string, name: string, phone: string) =>
   (
     await api(ctx, 'POST', `/v1/events/${evId}/guests`, {
       token: t,
-      body: { displayName: name, phone, hasSmartphone: false, inviteChannelPref: 'sms', language: 'sw' },
+      body: {
+        displayName: name,
+        phone,
+        hasSmartphone: false,
+        inviteChannelPref: 'sms',
+        language: 'sw',
+      },
     })
   ).body!;
 const send = (evId: string, t: string, body: Record<string, unknown>) =>
@@ -121,7 +127,12 @@ describe('reminders the organiser asks for (ADR 030)', () => {
     const contribution = (
       await api(ctx, 'POST', `/v1/events/${ev.id}/guests`, {
         token: t,
-        body: { displayName: 'Shangazi Rehema', phone: '0712300010', cardKind: 'contribution', language: 'sw' },
+        body: {
+          displayName: 'Shangazi Rehema',
+          phone: '0712300010',
+          cardKind: 'contribution',
+          language: 'sw',
+        },
       })
     ).body!;
     await add(ev.id, t, 'Mgeni Mpya', '0712300011');

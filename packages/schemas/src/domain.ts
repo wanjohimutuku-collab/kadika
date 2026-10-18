@@ -149,9 +149,14 @@ export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | '
 export const OCCASIONS = ['wedding', 'engagement', 'sendoff', 'other'] as const;
 export type Occasion = (typeof OCCASIONS)[number];
 export function occasionOf(kind: string | null | undefined): Occasion {
-  const k = kind?.trim().toLowerCase().replace(/[\s_-]+/g, '') ?? '';
+  const k =
+    kind
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '') ?? '';
   if (!k || k.includes('harusi') || k.includes('wedding')) return 'wedding';
-  if (k.includes('uchumba') || k.includes('engagement') || k.includes('ruracio')) return 'engagement';
+  if (k.includes('uchumba') || k.includes('engagement') || k.includes('ruracio'))
+    return 'engagement';
   if (k.includes('sendoff') || k.includes('kitchenparty')) return 'sendoff';
   return 'other';
 }

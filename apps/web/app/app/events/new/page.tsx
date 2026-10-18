@@ -8,7 +8,12 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ImagePlus } from 'lucide-react';
-import { eventInputSchema, eventKindLabel, eventKindSuggestions, type EventInput } from '@harusi/schemas';
+import {
+  eventInputSchema,
+  eventKindLabel,
+  eventKindSuggestions,
+  type EventInput,
+} from '@harusi/schemas';
 import {
   contrastRatio,
   lightColors,
@@ -260,7 +265,9 @@ export default function NewEventPage() {
               <KindChips
                 label={t('kind')}
                 value={values.eventKind ?? ''}
-                onChange={(k) => setValue('eventKind', k, { shouldDirty: true, shouldValidate: true })}
+                onChange={(k) =>
+                  setValue('eventKind', k, { shouldDirty: true, shouldValidate: true })
+                }
               />
               <TextField
                 label={t('kind')}

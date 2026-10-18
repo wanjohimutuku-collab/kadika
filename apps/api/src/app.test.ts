@@ -12,7 +12,9 @@ describe('GET /health', () => {
   it('returns ok', async () => {
     const res = await api(ctx, 'GET', '/health');
     expect(res.status).toBe(200);
-    expect(healthResponseSchema.parse(res.body).service).toBe('api');
+    const health = healthResponseSchema.parse(res.body);
+    expect(health.service).toBe('api');
+    expect(health.version).toBe(process.env.GIT_SHA || 'dev');
   });
 
   it('returns the standard error shape for unknown routes', async () => {

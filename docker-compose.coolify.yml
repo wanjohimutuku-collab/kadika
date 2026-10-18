@@ -7,7 +7,9 @@
 # ${VAR:?} blocks the deploy until it is filled in; ${VAR:-x} is an editable default.
 #
 # The images are built and pushed by .github/workflows/build-push.yml. IMAGE_TAG picks the
-# channel: `staging` (every push to main) or `production` (v* tags).
+# channel: `staging` (every push to main) or `production` (v* tags). The stack tracks the
+# `deploy/staging` or `deploy/production` branch with Auto Deploy on; the workflow moves that
+# branch once the images are pushed, which triggers the deploy (ADR 034).
 
 services:
   api:

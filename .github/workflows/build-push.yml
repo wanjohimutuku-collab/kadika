@@ -1,11 +1,16 @@
-# Builds the API and web images, pushes them to GHCR and asks Coolify to redeploy.
+# Builds the API and web images, pushes them to GHCR, then moves a deploy branch to the commit.
+# Each Coolify stack tracks its deploy branch with Auto Deploy on, so Coolify's own push webhook
+# redeploys it only once fresh images exist (ADR 034). No Coolify token lives in GitHub.
+# The run then waits until the live API and web app report the new commit on /health, so a red run
+# means the deploy did not land, and GitHub emails whoever pushed (ADR 035).
 #
-#   push to main    ->  :staging       (+ :main, :sha-<short>)    deploys the "staging" environment
-#   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   deploys the "production" environment
-#   manual run      ->  :sha-<short> and :<branch>; deploys only if "deploy" is ticked
+#   push to main    ->  :staging       (+ :main, :sha-<short>)    moves deploy/staging
+#   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   moves deploy/production
+#   manual run      ->  :sha-<short> and :<branch> (+ :staging on main); moves deploy/staging only
+#                       when run on main with "deploy" ticked
 #
 # Production only builds from a commit that already passed CI, and a GitHub environment can add a
-# required reviewer on top. Setup (environments, variables, secrets, Coolify): infra/coolify/README.md
+# required reviewer on top. Setup (environments, variables, Coolify): infra/coolify/README.md
 name: Build and push images
 
 on:
@@ -15,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: Also ask Coolify to deploy
+        description: Also deploy to staging (main only)
         type: boolean
         default: false
 
@@ -54,11 +59,11 @@ jobs:
     if: ${{ !cancelled() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # Supplies the web build variables and the Coolify secrets for this run, and lets production
-    # require an approval before anything is pushed.
+    # Supplies the web build variables for this run, and lets production require an approval
+    # before anything is pushed.
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
     permissions:
-      contents: read
+      contents: write # moves the deploy branch
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -123,6 +128,7 @@ jobs:
           NEXT_PUBLIC_APP_DOMAIN: ${{ vars.NEXT_PUBLIC_APP_DOMAIN }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_KENYA_ENABLED: ${{ vars.NEXT_PUBLIC_KENYA_ENABLED || '0' }}
+          GIT_SHA: ${{ github.sha }}
         with:
           source: .
           files: |
@@ -146,9 +152,12 @@ jobs:
             -e DATABASE_URL=postgres://smoke:smoke@127.0.0.1:1/smoke -e LOG_REQUESTS=0 \
             "$PREFIX-api:$tag"
           docker run -d --name web -p 3000:3000 "$PREFIX-web:$tag"
-          check() { # $1 = name, $2 = URL
+          check() { # $1 = name, $2 = URL; also checks the image reports this commit
             for i in $(seq 1 30); do
-              if curl -sf "$2" > /dev/null; then echo "$1 is up."; return 0; fi
+              if body=$(curl -sf "$2"); then
+                if [ "$(echo "$body" | jq -r .version)" = "$GITHUB_SHA" ]; then echo "$1 is up."; return 0; fi
+                echo "::error::$1 reports version $(echo "$body" | jq -r .version), expected $GITHUB_SHA"; return 1
+              fi
               sleep 2
             done
             echo "::error::$1 did not answer $2"; docker logs "$1"; return 1
@@ -175,20 +184,63 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # One Coolify resource (docker-compose.coolify.yml) holds api, web, postgres and redis, so one
-      # call redeploys everything; the stack's depends_on starts the API (and its migrations) before
-      # the web app. COOLIFY_DEPLOY_URL is the stack's "Deploy Webhook" URL. Without the secrets the
-      # images are still pushed and the deploy is skipped with a warning.
-      - name: Ask Coolify to deploy
+      # One Coolify stack (docker-compose.coolify.yml) per environment tracks deploy/<environment>
+      # with Auto Deploy on. Moving the branch fires Coolify's GitHub push webhook, and the stack pulls
+      # the images this run just pushed and smoke-tested. Its depends_on starts the API (and its
+      # migrations) before the web app. Forced, so re-running an older tag's build moves it back.
+      - name: Hand the commit to Coolify
+        id: handoff
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy }}
         env:
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          COOLIFY_DEPLOY_URL: ${{ secrets.COOLIFY_DEPLOY_URL }}
+          DEPLOY_BRANCH: deploy/${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
         run: |
-          if [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_DEPLOY_URL" ]; then
-            echo "::warning::COOLIFY_TOKEN or COOLIFY_DEPLOY_URL is not set for this environment. The images are pushed; nothing was deployed."
+          # A manual run on another branch has no :staging image, so the stack would redeploy the old one.
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::warning::Deploys only run from main. The images are pushed as :sha-${GITHUB_SHA::7}; nothing was deployed."
             exit 0
           fi
-          curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
-            --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_DEPLOY_URL" > /dev/null
-          echo "Deploy requested."
+          git push --force origin "$GITHUB_SHA:refs/heads/$DEPLOY_BRANCH"
+          echo "Deploy requested: $DEPLOY_BRANCH -> ${GITHUB_SHA::7}" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "moved=true" >> "$GITHUB_OUTPUT"
+
+      # Coolify builds nothing, so a deploy takes a pull and a restart (migrations run first). Poll the
+      # public health endpoints until both report this commit. If Coolify never starts, the migration
+      # fails or the new container never turns healthy, this times out and the run goes red.
+      - name: Wait for the new version to go live
+        if: steps.handoff.outputs.moved == 'true'
+        timeout-minutes: 15
+        env:
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          WEB_URL: ${{ vars.DEPLOY_WEB_URL || vars.NEXT_PUBLIC_SITE_URL }}
+          ENVIRONMENT: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+        run: |
+          live() { # $1 = health URL; prints the version it reports, or nothing
+            curl -sf --max-time 10 -H 'Cache-Control: no-cache' "$1?v=$GITHUB_SHA" | jq -r '.version // empty' 2>/dev/null
+          }
+          targets="api=${API_URL%/}/health"
+          if [ -n "$WEB_URL" ]; then
+            targets="$targets web=${WEB_URL%/}/api/health"
+          else
+            echo "::warning::Set DEPLOY_WEB_URL on the $ENVIRONMENT environment to also confirm the web app."
+          fi
+          start=$(date +%s)
+          for target in $targets; do
+            name=${target%%=*}; url=${target#*=}
+            until [ "$(live "$url")" = "$GITHUB_SHA" ]; do
+              sleep 10
+              echo "Waiting for $name ($url): live version is '$(live "$url")' after $(( $(date +%s) - start ))s"
+            done
+            echo "$name is live on ${GITHUB_SHA::7}."
+          done
+          echo "Live on $ENVIRONMENT: ${GITHUB_SHA::7} after $(( $(date +%s) - start ))s" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain a failed deploy
+        if: failure() && steps.handoff.outputs.moved == 'true'
+        run: |
+          {
+            echo "### Deploy did not go live"
+            echo
+            echo "The images were built and Coolify was asked to deploy, but the new version never answered."
+            echo "Open the stack's Deployments tab in Coolify and the api/web container logs (a failed migration"
+            echo "stops the api). The previous version may still be serving, or the site may be down."
+          } >> "$GITHUB_STEP_SUMMARY"

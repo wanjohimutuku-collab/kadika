@@ -9,6 +9,9 @@ variable "NEXT_PUBLIC_APP_DOMAIN" { default = "" }
 variable "NEXT_PUBLIC_SITE_URL" { default = "" }
 variable "NEXT_PUBLIC_KENYA_ENABLED" { default = "0" }
 
+# The commit being built, reported by each image's /health (ADR 035).
+variable "GIT_SHA" { default = "dev" }
+
 group "default" {
   targets = ["api", "web"]
 }
@@ -24,6 +27,9 @@ target "api" {
   platforms  = ["linux/amd64"]
   cache-from = ["type=gha,scope=api"]
   cache-to   = ["type=gha,scope=api,mode=max"]
+  args = {
+    GIT_SHA = GIT_SHA
+  }
 }
 
 target "web" {
@@ -40,5 +46,6 @@ target "web" {
     NEXT_PUBLIC_APP_DOMAIN    = NEXT_PUBLIC_APP_DOMAIN
     NEXT_PUBLIC_SITE_URL      = NEXT_PUBLIC_SITE_URL
     NEXT_PUBLIC_KENYA_ENABLED = NEXT_PUBLIC_KENYA_ENABLED
+    GIT_SHA                   = GIT_SHA
   }
 }

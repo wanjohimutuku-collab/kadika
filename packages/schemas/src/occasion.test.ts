@@ -10,3 +10,13 @@ describe('occasionOf', () => {
     expect(occasionOf('Graduation')).toBe('other');
   });
 });
+
+describe('eventKindLabel', () => {
+  it('shows the three known kinds in the reader language and leaves custom kinds alone', async () => {
+    const { eventKindLabel } = await import('./domain');
+    expect(eventKindLabel('Wedding', 'sw')).toBe('Harusi');
+    expect(eventKindLabel('Uchumba', 'en')).toBe('Engagement');
+    expect(eventKindLabel('', 'en')).toBe('Wedding');
+    expect(eventKindLabel('Kitchen party', 'sw')).toBe('Kitchen party');
+  });
+});

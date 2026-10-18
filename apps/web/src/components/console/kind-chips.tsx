@@ -1,6 +1,7 @@
 'use client';
 
-import { EVENT_KIND_SUGGESTIONS } from '@harusi/schemas';
+import { useLocale } from 'next-intl';
+import { eventKindLabel, eventKindSuggestions } from '@harusi/schemas';
 import { cn } from '@/lib/cn';
 
 /** One-tap choice of the three card categories (wedding, engagement, send-off); the text field stays for others. */
@@ -13,10 +14,11 @@ export function KindChips({
   onChange: (kind: string) => void;
   label: string;
 }) {
-  const current = value.trim().toLowerCase();
+  const locale = useLocale() as 'sw' | 'en';
+  const current = value.trim() ? eventKindLabel(value, locale).toLowerCase() : '';
   return (
     <div role="group" aria-label={label} className="flex flex-wrap gap-2" data-testid="kind-chips">
-      {EVENT_KIND_SUGGESTIONS.map((k) => {
+      {eventKindSuggestions(locale).map((k) => {
         const active = current === k.toLowerCase();
         return (
           <button

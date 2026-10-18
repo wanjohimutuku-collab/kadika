@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }),
   ];
   return pages.map(({ path, counterpart, updated, weight }) => {
-    const defaultLang = marketOfPath(path) === 'ke' ? 'en' : 'sw';
+    const defaultLang = 'en';
     return {
       url: `${SITE_URL}${localeUrl(path, defaultLang)}`,
       ...(updated ? { lastModified: updated } : {}),

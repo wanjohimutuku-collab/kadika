@@ -29,7 +29,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
       }}
     >
       <div style={{ fontSize: 34, letterSpacing: 8, textTransform: 'uppercase', opacity: 0.9 }}>
-        {eventKindLabel(ev?.eventKind, 'sw')} ya
+        {eventKindLabel(ev?.eventKind, 'en')} of
       </div>
       <div style={{ fontSize: 110, fontWeight: 700, marginTop: 10 }}>
         {ev ? hostNames(ev.partnerA, ev.partnerB) : 'Harusi Pass'}
@@ -37,7 +37,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
       {ev ? (
         <div
           style={{ fontSize: 40, marginTop: 18 }}
-        >{`${formatDate(ev.dateStart, 'sw')} · ${ev.venueName}`}</div>
+        >{`${formatDate(ev.dateStart, 'en')} · ${ev.venueName}`}</div>
       ) : null}
       <div
         style={{

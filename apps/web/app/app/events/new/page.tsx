@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ImagePlus } from 'lucide-react';
-import { EVENT_KIND_SUGGESTIONS, eventInputSchema, type EventInput } from '@harusi/schemas';
+import { eventInputSchema, eventKindLabel, eventKindSuggestions, type EventInput } from '@harusi/schemas';
 import {
   contrastRatio,
   lightColors,
@@ -61,7 +61,7 @@ const COVERS = [
 
 const EMPTY: EventInput = {
   title: '',
-  eventKind: 'Harusi',
+  eventKind: 'Wedding',
   country: 'TZ',
   partnerA: '',
   partnerB: '',
@@ -69,7 +69,7 @@ const EMPTY: EventInput = {
   venueName: '',
   venueMapUrl: '',
   dressCode: '',
-  languageDefault: 'sw',
+  languageDefault: 'en',
   themeId: 'emerald-gold',
   coverGradient: '',
   rsvpDeadline: '',
@@ -86,6 +86,7 @@ function readDraft(): { values: EventInput; step: Step } | null {
 }
 
 export default function NewEventPage() {
+  const locale = useLocale() as 'sw' | 'en';
   const t = useTranslations('wizard');
   const tc = useTranslations('common');
   const tl = useTranslations('common.languageName');
@@ -134,12 +135,15 @@ export default function NewEventPage() {
     if (!titleTouched && (values.partnerA || values.partnerB))
       setValue(
         'title',
-        `${values.eventKind?.trim() || 'Mwaliko'} ya ${[values.partnerA, values.partnerB]
+        `${values.eventKind?.trim() ? eventKindLabel(values.eventKind, locale) : locale === 'sw' ? 'Mwaliko' : 'Invitation'} ${locale === 'sw' ? 'ya' : 'of'} ${[
+          values.partnerA,
+          values.partnerB,
+        ]
           .map((n) => n?.trim())
           .filter(Boolean)
           .join(' & ')}`,
       );
-  }, [values.eventKind, values.partnerA, values.partnerB, titleTouched, setValue]);
+  }, [values.eventKind, values.partnerA, values.partnerB, titleTouched, setValue, locale]);
 
   const create = useMutation({
     mutationFn: (input: EventInput) =>
@@ -268,7 +272,7 @@ export default function NewEventPage() {
                 error={fieldError(formState.errors.eventKind)}
               />
               <datalist id="event-kind-suggestions">
-                {EVENT_KIND_SUGGESTIONS.map((k) => (
+                {eventKindSuggestions(locale).map((k) => (
                   <option key={k} value={k} />
                 ))}
               </datalist>

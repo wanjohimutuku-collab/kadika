@@ -97,7 +97,7 @@ export const events = pgTable('events', {
   committeePhone: text('committee_phone'),
   senderName: text('sender_name'),
   greeting: text('greeting'),
-  languageDefault: languageEnum('language_default').notNull().default('sw'),
+  languageDefault: languageEnum('language_default').notNull().default('en'),
   /** Country, currency and time zone of the event (ADR 025). Amount columns are in `currency`. */
   country: countryEnum('country').notNull().default('TZ'),
   currency: currencyEnum('currency').notNull().default('TZS'),
@@ -171,7 +171,7 @@ export const guests = pgTable(
     // Last 8 hex characters of the guest id: the on-card id inside the signed QR (ADR 013).
     guestShort: text('guest_short').notNull(),
     tokenVersion: integer('token_version').notNull().default(1),
-    language: languageEnum('language').notNull().default('sw'),
+    language: languageEnum('language').notNull().default('en'),
     inviteChannelPref: channelPrefEnum('invite_channel_pref').notNull().default('mixed'),
     notes: text('notes'),
     /** Guest asked to stop reminders from the card page (§7.4). Invitations are unaffected. */

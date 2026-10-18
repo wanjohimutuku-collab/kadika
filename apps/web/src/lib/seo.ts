@@ -14,9 +14,9 @@ export function marketOfPath(path: string): Market {
   return path === '/ke' || path.startsWith('/ke/') ? 'ke' : 'tz';
 }
 
-/** Swahili is the default in Tanzania; English is the default for Kenya pages. */
-export function defaultLocaleFor(market: Market): Locale {
-  return market === 'ke' ? 'en' : defaultLocale;
+/** English is the default everywhere; Swahili is one tap away. */
+export function defaultLocaleFor(_market: Market): Locale {
+  return defaultLocale;
 }
 
 /** The default language has the clean URL; the other one is `?lang=`. */
@@ -39,7 +39,7 @@ export function hreflangMap(path: string, counterpartPath?: string): Record<stri
   const market = marketOfPath(path);
   if (!counterpartPath) {
     return market === 'tz'
-      ? { sw: abs(path, 'sw'), en: abs(path, 'en'), 'x-default': abs(path, 'sw') }
+      ? { sw: abs(path, 'sw'), en: abs(path, 'en'), 'x-default': abs(path, 'en') }
       : { 'en-KE': abs(path, 'en'), 'sw-KE': abs(path, 'sw'), 'x-default': abs(path, 'en') };
   }
   const tz = market === 'tz' ? path : counterpartPath;
@@ -49,6 +49,6 @@ export function hreflangMap(path: string, counterpartPath?: string): Record<stri
     'en-TZ': abs(tz, 'en'),
     'sw-KE': abs(ke, 'sw'),
     'en-KE': abs(ke, 'en'),
-    'x-default': abs(tz, 'sw'),
+    'x-default': abs(tz, 'en'),
   };
 }

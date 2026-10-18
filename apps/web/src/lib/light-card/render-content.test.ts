@@ -272,7 +272,7 @@ describe('contribution card', () => {
       { ...opts, locale: 'en' },
     );
     expect(ke).toContain('href="/ke/privacy"');
-    expect(ke).toContain('Contribution for the harusi');
+    expect(ke).toContain('Contribution for the wedding');
     expect(ke).toContain('Contribution goal: KES 2,000,000');
   });
 });

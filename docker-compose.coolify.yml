@@ -34,6 +34,9 @@ services:
       # Decrypts every event's signing key. Never regenerate or edit it once events exist.
       KEY_ENC_SECRET: ${SERVICE_REALBASE64_32_KEYENC}
       APP_BASE_URL: ${SERVICE_URL_WEB_3000}
+      # This API's own public URL: where payment gateways (Snippe) post results (ADR 036). Without it
+      # the payment settings in /ops refuse a real gateway, because there is nowhere to send callbacks.
+      API_PUBLIC_URL: ${SERVICE_URL_API_3001}
       CORS_ORIGINS: ${SERVICE_URL_WEB_3000}
       # Production: the other web hosts, comma-separated (https://www.<domain>,https://app.<domain>,https://my.<domain>).
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
@@ -44,7 +47,11 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       # Providers: everything is `fake` until filled in (fake = nothing is really sent or charged).
       # With SMS fake, organizers never receive their login OTP.
-      # SMS/WhatsApp are easier to set in /ops/messaging (ADR 031); saved settings override these.
+      # SMS, WhatsApp and the payment gateway are set in /ops/settings (ADR 031, 036), encrypted in the
+      # database, and saved settings override everything below. These variables are only the first-start
+      # fallback: the very first staff sign-in needs an SMS provider before anyone can open /ops, and a
+      # deployment that used them keeps working until staff press "Move settings" in Settings, after
+      # which they can be deleted here.
       SMS_PROVIDER: ${SMS_PROVIDER:-fake}
       NEXTSMS_USERNAME: ${NEXTSMS_USERNAME:-}
       NEXTSMS_PASSWORD: ${NEXTSMS_PASSWORD:-}

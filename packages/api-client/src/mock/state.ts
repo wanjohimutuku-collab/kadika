@@ -1,3 +1,4 @@
+import type { BrandingInput } from '@harusi/schemas/branding';
 import {
   generateShortCode,
   type CardKind,
@@ -123,6 +124,23 @@ export interface MockState {
       { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
     >
   >;
+  /** Payment gateway settings saved in /ops (ADR 036); without one the env default (fake) shows. */
+  paymentSettings?: Partial<
+    Record<
+      'tz',
+      { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
+    >
+  >;
+  /** Business branding saved in /ops (ADR 036); undefined shows the defaults. */
+  branding?: {
+    input: BrandingInput;
+    /** SVG source, or a `data:` URL for rasters; the mock serves the logo straight from here. */
+    logoMime: string | null;
+    logoSrc: string | null;
+    logoVersion: number;
+    updatedAt: string;
+    updatedBy: string;
+  };
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
 }

@@ -482,3 +482,36 @@ export const messagingSettings = pgTable('messaging_settings', {
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   ...timestamps,
 });
+
+/**
+ * Payment gateway settings staff edit in /ops/settings (ADR 036), one row per route. Same storage as
+ * messaging_settings: the provider config is AES-GCM encrypted with KEY_ENC_SECRET. No row = the
+ * environment variables are used.
+ */
+export const paymentSettings = pgTable('payment_settings', {
+  route: text('route').primaryKey(),
+  provider: text('provider').notNull(),
+  configEnc: text('config_enc').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+/**
+ * Business branding (ADR 036): a single row (`id = 'default'`). Public by design: name, colours and fonts
+ * are served to every visitor, and the logo at /v1/branding/logo. `logo_data` is the SVG source, or
+ * base64 for PNG/JPEG/WebP; `logo_version` changes on every upload so caches refresh.
+ */
+export const brandSettings = pgTable('brand_settings', {
+  id: text('id').primaryKey(),
+  businessName: text('business_name').notNull(),
+  tagline: text('tagline').notNull().default(''),
+  primary: text('primary'),
+  accent: text('accent'),
+  fontBody: text('font_body').notNull().default('system'),
+  fontDisplay: text('font_display').notNull().default('elegant'),
+  logoMime: text('logo_mime'),
+  logoData: text('logo_data'),
+  logoVersion: integer('logo_version').notNull().default(0),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});

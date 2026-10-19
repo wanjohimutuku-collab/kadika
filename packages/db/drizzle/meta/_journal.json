@@ -134,6 +134,13 @@
       "when": 1792307311950,
       "tag": "0018_english_default",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792429255200,
+      "tag": "0019_admin_settings",
+      "breakpoints": true
     }
   ]
 }

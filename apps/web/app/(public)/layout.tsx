@@ -1,3 +1,4 @@
+import { BrandMark } from '@/components/brand/brand-provider';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { NextIntlClientProvider } from 'next-intl';
@@ -34,8 +35,8 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       </a>
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex min-h-16 max-w-5xl items-center justify-between gap-3 px-4">
-          <Link href="/" className="text-xl font-semibold text-primary">
-            {t('appName')}
+          <Link href="/" className="text-xl">
+            <BrandMark />
           </Link>
           <LanguageChip />
         </div>

@@ -29,10 +29,17 @@ import { CLIENT_SCRIPT } from './client-script';
  * CSS and a ~10 KB vanilla script, so the first load stays well under the §7.3 100 KB budget.
  * Every dynamic string goes through `esc()`; the script reads its data from a JSON block.
  */
+/** The business brand shown on the card page (ADR 036). The logo is a small cached `<img>`, never inlined. */
+export interface LightBrand {
+  name: string;
+  logoSrc: string | null;
+}
+
 export interface LightCardOptions {
   token: string;
   locale: Locale;
   domain: string;
+  brand?: LightBrand;
   /** `mock`: the browser overlays its local demo state. `api`: RSVP posts to `apiUrl`. */
   mode: 'mock' | 'api';
   apiUrl: string;
@@ -43,6 +50,12 @@ const esc = (v: unknown): string =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
+
+/** The business logo as a link home, or nothing when there is none. Height is fixed so nothing jumps as it loads. */
+function brandLogo(brand?: LightBrand): string {
+  if (!brand?.logoSrc) return '';
+  return `<a class="brand" href="/" data-testid="card-brand"><img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}" height="28" style="height:28px;width:auto;max-width:160px;object-fit:contain"></a>`;
+}
 
 /** Safe inside <script type="application/json">: `<` can never close the tag. */
 const jsonForScript = (v: unknown): string => JSON.stringify(v).replace(/</g, '\\u003c');
@@ -126,6 +139,7 @@ h2{font-size:18px;font-weight:600}
 footer{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 20px;font-size:14px;background:var(--bg)}
 footer nav{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center}
 footer nav a{min-height:40px;display:inline-flex;align-items:center}
+.brand{display:inline-flex;align-items:center;min-height:40px;margin-bottom:4px}
 .lang{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .lang button{min-height:40px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
 .lang button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
@@ -196,7 +210,7 @@ function shell(opts: {
 /** Invalid / reissued / unavailable token page (§17.6 visible states). */
 export function renderProblem(
   state: 'invalid' | 'reissued' | 'error',
-  o: Pick<LightCardOptions, 'locale' | 'domain'>,
+  o: Pick<LightCardOptions, 'locale' | 'domain' | 'brand'>,
 ): string {
   const m = messages[o.locale] as unknown as { card: Msg; states: Msg };
   const title = state === 'error' ? m.states.errorTitle! : m.card[`${state}Title`]!;
@@ -205,7 +219,7 @@ export function renderProblem(
     locale: o.locale,
     title,
     palette: resolvePalette(undefined),
-    body: `<main class="problem" data-testid="card-${state}">
+    body: `<main class="problem" data-testid="card-${state}">${brandLogo(o.brand)}
 <span aria-hidden="true" style="color:var(--warning)">${icon('x', 'big').replace('width="24" height="24"', 'width="56" height="56"')}</span>
 <h1>${esc(title)}</h1><p>${esc(body)}</p>
 <a class="btn" href="/k">${esc(m.card.enterCodeInstead)}</a>
@@ -459,7 +473,7 @@ ${confirmed ? '' : qrSection}
 ${pledge}
 ${contributionSection}
 ${closingSection}
-<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
+<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).

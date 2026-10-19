@@ -19,6 +19,7 @@ import {
   envSettings,
   MessagingSettingsService,
 } from './services/messaging-settings';
+import { PaymentSettingsService } from './services/payment-settings';
 
 const config = loadConfig();
 const { db } = createDb(config.databaseUrl);
@@ -97,6 +98,14 @@ await deps.messagingSettings
   );
 // Every API instance re-reads the saved settings each minute, so a save on one reaches the others.
 setInterval(() => void deps.messagingSettings?.refresh().catch(() => undefined), 60_000).unref();
+// Payment gateway settings (ADR 036) work the same way: saved in /ops, replacing the env-built provider.
+deps.paymentSettings = new PaymentSettingsService(deps, { log });
+await deps.paymentSettings
+  .refresh(true)
+  .catch((e: Error) =>
+    log({ level: 'error', msg: 'payment settings not loaded', error: e.message }),
+  );
+setInterval(() => void deps.paymentSettings?.refresh().catch(() => undefined), 60_000).unref();
 if (config.redisUrl) {
   // Rate-limit counters in Redis so several API instances share one budget (§9).
   const limiterRedis = new Redis(config.redisUrl, {

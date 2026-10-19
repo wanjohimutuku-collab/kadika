@@ -599,7 +599,9 @@ export interface OpsAuditEntry {
     | 'set_plan'
     | 'resolve_request'
     | 'lookup'
-    | 'messaging';
+    | 'messaging'
+    | 'payments'
+    | 'branding';
   target: string;
   details: string;
 }

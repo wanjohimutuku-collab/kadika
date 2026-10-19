@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, CheckCircle2, Clock, ShieldCheck, XCircle } from 'lucide-react';
 import type { CardView, PaymentStart, PaymentStatusView } from '@harusi/api-client';
 import type { PaymentMethod } from '@harusi/schemas';
 import { onlinePaymentLimits, paymentMethodsFor } from '@harusi/schemas/country';
+import { detectNetwork, quickAmounts } from '@harusi/schemas/checkout';
 import { parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
+import { BrandMark } from '@/components/brand/brand-provider';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Banner, Skeleton } from '@/components/ui/display';
 import { PhoneField, TextField } from '@/components/ui/form';
@@ -41,6 +43,7 @@ export function PayFlow({ token }: { token: string }) {
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
   const [method, setMethod] = useState<PaymentMethod>('mpesa');
+  const [changeNetwork, setChangeNetwork] = useState(false);
   const [errors, setErrors] = useState<{ amount?: string; phone?: string; submit?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [seconds, setSeconds] = useState(WAIT_SECONDS);
@@ -105,11 +108,26 @@ export function PayFlow({ token }: { token: string }) {
       }
     }, 1000);
     const poll = setInterval(() => void check(step.start.reference, false), 2000);
+    // The PIN is entered in the phone's own prompt, often in another app: when the guest comes back,
+    // ask straight away rather than waiting for the next tick.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void check(step.start.reference, false);
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       clearInterval(tick);
       clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [step, check]);
+
+  // The network is guessed from the number (never for Kenya); the guest can always change it.
+  const parsedPhone = useMemo(() => parsePhone(phone, country), [phone, country]);
+  const guessed = parsedPhone.ok ? detectNetwork(parsedPhone.e164) : null;
+  const detected = guessed && paymentMethodsFor(country).includes(guessed) ? guessed : null;
+  const chosen: PaymentMethod = !changeNetwork && detected ? detected : method;
+  const amountN = Number(amount.replace(/[^\d]/g, ''));
+  const amountOk = Number.isInteger(amountN) && amountN >= minAmount;
 
   const submit = async () => {
     const next: typeof errors = {};
@@ -129,7 +147,7 @@ export function PayFlow({ token }: { token: string }) {
       idem.current ||= newIdempotencyKey();
       const start = await getRepository().startPayment(
         token,
-        { amount: n, phoneE164: p.e164, method },
+        { amount: n, phoneE164: p.e164, method: chosen },
         idem.current,
       );
       idem.current = '';
@@ -183,7 +201,10 @@ export function PayFlow({ token }: { token: string }) {
         className="mx-auto flex max-w-lg flex-col gap-4 bg-surface p-5 md:my-6 md:rounded-2xl md:border md:border-border"
         data-testid="pay-flow"
       >
-        {back}
+        <div className="flex items-center justify-between gap-3">
+          {back}
+          <BrandMark className="text-base" logoClassName="max-h-8" />
+        </div>
         {card.state !== 'ok' || !card.event?.pledgesEnabled ? (
           <Banner tone="warning">{t('noPledges')}</Banner>
         ) : step.kind === 'form' ? (
@@ -212,7 +233,36 @@ export function PayFlow({ token }: { token: string }) {
               }
               error={errors.amount}
               name="amount"
+              enterKeyHint="next"
             />
+            <div className="-mt-2 flex flex-col gap-1.5">
+              <span className="text-sm font-semibold">{t('quick')}</span>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="pay-quick">
+                {quickAmounts(country, card.pledge?.balance).map((n) => {
+                  const isBalance = n === card.pledge?.balance;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      aria-pressed={amountN === n}
+                      onClick={() => {
+                        setAmount(String(n));
+                        setErrors((e) => ({ ...e, amount: undefined }));
+                      }}
+                      className={cn(
+                        'flex min-h-12 flex-col items-center justify-center rounded-input border-2 px-2 text-sm font-semibold tabular',
+                        amountN === n ? 'border-primary bg-primary/6' : 'border-border',
+                      )}
+                    >
+                      {formatMoney(n, currency).replace(`${currency} `, '')}
+                      {isBalance ? (
+                        <span className="text-xs font-normal text-muted">{t('useBalance')}</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <PhoneField
               country={country}
               label={t('phone')}
@@ -222,30 +272,51 @@ export function PayFlow({ token }: { token: string }) {
               error={errors.phone}
               name="phone"
             />
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-semibold">{t('provider')}</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {paymentMethodsFor(country).map((m) => (
-                  <label
-                    key={m}
-                    className={cn(
-                      'flex min-h-14 cursor-pointer items-center gap-2 rounded-input border-2 px-3 font-semibold',
-                      method === m ? 'border-primary bg-primary/6' : 'border-border',
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="method"
-                      value={m}
-                      checked={method === m}
-                      onChange={() => setMethod(m)}
-                      className="size-5 accent-[var(--hp-primary)]"
-                    />
-                    {providerName(m)}
-                  </label>
-                ))}
+            {detected && !changeNetwork ? (
+              <div
+                className="flex items-center justify-between gap-3 rounded-input bg-primary/6 px-3 py-2"
+                data-testid="pay-network-detected"
+              >
+                <p className="text-sm">
+                  {t('networkDetected', { provider: providerName(detected) })}
+                </p>
+                <button
+                  type="button"
+                  className="min-h-10 shrink-0 px-2 text-sm font-semibold text-primary underline"
+                  onClick={() => {
+                    setMethod(detected);
+                    setChangeNetwork(true);
+                  }}
+                >
+                  {t('networkChange')}
+                </button>
               </div>
-            </fieldset>
+            ) : (
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm font-semibold">{t('provider')}</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  {paymentMethodsFor(country).map((m) => (
+                    <label
+                      key={m}
+                      className={cn(
+                        'flex min-h-14 cursor-pointer items-center gap-2 rounded-input border-2 px-3 font-semibold',
+                        method === m ? 'border-primary bg-primary/6' : 'border-border',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="method"
+                        value={m}
+                        checked={method === m}
+                        onChange={() => setMethod(m)}
+                        className="size-5 accent-[var(--hp-primary)]"
+                      />
+                      {providerName(m)}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
             <p className="flex items-start gap-2 text-sm text-muted">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
               {t('safety')}
@@ -255,9 +326,13 @@ export function PayFlow({ token }: { token: string }) {
                 {errors.submit}
               </Banner>
             ) : null}
-            <Button type="submit" size="lg" block loading={submitting} data-testid="pay-submit">
-              {t('submit')}
-            </Button>
+            <div className="sticky bottom-0 -mx-5 -mb-5 border-t border-border bg-surface/95 px-5 py-3 backdrop-blur md:static md:mx-0 md:mb-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+              <Button type="submit" size="lg" block loading={submitting} data-testid="pay-submit">
+                {amountOk
+                  ? t('submitAmount', { amount: formatMoney(amountN, currency) })
+                  : t('submit')}
+              </Button>
+            </div>
           </form>
         ) : step.kind === 'waiting' ? (
           <section

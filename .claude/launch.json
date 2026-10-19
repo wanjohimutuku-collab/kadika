@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "./scripts/dev.sh",
-      "runtimeArgs": [],
+      "runtimeExecutable": "corepack",
+      "runtimeArgs": ["pnpm", "--filter", "@harusi/web", "dev"],
       "port": 3000
     }
   ]

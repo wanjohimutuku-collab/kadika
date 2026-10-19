@@ -7,6 +7,7 @@ import type { SendInput } from './services/delivery';
 import type { MessagingProvider } from '@harusi/messaging';
 import type { Config } from './config';
 import type { MessagingSettingsService } from './services/messaging-settings';
+import type { PaymentSettingsService } from './services/payment-settings';
 
 /** Everything a service needs. Tests pass fakes (PGlite, fake SMS, fixed clock). */
 export interface Deps {
@@ -32,6 +33,8 @@ export interface Deps {
   sleep?: (ms: number) => Promise<void>;
   /** SMS/WhatsApp settings edited in /ops (ADR 031); index.ts shares one with its refresh timer. */
   messagingSettings?: MessagingSettingsService;
+  /** Payment gateway settings edited in /ops (ADR 036); index.ts shares one with its refresh timer. */
+  paymentSettings?: PaymentSettingsService;
   config: Config;
   now: () => Date;
   random: (n: number) => Uint8Array;

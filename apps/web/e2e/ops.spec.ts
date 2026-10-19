@@ -147,7 +147,8 @@ test('support staff cannot suspend or change plans; billing staff cannot look up
 
 test('staff admin: SMS settings are saved with the secret masked, then reset', async ({ page }) => {
   await loginStaff(page);
-  await page.goto('/ops/messaging');
+  await page.goto('/ops/messaging'); // moved into Settings: the old address redirects
+  await expect(page).toHaveURL(/\/ops\/settings\/messaging$/);
   const sms = page.getByTestId('messaging-sms_tz');
   await expect(sms).toContainText('vigezo vya mazingira');
   await sms.getByLabel('Mtoa huduma').selectOption('nextsms');
@@ -163,4 +164,88 @@ test('staff admin: SMS settings are saved with the secret masked, then reset', a
   await sms.getByRole('button', { name: 'Rudi kwenye env' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Rudi kwenye env' }).click();
   await expect(sms).toContainText('vigezo vya mazingira');
+});
+
+test('staff admin: branding — name, colours and an SVG logo apply across the panel', async ({
+  page,
+}) => {
+  await loginStaff(page);
+  await page.goto('/ops/settings/branding');
+  await expect(page.getByTestId('branding-form')).toBeVisible();
+  await page.getByLabel('Jina la biashara').fill('Harusi Bora');
+  await page.getByTestId('brand-primary').fill('#1F3A5F');
+  await page.getByRole('button', { name: 'Hifadhi chapa' }).click();
+  // the sidebar shows the new name and the page took the colour at once
+  await expect(page.getByTestId('brand-mark-name')).toHaveText('Harusi Bora');
+  const primary = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--hp-primary').trim(),
+  );
+  expect(primary).toBe('#1F3A5F');
+
+  // a hostile SVG is refused with a plain reason, and nothing changes
+  await page.getByTestId('brand-logo-input').setInputFiles({
+    name: 'evil.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><script>alert(1)</script></svg>',
+    ),
+  });
+  await expect(page.getByTestId('brand-logo-error')).toContainText('Hati');
+  await expect(page.getByTestId('brand-logo')).toHaveCount(0);
+
+  // a clean SVG is accepted and replaces the name in the header
+  await page.getByTestId('brand-logo-input').setInputFiles({
+    name: 'logo.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#1f3a5f"/></svg>',
+    ),
+  });
+  await expect(page.getByTestId('brand-logo')).toBeVisible();
+  await expect(page.getByTestId('brand-mark-logo')).toBeVisible();
+  await shot(page, 'ops-branding');
+
+  // colours that are hard to read cannot be saved
+  await page.getByTestId('brand-primary').fill('#FFEB3B');
+  await expect(page.getByRole('button', { name: 'Hifadhi chapa' })).toBeDisabled();
+  await expect(page.getByTestId('branding-form')).toContainText('Ngumu kusoma');
+});
+
+test('staff admin: payments — Snippe is saved with secrets masked, tested, then reset', async ({
+  page,
+}) => {
+  await loginStaff(page);
+  await page.goto('/ops/settings/payments');
+  const form = page.getByTestId('payment-settings-tz');
+  await expect(form).toContainText('vigezo vya seva');
+  await form.getByLabel('Mtoa huduma').selectOption('snippe');
+  await form.getByRole('button', { name: 'Hifadhi malipo' }).click();
+  await expect(form.getByRole('alert')).toContainText('Ufunguo wa API');
+  await form.getByLabel('Ufunguo wa API').fill('snp_test_abcdwxyz');
+  await form.getByLabel('Ufunguo wa kusaini webhook').fill('whsec_test_1234');
+  await form.getByRole('button', { name: 'Hifadhi malipo' }).click();
+  await expect(form).toContainText('Imehifadhiwa: …wxyz');
+  await expect(form.getByLabel('Ufunguo wa API')).toHaveValue('');
+  await expect(page.getByTestId('payment-webhook-url')).toContainText(
+    '/v1/payments/webhook/snippe',
+  );
+  await page.getByTestId('payment-test').click();
+  await expect(page.getByText('Snippe imejibu: ufunguo unafanya kazi.')).toBeVisible();
+  await shot(page, 'ops-payments-settings');
+  await form.getByRole('button', { name: 'Rudi kwenye mazingira ya seva' }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Rudi kwenye mazingira ya seva' })
+    .click();
+  await expect(form).toContainText('vigezo vya seva vinatumika');
+});
+
+test('settings are for admin staff: billing staff see no menu entry and a refusal', async ({
+  page,
+}) => {
+  await loginStaff(page, '0700000997'); // billing
+  await expect(page.getByRole('link', { name: 'Mipangilio' })).toHaveCount(0);
+  await page.goto('/ops/settings/branding');
+  await expect(page.getByText('Ni wasimamizi pekee wanaoweza kufungua mipangilio.')).toBeVisible();
+  await expect(page.getByTestId('branding-form')).toHaveCount(0);
 });

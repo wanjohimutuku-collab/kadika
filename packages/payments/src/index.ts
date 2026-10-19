@@ -51,8 +51,12 @@ export interface PaymentProvider {
   startCollection(input: StartCollectionInput): Promise<StartCollectionResult>;
   verifyWebhook(rawBody: string, headers: Record<string, string | undefined>): boolean;
   parseWebhook(body: unknown): PaymentWebhookEvent | null;
-  /** Current state of one collection; optional, providers without it are not reconciled. */
-  queryCollection?(reference: string): Promise<CollectionQueryResult>;
+  /**
+   * Current state of one collection; optional, providers without it are not reconciled. `reference` is
+   * ours; `providerRef` is the id the provider gave at start, for providers that look payments up by
+   * their own id (Snippe) rather than ours.
+   */
+  queryCollection?(reference: string, providerRef?: string): Promise<CollectionQueryResult>;
 }
 
 export const SIGNATURE_HEADER = 'x-signature';
@@ -141,3 +145,4 @@ export class FakePaymentProvider implements PaymentProvider {
 }
 
 export * from './aggregator';
+export * from './snippe';

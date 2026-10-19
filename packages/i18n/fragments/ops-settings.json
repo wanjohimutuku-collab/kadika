@@ -1,0 +1,330 @@
+{
+  "sw": {
+    "ops": {
+      "nav": {
+        "settings": "Mipangilio"
+      },
+      "settings": {
+        "title": "Mipangilio",
+        "navLabel": "Sehemu za mipangilio",
+        "tabs": {
+          "branding": "Chapa",
+          "messaging": "SMS na WhatsApp",
+          "payments": "Malipo"
+        },
+        "noPermission": "Ni wasimamizi pekee wanaoweza kufungua mipangilio."
+      },
+      "branding": {
+        "title": "Chapa ya biashara",
+        "intro": "Jina, nembo, rangi na herufi zinazotumika kwenye tovuti, programu ya waandaaji na ukurasa wa malipo. Mabadiliko yanafika kwa kila mtu ndani ya dakika moja.",
+        "noPermission": "Ni wasimamizi pekee wanaoweza kubadilisha chapa.",
+        "sourceDefault": "Bado hakuna chapa iliyohifadhiwa; chapa chaguomsingi inatumika.",
+        "sourceDatabase": "Imehifadhiwa {when} na {by}.",
+        "identity": "Jina na maelezo",
+        "businessName": "Jina la biashara",
+        "tagline": "Maelezo mafupi",
+        "taglineHint": "Si lazima. Huonekana chini ya jina kwenye ukurasa wa malipo.",
+        "logo": {
+          "title": "Nembo",
+          "hint": "SVG (inapendekezwa), PNG, JPEG au WebP, hadi KB 200.",
+          "none": "Hakuna nembo bado. Jina la biashara linaonyeshwa badala yake.",
+          "choose": "Chagua faili",
+          "replace": "Badilisha nembo",
+          "remove": "Ondoa nembo",
+          "saved": "Nembo imehifadhiwa",
+          "removed": "Nembo imeondolewa",
+          "svgNote": "Faili za SVG hukaguliwa: hati, viungo vya nje na vishikio vya matukio vinakataliwa.",
+          "alt": "Nembo ya {name}",
+          "removeTitle": "Ondoa nembo?",
+          "removeBody": "Jina la biashara litaonyeshwa badala ya nembo.",
+          "reasons": {
+            "too_large": "Faili ni kubwa kuliko KB 200.",
+            "not_svg": "Hii si faili sahihi ya SVG.",
+            "doctype": "Matamko ya DOCTYPE na ENTITY hayaruhusiwi.",
+            "forbidden_element": "Hati, kurasa zilizopachikwa na uhuishaji haviruhusiwi.",
+            "event_handler": "Vishikio vya matukio kama onclick haviruhusiwi.",
+            "external_reference": "SVG inaunganisha na kitu nje ya faili.",
+            "script_url": "Anwani za hati haziruhusiwi.",
+            "no_size": "SVG inahitaji viewBox (au upana na urefu).",
+            "type_mismatch": "Faili si aina ya picha inayodai kuwa.",
+            "bad_type": "Nembo lazima iwe SVG, PNG, JPEG au WebP.",
+            "unreadable": "Faili haikuweza kusomwa."
+          }
+        },
+        "colours": {
+          "title": "Rangi",
+          "primary": "Rangi kuu",
+          "accent": "Rangi ya pili",
+          "pick": "Chagua rangi",
+          "useDefault": "Tumia rangi chaguomsingi",
+          "default": "Chaguomsingi",
+          "invalid": "Andika rangi kama #0F5C4D.",
+          "readable": "Inasomeka vizuri ({ratio}:1)",
+          "hard": "Ngumu kusoma ({ratio}:1, inahitaji {min}:1)",
+          "hint": "Rangi kuu hutumika kwa vitufe na vichwa; maandishi juu yake huchaguliwa kiotomatiki (nyeupe au nyeusi)."
+        },
+        "fonts": {
+          "title": "Herufi",
+          "body": "Herufi za maandishi",
+          "display": "Herufi za vichwa",
+          "note": "Herufi hizi tayari zipo kwenye simu ya mgeni, kwa hivyo hazipakuliwi wala kupunguza kasi.",
+          "names": {
+            "system": "Mfumo (chaguomsingi)",
+            "humanist": "Humanist",
+            "geometric": "Geometric",
+            "rounded": "Mviringo",
+            "classical": "Classical (serif)",
+            "transitional": "Transitional (serif)",
+            "elegant": "Elegant (Cormorant)"
+          },
+          "sample": "Karibu kwenye harusi yetu"
+        },
+        "preview": {
+          "title": "Onyesho",
+          "button": "Lipa sasa",
+          "secondary": "Rudi kwenye kadi",
+          "unsaved": "Mabadiliko ambayo hayajahifadhiwa"
+        },
+        "save": "Hifadhi chapa",
+        "saved": "Chapa imehifadhiwa",
+        "errorGeneric": "Chapa haikuhifadhiwa."
+      },
+      "messaging": {
+        "importEnv": {
+          "title": "Hamisha kutoka mazingira ya seva",
+          "body": "Nakili funguo za SMS na WhatsApp zilizowekwa kwenye vigezo vya seva kuziweka hapa, zikiwa zimefichwa. Mipangilio uliyokwisha kuhifadhi haibadilishwi.",
+          "button": "Hamisha mipangilio",
+          "done": "Imehamishwa: {routes}",
+          "nothing": "Hakuna cha kuhamisha: kila njia imehifadhiwa tayari au haina mipangilio kwenye seva.",
+          "after": "Baada ya kuhamisha unaweza kufuta vigezo vya NEXTSMS_*, SMS_SENDER_ID na WHATSAPP_* kwenye seva; mipangilio iliyohifadhiwa itaendelea kufanya kazi."
+        }
+      },
+      "paymentSettings": {
+        "title": "Malipo",
+        "intro": "Mtoa huduma wa malipo ya simu kwa michango ya wageni. Mabadiliko yanaanza kutumika mara moja, bila kuwasha upya seva.",
+        "noPermission": "Ni wasimamizi pekee wanaoweza kubadilisha mipangilio ya malipo.",
+        "route": {
+          "tz": "Malipo · Tanzania"
+        },
+        "provider": "Mtoa huduma",
+        "providers": {
+          "fake": "Majaribio (hakuna malipo halisi)",
+          "snippe": "Snippe (M-Pesa, Airtel, Mixx, Halopesa)"
+        },
+        "fakeWarning": "Hakuna malipo halisi yatakayofanyika kwa mtoa huduma huyu. Wageni hawawezi kulipa kwa simu.",
+        "source": {
+          "database": "Imehifadhiwa {when} na {by}.",
+          "environment": "Hakuna kilichohifadhiwa bado; vigezo vya seva vinatumika."
+        },
+        "active": "Inayotumika sasa: {name}",
+        "inactive": "Malipo yamezimwa",
+        "field": {
+          "apiKey": "Ufunguo wa API",
+          "webhookSigningKey": "Ufunguo wa kusaini webhook",
+          "environment": "Mazingira",
+          "receiptEmail": "Barua pepe ya stakabadhi"
+        },
+        "fieldHint": {
+          "apiKey": "Unaanza na snp_. Kutoka dashibodi ya Snippe.",
+          "webhookSigningKey": "Unaonyeshwa mara moja Snippe inapounda webhook.",
+          "environment": "Tumia sandbox kujaribu bila pesa halisi.",
+          "receiptEmail": "Snippe inahitaji barua pepe ya mlipaji. Wageni hawaulizwi, kwa hivyo hii hutumika."
+        },
+        "environments": {
+          "production": "Halisi (production)",
+          "sandbox": "Majaribio (sandbox)"
+        },
+        "secretSaved": "Imehifadhiwa: {hint}. Iache wazi kuendelea kuitumia.",
+        "secretNew": "Haitaonyeshwa tena baada ya kuhifadhi.",
+        "missing": "Jaza: {fields}",
+        "save": "Hifadhi malipo",
+        "saved": "Mipangilio ya malipo imehifadhiwa",
+        "reset": "Rudi kwenye mazingira ya seva",
+        "resetTitle": "Rudi kwenye mazingira ya seva?",
+        "resetBody": "Mipangilio iliyohifadhiwa itafutwa. Seva itatumia vigezo vyake (majaribio) hadi uhifadhi tena.",
+        "resetDone": "Mipangilio ya malipo imeondolewa",
+        "test": "Jaribu muunganisho",
+        "testBody": "Huuliza Snippe kama ufunguo wako unafanya kazi. Hakuna pesa inayosogezwa.",
+        "testOk": "Snippe imejibu: ufunguo unafanya kazi.",
+        "testFailed": "Jaribio limeshindwa: {error}",
+        "webhook": {
+          "title": "Webhook ya Snippe",
+          "intro": "Ongeza anwani hii kwenye dashibodi ya Snippe kama webhook ya matukio ya malipo (payment.completed, payment.failed, payment.expired, payment.voided). Bila hiyo malipo hayatathibitishwa.",
+          "copy": "Nakili",
+          "copied": "Imenakiliwa",
+          "missing": "Seva haina anwani yake ya umma (API_PUBLIC_URL), kwa hivyo Snippe haina pa kutuma matokeo."
+        }
+      },
+      "audit": {
+        "action": {
+          "payments": "Alibadilisha mipangilio ya malipo",
+          "branding": "Alibadilisha chapa"
+        }
+      }
+    }
+  },
+  "en": {
+    "ops": {
+      "nav": {
+        "settings": "Settings"
+      },
+      "settings": {
+        "title": "Settings",
+        "navLabel": "Settings sections",
+        "tabs": {
+          "branding": "Branding",
+          "messaging": "SMS and WhatsApp",
+          "payments": "Payments"
+        },
+        "noPermission": "Only admin staff can open the settings."
+      },
+      "branding": {
+        "title": "Business branding",
+        "intro": "The name, logo, colours and fonts used across the site, the organiser console and the checkout. Changes reach every visitor within a minute.",
+        "noPermission": "Only admin staff can change the branding.",
+        "sourceDefault": "Nothing saved yet; the default brand is in use.",
+        "sourceDatabase": "Saved {when} by {by}.",
+        "identity": "Name and tagline",
+        "businessName": "Business name",
+        "tagline": "Tagline",
+        "taglineHint": "Optional. Shown under the name on the checkout.",
+        "logo": {
+          "title": "Logo",
+          "hint": "SVG (recommended), PNG, JPEG or WebP, up to 200 KB.",
+          "none": "No logo yet. The business name is shown instead.",
+          "choose": "Choose a file",
+          "replace": "Replace logo",
+          "remove": "Remove logo",
+          "saved": "Logo saved",
+          "removed": "Logo removed",
+          "svgNote": "SVG files are checked: scripts, external links and event handlers are rejected.",
+          "alt": "{name} logo",
+          "removeTitle": "Remove the logo?",
+          "removeBody": "The business name is shown in its place.",
+          "reasons": {
+            "too_large": "The file is larger than 200 KB.",
+            "not_svg": "This is not a valid SVG file.",
+            "doctype": "DOCTYPE and ENTITY declarations are not allowed.",
+            "forbidden_element": "Scripts, embedded pages and animations are not allowed.",
+            "event_handler": "Event handlers such as onclick are not allowed.",
+            "external_reference": "The SVG links to something outside the file.",
+            "script_url": "Script URLs are not allowed.",
+            "no_size": "The SVG needs a viewBox (or a width and height).",
+            "type_mismatch": "The file is not the image type it claims to be.",
+            "bad_type": "The logo must be SVG, PNG, JPEG or WebP.",
+            "unreadable": "The file could not be read."
+          }
+        },
+        "colours": {
+          "title": "Colours",
+          "primary": "Primary colour",
+          "accent": "Accent colour",
+          "pick": "Pick a colour",
+          "useDefault": "Use the default colour",
+          "default": "Default",
+          "invalid": "Enter a colour like #0F5C4D.",
+          "readable": "Easy to read ({ratio}:1)",
+          "hard": "Hard to read ({ratio}:1, needs {min}:1)",
+          "hint": "The primary colour is used for buttons and headings; text on it is chosen automatically (white or near-black)."
+        },
+        "fonts": {
+          "title": "Fonts",
+          "body": "Body font",
+          "display": "Heading font",
+          "note": "These fonts are already on the guest's device, so nothing is downloaded and nothing slows the page.",
+          "names": {
+            "system": "System (default)",
+            "humanist": "Humanist",
+            "geometric": "Geometric",
+            "rounded": "Rounded",
+            "classical": "Classical (serif)",
+            "transitional": "Transitional (serif)",
+            "elegant": "Elegant (Cormorant)"
+          },
+          "sample": "Welcome to our wedding"
+        },
+        "preview": {
+          "title": "Preview",
+          "button": "Pay now",
+          "secondary": "Back to card",
+          "unsaved": "Unsaved changes"
+        },
+        "save": "Save branding",
+        "saved": "Branding saved",
+        "errorGeneric": "The branding was not saved."
+      },
+      "messaging": {
+        "importEnv": {
+          "title": "Move from the server environment",
+          "body": "Copy the SMS and WhatsApp keys set in the server's variables into the saved settings here, stored encrypted. Settings you already saved are left alone.",
+          "button": "Move settings",
+          "done": "Moved: {routes}",
+          "nothing": "Nothing to move: every route is already saved, or has no settings on the server.",
+          "after": "After moving, you can delete the NEXTSMS_*, SMS_SENDER_ID and WHATSAPP_* variables on the server; the saved settings keep working."
+        }
+      },
+      "paymentSettings": {
+        "title": "Payments",
+        "intro": "The mobile-money gateway for guest contributions. Changes apply immediately, without restarting the server.",
+        "noPermission": "Only admin staff can change the payment settings.",
+        "route": {
+          "tz": "Payments · Tanzania"
+        },
+        "provider": "Provider",
+        "providers": {
+          "fake": "Test mode (no real payments)",
+          "snippe": "Snippe (M-Pesa, Airtel, Mixx, Halopesa)"
+        },
+        "fakeWarning": "No real payments will be taken with this provider. Guests cannot pay by phone.",
+        "source": {
+          "database": "Saved {when} by {by}.",
+          "environment": "Nothing saved yet; the server's variables are in use."
+        },
+        "active": "In use now: {name}",
+        "inactive": "Payments are off",
+        "field": {
+          "apiKey": "API key",
+          "webhookSigningKey": "Webhook signing key",
+          "environment": "Environment",
+          "receiptEmail": "Receipt email"
+        },
+        "fieldHint": {
+          "apiKey": "Starts with snp_. From the Snippe dashboard.",
+          "webhookSigningKey": "Shown once when you create the webhook in Snippe.",
+          "environment": "Use sandbox to test without real money.",
+          "receiptEmail": "Snippe needs a payer email. Guests are not asked for one, so this stands in."
+        },
+        "environments": {
+          "production": "Live (production)",
+          "sandbox": "Testing (sandbox)"
+        },
+        "secretSaved": "Saved: {hint}. Leave empty to keep using it.",
+        "secretNew": "It will not be shown again after saving.",
+        "missing": "Fill in: {fields}",
+        "save": "Save payments",
+        "saved": "Payment settings saved",
+        "reset": "Back to the server environment",
+        "resetTitle": "Go back to the server environment?",
+        "resetBody": "The saved settings are deleted. The server uses its own variables (test mode) until you save again.",
+        "resetDone": "Payment settings removed",
+        "test": "Test connection",
+        "testBody": "Asks Snippe whether your key works. No money moves.",
+        "testOk": "Snippe answered: the key works.",
+        "testFailed": "The test failed: {error}",
+        "webhook": {
+          "title": "Snippe webhook",
+          "intro": "Add this address in the Snippe dashboard as the webhook for payment events (payment.completed, payment.failed, payment.expired, payment.voided). Without it, payments are never confirmed.",
+          "copy": "Copy",
+          "copied": "Copied",
+          "missing": "The server has no public address of its own (API_PUBLIC_URL), so Snippe has nowhere to send results."
+        }
+      },
+      "audit": {
+        "action": {
+          "payments": "Changed payment settings",
+          "branding": "Changed branding"
+        }
+      }
+    }
+  }
+}

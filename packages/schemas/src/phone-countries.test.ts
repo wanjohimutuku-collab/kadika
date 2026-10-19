@@ -3,8 +3,23 @@ import { normalizeTzPhone, normalizePhone, formatPhone, maskPhone } from './phon
 import { allowedCountries, countryOfE164, paymentMethodsFor, currencyOf } from './country';
 import { formatMoney, formatMoneyCompact } from './money';
 
-/** The implementation before ADR 025, frozen so Tanzanian behaviour is pinned byte for byte. */
+/**
+ * The implementation before ADR 025, frozen so Tanzanian behaviour is pinned byte for byte. Two things
+ * were added on purpose since (ADR 036) and are modelled here, so every OTHER difference still fails:
+ * the local 0 left in after the country code is dropped, and a stray trailing letter is ignored.
+ */
 function legacyNormalizeTzPhone(input: string) {
+  // A stray letter after the number ("…678x"): read the number if there is one worth reading.
+  if (input.endsWith('x')) {
+    const stripped = input.slice(0, -1);
+    return stripped.replace(/\D/g, '').length >= 7
+      ? legacyCore(stripped)
+      : { ok: false, error: 'invalid_chars' };
+  }
+  return legacyCore(input);
+}
+
+function legacyCore(input: string) {
   const raw = input.trim();
   if (!raw) return { ok: false, error: 'empty' };
   if (!/^[+\d\s\-().]+$/.test(raw)) return { ok: false, error: 'invalid_chars' };
@@ -18,7 +33,9 @@ function legacyNormalizeTzPhone(input: string) {
       ? { ok: false, error: 'not_tanzanian' }
       : { ok: false, error: 'wrong_length' };
   }
-  const national = digits.slice(3);
+  let national = digits.slice(3);
+  // added on purpose: "+255 0712…", the local trunk 0 after the country code
+  if (national.length === 10 && national.startsWith('0')) national = national.slice(1);
   if (national.length !== 9) return { ok: false, error: 'wrong_length' };
   if (!/^[67]/.test(national)) return { ok: false, error: 'not_mobile' };
   return { ok: true, e164: `+255${national}` };

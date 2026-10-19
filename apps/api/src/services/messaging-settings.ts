@@ -24,6 +24,7 @@ import type { Deps } from '../context';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
+import { requireSettingsAdmin } from './staff-guard';
 
 /** A route's provider and its fields (flat strings; secrets included). */
 export interface RouteSettings {
@@ -219,15 +220,8 @@ export class MessagingSettingsService {
     this.env = envSettings(deps.config);
   }
 
-  private async requireAdmin(userId: string) {
-    const [u] = await this.deps.db
-      .select({ role: users.roleGlobal, staffRole: users.staffRole, status: users.status })
-      .from(users)
-      .where(eq(users.id, userId));
-    if (!u || u.role !== 'admin' || u.status !== 'active')
-      throw new ApiError('forbidden', 'Staff only');
-    if (u.staffRole !== 'admin')
-      throw new ApiError('forbidden', 'missing_permission', { permission: 'settings' });
+  private requireAdmin(userId: string) {
+    return requireSettingsAdmin(this.deps.db, userId);
   }
 
   private async rows() {
@@ -419,6 +413,46 @@ export class MessagingSettingsService {
       entityId: route,
     });
     return this.view(userId);
+  }
+
+  /**
+   * Moves the SMS and WhatsApp credentials from the environment into saved settings (ADR 036): each
+   * route that has a working non-fake provider in the environment and nothing saved yet gets its
+   * settings stored encrypted. Never overwrites what staff already saved. Afterwards the variables can
+   * be deleted from the server; the saved settings keep working.
+   */
+  async importFromEnvironment(
+    userId: string,
+  ): Promise<MessagingSettingsView & { imported: MessagingRoute[] }> {
+    await this.requireAdmin(userId);
+    const saved = await this.rows();
+    const imported: MessagingRoute[] = [];
+    const now = this.deps.now();
+    for (const route of MESSAGING_ROUTES) {
+      if (route === 'sms_ke' && !this.deps.config.kenyaEnabled) continue;
+      if (saved.has(route)) continue;
+      const env = this.env[route];
+      if (env.provider === 'fake' || settingsProblem(route, env)) continue;
+      const configEnc = await encryptSecret(
+        JSON.stringify(env.fields),
+        this.deps.config.keyEncSecret,
+      );
+      await this.deps.db
+        .insert(messagingSettings)
+        .values({ route, provider: env.provider, configEnc, updatedBy: userId, updatedAt: now })
+        .onConflictDoNothing({ target: messagingSettings.route });
+      imported.push(route);
+    }
+    this.appliedStamp = null;
+    await recordAudit(this.deps.db, {
+      eventId: null,
+      actorId: userId,
+      action: 'ops.messaging.import_env',
+      entity: 'messaging_settings',
+      entityId: 'all',
+      diff: { routes: imported },
+    });
+    return { ...(await this.view(userId)), imported };
   }
 
   /** Sends one test message through a route's live provider. */

@@ -1,0 +1,18 @@
+{
+  "sw": {
+    "validation": {
+      "phone": {
+        "invalid_chars": "Hatukuona namba ya simu hapa. Mfano: 0712 345 678",
+        "multiple_numbers": "Weka namba moja tu ya simu"
+      }
+    }
+  },
+  "en": {
+    "validation": {
+      "phone": {
+        "invalid_chars": "We couldn't find a phone number here. Example: 0712 345 678",
+        "multiple_numbers": "Enter one phone number only"
+      }
+    }
+  }
+}

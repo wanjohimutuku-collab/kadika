@@ -6,6 +6,8 @@ export interface Config {
   /** 32-byte key, base64. Encrypts event signing keys at rest (§9). */
   keyEncSecret: string;
   appBaseUrl: string;
+  /** Public URL of this API (`API_PUBLIC_URL`), where gateways post callbacks. Null until set. */
+  apiPublicUrl: string | null;
   shortBaseUrl: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
@@ -89,6 +91,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     jwtSecret,
     keyEncSecret,
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
+    apiPublicUrl: env.API_PUBLIC_URL ? env.API_PUBLIC_URL.replace(/\/$/, '') : null,
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',

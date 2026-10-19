@@ -1,5 +1,6 @@
 'use client';
 
+import { BrandMark } from '@/components/brand/brand-provider';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -396,9 +397,9 @@ export function ConsoleShell({
       <aside className="no-print sticky top-0 hidden h-dvh flex-col border-r border-border bg-surface md:flex">
         <Link
           href="/app"
-          className="flex min-h-16 items-center gap-2 border-b border-border px-5 text-xl font-semibold text-primary"
+          className="flex min-h-16 items-center gap-2 border-b border-border px-5 text-xl"
         >
-          {tc('appName')}
+          <BrandMark />
         </Link>
         {nav ? (
           <nav

@@ -16,7 +16,10 @@
     "./card-content": "./src/card-content.ts",
     "./import": "./src/import.ts",
     "./short-code": "./src/short-code.ts",
-    "./messaging-settings": "./src/messaging-settings.ts"
+    "./messaging-settings": "./src/messaging-settings.ts",
+    "./payment-settings": "./src/payment-settings.ts",
+    "./branding": "./src/branding.ts",
+    "./checkout": "./src/checkout.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

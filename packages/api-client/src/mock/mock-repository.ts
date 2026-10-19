@@ -88,6 +88,30 @@ import {
   type MessagingSettingsInput,
   type MessagingSettingsView,
 } from '@harusi/schemas/messaging-settings';
+import {
+  PAYMENT_PROVIDERS,
+  paymentProviderFields,
+  type PaymentRoute,
+  type PaymentRouteView,
+  type PaymentSettingsInput,
+  type PaymentSettingsView,
+} from '@harusi/schemas/payment-settings';
+import {
+  BODY_FONT_KEYS,
+  BUSINESS_NAME_MAX,
+  DEFAULT_BRANDING,
+  DISPLAY_FONT_KEYS,
+  LOGO_MIMES,
+  MAX_LOGO_BYTES,
+  SVG_REASON_TEXT,
+  TAGLINE_MAX,
+  validateSvg,
+  type BrandingInput,
+  type BrandingView,
+  type LogoMime,
+  type PublicBranding,
+} from '@harusi/schemas/branding';
+import { contrastRatio, lightColors, normalizeHex, themeContrastIssues } from '@harusi/ui-tokens';
 import { MockControls } from './controls';
 import { addCardFields, renameLegacyMoneyKeys } from './migrate';
 import { Rng } from './prng';
@@ -2613,6 +2637,278 @@ export class MockRepository implements Repository {
       const provider = this.state.messaging?.[route]?.provider ?? 'fake';
       this.opsLog('messaging', route, `Majaribio …${to.replace(/\D/g, '').slice(-3)}`);
       return { ok: true, provider, error: null };
+    });
+  }
+
+  opsImportMessagingFromEnvironment(): Promise<
+    MessagingSettingsView & { imported: MessagingRoute[] }
+  > {
+    return this.run('write', 'ops-messaging', () => {
+      this.requireStaff('settings');
+      // The mock server has no environment variables: nothing to copy.
+      this.opsLog('messaging', 'all', 'Kuhamisha kutoka mazingira: hakuna');
+      return { ...this.messagingView(), imported: [] };
+    });
+  }
+
+  // ---- Payment gateway settings (ADR 036). Mock: kept in state, nothing is ever charged.
+  private paymentView(): PaymentSettingsView {
+    const row = this.state.paymentSettings?.tz;
+    const provider = row?.provider ?? 'fake';
+    const fields: Record<string, string> = {};
+    const secrets: Record<string, string> = {};
+    for (const f of paymentProviderFields('tz', provider)) {
+      const v = row?.fields[f.key];
+      if (!v) continue;
+      if ('secret' in f && f.secret) secrets[f.key] = `…${v.slice(-4)}`;
+      else fields[f.key] = v;
+    }
+    const route: PaymentRouteView = {
+      route: 'tz',
+      provider,
+      source: row ? 'database' : 'environment',
+      fields,
+      secrets,
+      active: provider,
+      updatedAt: row?.updatedAt ?? null,
+      updatedBy: row?.updatedBy ?? null,
+    };
+    return {
+      routes: [route],
+      webhooks: [
+        {
+          route: 'tz',
+          provider: 'snippe',
+          url: 'https://api.example.test/v1/payments/webhook/snippe',
+        },
+      ],
+    };
+  }
+
+  opsPaymentSettings(): Promise<PaymentSettingsView> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff('settings');
+      return this.paymentView();
+    });
+  }
+
+  opsSavePayment(route: PaymentRoute, input: PaymentSettingsInput): Promise<PaymentSettingsView> {
+    return this.run('write', 'ops-payments', () => {
+      const u = this.requireStaff('settings');
+      if (!(input.provider in PAYMENT_PROVIDERS[route]))
+        throw new RepositoryError('validation', 'Unknown provider', { field: 'provider' });
+      const saved = (this.state.paymentSettings ??= {});
+      const current = saved[route];
+      const defs = paymentProviderFields(route, input.provider);
+      const fields: Record<string, string> = {};
+      for (const f of defs) {
+        const v = (input.fields[f.key] ?? '').trim();
+        if (!v && 'secret' in f && f.secret && current?.provider === input.provider) {
+          if (current.fields[f.key]) fields[f.key] = current.fields[f.key]!;
+          continue;
+        }
+        if (v) fields[f.key] = v;
+      }
+      const missing = defs
+        .filter((f) => 'required' in f && f.required && !fields[f.key])
+        .map((f) => f.key);
+      if (missing.length)
+        throw new RepositoryError('validation', `Missing ${missing.join(', ')}`, {
+          field: 'fields',
+          missing,
+        });
+      if (fields.environment && !['production', 'sandbox'].includes(fields.environment))
+        throw new RepositoryError('validation', 'environment must be production or sandbox', {
+          field: 'fields',
+        });
+      saved[route] = {
+        provider: input.provider,
+        fields,
+        updatedAt: iso(this.now()),
+        updatedBy: u.name,
+      };
+      this.opsLog('payments', route, `Mtoa huduma: ${input.provider}`);
+      return this.paymentView();
+    });
+  }
+
+  opsResetPayment(route: PaymentRoute): Promise<PaymentSettingsView> {
+    return this.run('write', 'ops-payments', () => {
+      this.requireStaff('settings');
+      if (this.state.paymentSettings) delete this.state.paymentSettings[route];
+      this.opsLog('payments', route, 'Mipangilio ya mazingira');
+      return this.paymentView();
+    });
+  }
+
+  opsTestPayment(
+    route: PaymentRoute,
+  ): Promise<{
+    ok: boolean;
+    provider: string | null;
+    status: number | null;
+    error: string | null;
+  }> {
+    return this.run('write', 'ops-payments', () => {
+      this.requireStaff('settings');
+      const provider = this.state.paymentSettings?.[route]?.provider ?? 'fake';
+      this.opsLog('payments', route, 'Majaribio ya muunganisho');
+      return provider === 'snippe'
+        ? { ok: true, provider, status: 200, error: null }
+        : { ok: false, provider, status: null, error: 'This provider has nothing to test' };
+    });
+  }
+
+  // ---- Business branding (ADR 036). Mock: the logo lives in state as a data URL.
+  private onPrimaryFor(primary: string): string {
+    return contrastRatio('#FFFFFF', primary) >= contrastRatio(lightColors.ink, primary)
+      ? '#FFFFFF'
+      : lightColors.ink;
+  }
+
+  private publicBranding(): PublicBranding {
+    const b = this.state.branding;
+    if (!b)
+      return {
+        ...DEFAULT_BRANDING,
+        logoUrl: null,
+        logoMime: null,
+        onPrimary: null,
+        updatedAt: null,
+      };
+    return {
+      ...b.input,
+      logoUrl: b.logoSrc,
+      logoMime: (b.logoMime as LogoMime | null) ?? null,
+      onPrimary: b.input.primary ? this.onPrimaryFor(b.input.primary) : null,
+      updatedAt: b.updatedAt,
+    };
+  }
+
+  private brandingView(): BrandingView {
+    return {
+      ...this.publicBranding(),
+      updatedBy: this.state.branding?.updatedBy ?? null,
+      source: this.state.branding ? 'database' : 'default',
+    };
+  }
+
+  getBranding(): Promise<PublicBranding> {
+    return this.run('read', 'branding', () => this.publicBranding());
+  }
+
+  opsBranding(): Promise<BrandingView> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff('settings');
+      return this.brandingView();
+    });
+  }
+
+  opsSaveBranding(input: BrandingInput): Promise<BrandingView> {
+    return this.run('write', 'ops-branding', () => {
+      const u = this.requireStaff('settings');
+      const businessName = input.businessName.trim();
+      const tagline = input.tagline.trim();
+      if (!businessName || businessName.length > BUSINESS_NAME_MAX)
+        throw new RepositoryError('validation', 'Business name must be 1–80 characters', {
+          field: 'businessName',
+        });
+      if (tagline.length > TAGLINE_MAX)
+        throw new RepositoryError('validation', 'Tagline must be at most 140 characters', {
+          field: 'tagline',
+        });
+      if (!(BODY_FONT_KEYS as readonly string[]).includes(input.fontBody))
+        throw new RepositoryError('validation', 'Unknown body font', { field: 'fontBody' });
+      if (!(DISPLAY_FONT_KEYS as readonly string[]).includes(input.fontDisplay))
+        throw new RepositoryError('validation', 'Unknown display font', { field: 'fontDisplay' });
+      const hex = (v: string | null, field: string) => {
+        if (v === null || v === '') return null;
+        const n = normalizeHex(v);
+        if (!n)
+          throw new RepositoryError('validation', 'Colours must look like #0F5C4D', { field });
+        return n;
+      };
+      const primary = hex(input.primary, 'primary');
+      const accent = hex(input.accent, 'accent');
+      const p = primary ?? lightColors.primary;
+      const issues = themeContrastIssues({
+        primary: p,
+        onPrimary: this.onPrimaryFor(p),
+        accent: accent ?? lightColors.accent,
+      });
+      if (issues.length)
+        throw new RepositoryError('validation', 'These colours are too hard to read', {
+          field: issues.some((i) => i.pair.startsWith('accent')) ? 'accent' : 'primary',
+          issues: issues.map((i) => ({ pair: i.pair, ratio: Math.round(i.ratio * 100) / 100 })),
+        });
+      const prev = this.state.branding;
+      this.state.branding = {
+        input: { ...input, businessName, tagline, primary, accent },
+        logoMime: prev?.logoMime ?? null,
+        logoSrc: prev?.logoSrc ?? null,
+        logoVersion: prev?.logoVersion ?? 0,
+        updatedAt: iso(this.now()),
+        updatedBy: u.name,
+      };
+      this.opsLog('branding', 'brand', `Chapa: ${businessName}`);
+      return this.brandingView();
+    });
+  }
+
+  opsSetLogo(file: { mime: string; data: string }): Promise<BrandingView> {
+    return this.run('write', 'ops-branding', () => {
+      const u = this.requireStaff('settings');
+      if (!(LOGO_MIMES as readonly string[]).includes(file.mime))
+        throw new RepositoryError('validation', 'The logo must be SVG, PNG, JPEG or WebP', {
+          field: 'mime',
+        });
+      let src: string;
+      if (file.mime === 'image/svg+xml') {
+        const c = validateSvg(file.data);
+        if (!c.ok)
+          throw new RepositoryError('validation', SVG_REASON_TEXT[c.reason], {
+            field: 'logo',
+            reason: c.reason,
+          });
+        src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(c.svg)}`;
+      } else {
+        if (Math.ceil((file.data.length * 3) / 4) > MAX_LOGO_BYTES)
+          throw new RepositoryError('validation', 'The file is larger than 200 KB', {
+            field: 'logo',
+            reason: 'too_large',
+          });
+        src = `data:${file.mime};base64,${file.data}`;
+      }
+      const prev = this.state.branding;
+      this.state.branding = {
+        input: prev?.input ?? { ...DEFAULT_BRANDING },
+        logoMime: file.mime,
+        logoSrc: src,
+        logoVersion: (prev?.logoVersion ?? 0) + 1,
+        updatedAt: iso(this.now()),
+        updatedBy: u.name,
+      };
+      this.opsLog('branding', 'logo', file.mime);
+      return this.brandingView();
+    });
+  }
+
+  opsRemoveLogo(): Promise<BrandingView> {
+    return this.run('write', 'ops-branding', () => {
+      const u = this.requireStaff('settings');
+      const prev = this.state.branding;
+      if (prev) {
+        this.state.branding = {
+          ...prev,
+          logoMime: null,
+          logoSrc: null,
+          logoVersion: prev.logoVersion + 1,
+          updatedAt: iso(this.now()),
+          updatedBy: u.name,
+        };
+        this.opsLog('branding', 'logo', 'removed');
+      }
+      return this.brandingView();
     });
   }
 

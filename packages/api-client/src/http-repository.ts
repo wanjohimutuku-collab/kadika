@@ -1,4 +1,6 @@
-import type { MessagingSettingsView } from '@harusi/schemas/messaging-settings';
+import type { MessagingRoute, MessagingSettingsView } from '@harusi/schemas/messaging-settings';
+import type { PaymentSettingsView } from '@harusi/schemas/payment-settings';
+import type { BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import {
   defaultSender,
@@ -477,6 +479,47 @@ export function createHttpRepository(
         `/v1/ops/messaging/${route}/test`,
         { to },
       );
+    },
+
+    async opsImportMessagingFromEnvironment() {
+      return call<MessagingSettingsView & { imported: MessagingRoute[] }>(
+        'POST',
+        '/v1/ops/messaging/import-env',
+      );
+    },
+
+    async opsPaymentSettings() {
+      return call<PaymentSettingsView>('GET', '/v1/ops/payment-settings');
+    },
+    async opsSavePayment(route, input) {
+      return call<PaymentSettingsView>('PUT', `/v1/ops/payment-settings/${route}`, input);
+    },
+    async opsResetPayment(route) {
+      return call<PaymentSettingsView>('DELETE', `/v1/ops/payment-settings/${route}`);
+    },
+    async opsTestPayment(route) {
+      return call<{
+        ok: boolean;
+        provider: string | null;
+        status: number | null;
+        error: string | null;
+      }>('POST', `/v1/ops/payment-settings/${route}/test`);
+    },
+
+    async getBranding() {
+      return call<PublicBranding>('GET', '/v1/branding');
+    },
+    async opsBranding() {
+      return call<BrandingView>('GET', '/v1/ops/branding');
+    },
+    async opsSaveBranding(input) {
+      return call<BrandingView>('PUT', '/v1/ops/branding', input);
+    },
+    async opsSetLogo(file) {
+      return call<BrandingView>('PUT', '/v1/ops/branding/logo', file);
+    },
+    async opsRemoveLogo() {
+      return call<BrandingView>('DELETE', '/v1/ops/branding/logo');
     },
 
     async listEvents() {

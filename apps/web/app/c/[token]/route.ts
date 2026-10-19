@@ -3,6 +3,8 @@ import { defaultLocale, isLocale, LOCALE_COOKIE, type Locale } from '@harusi/i18
 import { APP_DOMAIN, USE_MOCKS } from '@/lib/env';
 import { peekCardOnServer } from '@/lib/server-mock';
 import { renderCard, renderProblem } from '@/lib/light-card/render';
+import { resolveLogoSrc } from '@/lib/branding';
+import { getBrandingOnServer } from '@/lib/server-branding';
 
 /**
  * Guest card (§7.3, §17.6) as a plain HTML route handler: no React runtime on the page, so the
@@ -28,7 +30,11 @@ function html(body: string, status = 200): Response {
 export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const locale = localeOf(req);
-  const base = { locale, domain: APP_DOMAIN };
+  // The business logo goes in the footer and on the problem pages (ADR 036). Never fatal: with the API
+  // down this is the built-in brand.
+  const b = await getBrandingOnServer();
+  const brand = { name: b.businessName, logoSrc: resolveLogoSrc(b.logoUrl) };
+  const base = { locale, domain: APP_DOMAIN, brand };
   if (new URL(req.url).searchParams.get('state') === 'reissued')
     return html(renderProblem('reissued', base));
 
@@ -51,6 +57,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
       token,
       locale,
       domain: APP_DOMAIN,
+      brand,
       mode: USE_MOCKS ? 'mock' : 'api',
       apiUrl: API_URL,
     }),

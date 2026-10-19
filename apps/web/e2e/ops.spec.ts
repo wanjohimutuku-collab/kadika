@@ -175,8 +175,10 @@ test('staff admin: branding — name, colours and an SVG logo apply across the p
   await page.getByLabel('Jina la biashara').fill('Harusi Bora');
   await page.getByTestId('brand-primary').fill('#1F3A5F');
   await page.getByRole('button', { name: 'Hifadhi chapa' }).click();
-  // the sidebar shows the new name and the page took the colour at once
-  await expect(page.getByTestId('brand-mark-name')).toHaveText('Harusi Bora');
+  // the built-in logo is in the sidebar until staff save their own; it now carries the new name,
+  // and the page took the colour at once
+  await expect(page.getByTestId('brand-logo-builtin')).toBeVisible();
+  await expect(page.getByTestId('brand-mark-logo').first()).toHaveAttribute('alt', 'Harusi Bora');
   const primary = await page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--hp-primary').trim(),
   );

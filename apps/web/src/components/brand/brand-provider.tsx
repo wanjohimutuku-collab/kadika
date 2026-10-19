@@ -69,9 +69,12 @@ export function BrandProvider({
 export function BrandMark({
   className,
   logoClassName,
+  logoOnly,
 }: {
   className?: string;
   logoClassName?: string;
+  /** Show nothing instead of the name when there is no logo (tight spaces such as a phone header). */
+  logoOnly?: boolean;
 }) {
   const { brand } = useBrand();
   const src = resolveLogoSrc(brand.logoUrl);
@@ -83,11 +86,12 @@ export function BrandMark({
       <img
         src={src}
         alt={brand.businessName}
-        className={cn('max-h-10 max-w-44 object-contain', logoClassName)}
+        className={cn('h-10 w-auto max-w-44 object-contain object-left', logoClassName)}
         onError={() => setFailed(true)}
         data-testid="brand-mark-logo"
       />
     );
+  if (logoOnly) return null;
   return (
     <span className={cn('font-semibold text-primary', className)} data-testid="brand-mark-name">
       {brand.businessName}

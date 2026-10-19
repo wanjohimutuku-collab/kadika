@@ -27,7 +27,7 @@
         "logo": {
           "title": "Nembo",
           "hint": "SVG (inapendekezwa), PNG, JPEG au WebP, hadi KB 200.",
-          "none": "Hakuna nembo bado. Jina la biashara linaonyeshwa badala yake.",
+          "none": "Hakuna nembo iliyohifadhiwa.",
           "choose": "Chagua faili",
           "replace": "Badilisha nembo",
           "remove": "Ondoa nembo",
@@ -36,7 +36,7 @@
           "svgNote": "Faili za SVG hukaguliwa: hati, viungo vya nje na vishikio vya matukio vinakataliwa.",
           "alt": "Nembo ya {name}",
           "removeTitle": "Ondoa nembo?",
-          "removeBody": "Jina la biashara litaonyeshwa badala ya nembo.",
+          "removeBody": "Nembo iliyojengwa ndani itatumika badala yake.",
           "reasons": {
             "too_large": "Faili ni kubwa kuliko KB 200.",
             "not_svg": "Hii si faili sahihi ya SVG.",
@@ -49,7 +49,8 @@
             "type_mismatch": "Faili si aina ya picha inayodai kuwa.",
             "bad_type": "Nembo lazima iwe SVG, PNG, JPEG au WebP.",
             "unreadable": "Faili haikuweza kusomwa."
-          }
+          },
+          "builtin": "Hakuna nembo uliyohifadhi bado, kwa hivyo nembo iliyojengwa ndani inatumika kila mahali. Pakia yako kuibadilisha."
         },
         "colours": {
           "title": "Rangi",
@@ -191,7 +192,7 @@
         "logo": {
           "title": "Logo",
           "hint": "SVG (recommended), PNG, JPEG or WebP, up to 200 KB.",
-          "none": "No logo yet. The business name is shown instead.",
+          "none": "No logo saved.",
           "choose": "Choose a file",
           "replace": "Replace logo",
           "remove": "Remove logo",
@@ -200,7 +201,7 @@
           "svgNote": "SVG files are checked: scripts, external links and event handlers are rejected.",
           "alt": "{name} logo",
           "removeTitle": "Remove the logo?",
-          "removeBody": "The business name is shown in its place.",
+          "removeBody": "The built-in logo is used in its place.",
           "reasons": {
             "too_large": "The file is larger than 200 KB.",
             "not_svg": "This is not a valid SVG file.",
@@ -213,7 +214,8 @@
             "type_mismatch": "The file is not the image type it claims to be.",
             "bad_type": "The logo must be SVG, PNG, JPEG or WebP.",
             "unreadable": "The file could not be read."
-          }
+          },
+          "builtin": "No logo saved yet, so the built-in logo is used everywhere. Upload yours to replace it."
         },
         "colours": {
           "title": "Colours",

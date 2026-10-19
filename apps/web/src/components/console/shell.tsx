@@ -344,6 +344,9 @@ export function ConsoleHeader({ event, onMore }: { event?: WeddingEvent; onMore?
   const t = useTranslations('nav');
   return (
     <header className="no-print sticky top-0 z-30 flex min-h-16 items-center gap-1 border-b border-border bg-surface/95 px-2 backdrop-blur md:px-4">
+      <Link href="/app" className="shrink-0 px-1 md:hidden" aria-label={t('events')}>
+        <BrandMark logoOnly logoClassName="h-8 max-w-20" />
+      </Link>
       <EventSwitcher current={event} />
       <div className="ml-auto flex items-center gap-1">
         <SyncIndicator />

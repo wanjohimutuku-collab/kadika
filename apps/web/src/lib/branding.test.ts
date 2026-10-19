@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FONT_STACKS } from '@harusi/schemas/branding';
 import {
+  DEFAULT_LOGO_URL,
   DEFAULT_PUBLIC_BRANDING,
   brandStyle,
   resolveLogoSrc,
@@ -49,6 +50,13 @@ describe('sanitizePublicBranding', () => {
     expect(css).not.toContain('display:none');
   });
 
+  it('uses the built-in logo whenever there is no usable saved one', () => {
+    expect(DEFAULT_PUBLIC_BRANDING.logoUrl).toBe(DEFAULT_LOGO_URL);
+    expect(sanitizePublicBranding({ ...good, logoUrl: null }).logoUrl).toBe(DEFAULT_LOGO_URL);
+    expect(sanitizePublicBranding({}).logoUrl).toBe(DEFAULT_LOGO_URL);
+    expect(sanitizePublicBranding({ ...good, logoUrl: null }).logoMime).toBe('image/svg+xml');
+  });
+
   it('accepts only the logo route or an inline image as a logo URL', () => {
     for (const bad of [
       'https://evil.test/logo.svg',
@@ -58,13 +66,12 @@ describe('sanitizePublicBranding', () => {
       '/v1/other',
       'data:text/html;base64,PHNjcmlwdD4=',
     ])
-      expect(sanitizePublicBranding({ ...good, logoUrl: bad }).logoUrl).toBeNull();
+      expect(sanitizePublicBranding({ ...good, logoUrl: bad }).logoUrl).toBe(DEFAULT_LOGO_URL);
     expect(sanitizePublicBranding({ ...good, logoUrl: '/v1/branding/logo' }).logoUrl).toBe(
       '/v1/branding/logo',
     );
     const inline = 'data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C%2Fsvg%3E';
     expect(sanitizePublicBranding({ ...good, logoUrl: inline }).logoUrl).toBe(inline);
-    expect(sanitizePublicBranding({ ...good, logoUrl: null }).logoMime).toBeNull();
   });
 
   it('bounds the text fields', () => {
@@ -104,5 +111,7 @@ describe('resolveLogoSrc', () => {
       /^https?:\/\/.+\/v1\/branding\/logo\?v=2$/,
     );
     expect(resolveLogoSrc('data:image/png;base64,AAAA')).toBe('data:image/png;base64,AAAA');
+    // the built-in logo is a file on this site, not on the API
+    expect(resolveLogoSrc(DEFAULT_LOGO_URL)).toBe('/brand/logo.svg');
   });
 });

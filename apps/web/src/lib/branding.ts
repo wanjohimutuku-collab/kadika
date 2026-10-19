@@ -15,10 +15,19 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
-/** The API serves the logo; its URL comes back relative (`/v1/branding/logo?v=3`), mock mode uses `data:` URLs. */
+/**
+ * The logo shipped with the app (`public/brand/logo.svg`). It is the brand until staff save their own in
+ * /ops/settings, so the logo shows everywhere from the first deploy, and returns if a saved one is removed.
+ */
+export const DEFAULT_LOGO_URL = '/brand/logo.svg';
+
+/**
+ * Where to load a logo from. The API serves a saved logo and returns its URL relative to the API
+ * (`/v1/branding/logo?v=3`); the built-in logo is a static file on this site; mock mode uses `data:` URLs.
+ */
 export function resolveLogoSrc(logoUrl: string | null | undefined): string | null {
   if (!logoUrl) return null;
-  return logoUrl.startsWith('/') ? `${API_URL}${logoUrl}` : logoUrl;
+  return logoUrl.startsWith('/v1/') ? `${API_URL}${logoUrl}` : logoUrl;
 }
 
 /**
@@ -52,8 +61,8 @@ export async function fileToBase64(file: File): Promise<string> {
 
 export const DEFAULT_PUBLIC_BRANDING: PublicBranding = {
   ...DEFAULT_BRANDING,
-  logoUrl: null,
-  logoMime: null,
+  logoUrl: DEFAULT_LOGO_URL,
+  logoMime: 'image/svg+xml',
   onPrimary: null,
   updatedAt: null,
 };
@@ -64,7 +73,7 @@ const HEX = /^#[0-9A-F]{6}$/;
  * Brand values go into a `style` attribute and an `<img src>` on every page, so whatever the API (or a
  * poisoned cache) returns is reduced to known-safe shapes first: `#RRGGBB` colours, fonts from the
  * allow-lists, a logo URL that points at the API's logo route or is an inline image. Anything else falls
- * back to the default for that field.
+ * back to the default for that field; with no usable logo that is the built-in one.
  */
 export function sanitizePublicBranding(raw: unknown): PublicBranding {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
@@ -78,7 +87,7 @@ export function sanitizePublicBranding(raw: unknown): PublicBranding {
     (/^\/v1\/branding\/logo(\?v=\d{1,9})?$/.test(r.logoUrl) ||
       /^data:image\/(png|jpe?g|webp|svg\+xml)[;,]/i.test(r.logoUrl))
       ? r.logoUrl
-      : null;
+      : DEFAULT_LOGO_URL;
   return {
     businessName: text(r.businessName, BUSINESS_NAME_MAX, DEFAULT_BRANDING.businessName),
     tagline: typeof r.tagline === 'string' && r.tagline.length <= TAGLINE_MAX ? r.tagline : '',
@@ -92,9 +101,10 @@ export function sanitizePublicBranding(raw: unknown): PublicBranding {
       : DEFAULT_BRANDING.fontDisplay,
     logoUrl,
     logoMime:
-      logoUrl && (LOGO_MIMES as readonly string[]).includes(r.logoMime as string)
+      logoUrl !== DEFAULT_LOGO_URL &&
+      (LOGO_MIMES as readonly string[]).includes(r.logoMime as string)
         ? (r.logoMime as LogoMime)
-        : null,
+        : 'image/svg+xml',
     onPrimary: primary ? (colour(r.onPrimary) ?? '#FFFFFF') : null,
     updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : null,
   };

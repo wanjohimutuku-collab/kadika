@@ -34,7 +34,13 @@ import { Select, TextField } from '@/components/ui/form';
 import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { useBrand } from '@/components/brand/brand-provider';
-import { brandStyle, fileToBase64, resolveLogoSrc, sanitizePublicBranding } from '@/lib/branding';
+import {
+  brandStyle,
+  DEFAULT_LOGO_URL,
+  fileToBase64,
+  resolveLogoSrc,
+  sanitizePublicBranding,
+} from '@/lib/branding';
 import { formatRelative } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
 import { qk } from '@/lib/queries';
@@ -190,7 +196,9 @@ function BrandingForm({ view }: { view: BrandingView }) {
     fontBody !== view.fontBody ||
     fontDisplay !== view.fontDisplay;
   const invalidColour = (primary.trim() && !p) || (accent.trim() && !a);
-  const logoSrc = resolveLogoSrc(view.logoUrl);
+  // With no saved logo the built-in one is the brand (ADR 036), so the box shows it, with a note.
+  const savedLogo = resolveLogoSrc(view.logoUrl);
+  const logoSrc = savedLogo ?? resolveLogoSrc(DEFAULT_LOGO_URL)!;
 
   const preview = brandStyle({
     primary: p,
@@ -246,17 +254,13 @@ function BrandingForm({ view }: { view: BrandingView }) {
                 className="flex h-20 min-w-40 items-center justify-center rounded-input border border-dashed border-border bg-bg p-2"
                 data-testid="brand-logo-box"
               >
-                {logoSrc ? (
-                  // an SVG from the API; never inlined
-                  <img
-                    src={logoSrc}
-                    alt={t('logo.alt', { name: view.businessName })}
-                    className="max-h-16 max-w-56 object-contain"
-                    data-testid="brand-logo"
-                  />
-                ) : (
-                  <span className="px-2 text-center text-sm text-muted">{t('logo.none')}</span>
-                )}
+                {/* an SVG from the API or the built-in file; never inlined */}
+                <img
+                  src={logoSrc}
+                  alt={t('logo.alt', { name: view.businessName })}
+                  className="max-h-16 max-w-56 object-contain"
+                  data-testid={savedLogo ? 'brand-logo' : 'brand-logo-builtin'}
+                />
               </div>
               <div className="flex flex-wrap gap-2">
                 <input
@@ -278,9 +282,9 @@ function BrandingForm({ view }: { view: BrandingView }) {
                   icon={<ImagePlus className="size-4" aria-hidden="true" />}
                   onClick={() => fileRef.current?.click()}
                 >
-                  {logoSrc ? t('logo.replace') : t('logo.choose')}
+                  {savedLogo ? t('logo.replace') : t('logo.choose')}
                 </Button>
-                {logoSrc ? (
+                {savedLogo ? (
                   <Button
                     variant="ghost"
                     icon={<Trash2 className="size-4" aria-hidden="true" />}
@@ -291,6 +295,11 @@ function BrandingForm({ view }: { view: BrandingView }) {
                 ) : null}
               </div>
             </div>
+            {savedLogo ? null : (
+              <p className="text-sm font-medium" data-testid="brand-logo-note">
+                {t('logo.builtin')}
+              </p>
+            )}
             <p className="text-sm text-muted">{t('logo.hint')}</p>
             <p className="text-sm text-muted">{t('logo.svgNote')}</p>
             {logoError ? (
@@ -388,10 +397,7 @@ function BrandingForm({ view }: { view: BrandingView }) {
           data-testid="brand-preview"
         >
           <div className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3">
-            {logoSrc ? (
-              // see above
-              <img src={logoSrc} alt="" className="max-h-9 max-w-32 object-contain" />
-            ) : null}
+            <img src={logoSrc} alt="" className="max-h-9 max-w-32 object-contain" />
             <span
               className="text-lg font-semibold text-primary"
               style={{ fontFamily: FONT_STACKS[fontDisplay as FontKey] }}

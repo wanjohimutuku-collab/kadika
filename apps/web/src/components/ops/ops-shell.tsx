@@ -125,7 +125,10 @@ export function OpsShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-col">
         <header className="no-print sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
           <div className="flex min-h-14 items-center justify-between gap-2 px-3 md:px-6">
-            <span className="font-semibold md:hidden">{t('title')}</span>
+            <span className="flex items-center gap-2 md:hidden">
+              <BrandMark logoClassName="h-8 max-w-28" className="text-base" />
+              <span className="text-sm font-semibold text-muted">{t('title')}</span>
+            </span>
             <span className="hidden text-sm text-muted md:block">{user.name}</span>
             <div className="flex items-center gap-1">
               <SyncIndicator />

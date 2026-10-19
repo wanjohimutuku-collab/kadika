@@ -50,6 +50,7 @@ function isAsset(url) {
   return (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/brand/') ||
     url.pathname === '/favicon.ico'
   );
 }

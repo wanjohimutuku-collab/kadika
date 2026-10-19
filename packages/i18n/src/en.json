@@ -1557,7 +1557,7 @@
       "logo": {
         "title": "Logo",
         "hint": "SVG (recommended), PNG, JPEG or WebP, up to 200 KB.",
-        "none": "No logo yet. The business name is shown instead.",
+        "none": "No logo saved.",
         "choose": "Choose a file",
         "replace": "Replace logo",
         "remove": "Remove logo",
@@ -1566,7 +1566,7 @@
         "svgNote": "SVG files are checked: scripts, external links and event handlers are rejected.",
         "alt": "{name} logo",
         "removeTitle": "Remove the logo?",
-        "removeBody": "The business name is shown in its place.",
+        "removeBody": "The built-in logo is used in its place.",
         "reasons": {
           "too_large": "The file is larger than 200 KB.",
           "not_svg": "This is not a valid SVG file.",
@@ -1579,7 +1579,8 @@
           "type_mismatch": "The file is not the image type it claims to be.",
           "bad_type": "The logo must be SVG, PNG, JPEG or WebP.",
           "unreadable": "The file could not be read."
-        }
+        },
+        "builtin": "No logo saved yet, so the built-in logo is used everywhere. Upload yours to replace it."
       },
       "colours": {
         "title": "Colours",

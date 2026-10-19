@@ -5,11 +5,15 @@ import { KENYA_PAGES } from './pages/kenya';
 import { KENYA_LEGAL_PAGES } from './pages/kenya-legal';
 import { LEGAL_PAGES } from './pages/legal';
 import { PRODUCT_PAGES } from './pages/products';
+import { OCCASION_PAGES } from './pages/occasions';
+import { ARTICLE_PAGES } from './pages/articles';
 import type { ContentPageDef, Market, PageGroup, PageText } from './types';
 
 export const ALL_PAGES: ContentPageDef[] = [
   ...PRODUCT_PAGES,
+  ...OCCASION_PAGES,
   ...GUIDE_PAGES,
+  ...ARTICLE_PAGES,
   ...COMPANY_PAGES,
   ...LEGAL_PAGES,
   ...KENYA_PAGES,

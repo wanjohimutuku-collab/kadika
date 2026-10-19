@@ -1,4 +1,6 @@
-# Builds the API and web images, pushes them to GHCR, then moves a deploy branch to the commit.
+# Builds the API and web images, pushes them to GHCR as :sha-<short>, smoke-tests and Trivy-scans
+# them, promotes the channel tags (:staging / :production) only if both pass, then moves a deploy
+# branch to the commit.
 # Each Coolify stack tracks its deploy branch with Auto Deploy on, so Coolify's own push webhook
 # redeploys it only once fresh images exist (ADR 034). No Coolify token lives in GitHub.
 # The run then waits until the live API and web app report the new commit on /health, so a red run
@@ -82,7 +84,9 @@ jobs:
       # GHCR image names must be lower case.
       - name: Work out the image names
         id: names
-        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -93,6 +97,8 @@ jobs:
           password: ${{ github.token }}
 
       # bake-target names match the meta-api / meta-web targets in infra/docker/docker-bake.hcl.
+      # The full tag list is only used to promote the image after it passes the checks below; the
+      # build itself pushes just the immutable :sha-<short> tag.
       - name: API image tags
         id: meta-api
         uses: docker/metadata-action@v6
@@ -121,6 +127,8 @@ jobs:
 
       # Both images in one BuildKit run, in parallel, with the layer cache in the GitHub Actions cache
       # (see the bake file). The dependency install is reused until the lockfile or a manifest changes.
+      # Only :sha-<short> is pushed here. :staging / :production move in "Promote" once the smoke
+      # test and the vulnerability scan pass, so a bad build never becomes what Coolify pulls.
       - name: Build and push the API and web images
         uses: docker/bake-action@v7
         env:
@@ -133,10 +141,11 @@ jobs:
           source: .
           files: |
             ./infra/docker/docker-bake.hcl
-            ${{ steps.meta-api.outputs.bake-file-tags }}
             ${{ steps.meta-api.outputs.bake-file-labels }}
-            ${{ steps.meta-web.outputs.bake-file-tags }}
             ${{ steps.meta-web.outputs.bake-file-labels }}
+          set: |
+            api.tags=${{ steps.names.outputs.prefix }}-api:sha-${{ steps.names.outputs.short }}
+            web.tags=${{ steps.names.outputs.prefix }}-web:sha-${{ steps.names.outputs.short }}
           push: true
           provenance: false # one plain image manifest, which is simplest for Coolify to pull
 
@@ -165,6 +174,44 @@ jobs:
           check api http://127.0.0.1:3001/health
           check web http://127.0.0.1:3000/api/health
           curl -sf http://127.0.0.1:3000/sw.js > /dev/null || { echo "::error::web is missing /sw.js"; exit 1; }
+
+      # Fail on fixable HIGH/CRITICAL vulnerabilities in the OS packages and Node dependencies of the
+      # images just smoke-tested (they are already in the local Docker daemon). Unfixed ones are
+      # ignored so the gate only blocks what an upgrade can resolve.
+      - name: Scan the API image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.names.outputs.prefix }}-api:sha-${{ steps.names.outputs.short }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          vuln-type: os,library
+
+      - name: Scan the web image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.names.outputs.prefix }}-web:sha-${{ steps.names.outputs.short }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          vuln-type: os,library
+
+      # Point :staging / :production (and :main, :<version>) at the image that passed. This copies the
+      # manifest in the registry, so the promoted tags are byte-identical to the tested :sha tag.
+      - name: Promote the tested images
+        env:
+          API_TAGS: ${{ steps.meta-api.outputs.tags }}
+          WEB_TAGS: ${{ steps.meta-web.outputs.tags }}
+          SHA_TAG: sha-${{ steps.names.outputs.short }}
+        run: |
+          promote() { # $1 = tag list (one per line)
+            for ref in $1; do
+              case "$ref" in *":$SHA_TAG") continue ;; esac
+              docker buildx imagetools create --tag "$ref" "${ref%:*}:$SHA_TAG"
+            done
+          }
+          promote "$API_TAGS"
+          promote "$WEB_TAGS"
 
       - name: List what was pushed
         env:

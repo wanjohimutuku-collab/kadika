@@ -19,6 +19,11 @@ services:
     # Keep ONE api replica: the migrator takes no lock.
     command: ['sh', '-c', 'node dist/migrate.js && exec node dist/index.js']
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +77,11 @@ services:
     image: ghcr.io/wanjohimutuku-collab/kadika-web:${IMAGE_TAG:-staging}
     pull_policy: always
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     depends_on:
       api:
         condition: service_healthy
@@ -82,8 +92,13 @@ services:
     # Healthcheck (/api/health) comes from the image.
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     environment:
       POSTGRES_USER: ${SERVICE_USER_POSTGRES}
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
@@ -97,8 +112,13 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${SERVICE_PASSWORD_REDIS}']
     volumes:
       - redisdata:/data

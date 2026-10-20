@@ -84,6 +84,8 @@ else
 fi
 say "Deploying ${SHORT} to ${ENVIRONMENT}"
 
+version_of() { node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).version||"")}catch{console.log("")}})'; }
+
 if [ "$REGISTRY" = 1 ]; then
 # ---- tags and build -------------------------------------------------------------------------
 tags_for() { # $1 = image suffix (api|web)
@@ -131,7 +133,6 @@ docker run -d --name kadi-smoke-api -p 127.0.0.1::3001 \
   "${PREFIX}-api:sha-${SHORT}" >/dev/null
 docker run -d --name kadi-smoke-web -p 127.0.0.1::3000 "${PREFIX}-web:sha-${SHORT}" >/dev/null
 
-version_of() { node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).version||"")}catch{console.log("")}})'; }
 check() { # $1 = container, $2 = URL
   local i body
   for i in $(seq 1 30); do

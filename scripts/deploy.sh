@@ -117,11 +117,11 @@ say "Smoke-testing the images"
 cleanup() { docker rm -f kadi-smoke-api kadi-smoke-web >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 cleanup
-docker run -d --name kadi-smoke-api -p 3001:3001 \
+docker run -d --name kadi-smoke-api -p 127.0.0.1::3001 \
   -e JWT_SECRET="smoke-$$-secret" -e KEY_ENC_SECRET="$(openssl rand -base64 32)" \
   -e DATABASE_URL=postgres://smoke:smoke@127.0.0.1:1/smoke -e LOG_REQUESTS=0 \
   "${PREFIX}-api:sha-${SHORT}" >/dev/null
-docker run -d --name kadi-smoke-web -p 3000:3000 "${PREFIX}-web:sha-${SHORT}" >/dev/null
+docker run -d --name kadi-smoke-web -p 127.0.0.1::3000 "${PREFIX}-web:sha-${SHORT}" >/dev/null
 
 version_of() { node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).version||"")}catch{console.log("")}})'; }
 check() { # $1 = container, $2 = URL
@@ -136,9 +136,11 @@ check() { # $1 = container, $2 = URL
   docker logs "$1" || true
   die "$1 did not answer $2"
 }
-check kadi-smoke-api http://127.0.0.1:3001/health
-check kadi-smoke-web http://127.0.0.1:3000/api/health
-curl -sf http://127.0.0.1:3000/sw.js >/dev/null || die "web is missing /sw.js"
+API_PORT="$(docker port kadi-smoke-api 3001/tcp | head -n1 | sed "s/.*://")"
+WEB_PORT="$(docker port kadi-smoke-web 3000/tcp | head -n1 | sed "s/.*://")"
+check kadi-smoke-api "http://127.0.0.1:$API_PORT/health"
+check kadi-smoke-web "http://127.0.0.1:$WEB_PORT/api/health"
+curl -sf "http://127.0.0.1:$WEB_PORT/sw.js" >/dev/null || die "web is missing /sw.js"
 cleanup
 
 if [ "$DRY_RUN" = 1 ]; then

@@ -92,14 +92,25 @@ CACHE_DIR="${DEPLOY_CACHE_DIR:-$ROOT/.docker-cache}"
 mkdir -p "$CACHE_DIR"
 
 say "Building both images (local layer cache in ${CACHE_DIR#$ROOT/})"
+# A docker-container builder is needed for the local layer cache; it is created once and reused.
+docker buildx inspect kadi-deploy >/dev/null 2>&1 || docker buildx create --name kadi-deploy --driver docker-container >/dev/null
+
+# Several tags per image cannot go through --set (it splits on commas), so write an override file.
+OVERRIDE="$CACHE_DIR/bake-override.json"
+API_TAGS="$API_TAGS" WEB_TAGS="$WEB_TAGS" SOURCE_URL="$SOURCE_URL" CACHE_DIR="$CACHE_DIR" node -e '
+const e = process.env;
+const target = (name, tags) => ({
+  tags: tags.split(","),
+  labels: { "org.opencontainers.image.source": e.SOURCE_URL },
+  "cache-from": ["type=local,src=" + e.CACHE_DIR + "/" + name],
+  "cache-to": ["type=local,dest=" + e.CACHE_DIR + "/" + name + ",mode=max"],
+});
+const out = { target: { api: target("api", e.API_TAGS), web: target("web", e.WEB_TAGS) } };
+console.log(JSON.stringify(out, null, 2));
+' > "$OVERRIDE"
 NEXT_PUBLIC_API_URL="$API_URL" NEXT_PUBLIC_APP_DOMAIN="$APP_DOMAIN" NEXT_PUBLIC_SITE_URL="$SITE_URL" \
 NEXT_PUBLIC_KENYA_ENABLED="${KENYA:-0}" GIT_SHA="$SHA" \
-  docker buildx bake -f infra/docker/docker-bake.hcl --load \
-    --set "api.tags=${API_TAGS}" --set "web.tags=${WEB_TAGS}" \
-    --set "api.labels.org.opencontainers.image.source=${SOURCE_URL}" \
-    --set "web.labels.org.opencontainers.image.source=${SOURCE_URL}" \
-    --set "api.cache-from=type=local,src=${CACHE_DIR}/api" --set "api.cache-to=type=local,dest=${CACHE_DIR}/api,mode=max" \
-    --set "web.cache-from=type=local,src=${CACHE_DIR}/web" --set "web.cache-to=type=local,dest=${CACHE_DIR}/web,mode=max"
+  docker buildx bake --builder kadi-deploy -f infra/docker/docker-bake.hcl -f "$OVERRIDE" --load
 
 # ---- smoke test (same checks as CI) ---------------------------------------------------------
 say "Smoke-testing the images"

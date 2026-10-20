@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Activity,
+  ArrowLeft,
   BarChart3,
   CalendarHeart,
   CreditCard,
@@ -125,21 +126,24 @@ export function OpsShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-col">
         <header className="no-print sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
           <div className="flex min-h-14 items-center justify-between gap-2 px-3 md:px-6">
-            <span className="flex items-center gap-2 md:hidden">
-              <BrandMark logoClassName="h-8 max-w-28" className="text-base" />
-              <span className="text-sm font-semibold text-muted">{t('title')}</span>
+            {/* The brand side gives way on a 360 px phone; if this row overflows, the whole page zooms out. */}
+            <span className="flex min-w-0 items-center gap-2 md:hidden">
+              <BrandMark logoOnly logoClassName="h-8 max-w-20 shrink-0" />
+              <span className="truncate text-sm font-semibold text-muted">{t('title')}</span>
             </span>
             <span className="hidden text-sm text-muted md:block">{user.name}</span>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <SyncIndicator />
               <span className="md:hidden">
                 <LanguageChip />
               </span>
               <Link
                 href="/app"
-                className="inline-flex min-h-10 items-center px-2 text-sm font-semibold text-primary"
+                className="inline-flex min-h-10 items-center gap-1.5 px-2 text-sm font-semibold text-primary"
+                aria-label={t('backToConsole')}
               >
-                {t('backToConsole')}
+                <ArrowLeft className="size-5 sm:hidden" aria-hidden="true" />
+                <span className="hidden sm:inline">{t('backToConsole')}</span>
               </Link>
               <Button
                 size="sm"

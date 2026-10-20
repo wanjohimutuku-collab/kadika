@@ -59,7 +59,9 @@ describe('Tanzania behaviour is unchanged', () => {
       const input = `${pick(prefixes)}${body.slice(0, 3)}${pick(noise)}${body.slice(3)}${r() < 0.03 ? 'x' : ''}`;
       expect(normalizeTzPhone(input), JSON.stringify(input)).toEqual(legacyNormalizeTzPhone(input));
     }
-  });
+    // About 3.5 s alone, but CI runs every package's tests at once on 2 CPUs, where it has taken
+    // 5.7 s and failed vitest's 5 s default.
+  }, 30_000);
 
   it('keeps rejecting Kenyan numbers when Kenya is not enabled', () => {
     expect(normalizeTzPhone('+254712345678')).toEqual({ ok: false, error: 'not_tanzanian' });

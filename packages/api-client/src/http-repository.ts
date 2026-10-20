@@ -19,11 +19,19 @@ import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
 import type {
   CardView,
+  DataRequest,
   Guest,
   GuestQuery,
   ImportResult,
   ImportRowInput,
   Member,
+  OpsAuditEntry,
+  OpsEvent,
+  OpsLookupResult,
+  OpsOrganizer,
+  OpsOverview,
+  OpsPayment,
+  OpsUsage,
   Payment,
   PaymentStart,
   PaymentStatusView,
@@ -455,6 +463,63 @@ export function createHttpRepository(
     async updateProfile(patch) {
       await call('PATCH', '/v1/me', patch);
       return sessionOf(await call<ApiUser>('GET', '/v1/me'));
+    },
+
+    async requestDataExport() {
+      return call<{ requestedAt: string }>('POST', '/v1/me/data-requests', { kind: 'export' });
+    },
+    async requestAccountDeletion() {
+      return call<{ requestedAt: string }>('POST', '/v1/me/data-requests', { kind: 'deletion' });
+    },
+
+    // ---- staff (ops) panel (ADR 012); phones come back masked except from opsRevealPhone
+    async opsOverview() {
+      return call<OpsOverview>('GET', '/v1/ops/overview');
+    },
+    async opsListOrganizers() {
+      return call<OpsOrganizer[]>('GET', '/v1/ops/organizers');
+    },
+    async opsSetUserStatus(userId, status, reason) {
+      return call<OpsOrganizer>(
+        'PATCH',
+        `/v1/ops/organizers/${encodeURIComponent(userId)}/status`,
+        { status, reason },
+      );
+    },
+    async opsListEvents() {
+      return call<OpsEvent[]>('GET', '/v1/ops/events');
+    },
+    async opsSetEventPlan(eventId, plan) {
+      return call<OpsEvent>('PATCH', `/v1/ops/events/${encodeURIComponent(eventId)}/plan`, {
+        plan,
+      });
+    },
+    async opsUsage() {
+      return call<OpsUsage>('GET', '/v1/ops/usage');
+    },
+    async opsListPayments() {
+      return call<OpsPayment[]>('GET', '/v1/ops/payments');
+    },
+    async opsLookup(query) {
+      return call<OpsLookupResult>(
+        'GET',
+        `/v1/ops/lookup?${new URLSearchParams({ q: query.slice(0, 100) })}`,
+      );
+    },
+    async opsRevealPhone(target, reason) {
+      return call<{ phoneE164: string }>('POST', '/v1/ops/reveal-phone', { ...target, reason });
+    },
+    async opsListAudit() {
+      return call<OpsAuditEntry[]>('GET', '/v1/ops/audit');
+    },
+    async opsListDataRequests() {
+      return call<DataRequest[]>('GET', '/v1/ops/data-requests');
+    },
+    async opsResolveDataRequest(id, status, note) {
+      return call<DataRequest>('POST', `/v1/ops/data-requests/${encodeURIComponent(id)}/resolve`, {
+        status,
+        note,
+      });
     },
 
     async opsPilotMetrics(opts = {}) {

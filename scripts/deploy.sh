@@ -71,7 +71,7 @@ if [ "$ENVIRONMENT" = production ]; then
   git merge-base --is-ancestor "$SHA" origin/main || die "Production must be built from a commit that is on origin/main."
   VERSION="${TAG#v}"
 else
-  if [ "$(git rev-parse --abbrev-ref HEAD)" != main ] || [ "$SHA" != "$(git rev-parse origin/main)" ]; then
+  if [ "$SHA" != "$(git rev-parse origin/main)" ]; then
     msg="HEAD is not origin/main. Staging deploys what the team sees on main, so push (or pull) first."
     if [ "$DRY_RUN" = 1 ]; then echo "Note: $msg"; else die "$msg"; fi
   fi

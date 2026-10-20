@@ -30,7 +30,8 @@ Each guest gets their own signed card that works through every channel: a WhatsA
 
 - Cards are delivered on WhatsApp (Cloud API or Evolution), SMS (NextSMS, Beem, Africa's Talking and others) and printed PDFs (A6 or A5, cut-and-collate sheets, a QR test sheet).
 - Mobile money: M-Pesa, Mixx, Airtel Money and HaloPesa in Tanzania, and M-Pesa and Airtel in Kenya, plus cash and bank recorded by the committee.
-- Event kinds are free text (Harusi, Send-off, Uchumba and others). Wording follows the kind, and the marketing site still talks mainly about weddings.
+- Event kinds are free text (Harusi, Send-off, Uchumba, Birthday, Graduation, Kitchen party and others). Wording follows the kind. The marketing site now has landing pages for birthdays, graduations, kitchen parties, business events and general digital invitations (`apps/web/src/content/pages/occasions.ts`), plus guides on WhatsApp, RSVPs and digital vs printed (`articles.ts`).
+- Business events are served for invitations, replies and gate entry only. There is no ticket sales or seating, and public copy must say so.
 - Some guests get a contribution-only card: no RSVP and no QR, just a request for michango.
 - Production web hosts: `kadisasa.com` (public site and guest card), `app.kadisasa.com` (console), `my.kadisasa.com` (staff panel).
 - Typical usage: an organiser imports a few hundred guests weeks ahead, sends in batches, follows the funnel, and then several gate devices check guests in offline on the day.
@@ -45,7 +46,7 @@ Each guest gets their own signed card that works through every channel: a WhatsA
 - **Gate:** offline-first. Results are readable at arm's length, use icon and word together, never block on sync, and show the overlay instantly.
 - Organisers can edit card content (`events.card_content`). WhatsApp wording is fixed by the templates Meta approved.
 - Out of scope for v1: seating, vendor marketplace, galleries, streaming, multi-session events, ticket sales, in-app chat.
-- **Open:** the rename from Harusi Pass to Kadi Sasa is decided but not carried through. The code, strings, app ID (`app.harusipass.mobile`) and spec still say Harusi Pass. Pricing model is undecided (only an event `plan` field exists).
+- **Open:** the rename from Harusi Pass to Kadi Sasa is decided but not carried through. The code, strings, app ID (`app.harusipass.mobile`) and spec still say Harusi Pass, and so do the new SEO pages written on 2026-10-20. Pricing model is undecided (only an event `plan` field exists), so public copy says free during the pilot and quotes no market prices.
 
 ## Brand Commitments
 

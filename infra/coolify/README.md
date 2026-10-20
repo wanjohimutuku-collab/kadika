@@ -145,6 +145,31 @@ migration stops the `api` container, and `web` waits for `api`, so the site may 
   success** and **Deployment failed**, plus **Container status changes** to hear when a container stops later.
   Telegram is the quickest to set up and reaches your phone.
 
+## Deploying without GitHub Actions
+
+If the workflow does not run or is red, `scripts/deploy.sh` builds, pushes and deploys from your own machine
+([ADR 037](../../docs/adr/037-local-deploys.md)). The result is the same: the same image tags, the same deploy
+branch move, and the same wait for the live version.
+
+One-time setup:
+
+1. Install and start Docker Desktop. Run the script from Git Bash (or WSL).
+2. Create a GitHub personal access token (classic) with the **write:packages** scope.
+3. Copy `.deploy.env.example` to `.deploy.env` and fill in `GHCR_USER`, `GHCR_TOKEN` and the `NEXT_PUBLIC_*`
+   values (the same ones as the GitHub environment variables). The file is gitignored.
+
+Then:
+
+```bash
+./scripts/deploy.sh staging --dry-run   # build and smoke-test only, nothing leaves your machine
+./scripts/deploy.sh staging             # HEAD must be origin/main
+git tag v1.2.3 && ./scripts/deploy.sh production
+```
+
+The script refuses to run with uncommitted changes or from a commit that is not what the team sees on `main`. To
+stop the workflow running on every push, disable it under GitHub → Actions → Build and push images → ⋯ → Disable
+workflow.
+
 ## Rolling back
 
 Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not

@@ -154,6 +154,41 @@ describe('middleware with a root domain set', () => {
     expect(res.headers.get('location')).toBe('https://app.kadisasa.com/login?next=/app');
   });
 
+  // A <Link> to another host is prefetched with fetch(); a cross-origin redirect fails CORS in the browser
+  // and floods the console. Any non-RSC answer makes the Next router load the page normally instead. Next
+  // strips its RSC headers before middleware, so the browser's Sec-Fetch-Dest is what tells them apart.
+  it('answers a router fetch for another host without a redirect, so the browser navigates', async () => {
+    const mw = await load(ROOT);
+    const rsc = (host: string, path: string) =>
+      new NextRequest(`http://localhost:3000${path}`, {
+        headers: { host, 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors' },
+      });
+    for (const [host, path] of [
+      ['my.kadisasa.com', '/maswali?_rsc=abc'],
+      ['my.kadisasa.com', '/app'],
+      ['app.kadisasa.com', '/privacy'],
+      ['kadisasa.com', '/login'],
+    ] as const) {
+      const res = mw(rsc(host, path));
+      expect(res.status, `${host}${path}`).toBe(204);
+      expect(res.headers.get('location')).toBeNull();
+      expect(res.headers.get('cache-control')).toBe('no-store');
+    }
+    // a same-host redirect still works for the router
+    expect(mw(rsc('my.kadisasa.com', '/')).headers.get('location')).toBe(
+      'https://my.kadisasa.com/ops',
+    );
+    // a page load is still redirected
+    const page = new NextRequest('http://localhost:3000/maswali', {
+      headers: {
+        host: 'my.kadisasa.com',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+      },
+    });
+    expect(mw(page).headers.get('location')).toBe('https://kadisasa.com/maswali');
+  });
+
   it('gives each private host its own front door', async () => {
     const mw = await load(ROOT);
     expect(mw(req('app.kadisasa.com', '/')).headers.get('location')).toBe(

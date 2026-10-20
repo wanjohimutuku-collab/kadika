@@ -36,7 +36,15 @@ export function middleware(req: NextRequest) {
   if (surface && ROOT_DOMAIN) {
     const d = decide(surface, p);
     if (d.action === 'redirect-path') return redirect(req, hostFor(surface, ROOT_DOMAIN), d.path);
-    if (d.action === 'redirect-surface') return redirect(req, hostFor(d.surface, ROOT_DOMAIN));
+    if (d.action === 'redirect-surface') {
+      // The client router fetches (and prefetches) a <Link> target with fetch(). A redirect to another host
+      // fails CORS in the browser, one console error per link. A body that is not an RSC payload makes the
+      // router load the URL as a normal page instead, which then gets the redirect below. Next strips its own
+      // RSC headers before middleware runs, so tell a fetch from a page load by the browser's Sec-Fetch-Dest.
+      if (req.headers.get('sec-fetch-dest') === 'empty')
+        return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+      return redirect(req, hostFor(d.surface, ROOT_DOMAIN));
+    }
   }
 
   // Language and market only matter for the public content pages.

@@ -1,8 +1,12 @@
 # Build, push and deploy
 
-How a commit becomes a running server: [`.github/workflows/build-push.yml`](../../.github/workflows/build-push.yml)
-builds the API and web images, pushes them to GitHub Container Registry (GHCR), then moves a deploy branch to that
-commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
+> **Deploys no longer use GitHub Actions** ([ADR 037](../../docs/adr/037-local-deploys.md)). The workflow was
+> removed after the account's Actions budget ran out and every run failed before starting. `./scripts/deploy.sh`
+> does the same steps from your machine; see "Deploying without GitHub Actions" below. Older text on this page
+> that mentions the workflow or a green run describes what the script now does.
+
+How a commit becomes a running server: `scripts/deploy.sh` builds the API and web images, pushes them to GitHub
+Container Registry (GHCR), then moves a deploy branch to that commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
 redeploys it, and only once the new images exist ([ADR 034](../../docs/adr/034-deploy-branch-webhook.md)). The run
 then waits until the live API and web app report the new commit, so a green run means the deploy is live
 ([ADR 035](../../docs/adr/035-confirm-deploys-went-live.md)).

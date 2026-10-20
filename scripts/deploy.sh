@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploys without GitHub Actions: builds the API and web images on this machine, smoke-tests them,
 # pushes them to GHCR, then moves the deploy branch so Coolify's push webhook redeploys the stack.
-# It does the same job as .github/workflows/build-push.yml (ADR 034, 035, 037).
+# It replaces the removed build-push workflow (ADR 034, 035, 037).
 #
 #   ./scripts/deploy.sh staging              HEAD must be on main, clean and pushed
 #   ./scripts/deploy.sh production           HEAD must carry a v1.2.3 tag (the tag is pushed too)

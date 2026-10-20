@@ -28,3 +28,10 @@ Settings and the token live in the gitignored `.deploy.env`. `--dry-run` builds 
 - The build runs on the developer's machine, so it needs Docker and a decent connection to push the layers.
 - A personal token with package write access sits on that machine. Treat `.deploy.env` like a password.
 - The CI gate before production (ADR 034) is replaced by the script's own checks; run the tests first.
+
+## Update: the workflow is removed
+
+The Actions budget on the account ran out, so every run failed in seconds with "The job was not started because
+an Actions budget is preventing further use." `.github/workflows/build-push.yml` was deleted and `scripts/deploy.sh`
+is now the only deploy path. `ci.yml` is untouched. To bring Actions back, restore the workflow from git history
+(`git log -- .github/workflows/build-push.yml`).

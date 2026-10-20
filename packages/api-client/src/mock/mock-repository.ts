@@ -2741,9 +2741,7 @@ export class MockRepository implements Repository {
     });
   }
 
-  opsTestPayment(
-    route: PaymentRoute,
-  ): Promise<{
+  opsTestPayment(route: PaymentRoute): Promise<{
     ok: boolean;
     provider: string | null;
     status: number | null;

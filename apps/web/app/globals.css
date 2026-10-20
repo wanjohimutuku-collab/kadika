@@ -24,8 +24,24 @@
   --radius-card: var(--hp-radius-card);
   --radius-input: var(--hp-radius-input);
   /* The business brand can swap both stacks at runtime (ADR 036); unset, these are the defaults. */
-  --font-sans: var(--hp-font-body, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, sans-serif);
-  --font-display: var(--hp-font-display, var(--font-display-serif, Georgia), Georgia, Cambria, 'Times New Roman', serif);
+  --font-sans: var(
+    --hp-font-body,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Noto Sans',
+    Ubuntu,
+    sans-serif
+  );
+  --font-display: var(
+    --hp-font-display,
+    var(--font-display-serif, Georgia),
+    Georgia,
+    Cambria,
+    'Times New Roman',
+    serif
+  );
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 }
 
@@ -37,7 +53,16 @@
   body {
     background: var(--hp-bg);
     color: var(--hp-ink);
-    font-family: var(--hp-font-body, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', Ubuntu, sans-serif);
+    font-family: var(
+      --hp-font-body,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Noto Sans',
+      Ubuntu,
+      sans-serif
+    );
     font-size: 16px;
     line-height: 1.5;
   }

@@ -91,19 +91,21 @@ SOURCE_URL="https://github.com/${REPO_SLUG}"
 CACHE_DIR="${DEPLOY_CACHE_DIR:-$ROOT/.docker-cache}"
 mkdir -p "$CACHE_DIR"
 
-say "Building both images (local layer cache in ${CACHE_DIR#$ROOT/})"
+say "Building both images (the builder keeps its own layer cache; set DEPLOY_LOCAL_CACHE=1 for an on-disk one)"
 # A docker-container builder is needed for the local layer cache; it is created once and reused.
 docker buildx inspect kadi-deploy >/dev/null 2>&1 || docker buildx create --name kadi-deploy --driver docker-container >/dev/null
 
 # Several tags per image cannot go through --set (it splits on commas), so write an override file.
 OVERRIDE="$CACHE_DIR/bake-override.json"
-API_TAGS="$API_TAGS" WEB_TAGS="$WEB_TAGS" SOURCE_URL="$SOURCE_URL" CACHE_DIR="$CACHE_DIR" node -e '
+API_TAGS="$API_TAGS" WEB_TAGS="$WEB_TAGS" SOURCE_URL="$SOURCE_URL" CACHE_DIR="$CACHE_DIR" LOCAL_CACHE="${DEPLOY_LOCAL_CACHE:-0}" node -e '
 const e = process.env;
 const target = (name, tags) => ({
   tags: tags.split(","),
   labels: { "org.opencontainers.image.source": e.SOURCE_URL },
-  "cache-from": ["type=local,src=" + e.CACHE_DIR + "/" + name],
-  "cache-to": ["type=local,dest=" + e.CACHE_DIR + "/" + name + ",mode=max"],
+  ...(e.LOCAL_CACHE === "1" ? {
+    "cache-from": ["type=local,src=" + e.CACHE_DIR + "/" + name],
+    "cache-to": ["type=local,dest=" + e.CACHE_DIR + "/" + name + ",mode=max"],
+  } : { "cache-from": [], "cache-to": [] }),
 });
 const out = { target: { api: target("api", e.API_TAGS), web: target("web", e.WEB_TAGS) } };
 console.log(JSON.stringify(out, null, 2));

@@ -51,8 +51,7 @@ KENYA="$(pick NEXT_PUBLIC_KENYA_ENABLED)"
 WEB_URL="$(pick DEPLOY_WEB_URL)"
 [ -n "$WEB_URL" ] || WEB_URL="$SITE_URL"
 [ -n "$API_URL" ] || die "NEXT_PUBLIC_API_URL is empty. The web image bakes it in at build time."
-: "${GHCR_USER:?Set GHCR_USER in .deploy.env}"
-: "${GHCR_TOKEN:?Set GHCR_TOKEN in .deploy.env (a token with write:packages)}"
+# GHCR_USER and GHCR_TOKEN are optional: without them the script uses your existing docker login to ghcr.io.
 
 command -v docker >/dev/null || die "Docker is not installed."
 docker info >/dev/null 2>&1 || die "Docker is not running. Start Docker Desktop and try again."
@@ -152,7 +151,9 @@ fi
 
 # ---- push images, then hand the commit to Coolify -------------------------------------------
 say "Pushing images to ghcr.io"
-printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
+if [ -n "${GHCR_TOKEN:-}" ] && [ -n "${GHCR_USER:-}" ]; then
+  printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
+fi
 for t in ${API_TAGS//,/ } ${WEB_TAGS//,/ }; do docker push "$t" >/dev/null && echo "pushed $t"; done
 
 say "Handing ${SHORT} to Coolify (deploy/${ENVIRONMENT})"

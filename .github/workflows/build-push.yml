@@ -9,8 +9,10 @@
 #   manual run      ->  :sha-<short> and :<branch> (+ :staging on main); moves deploy/staging only
 #                       when run on main with "deploy" ticked
 #
-# Production only builds from a commit that already passed CI, and a GitHub environment can add a
-# required reviewer on top. Setup (environments, variables, Coolify): infra/coolify/README.md
+# For a tag, the images build and are smoke-tested while verify-ci checks CI, and only become
+# :production once CI has passed for this commit (or for a commit with exactly the same files). A
+# GitHub environment can add a required reviewer on top. Setup (environments, variables, Coolify):
+# infra/coolify/README.md
 name: Build and push images
 
 on:
@@ -34,7 +36,7 @@ permissions:
 
 jobs:
   verify-ci:
-    # A release only goes out from a commit CI has already passed on.
+    # A release only goes out from code CI has already passed on.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     # CI on main runs about 15 minutes, and a tag is usually pushed together with its commit, so
@@ -42,12 +44,23 @@ jobs:
     timeout-minutes: 45
     permissions:
       actions: read
+      contents: read
     steps:
-      - name: Require a passing CI run for this commit
+      - name: Require a passing CI run for this code
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          # A pull request that was up to date with main merges into a commit with the same file tree
+          # as its head, which CI has already passed. Accept that run instead of waiting for CI again.
+          tree() { gh api "repos/$GH_REPO/commits/$1" --jq .commit.tree.sha; }
+          want=$(tree "$GITHUB_SHA")
+          for sha in $(gh run list --workflow ci.yml --status success --limit 40 --json headSha --jq '.[].headSha' | sort -u); do
+            if [ "$(tree "$sha")" = "$want" ]; then
+              echo "CI passed on ${sha::7}, which has exactly the files of ${GITHUB_SHA::7}." | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          done
           runs() { gh run list --workflow ci.yml --commit "$GITHUB_SHA" --json databaseId,status,conclusion; }
           # CI can take a few seconds to appear after the push.
           for i in $(seq 1 30); do
@@ -66,17 +79,16 @@ jobs:
           fi
 
   build-push:
-    needs: verify-ci
-    # verify-ci is skipped for branch pushes and manual runs; it must have passed for a tag.
-    if: ${{ !cancelled() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') }}
+    # Starts at once, alongside verify-ci: what it pushes is not :production yet (see deploy).
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    # Supplies the web build variables for this run, and lets production require an approval
-    # before anything is pushed.
+    # Supplies the web build variables for this run.
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
     permissions:
-      contents: write # moves the deploy branch
+      contents: read
       packages: write
+    outputs:
+      prefix: ${{ steps.names.outputs.prefix }}
     steps:
       - uses: actions/checkout@v4
 
@@ -105,6 +117,7 @@ jobs:
           password: ${{ github.token }}
 
       # bake-target names match the meta-api / meta-web targets in infra/docker/docker-bake.hcl.
+      # No :production here: the deploy job adds it once CI has passed.
       - name: API image tags
         id: meta-api
         uses: docker/metadata-action@v6
@@ -116,7 +129,6 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Web image tags
         id: meta-web
@@ -129,10 +141,9 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
-      # Both images in one BuildKit run, in parallel, with the layer cache in the GitHub Actions cache
-      # (see the bake file). The dependency install is reused until the lockfile or a manifest changes.
+      # Both images in one BuildKit run, in parallel, with the layer cache in GHCR (see the bake file).
+      # The dependency install is reused until the lockfile or a manifest changes.
       - name: Build and push the API and web images
         uses: docker/bake-action@v7
         env:
@@ -141,6 +152,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_KENYA_ENABLED: ${{ vars.NEXT_PUBLIC_KENYA_ENABLED || '0' }}
           GIT_SHA: ${{ github.sha }}
+          CACHE_PREFIX: ${{ steps.names.outputs.prefix }}
         with:
           source: .
           files: |
@@ -196,13 +208,48 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  deploy:
+    needs: [verify-ci, build-push]
+    # verify-ci is skipped for manual runs; for a tag it must have passed. Manual runs deploy only
+    # when "deploy" is ticked.
+    if: >-
+      ${{ !cancelled() && needs.build-push.result == 'success' &&
+      (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.deploy) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Lets production require an approval before anything is promoted or deployed.
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+    permissions:
+      contents: write # moves the deploy branch
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Points :production at the images build-push already pushed and smoke-tested. Only the
+      # manifest is copied inside the registry, so this takes seconds.
+      - name: Promote the images to production
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          PREFIX: ${{ needs.build-push.outputs.prefix }}
+        run: |
+          for image in api web; do
+            docker buildx imagetools create -t "$PREFIX-$image:production" "$PREFIX-$image:sha-${GITHUB_SHA::7}"
+          done
+          echo "Promoted sha-${GITHUB_SHA::7} to :production" | tee -a "$GITHUB_STEP_SUMMARY"
+
       # One Coolify stack (docker-compose.coolify.yml) per environment tracks deploy/<environment>
       # with Auto Deploy on. Moving the branch fires Coolify's GitHub push webhook, and the stack pulls
       # the images this run just pushed and smoke-tested. Its depends_on starts the API (and its
       # migrations) before the web app. Forced, so re-running an older tag's build moves it back.
       - name: Hand the commit to Coolify
         id: handoff
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy }}
         env:
           DEPLOY_BRANCH: deploy/${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
         run: |

@@ -20,6 +20,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Turbo's local cache, kept between runs: a package whose files did not change replays its
+      # typecheck, lint, test and build results instead of running them again. Keyed per commit and
+      # restored from the newest earlier run (PRs can read main's).
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
@@ -51,7 +59,8 @@ jobs:
   web-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: ci
+    # Runs alongside the ci job rather than after it: CI finishes in the time of the longer job instead
+    # of the sum of both, at the cost of e2e minutes on a run whose ci job fails.
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

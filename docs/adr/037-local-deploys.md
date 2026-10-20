@@ -35,3 +35,9 @@ The Actions budget on the account ran out, so every run failed in seconds with "
 an Actions budget is preventing further use." `.github/workflows/build-push.yml` was deleted and `scripts/deploy.sh`
 is now the only deploy path. `ci.yml` is untouched. To bring Actions back, restore the workflow from git history
 (`git log -- .github/workflows/build-push.yml`).
+
+## Update 2: the workflow is back
+
+The Actions budget was raised, so `build-push.yml` was restored, now triggered only by `v*` tags and manual runs.
+The compose file pulls GHCR images again (ADR 038, server-side builds, was reverted: the VPS is not built for it).
+Coolify has only a production resource; a staging resource has not been created.

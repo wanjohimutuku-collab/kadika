@@ -1,0 +1,246 @@
+# Builds the API and web images, pushes them to GHCR, then moves a deploy branch to the commit.
+# Each Coolify stack tracks its deploy branch with Auto Deploy on, so Coolify's own push webhook
+# redeploys it only once fresh images exist (ADR 034). No Coolify token lives in GitHub.
+# The run then waits until the live API and web app report the new commit on /health, so a red run
+# means the deploy did not land, and GitHub emails whoever pushed (ADR 035).
+#
+#   push to main    ->  :staging       (+ :main, :sha-<short>)    moves deploy/staging
+#   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   moves deploy/production
+#   manual run      ->  :sha-<short> and :<branch> (+ :staging on main); moves deploy/staging only
+#                       when run on main with "deploy" ticked
+#
+# Production only builds from a commit that already passed CI, and a GitHub environment can add a
+# required reviewer on top. Setup (environments, variables, Coolify): infra/coolify/README.md
+name: Build and push images
+
+on:
+  # Only releases (v* tags) and manual runs, to spend few Actions minutes. Pushes to main do not build.
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Also deploy to staging (main only)
+        type: boolean
+        default: false
+
+# Never cancel a run half way through a push or a deploy; a newer run waits its turn.
+concurrency:
+  group: build-push-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ci:
+    # A release only goes out from a commit CI has already passed on.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Require a passing CI run for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          passed=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --json conclusion \
+            --jq '[.[] | select(.conclusion == "success")] | length')
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::CI has not passed for $GITHUB_SHA. Tag a commit that is green on main."
+            exit 1
+          fi
+
+  build-push:
+    needs: verify-ci
+    # verify-ci is skipped for branch pushes and manual runs; it must have passed for a tag.
+    if: ${{ !cancelled() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # Supplies the web build variables for this run, and lets production require an approval
+    # before anything is pushed.
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+    permissions:
+      contents: write # moves the deploy branch
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The web app bakes NEXT_PUBLIC_* in at build time. Without the API address the image would
+      # call http://localhost:3001, so refuse to build it.
+      - name: Require the web build variables
+        env:
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::error::Set the NEXT_PUBLIC_API_URL variable on this GitHub environment (see infra/coolify/README.md)."
+            exit 1
+          fi
+
+      # GHCR image names must be lower case.
+      - name: Work out the image names
+        id: names
+        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # bake-target names match the meta-api / meta-web targets in infra/docker/docker-bake.hcl.
+      - name: API image tags
+        id: meta-api
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.names.outputs.prefix }}-api
+          bake-target: meta-api
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Web image tags
+        id: meta-web
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.names.outputs.prefix }}-web
+          bake-target: meta-web
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      # Both images in one BuildKit run, in parallel, with the layer cache in the GitHub Actions cache
+      # (see the bake file). The dependency install is reused until the lockfile or a manifest changes.
+      - name: Build and push the API and web images
+        uses: docker/bake-action@v7
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_APP_DOMAIN: ${{ vars.NEXT_PUBLIC_APP_DOMAIN }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_KENYA_ENABLED: ${{ vars.NEXT_PUBLIC_KENYA_ENABLED || '0' }}
+          GIT_SHA: ${{ github.sha }}
+        with:
+          source: .
+          files: |
+            ./infra/docker/docker-bake.hcl
+            ${{ steps.meta-api.outputs.bake-file-tags }}
+            ${{ steps.meta-api.outputs.bake-file-labels }}
+            ${{ steps.meta-web.outputs.bake-file-tags }}
+            ${{ steps.meta-web.outputs.bake-file-labels }}
+          push: true
+          provenance: false # one plain image manifest, which is simplest for Coolify to pull
+
+      # Boot each pushed image and wait for its health check before Coolify is asked to deploy it, so a
+      # bundle that cannot start (a missing module, a bad CMD) stops here instead of on the server.
+      - name: Smoke-test the pushed images
+        env:
+          PREFIX: ${{ steps.names.outputs.prefix }}
+        run: |
+          tag="sha-${GITHUB_SHA::7}"
+          docker run -d --name api -p 3001:3001 \
+            -e JWT_SECRET="smoke-${GITHUB_RUN_ID}-secret" -e KEY_ENC_SECRET="$(openssl rand -base64 32)" \
+            -e DATABASE_URL=postgres://smoke:smoke@127.0.0.1:1/smoke -e LOG_REQUESTS=0 \
+            "$PREFIX-api:$tag"
+          docker run -d --name web -p 3000:3000 "$PREFIX-web:$tag"
+          check() { # $1 = name, $2 = URL; also checks the image reports this commit
+            for i in $(seq 1 30); do
+              if body=$(curl -sf "$2"); then
+                if [ "$(echo "$body" | jq -r .version)" = "$GITHUB_SHA" ]; then echo "$1 is up."; return 0; fi
+                echo "::error::$1 reports version $(echo "$body" | jq -r .version), expected $GITHUB_SHA"; return 1
+              fi
+              sleep 2
+            done
+            echo "::error::$1 did not answer $2"; docker logs "$1"; return 1
+          }
+          check api http://127.0.0.1:3001/health
+          check web http://127.0.0.1:3000/api/health
+          curl -sf http://127.0.0.1:3000/sw.js > /dev/null || { echo "::error::web is missing /sw.js"; exit 1; }
+
+      - name: List what was pushed
+        env:
+          API_TAGS: ${{ steps.meta-api.outputs.tags }}
+          WEB_TAGS: ${{ steps.meta-web.outputs.tags }}
+        run: |
+          {
+            echo "### Images pushed"
+            echo
+            echo "**API**"
+            echo '```'
+            echo "$API_TAGS"
+            echo '```'
+            echo "**Web**"
+            echo '```'
+            echo "$WEB_TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # One Coolify stack (docker-compose.coolify.yml) per environment tracks deploy/<environment>
+      # with Auto Deploy on. Moving the branch fires Coolify's GitHub push webhook, and the stack pulls
+      # the images this run just pushed and smoke-tested. Its depends_on starts the API (and its
+      # migrations) before the web app. Forced, so re-running an older tag's build moves it back.
+      - name: Hand the commit to Coolify
+        id: handoff
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.deploy }}
+        env:
+          DEPLOY_BRANCH: deploy/${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+        run: |
+          # A manual run on another branch has no :staging image, so the stack would redeploy the old one.
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::warning::Deploys only run from main. The images are pushed as :sha-${GITHUB_SHA::7}; nothing was deployed."
+            exit 0
+          fi
+          git push --force origin "$GITHUB_SHA:refs/heads/$DEPLOY_BRANCH"
+          echo "Deploy requested: $DEPLOY_BRANCH -> ${GITHUB_SHA::7}" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "moved=true" >> "$GITHUB_OUTPUT"
+
+      # Coolify builds nothing, so a deploy takes a pull and a restart (migrations run first). Poll the
+      # public health endpoints until both report this commit. If Coolify never starts, the migration
+      # fails or the new container never turns healthy, this times out and the run goes red.
+      - name: Wait for the new version to go live
+        if: steps.handoff.outputs.moved == 'true'
+        timeout-minutes: 15
+        env:
+          API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          WEB_URL: ${{ vars.DEPLOY_WEB_URL || vars.NEXT_PUBLIC_SITE_URL }}
+          ENVIRONMENT: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+        run: |
+          live() { # $1 = health URL; prints the version it reports, or nothing
+            curl -sf --max-time 10 -H 'Cache-Control: no-cache' "$1?v=$GITHUB_SHA" | jq -r '.version // empty' 2>/dev/null
+          }
+          targets="api=${API_URL%/}/health"
+          if [ -n "$WEB_URL" ]; then
+            targets="$targets web=${WEB_URL%/}/api/health"
+          else
+            echo "::warning::Set DEPLOY_WEB_URL on the $ENVIRONMENT environment to also confirm the web app."
+          fi
+          start=$(date +%s)
+          for target in $targets; do
+            name=${target%%=*}; url=${target#*=}
+            until [ "$(live "$url")" = "$GITHUB_SHA" ]; do
+              sleep 10
+              echo "Waiting for $name ($url): live version is '$(live "$url")' after $(( $(date +%s) - start ))s"
+            done
+            echo "$name is live on ${GITHUB_SHA::7}."
+          done
+          echo "Live on $ENVIRONMENT: ${GITHUB_SHA::7} after $(( $(date +%s) - start ))s" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain a failed deploy
+        if: failure() && steps.handoff.outputs.moved == 'true'
+        run: |
+          {
+            echo "### Deploy did not go live"
+            echo
+            echo "The images were built and Coolify was asked to deploy, but the new version never answered."
+            echo "Open the stack's Deployments tab in Coolify and the api/web container logs (a failed migration"
+            echo "stops the api). The previous version may still be serving, or the site may be down."
+          } >> "$GITHUB_STEP_SUMMARY"

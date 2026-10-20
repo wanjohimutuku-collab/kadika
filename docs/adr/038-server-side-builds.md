@@ -1,6 +1,6 @@
 # ADR 038: Coolify builds the images on the server
 
-Status: accepted. Supersedes the registry step of ADR 034 and 037 for the default deploy path.
+Status: reverted (see ADR 037, update 2). Kept for the reasoning. Supersedes the registry step of ADR 034 and 037 for the default deploy path.
 
 ## Context
 

@@ -296,10 +296,14 @@ export function PhoneField({
     const r = parsePhone(raw, home);
     onE164?.(r.ok ? r.e164 : null);
   };
-  // When what was typed is not already the clean form, say how it was understood.
+  // When what was typed is not already the clean form, say how it was understood. The line stays
+  // after blur tidies the number, so the layout below does not jump under a tap that blurred it.
+  const [tidied, setTidied] = useState<string | null>(null);
   const parsed = parsePhone(value, home);
   const understood =
-    parsed.ok && value.trim() !== show(parsed.e164) ? formatPhoneInternational(parsed.e164) : null;
+    parsed.ok && (value.trim() !== show(parsed.e164) || tidied === parsed.e164)
+      ? formatPhoneInternational(parsed.e164)
+      : null;
   return (
     <TextField
       {...rest}
@@ -332,7 +336,10 @@ export function PhoneField({
       }}
       onBlur={(e) => {
         const r = parsePhone(value, home);
-        if (r.ok) onChange(show(r.e164));
+        if (r.ok && value.trim() !== show(r.e164)) {
+          setTidied(r.e164);
+          onChange(show(r.e164));
+        }
         onBlur?.(e);
       }}
     />

@@ -37,7 +37,9 @@ jobs:
     # A release only goes out from a commit CI has already passed on.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # CI on main runs about 15 minutes, and a tag is usually pushed together with its commit, so
+    # wait for that run to finish instead of failing while it is still going.
+    timeout-minutes: 45
     permissions:
       actions: read
     steps:
@@ -46,8 +48,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          passed=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --json conclusion \
-            --jq '[.[] | select(.conclusion == "success")] | length')
+          runs() { gh run list --workflow ci.yml --commit "$GITHUB_SHA" --json databaseId,status,conclusion; }
+          # CI can take a few seconds to appear after the push.
+          for i in $(seq 1 30); do
+            [ "$(runs | jq length)" -gt 0 ] && break
+            sleep 10
+          done
+          while [ "$(runs | jq '[.[] | select(.status != "completed")] | length')" -gt 0 ]; do
+            if [ "$(runs | jq '[.[] | select(.conclusion == "success")] | length')" -gt 0 ]; then break; fi
+            echo "Waiting for CI on ${GITHUB_SHA::7} to finish..."
+            sleep 30
+          done
+          passed=$(runs | jq '[.[] | select(.conclusion == "success")] | length')
           if [ "$passed" -eq 0 ]; then
             echo "::error::CI has not passed for $GITHUB_SHA. Tag a commit that is green on main."
             exit 1

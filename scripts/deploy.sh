@@ -1,28 +1,32 @@
 #!/usr/bin/env bash
-# Deploys without GitHub Actions: builds the API and web images on this machine, smoke-tests them,
-# pushes them to GHCR, then moves the deploy branch so Coolify's push webhook redeploys the stack.
-# It replaces the removed build-push workflow (ADR 034, 035, 037).
+# Deploys without GitHub Actions. Default (server build, ADR 038): moves the deploy branch to this commit, Coolify
+# builds the images on the server and redeploys, and the script waits until the live /health reports the commit.
+# With --registry it instead builds the images here, smoke-tests them, pushes them to GHCR and then moves the
+# branch (needs a ghcr.io login with write:packages; ADR 037). Replaces the removed build-push workflow.
 #
 #   ./scripts/deploy.sh staging              HEAD must be on main, clean and pushed
 #   ./scripts/deploy.sh production           HEAD must carry a v1.2.3 tag (the tag is pushed too)
 #   ./scripts/deploy.sh staging --skip-wait  do not wait for /health to report the new commit
-#   ./scripts/deploy.sh staging --dry-run    build and smoke-test only; push and deploy nothing
+#   ./scripts/deploy.sh staging --registry   build here and push to GHCR instead of building on the server
+#   ./scripts/deploy.sh staging --dry-run    check only; with --registry build and smoke-test, push nothing
 #
 # Needs Docker (running), git, curl and node. Settings live in .deploy.env (see .deploy.env.example).
 set -euo pipefail
 
 ENVIRONMENT="${1:-}"
 case "$ENVIRONMENT" in staging | production) shift ;; *)
-  echo "Usage: $0 staging|production [--skip-wait] [--dry-run]" >&2
+  echo "Usage: $0 staging|production [--skip-wait] [--registry] [--dry-run]" >&2
   exit 2
   ;;
 esac
 SKIP_WAIT=0
 DRY_RUN=0
+REGISTRY=0
 for arg in "$@"; do
   case "$arg" in
     --skip-wait) SKIP_WAIT=1 ;;
     --dry-run) DRY_RUN=1 ;;
+    --registry) REGISTRY=1 ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -53,9 +57,11 @@ WEB_URL="$(pick DEPLOY_WEB_URL)"
 [ -n "$API_URL" ] || die "NEXT_PUBLIC_API_URL is empty. The web image bakes it in at build time."
 # GHCR_USER and GHCR_TOKEN are optional: without them the script uses your existing docker login to ghcr.io.
 
-command -v docker >/dev/null || die "Docker is not installed."
-docker info >/dev/null 2>&1 || die "Docker is not running. Start Docker Desktop and try again."
 command -v node >/dev/null || die "node is required to read the health responses."
+if [ "$REGISTRY" = 1 ]; then
+  command -v docker >/dev/null || die "Docker is not installed."
+  docker info >/dev/null 2>&1 || die "Docker is not running. Start Docker Desktop and try again."
+fi
 
 # ---- the commit to ship ---------------------------------------------------------------------
 [ -z "$(git status --porcelain --untracked-files=no)" ] || die "Uncommitted changes. Commit or stash them first."
@@ -78,6 +84,7 @@ else
 fi
 say "Deploying ${SHORT} to ${ENVIRONMENT}"
 
+if [ "$REGISTRY" = 1 ]; then
 # ---- tags and build -------------------------------------------------------------------------
 tags_for() { # $1 = image suffix (api|web)
   local base="${PREFIX}-$1" t="${PREFIX}-$1:sha-${SHORT},${PREFIX}-$1:${ENVIRONMENT}"
@@ -159,6 +166,13 @@ for t in ${API_TAGS//,/ } ${WEB_TAGS//,/ }; do
   echo "pushed $t"
 done
 
+fi # registry mode
+
+if [ "$DRY_RUN" = 1 ]; then
+  say "Dry run: would move deploy/${ENVIRONMENT} to ${SHORT}. Nothing changed."
+  exit 0
+fi
+
 say "Handing ${SHORT} to Coolify (deploy/${ENVIRONMENT})"
 if [ "$ENVIRONMENT" = production ]; then git push origin "refs/tags/${TAG}"; fi
 git push --force origin "${SHA}:refs/heads/deploy/${ENVIRONMENT}"
@@ -172,8 +186,8 @@ fi
 live() { curl -sf --max-time 10 -H 'Cache-Control: no-cache' "$1?v=${SHA}" | version_of; }
 targets="api=${API_URL%/}/health"
 if [ -n "$WEB_URL" ]; then targets="$targets web=${WEB_URL%/}/api/health"; else echo "Set DEPLOY_WEB_URL to also confirm the web app."; fi
-say "Waiting for the new version to answer (up to ${DEPLOY_WAIT_MINUTES:-15} minutes)"
-deadline=$(( $(date +%s) + ${DEPLOY_WAIT_MINUTES:-15} * 60 ))
+say "Waiting for the new version to answer (up to ${DEPLOY_WAIT_MINUTES:-30} minutes)"
+deadline=$(( $(date +%s) + ${DEPLOY_WAIT_MINUTES:-30} * 60 ))
 for target in $targets; do
   name="${target%%=*}"; url="${target#*=}"
   until [ "$(live "$url")" = "$SHA" ]; do

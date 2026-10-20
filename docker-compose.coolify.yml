@@ -6,15 +6,19 @@
 #   SERVICE_PASSWORD_*        random password; SERVICE_REALBASE64_32_* = base64 of 32 random bytes
 # ${VAR:?} blocks the deploy until it is filled in; ${VAR:-x} is an editable default.
 #
-# The images are built and pushed by .github/workflows/build-push.yml. IMAGE_TAG picks the
-# channel: `staging` (every push to main) or `production` (v* tags). The stack tracks the
-# `deploy/staging` or `deploy/production` branch with Auto Deploy on; the workflow moves that
-# branch once the images are pushed, which triggers the deploy (ADR 034).
+# Coolify builds both images from the repo on the server (ADR 038): a push to the `deploy/staging` or
+# `deploy/production` branch (made by scripts/deploy.sh) triggers the build and the deploy. SOURCE_COMMIT is the
+# commit Coolify checked out; it becomes the version that /health reports. Set the NEXT_PUBLIC_* variables on the
+# Coolify resource (they are baked into the web bundle at build time); NEXT_PUBLIC_API_URL must equal the api URL.
 
 services:
   api:
-    image: ghcr.io/wanjohimutuku-collab/kadika-api:${IMAGE_TAG:-staging}
-    pull_policy: always
+    image: kadika-api:${SOURCE_COMMIT:-local}
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+      args:
+        GIT_SHA: ${SOURCE_COMMIT:-dev}
     # Migrations first; a failed migration stops the container before it serves traffic.
     # Keep ONE api replica: the migrator takes no lock.
     command: ['sh', '-c', 'node dist/migrate.js && exec node dist/index.js']
@@ -76,14 +80,21 @@ services:
     # Healthcheck (/health) comes from the image.
 
   web:
-    image: ghcr.io/wanjohimutuku-collab/kadika-web:${IMAGE_TAG:-staging}
-    pull_policy: always
+    image: kadika-web:${SOURCE_COMMIT:-local}
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.web
+      args:
+        GIT_SHA: ${SOURCE_COMMIT:-dev}
+        NEXT_PUBLIC_USE_MOCKS: '0'
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL on the Coolify resource}
+        NEXT_PUBLIC_APP_DOMAIN: ${NEXT_PUBLIC_APP_DOMAIN:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_KENYA_ENABLED: ${NEXT_PUBLIC_KENYA_ENABLED:-0}
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
-    # NEXT_PUBLIC_* are baked in when GitHub Actions builds the image (GitHub environment variables),
-    # not set here. NEXT_PUBLIC_API_URL there must equal this stack's api URL.
     environment:
       SERVICE_URL_WEB_3000:
     # Healthcheck (/api/health) comes from the image.

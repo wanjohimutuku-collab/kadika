@@ -151,6 +151,12 @@ migration stops the `api` container, and `web` waits for `api`, so the site may 
 
 ## Deploying without GitHub Actions
 
+**Default: Coolify builds on the server** ([ADR 038](../../docs/adr/038-server-side-builds.md)). Set these variables on
+the Coolify resource first: `NEXT_PUBLIC_API_URL` (required, equal to the api domain, for staging
+`https://staging-api.kadisasa.com`), `NEXT_PUBLIC_APP_DOMAIN`, `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_KENYA_ENABLED`.
+Then `./scripts/deploy.sh staging` moves `deploy/staging` and waits for the new version to answer. The rest of this
+section describes the older build-and-push flow, available as `--registry`.
+
 If the workflow does not run or is red, `scripts/deploy.sh` builds, pushes and deploys from your own machine
 ([ADR 037](../../docs/adr/037-local-deploys.md)). The result is the same: the same image tags, the same deploy
 branch move, and the same wait for the live version.

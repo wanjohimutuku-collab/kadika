@@ -220,7 +220,7 @@ function EventSwitcher({ current }: { current?: WeddingEvent }) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
-        className="inline-flex min-h-12 max-w-[52vw] items-center gap-1.5 rounded-input px-2 text-left font-semibold hover:bg-ink/6 md:max-w-xs"
+        className="inline-flex min-h-12 min-w-0 max-w-[52vw] items-center gap-1.5 rounded-input px-2 text-left font-semibold hover:bg-ink/6 md:max-w-xs"
         aria-label={current ? t('currentEvent', { name: current.coupleNames }) : t('switchEvent')}
       >
         <span className="truncate text-lg">{current?.coupleNames ?? t('events')}</span>

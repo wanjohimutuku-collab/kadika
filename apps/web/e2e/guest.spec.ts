@@ -89,7 +89,8 @@ test.describe('guest card', () => {
   }) => {
     await page.goto(`/c/${token('confirmed')}/pay`);
     await expect(page.getByTestId('pay-flow')).toBeVisible();
-    await expect(page.getByTestId('pay-submit')).toHaveText('Tuma ombi la malipo');
+    // the amount starts at the pledge balance (§17.6), so the button already names it
+    await expect(page.getByTestId('pay-submit')).toHaveText(/^Lipa TZS [\d,]+$/);
     await page
       .getByTestId('pay-quick')
       .getByRole('button', { name: /^20,000/ })

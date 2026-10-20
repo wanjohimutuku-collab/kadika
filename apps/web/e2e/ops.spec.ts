@@ -204,7 +204,8 @@ test('staff admin: branding — name, colours and an SVG logo apply across the p
     ),
   });
   await expect(page.getByTestId('brand-logo')).toBeVisible();
-  await expect(page.getByTestId('brand-mark-logo')).toBeVisible();
+  // the side bar (desktop) and the header (mobile) each carry a mark; one is hidden per viewport
+  await expect(page.getByTestId('brand-mark-logo').filter({ visible: true })).toBeVisible();
   await shot(page, 'ops-branding');
 
   // colours that are hard to read cannot be saved
@@ -232,7 +233,10 @@ test('staff admin: payments — Snippe is saved with secrets masked, tested, the
     '/v1/payments/webhook/snippe',
   );
   await page.getByTestId('payment-test').click();
-  await expect(page.getByText('Snippe imejibu: ufunguo unafanya kazi.')).toBeVisible();
+  // exact: the toast's screen-reader announcement repeats the text with a "Notification" prefix
+  await expect(
+    page.getByText('Snippe imejibu: ufunguo unafanya kazi.', { exact: true }),
+  ).toBeVisible();
   await shot(page, 'ops-payments-settings');
   await form.getByRole('button', { name: 'Rudi kwenye mazingira ya seva' }).click();
   await page

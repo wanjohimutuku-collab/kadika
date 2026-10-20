@@ -33,15 +33,16 @@ services:
       JWT_SECRET: ${SERVICE_PASSWORD_64_JWT}
       # Decrypts every event's signing key. Never regenerate or edit it once events exist.
       KEY_ENC_SECRET: ${SERVICE_REALBASE64_32_KEYENC}
-      # Set APP_BASE_URL and API_PUBLIC_URL in Coolify (e.g. https://kadisasa.com, https://api.kadisasa.com).
-      # Coolify's own SERVICE_URL_* only fill in when each service has a domain in its Domains tab; when
-      # they are empty the API falls back to http://localhost:3000 for links (gate-join) and has no URL
-      # for payment callbacks.
-      APP_BASE_URL: ${APP_BASE_URL:-${SERVICE_URL_WEB_3000:-}}
+      # Set PUBLIC_WEB_URL and PUBLIC_API_URL in Coolify (e.g. https://kadisasa.com, https://api.kadisasa.com).
+      # Coolify's own SERVICE_URL_* can stay empty even with domains set (and would name the first domain,
+      # an sslip.io address); without a URL the API falls back to http://localhost:3000 for links
+      # (gate-join) and has no URL for payment callbacks. Not named APP_BASE_URL / API_PUBLIC_URL:
+      # Coolify shows every key below as read-only "managed by Docker Compose".
+      APP_BASE_URL: ${PUBLIC_WEB_URL:-${SERVICE_URL_WEB_3000:-}}
       # This API's own public URL: where payment gateways (Snippe) post results (ADR 036). Without it
       # the payment settings in /ops refuse a real gateway, because there is nowhere to send callbacks.
-      API_PUBLIC_URL: ${API_PUBLIC_URL:-${SERVICE_URL_API_3001:-}}
-      CORS_ORIGINS: ${APP_BASE_URL:-${SERVICE_URL_WEB_3000:-}}
+      API_PUBLIC_URL: ${PUBLIC_API_URL:-${SERVICE_URL_API_3001:-}}
+      CORS_ORIGINS: ${PUBLIC_WEB_URL:-${SERVICE_URL_WEB_3000:-}}
       # Production: the other web hosts, comma-separated (https://www.<domain>,https://app.<domain>,https://my.<domain>).
       CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
       # Link domain in SMS/WhatsApp. Fill in the short domain, or the web URL if there is none.

@@ -33,6 +33,7 @@ import { GateService, type GateActor } from './services/gate';
 import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content';
 import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
+import { OpsService } from './services/ops';
 import { MessagingSettingsService } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
 import { BrandingService } from './services/branding';
@@ -169,6 +170,7 @@ export function createApp(deps: Deps) {
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
   const pilotSvc = new PilotMetricsService(deps);
+  const opsSvc = new OpsService(deps);
   const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
@@ -725,6 +727,60 @@ export function createApp(deps: Deps) {
     const headers: Record<string, string> = {};
     c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
     return c.json(await pledgeSvc.webhook(c.req.param('provider'), raw, headers));
+  });
+  // PDPA requests (ADR 012): a customer files them from Akaunti, staff resolve them in /ops/requests.
+  app.post('/v1/me/data-requests', async (c) => {
+    const { kind } = parse(z.object({ kind: z.enum(['export', 'deletion']) }), await body(c));
+    return c.json(await opsSvc.fileRequest(c.get('userId'), kind), 201);
+  });
+
+  // ---- staff (ops) panel (ADR 012). Staff levels and the audit log are enforced in OpsService.
+  const idParam = (c: Context) => parse(z.string().uuid(), c.req.param('id'));
+  app.get('/v1/ops/overview', async (c) => c.json(await opsSvc.overview(c.get('userId'))));
+  app.get('/v1/ops/organizers', async (c) => c.json(await opsSvc.listOrganizers(c.get('userId'))));
+  app.patch('/v1/ops/organizers/:id/status', async (c) => {
+    const input = parse(
+      z.object({ status: z.enum(['active', 'suspended']), reason: z.string().max(500) }),
+      await body(c),
+    );
+    return c.json(
+      await opsSvc.setUserStatus(c.get('userId'), idParam(c), input.status, input.reason),
+    );
+  });
+  app.get('/v1/ops/events', async (c) => c.json(await opsSvc.listEvents(c.get('userId'))));
+  app.patch('/v1/ops/events/:id/plan', async (c) => {
+    const { plan } = parse(z.object({ plan: z.enum(['free', 'paid']) }), await body(c));
+    return c.json(await opsSvc.setEventPlan(c.get('userId'), idParam(c), plan));
+  });
+  app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(c.get('userId'))));
+  app.get('/v1/ops/payments', async (c) => c.json(await opsSvc.listPayments(c.get('userId'))));
+  app.get('/v1/ops/lookup', async (c) => {
+    const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());
+    return c.json(await opsSvc.lookup(c.get('userId'), q));
+  });
+  app.post('/v1/ops/reveal-phone', async (c) => {
+    const input = parse(
+      z.object({
+        kind: z.enum(['guest', 'organizer']),
+        id: z.string().uuid(),
+        reason: z.string().max(500),
+      }),
+      await body(c),
+    );
+    return c.json(
+      await opsSvc.revealPhone(c.get('userId'), { kind: input.kind, id: input.id }, input.reason),
+    );
+  });
+  app.get('/v1/ops/audit', async (c) => c.json(await opsSvc.listAudit(c.get('userId'))));
+  app.get('/v1/ops/data-requests', async (c) => c.json(await opsSvc.listRequests(c.get('userId'))));
+  app.post('/v1/ops/data-requests/:id/resolve', async (c) => {
+    const input = parse(
+      z.object({ status: z.enum(['done', 'rejected']), note: z.string().max(500).default('') }),
+      await body(c),
+    );
+    return c.json(
+      await opsSvc.resolveRequest(c.get('userId'), idParam(c), input.status, input.note),
+    );
   });
   // ---- staff: launch-gate numbers per country (Phase 5, docs/ops/kenya-pilot-runbook.md)
   app.get('/v1/ops/pilot-metrics', async (c) => {

@@ -74,6 +74,8 @@ export const users = pgTable(
     status: userStatusEnum('status').notNull().default('active'),
     suspendedReason: text('suspended_reason'),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    /** Set when staff complete a PDPA deletion request (ADR 039): name and phone are wiped. */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex('users_phone_e164_uq').on(t.phoneE164)],
@@ -515,3 +517,30 @@ export const brandSettings = pgTable('brand_settings', {
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   ...timestamps,
 });
+
+export const dataRequestKindEnum = pgEnum('data_request_kind', ['export', 'deletion']);
+export const dataRequestStatusEnum = pgEnum('data_request_status', ['open', 'done', 'rejected']);
+
+/**
+ * PDPA requests customers file from Akaunti and staff resolve in /ops/requests (ADR 012, 039).
+ * `user_name` and `phone_e164` are copied at filing time so the queue still reads after a deletion
+ * wipes the account; a completed deletion clears the phone here too.
+ */
+export const dataRequests = pgTable(
+  'data_requests',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    userName: text('user_name').notNull(),
+    phoneE164: text('phone_e164'),
+    kind: dataRequestKindEnum('kind').notNull(),
+    status: dataRequestStatusEnum('status').notNull().default('open'),
+    note: text('note').notNull().default(''),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [index('data_requests_status_idx').on(t.status, t.createdAt)],
+);

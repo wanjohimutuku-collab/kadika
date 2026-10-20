@@ -154,7 +154,10 @@ say "Pushing images to ghcr.io"
 if [ -n "${GHCR_TOKEN:-}" ] && [ -n "${GHCR_USER:-}" ]; then
   printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
 fi
-for t in ${API_TAGS//,/ } ${WEB_TAGS//,/ }; do docker push "$t" >/dev/null && echo "pushed $t"; done
+for t in ${API_TAGS//,/ } ${WEB_TAGS//,/ }; do
+  docker push "$t" >/dev/null || die "Could not push $t. The ghcr.io login needs write:packages: set GHCR_USER and GHCR_TOKEN in .deploy.env. Nothing was deployed."
+  echo "pushed $t"
+done
 
 say "Handing ${SHORT} to Coolify (deploy/${ENVIRONMENT})"
 if [ "$ENVIRONMENT" = production ]; then git push origin "refs/tags/${TAG}"; fi

@@ -1,5 +1,13 @@
 import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
-import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
+import {
+  events,
+  guests,
+  invitations,
+  messageLog,
+  newId,
+  retiredCardTokens,
+  users,
+} from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { formatMoney, hostNames, toZoned, type CardKind } from '@harusi/schemas';
 import { pledgeSummaryOf } from './pledges';
@@ -705,6 +713,61 @@ export class DeliveryService {
       }
     }
     return summary;
+  }
+
+  /**
+   * A sample invitation to the caller's own phone, so the organiser sees what guests get before
+   * sending (§17.4 Tuma). It goes through the same route and template as a real one; the link points
+   * at the card-number page, since there is no real card behind it. Not written to any guest's log.
+   */
+  async sendTest(eventId: string, userId: string, channel: MessageChannel) {
+    const role = await this.eventsSvc.role(eventId, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot send messages');
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    const [user] = await this.deps.db.select().from(users).where(eq(users.id, userId));
+    if (!event || !user) throw new ApiError('not_found');
+    const p = this.provider(channel, user.phoneE164, event.country);
+    if (!p) throw new ApiError('unavailable', `No ${channel} provider is set up`);
+    const now = this.deps.now();
+    const sample: typeof guests.$inferSelect = {
+      id: 'test',
+      eventId,
+      displayName: user.name?.trim() || 'Mgeni',
+      phoneE164: user.phoneE164,
+      hasSmartphone: true,
+      groupLabel: null,
+      cardKind: 'invitation',
+      partySizeAllowed: 1,
+      shortCode: 'KS-0000',
+      guestShort: '00000000',
+      tokenVersion: 1,
+      language: event.languageDefault,
+      inviteChannelPref: 'mixed',
+      notes: null,
+      remindersOptOut: false,
+      printCard: false,
+      cardGeneratedAt: null,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
+    const link = `${shortBaseFor(this.deps.config, event.country)}/k`;
+    const when = dateText(event.dateStart, sample.language, event.timezone);
+    const template: MessageTemplate = {
+      kind: 'invite',
+      locale: sample.language,
+      country: event.country,
+      params:
+        event.country === 'KE'
+          ? [hostNames(a, b), when, link, sample.shortCode]
+          : [a, b, when, link, sample.shortCode],
+    };
+    const text = composeSms('invite', { event, guest: sample, link });
+    const r = await this.attempt(p, user.phoneE164, text, template);
+    if (!r.ok)
+      throw new ApiError('unavailable', `The ${channel} provider refused the message: ${r.error}`);
+    return { to: user.phoneE164 };
   }
 
   /** Funnel counts by invitation status (§7.7). */

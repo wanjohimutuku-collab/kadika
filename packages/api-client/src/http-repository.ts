@@ -27,8 +27,11 @@ import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
 import { buildSampleSms, estimateSmsCostFor } from './domain/sms';
 import type {
+  Activity,
+  AuditEntry,
   CardView,
   DataRequest,
+  EventReport,
   GateOverview,
   ScanEntry,
   Guest,
@@ -37,6 +40,7 @@ import type {
   ImportResult,
   ImportRowInput,
   Member,
+  MessageLogEntry,
   OpsAuditEntry,
   OpsEvent,
   OpsLookupResult,
@@ -1260,7 +1264,59 @@ export function createHttpRepository(
     return res.blob();
   };
 
-  // Anything the API does not provide yet rejects with `not_implemented`.
+  // ---- Organiser console: activity, gate monitor, report, a guest's history (§7.7, §17.4)
+  const ev = (eventId: string) => `/v1/events/${encodeURIComponent(eventId)}`;
+  const gu = (guestId: string) => `/v1/guests/${encodeURIComponent(guestId)}`;
+  impl.listActivity = async (eventId, limit) =>
+    (
+      await call<{ items: Activity[] }>(
+        'GET',
+        `${ev(eventId)}/activity${limit ? `?limit=${limit}` : ''}`,
+      )
+    ).items;
+  // The funnel numbers come from the stats every event view already reads; the rest from /report.
+  impl.getReport = async (eventId) => {
+    const [r, s] = await Promise.all([
+      call<Omit<EventReport, 'stats' | 'headcountForecast'>>('GET', `${ev(eventId)}/report`),
+      statsOf(eventId),
+    ]);
+    // people admitted at the gate: the funnel stats do not carry them
+    const stats = {
+      ...mapStats(s),
+      headcountAttended: r.arrivalsByHour.reduce((n, h) => n + h.count, 0),
+    };
+    return { ...r, stats, headcountForecast: stats.headcountConfirmed };
+  };
+  impl.sendTestMessage = (eventId, channel) =>
+    call<{ to: string }>('POST', `${ev(eventId)}/test-message`, { channel });
+  impl.deleteEvent = async (eventId) => {
+    await call('DELETE', ev(eventId));
+  };
+  impl.listGuestMessages = async (guestId) =>
+    (await call<{ items: MessageLogEntry[] }>('GET', `${gu(guestId)}/messages`)).items;
+  impl.listGuestAudit = async (guestId) =>
+    (await call<{ items: AuditEntry[] }>('GET', `${gu(guestId)}/audit`)).items;
+  impl.addGuestNote = (guestId, note) => call<AuditEntry>('POST', `${gu(guestId)}/notes`, { note });
+  impl.restoreGuests = async (ids) => {
+    let restored = 0;
+    for (const id of ids) {
+      await call('POST', `${gu(id)}/restore`);
+      restored++;
+    }
+    return { restored };
+  };
+  impl.setGuestsGroup = async (ids, group) => {
+    let updated = 0;
+    for (const id of ids) {
+      await call('PATCH', gu(id), { groupLabel: group });
+      updated++;
+    }
+    return { updated };
+  };
+
+  // Anything the API does not provide yet rejects with `not_implemented`. By design that includes
+  // `getGuestCardLink` (the API keeps card tokens only as hashes) and `resolveShortCode` (a printed
+  // short code alone must not open a card; SMS links carry the token itself, ADR 016).
   return new Proxy(impl as Repository, {
     get(target, prop: string) {
       if (prop === 'then') return undefined;

@@ -259,10 +259,56 @@ describe('HttpRepository against the real API', () => {
     expect((await r.listScans(ev.id)).map((s) => s.result)).toEqual(['manual_ok']);
   });
 
-  it('rejects not-yet-built features with not_implemented', async () => {
+  it('keeps raw card links and short-code lookups out of the real API (by design)', async () => {
     const r = repo();
-    await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });
-    await expect(r.listActivity('x')).rejects.toMatchObject({ code: 'not_implemented' });
+    await expect(r.getGuestCardLink('x')).rejects.toMatchObject({ code: 'not_implemented' });
+    await expect(r.resolveShortCode('KH-4821')).rejects.toMatchObject({ code: 'not_implemented' });
+  });
+
+  it('runs the console screens through the repository: activity, report, guest history', async () => {
+    const r = repo();
+    await login(r, '0712 100 210');
+    const ev = await r.createEvent({
+      title: 'Harusi',
+      partnerA: 'Asha',
+      partnerB: 'Juma',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 0,
+    });
+    const g = await r.createGuest(ev.id, {
+      displayName: 'Mgeni Mmoja',
+      phone: '0712 100 211',
+      partySizeAllowed: 3,
+      inviteChannelPref: 'sms',
+      hasSmartphone: false,
+      language: 'sw',
+      notes: '',
+    });
+
+    await r.manualCheckIn(ev.id, g.id, { partySize: 2, reason: 'Kadi imepotea' });
+    expect((await r.listActivity(ev.id, 5)).map((a) => a.kind)).toEqual(['checked_in']);
+
+    const report = await r.getReport(ev.id);
+    expect(report.stats.invited).toBe(1);
+    expect(report.headcountTarget).toBe(3);
+
+    const note = await r.addGuestNote(g.id, 'Atakuja mapema');
+    expect(note.details).toBe('Atakuja mapema');
+    expect((await r.listGuestAudit(g.id)).map((a) => a.action)).toContain('note');
+    expect(await r.listGuestMessages(g.id)).toEqual([]);
+
+    expect(await r.setGuestsGroup([g.id], 'Familia')).toEqual({ updated: 1 });
+    expect((await r.getGuest(g.id)).groupLabel).toBe('Familia');
+    await r.deleteGuests([g.id]);
+    expect(await r.restoreGuests([g.id])).toEqual({ restored: 1 });
+    expect((await r.listGuests(ev.id)).map((x) => x.id)).toEqual([g.id]);
   });
 
   it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {

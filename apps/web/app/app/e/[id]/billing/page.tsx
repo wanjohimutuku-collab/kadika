@@ -1,14 +1,13 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreditCard, MessageCircle, MessageSquare, ShieldAlert, Smartphone } from 'lucide-react';
+import { CreditCard, MessageCircle, MessageSquare, ShieldAlert } from 'lucide-react';
 import type { EventBillingView, PurchaseView } from '@harusi/api-client';
-import { detectNetwork } from '@harusi/schemas/checkout';
-import { paymentMethodsFor, type MobileMoneyMethodId } from '@harusi/schemas/country';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
+import { BuySheet, type BuyItem } from '@/components/console/buy-sheet';
 import { QueryState } from '@/components/console/query-state';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,27 +18,11 @@ import {
   Skeleton,
   StatusPill,
 } from '@/components/ui/display';
-import { PhoneField, TextField } from '@/components/ui/form';
-import { SegmentedControl } from '@/components/ui/navigation';
-import { BottomSheet } from '@/components/ui/overlay';
+import { TextField } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
-import { qk, useEventCountry, useSession } from '@/lib/queries';
+import { qk, useSession } from '@/lib/queries';
 import { formatDateShort, formatMoney, formatNumber } from '@/lib/format';
-
-const NETWORK_LABEL: Record<MobileMoneyMethodId, string> = {
-  mpesa: 'M-Pesa',
-  mixx: 'Mixx by Yas',
-  airtel: 'Airtel Money',
-  halopesa: 'HaloPesa',
-};
-
-type Item = {
-  order: { cards: number } | { packKey: string };
-  title: string;
-  detail: string;
-  amount: number;
-};
 
 const STATUS_TONE = {
   pending: 'warning',
@@ -54,80 +37,17 @@ export default function BillingPage({ params }: { params: Promise<{ id: string }
   const t = useTranslations('billing');
   const tn = useTranslations('nav');
   const ts = useTranslations('states');
-  const tc = useTranslations('common');
   const locale = useLocale() as Locale;
   const toast = useToast();
   const queryClient = useQueryClient();
   const session = useSession();
-  const country = useEventCountry(id);
   const billing = useQuery({
     queryKey: qk.billing(id),
     queryFn: () => getRepository().getBilling(id),
   });
 
-  const [item, setItem] = useState<Item | null>(null);
-  const [method, setMethod] = useState<'mobile' | 'manual'>('mobile');
-  const [phone, setPhone] = useState('');
-  const [e164, setE164] = useState<string | null>(null);
-  const [network, setNetwork] = useState<MobileMoneyMethodId | null>(null);
-  const [waiting, setWaiting] = useState<PurchaseView | null>(null);
-  const [key, setKey] = useState(() => crypto.randomUUID());
-
-  const networks = paymentMethodsFor(country);
-  useEffect(() => {
-    const guess = detectNetwork(e164);
-    if (guess && networks.includes(guess)) setNetwork(guess);
-  }, [e164, networks]);
-
+  const [item, setItem] = useState<BuyItem | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: qk.billing(id) });
-  const order = useMutation({
-    mutationFn: () =>
-      getRepository().orderBilling(
-        id,
-        method === 'mobile'
-          ? { ...item!.order, method, phoneE164: e164!, mobileMethod: network! }
-          : { ...item!.order, method },
-        key,
-      ),
-    onSuccess: async (p) => {
-      setItem(null);
-      setKey(crypto.randomUUID());
-      if (p.status === 'pending' && p.method === 'mobile') setWaiting(p);
-      else
-        toast({
-          tone: 'success',
-          title: p.status === 'paid' ? t('paidToast') : t('manualToast'),
-        });
-      await refresh();
-    },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
-  });
-
-  // While the host approves the prompt on their phone, check every few seconds for up to 90 s.
-  useEffect(() => {
-    if (!waiting) return;
-    const started = Date.now();
-    const timer = setInterval(async () => {
-      const p = await getRepository()
-        .getPurchase(id, waiting.id)
-        .catch(() => null);
-      if (p && p.status !== 'pending') {
-        setWaiting(null);
-        toast(
-          p.status === 'paid'
-            ? { tone: 'success', title: t('paidToast') }
-            : { tone: 'error', title: t('failedToast') },
-        );
-        await refresh();
-      } else if (Date.now() - started > 90_000) {
-        setWaiting(null);
-        toast({ tone: 'info', title: t('slowToast') });
-        await refresh();
-      }
-    }, 3_000);
-    return () => clearInterval(timer);
-    // One poll per waiting order: re-running on every render would restart the 90 s window.
-  }, [waiting?.id]);
 
   const cancel = useMutation({
     mutationFn: (p: PurchaseView) => getRepository().cancelPurchase(id, p.id),
@@ -139,8 +59,6 @@ export default function BillingPage({ params }: { params: Promise<{ id: string }
     return <EmptyState icon={<ShieldAlert className="size-7" />} title={tn('ownerOnly')} />;
   }
 
-  const canPay = method === 'manual' || (!!e164 && !!network);
-
   return (
     <>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
@@ -148,20 +66,8 @@ export default function BillingPage({ params }: { params: Promise<{ id: string }
         {(b) => (
           <div className="flex flex-col gap-5">
             <Meters b={b} />
-            <BuyCards
-              b={b}
-              onBuy={(x) => {
-                setMethod(b.mobilePayAvailable ? 'mobile' : 'manual');
-                setItem(x);
-              }}
-            />
-            <Packs
-              b={b}
-              onBuy={(x) => {
-                setMethod(b.mobilePayAvailable ? 'mobile' : 'manual');
-                setItem(x);
-              }}
-            />
+            <BuyCards b={b} onBuy={setItem} />
+            <Packs b={b} onBuy={setItem} />
             <Card title={t('history')} titleId="bill-hist">
               {b.purchases.length === 0 ? (
                 <p className="text-muted">{t('historyEmpty')}</p>
@@ -201,84 +107,13 @@ export default function BillingPage({ params }: { params: Promise<{ id: string }
         )}
       </QueryState>
 
-      <BottomSheet
-        open={!!item}
-        onOpenChange={(o) => !o && setItem(null)}
-        closeLabel={tc('close')}
-        title={item ? t('buyTitle', { item: item.title }) : ''}
-        description={
-          item ? `${item.detail} · ${formatMoney(item.amount, billing.data?.currency)}` : ''
-        }
-        footer={
-          <Button
-            className="w-full"
-            size="lg"
-            disabled={!canPay}
-            loading={order.isPending}
-            onClick={() => order.mutate()}
-          >
-            {method === 'mobile'
-              ? t('payNow', { amount: formatMoney(item?.amount ?? 0, billing.data?.currency) })
-              : t('orderManual')}
-          </Button>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          {billing.data?.mobilePayAvailable ? (
-            <SegmentedControl
-              label={t('methodLabel')}
-              value={method}
-              onChange={setMethod}
-              options={[
-                { value: 'mobile', label: t('methodMobile') },
-                { value: 'manual', label: t('methodManual') },
-              ]}
-            />
-          ) : null}
-          {method === 'mobile' ? (
-            <>
-              <PhoneField
-                label={t('phone')}
-                value={phone}
-                onChange={setPhone}
-                onE164={setE164}
-                inputMode="tel"
-                autoComplete="tel"
-              />
-              <fieldset className="flex flex-wrap gap-2">
-                <legend className="mb-2 text-sm font-medium">{t('network')}</legend>
-                {networks.map((n) => (
-                  <Button
-                    key={n}
-                    variant={network === n ? 'primary' : 'secondary'}
-                    size="sm"
-                    aria-pressed={network === n}
-                    onClick={() => setNetwork(n)}
-                  >
-                    {NETWORK_LABEL[n]}
-                  </Button>
-                ))}
-              </fieldset>
-              <p className="text-sm text-muted">{t('mobileHint')}</p>
-            </>
-          ) : (
-            <Banner tone="info">{t('manualHint')}</Banner>
-          )}
-        </div>
-      </BottomSheet>
-
-      <BottomSheet
-        open={!!waiting}
-        onOpenChange={(o) => !o && setWaiting(null)}
-        closeLabel={tc('close')}
-        title={t('waitingTitle')}
-        description={t('waitingBody')}
-      >
-        <div className="flex items-center gap-3">
-          <Smartphone className="size-8 text-primary" aria-hidden="true" />
-          <p>{waiting ? formatMoney(waiting.amount, waiting.currency) : ''}</p>
-        </div>
-      </BottomSheet>
+      <BuySheet
+        eventId={id}
+        item={item}
+        currency={billing.data?.currency ?? 'TZS'}
+        mobilePayAvailable={!!billing.data?.mobilePayAvailable}
+        onClose={() => setItem(null)}
+      />
     </>
   );
 }
@@ -339,7 +174,7 @@ const MAX_ORDER = 10_000;
 const priceFor = (tiers: EventBillingView['cardTiers'], n: number) =>
   tiers.filter((x) => x.minCards <= Math.max(1, n)).at(-1)?.price ?? tiers[0]?.price ?? 0;
 
-function BuyCards({ b, onBuy }: { b: EventBillingView; onBuy: (i: Item) => void }) {
+function BuyCards({ b, onBuy }: { b: EventBillingView; onBuy: (i: BuyItem) => void }) {
   const t = useTranslations('billing');
   // Suggest what the guest list still needs, beyond what is left.
   const need = Math.max(0, b.cardsToGenerate - b.remaining.cards);
@@ -426,7 +261,7 @@ function BuyCards({ b, onBuy }: { b: EventBillingView; onBuy: (i: Item) => void 
   );
 }
 
-function Packs({ b, onBuy }: { b: EventBillingView; onBuy: (i: Item) => void }) {
+function Packs({ b, onBuy }: { b: EventBillingView; onBuy: (i: BuyItem) => void }) {
   const t = useTranslations('billing');
   if (b.packs.length === 0) return null;
   return (

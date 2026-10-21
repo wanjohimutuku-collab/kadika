@@ -2146,5 +2146,32 @@
     "includesReminders": "Vikumbusho {n} vya SMS au WhatsApp kwa kila kadi",
     "example": "Mfano: kadi {n} = {total}",
     "creditPack": "Vikumbusho {n}"
+  },
+  "welcome": {
+    "eyebrow": "Tukio lako limeundwa",
+    "buildingTitle": "Tunaandaa kadi yako…",
+    "readyTitle": "Kadi yako iko tayari!",
+    "progressLabel": "Maandalizi ya kadi",
+    "progress": "Hatua {done} kati ya {total}",
+    "steps": {
+      "design": "Tunaweka muundo na rangi ulizochagua",
+      "names": "Tunaandika majina, tarehe na ukumbi",
+      "qr": "Tunaandaa QR na namba ya kila mgeni",
+      "ready": "Kadi iko tayari kutumwa na kuchapishwa"
+    },
+    "stepDone": "imekamilika",
+    "stepPending": "inasubiri",
+    "offerTitle": "Utaalika wageni wangapi?",
+    "offerIntro": "Nunua kadi kwa idadi ya wageni wako. Kadri unavyonunua nyingi, ndivyo bei kwa kadi inavyoshuka.",
+    "quickLabel": "Chagua idadi haraka",
+    "guests": "Wageni {n}",
+    "howMany": "Idadi ya kadi",
+    "point": {
+      "generated": "Kadi inahesabiwa mara ya kwanza tu inapotumwa au kuchapishwa.",
+      "reminders": "Kila kadi ina vikumbusho {per} vya SMS au WhatsApp.",
+      "contributions": "Michango ya wageni inakuja kwako moja kwa moja; hatuchukui asilimia."
+    },
+    "buy": "Nunua kadi {n} · {total}",
+    "skip": "Anza na kadi {n} za bure"
   }
 }

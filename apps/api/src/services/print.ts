@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { events, guests } from '@harusi/db';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
-import { buildCardsPdf, buildTestSheetPdf, type CardData } from '../print/pdf';
+import { buildCardsPdf, buildTestSheetPdf, printThemeFrom, type CardData } from '../print/pdf';
 import type { PrintFormat } from '../print/spec';
 import { dateText } from './delivery';
 import type { EventService } from './events';
@@ -83,7 +83,8 @@ export class PrintService {
         language: g.language,
       });
     }
-    const bytes = await buildCardsPdf(input.format, cards);
+    // Same theme and colours as the guest's digital card (ADR 042).
+    const bytes = await buildCardsPdf(input.format, cards, printThemeFrom(event.brandTheme));
     await this.billing.markGenerated(fresh);
     const filename =
       rows.length === 1 ? `${slug}-${rows[0]!.shortCode}.pdf` : `${slug}-${input.format}-batch.pdf`;

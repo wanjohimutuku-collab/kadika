@@ -69,7 +69,8 @@ export default function NewEvent() {
     setFailed(false);
     try {
       const ev = await create.mutateAsync(parsed.data as never);
-      router.replace(`/event/${ev.id}`);
+      // ADR 044: show the card being prepared, then offer cards to buy.
+      router.replace(`/event/${ev.id}/karibu`);
     } catch {
       setFailed(true);
     }

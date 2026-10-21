@@ -158,14 +158,14 @@
     "signedInAs": "Umeingia kama {name}"
   },
   "card": {
-    "metaTitle": "Mwaliko wa {kind} ya {couple}",
+    "metaTitle": "Mwaliko wa {kindOf} {couple}",
     "metaDescription": "{date} · {venue}. Fungua kadi yako ya mwaliko.",
     "occWeddingBody": "Tunakualika kwa heshima kushuhudia na kushiriki furaha ya harusi yetu. Uwepo wako utakamilisha siku hii.",
     "occEngagementBody": "Tunakualika kushuhudia na kushiriki furaha ya uchumba wetu. Uwepo wako utatupa baraka.",
     "occSendoffBody": "Tunakualika kwenye sherehe ya kuaga (send-off) kabla ya harusi. Karibu tushiriki furaha hii pamoja.",
     "occEngagementContrib": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha sherehe ya uchumba. Asante kwa kuwa nasi.",
     "occSendoffContrib": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha sherehe ya send-off. Asante kwa kuwa nasi.",
-    "weddingOf": "{kind} ya",
+    "weddingOf": "{kindOf}",
     "invitesYou": "Wanakualika, {guest}",
     "dateLine": "{weekday} {date}",
     "timeLine": "Saa {time}",
@@ -207,7 +207,7 @@
     "addCalendar": "Ongeza kwenye kalenda",
     "addHome": "Ongeza kwenye skrini ya mwanzo",
     "savePdf": "Hifadhi kama PDF",
-    "calendarTitle": "{kind} ya {couple}",
+    "calendarTitle": "{kindOf} {couple}",
     "pledgeTitle": "Mchango",
     "pledgeSummary": "Ahadi {pledged} · Imelipwa {paid} · Salio {balance}",
     "pledgePaidInFull": "Asante! Ahadi yako imelipwa yote.",
@@ -235,14 +235,14 @@
     "footerContactGeneric": "Mawasiliano",
     "programmeTitle": "Ratiba",
     "contribEyebrow": "Mchango wa {kind}",
-    "contribGreeting": "Habari {guest}. Tunakuomba uchangie {kind} yetu.",
+    "contribGreeting": "Habari {guest}. Tunakuomba uchangie katika {kindOf} {couple}.",
     "contribMessage": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha siku hii. Asante kwa kuwa nasi.",
     "contribTarget": "Lengo la michango: {target}",
     "contribProgress": "Imekusanywa {collected} kati ya {target}",
     "contribDeadline": "Mwisho wa kuchangia: {date}",
     "contribSuggested": "Chagua kiasi",
     "contribWhen": "Tukio: {date}, {venue}",
-    "contribMeta": "Mchango wa {kind} ya {couple}",
+    "contribMeta": "Mchango wa {kindOf} {couple}",
     "contribMetaDescription": "Changia kwa simu. {sender}.",
     "contribClosed": "Michango haipokelewi kwa sasa kupitia kadi hii."
   },
@@ -699,16 +699,23 @@
     "contactsMock": "Anwani za mfano (kivinjari hiki hakiruhusu kusoma anwani za simu).",
     "contactsAdd": "Ongeza {count, plural, one {#} other {#}}",
     "contactsAdded": "{count, plural, one {Mgeni # ameongezwa} other {Wageni # wameongezwa}}",
-    "cardKindContribution": "Kadi ya michango",
+    "cardKindContribution": "Kadi ya mchango",
     "filter": {
-      "contribution": "Kadi za michango"
-    }
+      "contribution": "Kadi za mchango"
+    },
+    "cardTypeLabel": "Aina ya kadi",
+    "cardTypes": {
+      "all": "Kadi zote",
+      "invitation": "Kadi za mwaliko",
+      "contribution": "Kadi za mchango"
+    },
+    "bulkCardKind": "Badilisha aina ya kadi",
+    "cardKindTitle": "Badilisha aina ya kadi ya {count, plural, one {mgeni #} other {wageni #}}",
+    "cardKindBody": "Kiungo walichonacho kinabaki kile kile lakini kitaonyesha kadi mpya. Aliyetumiwa kadi tayari ataonekana kama hajatumiwa tena, ili umtumie mpya. Waliojibu tayari wanabaki na majibu yao.",
+    "cardKindUpdated": "Aina ya kadi imebadilishwa kwa {count, plural, one {mgeni #} other {wageni #}}"
   },
   "guestForm": {
     "cardKind": "Aina ya kadi",
-    "cardKindInvitation": "Kadi ya mwaliko",
-    "cardKindContribution": "Kadi ya michango (inaomba mchango tu)",
-    "cardKindHint": "Kadi ya michango haina RSVP wala QR ya lango.",
     "title": "Ongeza mgeni",
     "editTitle": "Badilisha mgeni",
     "name": "Jina kamili",
@@ -731,9 +738,9 @@
     "increase": "Ongeza idadi",
     "cardKinds": {
       "invitation": "Kadi ya mwaliko (jibu na QR)",
-      "contribution": "Kadi ya michango (inaomba mchango tu)"
+      "contribution": "Kadi ya mchango (inaomba mchango tu)"
     },
-    "cardKindHelp": "Kadi ya michango haina vitufe vya kujibu wala QR, na mtu huyo haingizwi langoni."
+    "cardKindHelp": "Kadi ya mchango haina vitufe vya kujibu wala QR, na mtu huyo haingizwi langoni."
   },
   "import": {
     "title": "Ingiza orodha ya wageni",
@@ -792,7 +799,10 @@
     "goSend": "Tuma kadi",
     "rowsLabel": "Mistari ya hakiki",
     "empty": "Hakuna mistari iliyopatikana. Hakikisha kila mgeni yuko kwenye mstari wake.",
-    "defaultCardKind": "Tuma hizi kama"
+    "defaultCardKind": "Tuma hizi kama",
+    "cardKind": "Aina ya kadi kwa orodha hii",
+    "confirmContribution": "Wataongezwa kama kadi za mchango.",
+    "goSendContribution": "Tuma kadi za mchango"
   },
   "guestDetail": {
     "back": "Rudi kwa wageni",
@@ -811,7 +821,8 @@
       "invite": "Mwaliko",
       "reminder": "Kikumbusho",
       "thank_you": "Shukrani",
-      "test": "Majaribio"
+      "test": "Majaribio",
+      "contribution": "Kadi ya mchango"
     },
     "msgStatus": {
       "queued": "Kwenye foleni",
@@ -851,7 +862,14 @@
     "auditEmpty": "Hakuna mabadiliko bado.",
     "checkedIn": "Ameingia {time} ({count, plural, one {mtu #} other {watu #}})",
     "version": "Toleo la kadi: {version}",
-    "notFound": "Mgeni huyu hayupo au amefutwa."
+    "notFound": "Mgeni huyu hayupo au amefutwa.",
+    "cardKind": "Aina ya kadi",
+    "changeCardKind": "Badilisha aina ya kadi",
+    "toContribution": "Fanya kadi ya mchango",
+    "toInvitation": "Fanya kadi ya mwaliko",
+    "toContributionBody": "{name} hatakuwa tena na vitufe vya kujibu wala QR, na haingizwi langoni. Kiungo chake kinabaki kile kile na kitaonyesha kadi ya mchango.",
+    "toInvitationBody": "{name} atapata vitufe vya kujibu na QR, na ataingia kwenye orodha ya mialiko. Ikiwa kadi yake ilishatumwa ataonekana kama hajatumiwa tena, ili umtumie mwaliko.",
+    "timelineContribution": "Hali ya kadi ya mchango"
   },
   "send": {
     "title": "Tuma kadi",
@@ -895,9 +913,10 @@
       "guests": "{count, plural, one {mgeni #} other {wageni #}}",
       "note": "Wanaopokea hupatikana wakati ujumbe unatumwa, kwa hiyo wageni walioongezwa au waliojibu kabla ya hapo huzingatiwa.",
       "cancel": "Ghairi",
-      "cancelLabel": "Ghairi {kind} ya {date}",
+      "cancelLabel": "Ghairi {kind}, {date}",
       "cancelled": "Imeghairiwa",
-      "cancelFailed": "Haikuweza kughairiwa. Huenda tayari imeanza."
+      "cancelFailed": "Haikuweza kughairiwa. Huenda tayari imeanza.",
+      "contribution": "Kadi za mchango"
     },
     "progressTitle": "Inatuma kadi…",
     "progressDone": "Utumaji umekamilika",
@@ -921,7 +940,22 @@
       "t1": "Siku 1 kabla"
     },
     "remindersSaved": "Mipangilio ya vikumbusho imehifadhiwa",
-    "offline": "Kutuma kunahitaji mtandao. Tutakuruhusu kutuma ukirudi mtandaoni."
+    "offline": "Kutuma kunahitaji mtandao. Tutakuruhusu kutuma ukirudi mtandaoni.",
+    "cardType": "Unatuma nini",
+    "cardTypes": {
+      "invitation": "Kadi za mwaliko",
+      "contribution": "Kadi za mchango"
+    },
+    "contributionHelp": "Kadi ya mchango inaomba mchango tu: haina vitufe vya kujibu wala QR. Zitume hizi kwanza ikiwa unakusanya michango kabla ya kualika watu.",
+    "contributionFollowUp": "Kadi za mchango hutumwa mara moja. Kuwakumbusha wanaodaiwa, tumia kitufe cha kikumbusho kwenye kichupo cha Michango.",
+    "contributionsTab": "Fungua Michango",
+    "contributionsOff": "Michango imezimwa kwa tukio hili, kwa hiyo kadi ya mchango ingesema tu kwamba kuchangia kumefungwa. Iwashe kwenye Mipangilio kwanza.",
+    "openSettings": "Fungua mipangilio",
+    "noContributionGuests": "Hakuna mtu mwenye kadi ya mchango bado. Ongeza mgeni kama kadi ya mchango, au ingiza orodha kama kadi za mchango.",
+    "addGuestLink": "Ongeza mgeni",
+    "importLink": "Ingiza orodha",
+    "confirmTitleContribution": "Tuma kadi za mchango kwa {count, plural, one {mtu #} other {watu #}}?",
+    "whatsappTemplateContribution": "{sender} wanakuomba mchango kwa {kindOf} {couple}. Changia hapa: {link}"
   },
   "cards": {
     "title": "Kadi",
@@ -1788,7 +1822,7 @@
     "tabs": {
       "sender": "Mtumaji",
       "invitation": "Kadi ya mwaliko",
-      "contribution": "Kadi ya michango",
+      "contribution": "Kadi ya mchango",
       "messages": "Ujumbe (SMS)"
     },
     "save": "Hifadhi mabadiliko",
@@ -1847,7 +1881,7 @@
       "qrWarning": "Bila QR, wageni hawana cha kuonyesha langoni isipokuwa namba ya kadi."
     },
     "contribution": {
-      "intro": "Kadi ya michango inamwomba mtu mmoja achangie. Haina vitufe vya kujibu wala QR, na mtu huyo hahesabiwi kama mgeni langoni. Itumie kwa ndugu na marafiki ambao hawawezi kuhudhuria, au unaotaka kuwaomba mchango tu.",
+      "intro": "Kadi ya mchango inamwomba mtu mmoja achangie. Haina vitufe vya kujibu wala QR, na mtu huyo hahesabiwi kama mgeni langoni. Itumie kwa ndugu na marafiki ambao hawawezi kuhudhuria, au unaotaka kuwaomba mchango tu.",
       "eyebrow": "Mstari juu ya majina",
       "title": "Kichwa cha sehemu ya michango",
       "greeting": "Salamu",
@@ -1863,7 +1897,7 @@
       "show": "Kinachoonekana kwenye kadi",
       "showTarget": "Lengo la michango",
       "showProgress": "Kiasi kilichokusanywa hadi sasa",
-      "showProgressHint": "Kila mwenye kadi ya michango ataona jumla. Imezimwa hadi uchague.",
+      "showProgressHint": "Kila mwenye kadi ya mchango ataona jumla. Imezimwa hadi uchague.",
       "showEvent": "Tarehe na mahali pa tukio"
     },
     "messages": {
@@ -1898,7 +1932,7 @@
     "preview": {
       "title": "Hakiki",
       "invitation": "Kadi ya mwaliko",
-      "contribution": "Kadi ya michango",
+      "contribution": "Kadi ya mchango",
       "language": "Lugha",
       "note": "Mgeni na QR wa mfano wanaonyeshwa. Mabadiliko yako ambayo hayajahifadhiwa yanaonekana hapa."
     },

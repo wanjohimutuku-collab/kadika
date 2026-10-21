@@ -451,6 +451,8 @@ export const scheduledSends = pgTable(
       .references(() => events.id, { onDelete: 'cascade' }),
     createdBy: uuid('created_by').references(() => users.id),
     kind: sendKindEnum('kind').notNull(),
+    /** Which cards the send is for: invitation cards, contribution cards, or null for both (older rows). */
+    cardKind: cardKindEnum('card_kind'),
     /** `remaining` | `unanswered` | `all` | `{ guestIds }` | `{ group }` (see `SendTarget`). */
     target: jsonb('target').$type<string | Record<string, unknown>>().notNull(),
     channel: text('channel').notNull().default('auto'),

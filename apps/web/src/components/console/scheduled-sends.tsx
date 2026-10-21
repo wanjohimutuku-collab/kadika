@@ -52,7 +52,13 @@ export function ScheduledSends({ eventId }: { eventId: string }) {
     >
       <ul className="flex flex-col divide-y divide-border" data-testid="scheduled-sends">
         {waiting.map((j) => {
-          const kind = t(j.kind === 'reminder' ? 'reminder' : 'invite');
+          const kind = t(
+            j.cardKind === 'contribution'
+              ? 'contribution'
+              : j.kind === 'reminder'
+                ? 'reminder'
+                : 'invite',
+          );
           const when = formatDateTimeShort(j.scheduledFor!, locale);
           return (
             <li key={j.id} className="flex items-center justify-between gap-3 py-2">

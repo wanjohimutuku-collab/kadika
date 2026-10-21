@@ -156,9 +156,16 @@ export class EventService {
         .where(eq(events.id, eventId));
       brandTheme = mergeBrandTheme(current?.brandTheme ?? null, patch.brandTheme);
     }
+    const values = { ...patch, brandTheme };
+    // Nothing to change (a client toggle the API does not store yet): answer with the event as it is.
+    if (Object.values(values).every((v) => v === undefined)) {
+      const [current] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+      if (!current) throw new ApiError('not_found');
+      return current;
+    }
     const [updated] = await this.deps.db
       .update(events)
-      .set({ ...patch, brandTheme })
+      .set(values)
       .where(eq(events.id, eventId))
       .returning();
     if (!updated) throw new ApiError('not_found');

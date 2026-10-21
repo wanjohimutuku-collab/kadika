@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
 import type { GuestFilter } from '@harusi/api-client';
-import { useGuests } from '../../../../../src/lib/queries';
+import { CARD_KINDS, type CardKind } from '@harusi/schemas';
+import { useEvent, useGuests } from '../../../../../src/lib/queries';
 import { useT } from '../../../../../src/lib/i18n';
 import { initials, statusKey } from '../../../../../src/lib/format';
 import { useColors } from '../../../../../src/lib/theme';
@@ -40,14 +41,24 @@ const TONE = {
 } as const;
 
 export default function Guests() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const t = useT();
   const c = useColors();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<GuestFilter>('all');
+  // which cards to list: everyone, or only invitation or contribution cards (ADR 041)
+  const [cardKind, setCardKind] = useState<'all' | CardKind>(
+    (CARD_KINDS as readonly string[]).includes(card ?? '') ? (card as CardKind) : 'all',
+  );
   const [sheet, setSheet] = useState(false);
-  const query = useMemo(() => ({ search, filter }), [search, filter]);
+  const ev = useEvent(id);
+  const contributionGuests = ev.data?.stats.contributionGuests ?? 0;
+  const query = useMemo(
+    () => ({ search, filter, cardKind: cardKind === 'all' ? undefined : cardKind }),
+    [search, filter, cardKind],
+  );
   const q = useGuests(id, query);
+  const addQuery = cardKind === 'contribution' ? '?card=contribution' : '';
 
   return (
     <Screen footer={<Button icon="plus" label={t('guests.add')} onPress={() => setSheet(true)} />}>
@@ -57,6 +68,23 @@ export default function Guests() {
         value={search}
         onChangeText={setSearch}
       />
+      {contributionGuests > 0 || cardKind !== 'all' ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8 }}
+          accessibilityLabel={t('guests.cardTypeLabel')}
+        >
+          {(['all', ...CARD_KINDS] as const).map((k) => (
+            <Chip
+              key={k}
+              label={t(`guests.cardTypes.${k}`)}
+              active={k === cardKind}
+              onPress={() => setCardKind(k)}
+            />
+          ))}
+        </ScrollView>
+      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -81,19 +109,24 @@ export default function Guests() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.length === 0 ? (
         <EmptyState
-          text={search || filter !== 'all' ? t('guests.emptyFiltered') : t('guests.empty')}
+          text={
+            search || filter !== 'all' || cardKind !== 'all'
+              ? t('guests.emptyFiltered')
+              : t('guests.empty')
+          }
           action={
-            search || filter !== 'all'
+            search || filter !== 'all' || cardKind !== 'all'
               ? {
                   label: t('guests.clearFilters'),
                   onPress: () => {
                     setSearch('');
                     setFilter('all');
+                    setCardKind('all');
                   },
                 }
               : {
                   label: t('guests.addImport'),
-                  onPress: () => router.push(`/event/${id}/guests/import`),
+                  onPress: () => router.push(`/event/${id}/guests/import${addQuery}`),
                 }
           }
         />
@@ -128,8 +161,13 @@ export default function Guests() {
                       color={c.muted}
                     />
                     <Txt size={13} color={c.muted} numberOfLines={1}>
-                      {[g.groupLabel, g.shortCode].filter(Boolean).join(' · ') ||
-                        t('guests.noPhone')}
+                      {[
+                        g.groupLabel,
+                        g.shortCode,
+                        g.cardKind === 'contribution' ? t('guests.cardKindContribution') : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || t('guests.noPhone')}
                       {!g.phoneE164 ? ` · ${t('guests.noPhone')}` : ''}
                     </Txt>
                   </View>
@@ -145,7 +183,7 @@ export default function Guests() {
           label={t('guests.addOne')}
           onPress={() => {
             setSheet(false);
-            router.push(`/event/${id}/guests/new`);
+            router.push(`/event/${id}/guests/new${addQuery}`);
           }}
         />
         <Button
@@ -153,7 +191,7 @@ export default function Guests() {
           label={t('guests.addImport')}
           onPress={() => {
             setSheet(false);
-            router.push(`/event/${id}/guests/import`);
+            router.push(`/event/${id}/guests/import${addQuery}`);
           }}
         />
       </Sheet>

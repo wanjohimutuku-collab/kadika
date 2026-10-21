@@ -5,7 +5,12 @@ import { useTranslations } from 'next-intl';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { guestInputSchema, type GuestInput, type GuestInputParsed } from '@harusi/schemas';
+import {
+  guestInputSchema,
+  type CardKind,
+  type GuestInput,
+  type GuestInputParsed,
+} from '@harusi/schemas';
 import { isRepositoryError, type Guest } from '@harusi/api-client';
 import { Button } from '@/components/ui/button';
 import { Checkbox, PhoneField, Select, TextField, Textarea } from '@/components/ui/form';
@@ -15,6 +20,7 @@ import { getRepository } from '@/lib/repo';
 import { eventScopedKeys, qk } from '@/lib/queries';
 import { useFieldError } from '@/lib/use-field-error';
 import { formatPhone } from '@/lib/format';
+import { CardKindPicker } from './card-kind-picker';
 
 export function guestToInput(g: Guest): GuestInput {
   return {
@@ -48,11 +54,14 @@ export function GuestForm({
   guest,
   onDone,
   allowAddAnother,
+  defaultCardKind,
 }: {
   eventId: string;
   guest?: Guest;
   onDone: (g: Guest) => void;
   allowAddAnother?: boolean;
+  /** The card type a new guest starts with, for example when the organiser came from "contribution cards". */
+  defaultCardKind?: CardKind;
 }) {
   const t = useTranslations('guestForm');
   const tc = useTranslations('common');
@@ -69,12 +78,15 @@ export function GuestForm({
   });
   const form = useForm<GuestInput, unknown, GuestInputParsed>({
     resolver: zodResolver(guestInputSchema),
-    defaultValues: guest ? guestToInput(guest) : EMPTY,
+    defaultValues: guest
+      ? guestToInput(guest)
+      : { ...EMPTY, cardKind: defaultCardKind ?? 'invitation' },
     mode: 'onTouched',
   });
   const { register, control, handleSubmit, formState, setError, setValue, reset, getValues } = form;
   const hasSmartphone = useWatch({ control, name: 'hasSmartphone' });
   const phone = useWatch({ control, name: 'phone' });
+  const cardKind = useWatch({ control, name: 'cardKind' }) ?? 'invitation';
 
   const save = useMutation({
     mutationFn: (input: GuestInput) =>
@@ -94,6 +106,7 @@ export function GuestForm({
                 displayName: input.displayName,
                 groupLabel: input.groupLabel ?? '',
                 partySizeAllowed: Number(input.partySizeAllowed),
+                cardKind: input.cardKind ?? g.cardKind,
               }
             : g,
         ),
@@ -131,10 +144,27 @@ export function GuestForm({
         const v = getValues();
         const g = await save.mutateAsync(v).catch(() => null);
         if (!g) return;
-        if (addAnother.current) reset({ ...EMPTY, groupLabel: v.groupLabel });
+        if (addAnother.current)
+          reset({ ...EMPTY, cardKind: v.cardKind ?? 'invitation', groupLabel: v.groupLabel });
         else onDone(g);
       })}
     >
+      <CardKindPicker
+        name="cardKind"
+        testId="guest-card-kind"
+        legend={t('cardKind')}
+        help={t('cardKindHelp')}
+        labels={{
+          invitation: t('cardKinds.invitation'),
+          contribution: t('cardKinds.contribution'),
+        }}
+        value={cardKind}
+        onChange={(k) => {
+          setValue('cardKind', k, { shouldDirty: true });
+          // a contribution card has no reply, so there is no party to count
+          if (k === 'contribution') setValue('partySizeAllowed', 1);
+        }}
+      />
       <TextField
         label={t('name')}
         hint={t('nameHint')}
@@ -171,21 +201,23 @@ export function GuestForm({
             <option key={g} value={g} />
           ))}
         </datalist>
-        <Controller
-          control={control}
-          name="partySizeAllowed"
-          render={({ field }) => (
-            <Stepper
-              value={Number(field.value)}
-              min={1}
-              max={10}
-              onChange={field.onChange}
-              label={t('party')}
-              decreaseLabel={t('decrease')}
-              increaseLabel={t('increase')}
-            />
-          )}
-        />
+        {cardKind === 'invitation' ? (
+          <Controller
+            control={control}
+            name="partySizeAllowed"
+            render={({ field }) => (
+              <Stepper
+                value={Number(field.value)}
+                min={1}
+                max={10}
+                onChange={field.onChange}
+                label={t('party')}
+                decreaseLabel={t('decrease')}
+                increaseLabel={t('increase')}
+              />
+            )}
+          />
+        ) : null}
       </div>
       <Controller
         control={control}
@@ -201,16 +233,6 @@ export function GuestForm({
             }}
           />
         )}
-      />
-      <Select
-        label={t('cardKind')}
-        hint={t('cardKindHint')}
-        data-testid="guest-card-kind"
-        {...register('cardKind')}
-        options={[
-          { value: 'invitation', label: t('cardKindInvitation') },
-          { value: 'contribution', label: t('cardKindContribution') },
-        ]}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Select

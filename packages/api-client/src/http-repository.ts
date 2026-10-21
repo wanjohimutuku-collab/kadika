@@ -12,16 +12,19 @@ import {
   type Currency,
   type EventInput,
   type GuestInput,
+  type MessageChannel,
   type PilotMetrics,
 } from '@harusi/schemas';
 import { RepositoryError, type RepositoryErrorCode } from './errors';
 import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
+import { buildSampleSms, estimateSmsCostFor } from './domain/sms';
 import type {
   CardView,
   DataRequest,
   Guest,
   GuestQuery,
+  ImportOptions,
   ImportResult,
   ImportRowInput,
   Member,
@@ -148,6 +151,7 @@ interface ApiStats {
   failedMessages: number;
   headcountConfirmed?: number;
   featurePhoneGuests?: number;
+  contributionGuests?: number;
   pledged?: number;
   collected?: number;
   guestsWithBalance?: number;
@@ -172,6 +176,7 @@ function mapStats(s: ApiStats | null): WeddingEvent['stats'] {
     guestsWithBalance: s?.guestsWithBalance ?? 0,
     failedMessages: s?.failedMessages ?? 0,
     featurePhoneGuests: s?.featurePhoneGuests ?? 0,
+    contributionGuests: s?.contributionGuests ?? 0,
   };
 }
 
@@ -676,6 +681,7 @@ export function createHttpRepository(
       if (patch.rsvpDeadline !== undefined) body.rsvpDeadline = patch.rsvpDeadline;
       if (patch.contributionTarget !== undefined)
         body.contributionTarget = patch.contributionTarget;
+      if (patch.pledgesEnabled !== undefined) body.pledgesEnabled = patch.pledgesEnabled;
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
       if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
@@ -835,7 +841,7 @@ export function createHttpRepository(
       return mapCard(token, r.json as unknown as ApiCard);
     },
 
-    async importGuests(eventId, rows: ImportRowInput[], idempotencyKey) {
+    async importGuests(eventId, rows: ImportRowInput[], idempotencyKey, options?: ImportOptions) {
       const csv = toCsv([
         ['Jina', 'Simu', 'Kikundi', 'Idadi'],
         ...rows.map((r) => [r.displayName, r.phoneRaw, r.groupLabel, r.partySizeAllowed]),
@@ -843,7 +849,7 @@ export function createHttpRepository(
       const r = await call<{ created: number; skipped: number }>(
         'POST',
         `/v1/events/${eventId}/guests/import`,
-        { csv },
+        { csv, defaultCardKind: options?.cardKind },
         { 'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey() },
       );
       return { created: r.created, skipped: r.skipped } satisfies ImportResult;
@@ -866,11 +872,12 @@ export function createHttpRepository(
     channel: 'auto' | 'whatsapp' | 'sms',
     key: string,
     kind: 'invite' | 'reminder' = 'invite',
+    cardKind?: CardKind,
   ): Promise<SendJob> {
     const sum = await call<ApiSendSummary>(
       'POST',
       `/v1/events/${encodeURIComponent(eventId)}/invitations/send`,
-      { target, channel, kind },
+      { target, channel, kind, cardKind },
       { 'idempotency-key': key.length >= 8 ? key : newKey() },
     );
     const names = new Map<string, string>();
@@ -880,6 +887,7 @@ export function createHttpRepository(
       id: newKey(),
       eventId,
       kind,
+      cardKind: cardKind ?? null,
       total: sum.total,
       counts: { queued: 0, sent: sum.sent, delivered: 0, failed: sum.failed },
       byChannel: { whatsapp: sum.byChannel.whatsapp, sms: sum.byChannel.sms, print: 0 },
@@ -901,6 +909,7 @@ export function createHttpRepository(
     id: string;
     eventId: string;
     kind: 'invite' | 'reminder';
+    cardKind?: CardKind | null;
     scheduledFor: string;
     status: 'scheduled' | 'running' | 'done' | 'cancelled';
     recipientCount: number;
@@ -916,6 +925,7 @@ export function createHttpRepository(
       id: s.id,
       eventId: s.eventId,
       kind: s.kind,
+      cardKind: s.cardKind ?? null,
       total: sum ? sum.total : s.recipientCount,
       counts: {
         queued: s.status === 'scheduled' || s.status === 'running' ? s.recipientCount : 0,
@@ -958,13 +968,19 @@ export function createHttpRepository(
       const s = await call<ApiScheduledSend>(
         'POST',
         `/v1/events/${encodeURIComponent(eventId)}/scheduled-sends`,
-        { kind: req.kind, target, channel: req.channel, scheduledFor: req.scheduleAt },
+        {
+          kind: req.kind,
+          cardKind: req.cardKind,
+          target,
+          channel: req.channel,
+          scheduledFor: req.scheduleAt,
+        },
         { 'idempotency-key': req.idempotencyKey.length >= 8 ? req.idempotencyKey : newKey() },
       );
       scheduledEvent.set(s.id, eventId);
       return jobFromScheduled(s);
     }
-    return runSend(eventId, target, req.channel, req.idempotencyKey, req.kind);
+    return runSend(eventId, target, req.channel, req.idempotencyKey, req.kind, req.cardKind);
   };
   impl.getSendJob = async (jobId) => {
     const j = sendJobs.get(jobId);
@@ -995,6 +1011,48 @@ export function createHttpRepository(
     );
     scheduledEvent.delete(jobId);
   };
+  // What a send would do right now (ADR 041): the API applies its own audience rules, a sample text prices the SMS.
+  impl.previewSend = async (eventId, req) => {
+    if (req.kind === 'thank_you')
+      throw new RepositoryError('not_implemented', 'Thank-you messages are not available yet');
+    const kind = req.kind;
+    const r = await call<{
+      total: number;
+      byChannel: Record<MessageChannel, number>;
+      withoutPhone: number;
+    }>('POST', `/v1/events/${encodeURIComponent(eventId)}/invitations/preview`, {
+      target: apiTarget(req.audience, kind),
+      channel: req.channel === 'print' ? 'auto' : req.channel,
+      kind,
+      cardKind: req.cardKind,
+    });
+    // A printed card is not sent: everyone the audience matches counts as printed.
+    const byChannel =
+      req.channel === 'print' ? { whatsapp: 0, sms: 0, print: r.total } : r.byChannel;
+    const e = await impl.getEvent!(eventId);
+    const text = buildSampleSms({
+      kind:
+        kind === 'reminder'
+          ? 'reminder'
+          : req.cardKind === 'contribution'
+            ? 'contribution'
+            : 'invite',
+      locale: 'sw',
+      partnerA: e.partnerA,
+      partnerB: e.partnerB,
+      eventKind: e.eventKind,
+      sender: e.senderName,
+      dateText: '14 Des 2026',
+    });
+    const cost = estimateSmsCostFor(text, byChannel.sms, e.currency);
+    return {
+      total: r.total,
+      byChannel,
+      smsSegments: cost.segments,
+      estimatedSmsCost: cost.cost,
+      withoutPhone: r.withoutPhone,
+    };
+  };
   impl.retryFailed = (jobId) => {
     const j = sendJobs.get(jobId);
     if (!j) return Promise.reject(new RepositoryError('not_found', 'Unknown job'));
@@ -1005,7 +1063,7 @@ export function createHttpRepository(
         return Promise.reject(new RepositoryError('validation', 'Nothing failed'));
       return runSend(j.eventId, { guestIds }, 'auto', newKey(), 'reminder');
     }
-    return runSend(j.eventId, 'failed', 'auto', newKey());
+    return runSend(j.eventId, 'failed', 'auto', newKey(), 'invite', j.cardKind ?? undefined);
   };
   impl.sendPledgeReminders = async (eventId, guestIds) => {
     const r = await call<{ sent: number; failed: number; skipped: number }>(

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
+import { CARD_KINDS, type CardKind } from '@harusi/schemas';
 import {
   buildPreview,
   guessMapping,
@@ -11,17 +12,21 @@ import { useGuests, useImportGuests } from '../../../../../src/lib/queries';
 import { useT } from '../../../../../src/lib/i18n';
 import { useColors } from '../../../../../src/lib/theme';
 import { AppHeader } from '../../../../../src/ui/header';
-import { Banner, Button, Field, Row, Screen, Txt } from '../../../../../src/ui/kit';
+import { Banner, Button, Field, Row, Screen, Segmented, Txt } from '../../../../../src/ui/kit';
 import { useRef } from 'react';
 
 /** Three steps (§17.4): choose source → preview → confirm. Nothing is saved until the last step. */
 export default function Import() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const t = useT();
   const c = useColors();
   const existing = useGuests(id);
   const imp = useImportGuests(id);
   const [step, setStep] = useState<1 | 2>(1);
+  // the whole list is one card type: invitation cards, or contribution cards when it came from that link
+  const [cardKind, setCardKind] = useState<CardKind>(
+    card === 'contribution' ? 'contribution' : 'invitation',
+  );
   const [text, setText] = useState('');
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -46,6 +51,7 @@ export default function Import() {
     try {
       const r = await imp.mutateAsync({
         key: key.current!,
+        cardKind,
         rows: preview
           .filter((p) => p.include)
           .map((p) => ({
@@ -79,6 +85,14 @@ export default function Import() {
             tone="success"
             text={`${t('import.done', { count: result.created })}${result.skipped ? ` · ${t('import.doneSkipped', { count: result.skipped })}` : ''}`}
           />
+          {cardKind === 'contribution' ? (
+            <Button
+              variant="secondary"
+              icon="send"
+              label={t('import.goSendContribution')}
+              onPress={() => router.replace(`/event/${id}/send?card=contribution`)}
+            />
+          ) : null}
         </Screen>
       </View>
     );
@@ -109,6 +123,15 @@ export default function Import() {
       >
         {step === 1 ? (
           <>
+            <Txt size={14} bold>
+              {t('import.cardKind')}
+            </Txt>
+            <Segmented<CardKind>
+              value={cardKind}
+              onChange={setCardKind}
+              options={CARD_KINDS.map((k) => ({ value: k, label: t(`guestForm.cardKinds.${k}`) }))}
+            />
+            <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>
             <Txt>{t('import.pasteHint')}</Txt>
             <Field
               label={t('import.pasteLabel')}
@@ -122,6 +145,7 @@ export default function Import() {
           </>
         ) : (
           <>
+            {cardKind === 'contribution' ? <Txt>{t('import.confirmContribution')}</Txt> : null}
             <Txt size={14}>{t('import.nothingSaved')}</Txt>
             <Txt
               bold

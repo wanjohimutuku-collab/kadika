@@ -161,7 +161,7 @@
     "occSendoffBody": "We invite you to our send-off party before the wedding. Please join us in celebrating.",
     "occEngagementContrib": "Your contribution, small or large, helps us make our engagement party a success. Thank you for being with us.",
     "occSendoffContrib": "Your contribution, small or large, helps us make our send-off party a success. Thank you for being with us.",
-    "weddingOf": "The {kind} of",
+    "weddingOf": "The {kindOf}",
     "invitesYou": "invite you, {guest}",
     "dateLine": "{weekday} {date}",
     "timeLine": "At {time}",
@@ -203,7 +203,7 @@
     "addCalendar": "Add to calendar",
     "addHome": "Add to home screen",
     "savePdf": "Save as PDF",
-    "calendarTitle": "{kind} of {couple}",
+    "calendarTitle": "{kindOf} {couple}",
     "pledgeTitle": "Contribution",
     "pledgeSummary": "Pledged {pledged} · Paid {paid} · Balance {balance}",
     "pledgePaidInFull": "Thank you! Your pledge is fully paid.",
@@ -231,14 +231,14 @@
     "footerContactGeneric": "Contact",
     "programmeTitle": "Programme",
     "contribEyebrow": "Contribution for the {kind}",
-    "contribGreeting": "Hello {guest}. We invite you to contribute to our {kind}.",
+    "contribGreeting": "Hello {guest}. We invite you to contribute to the {kindOf} {couple}.",
     "contribMessage": "Your contribution, small or large, helps us make this day possible. Thank you for being with us.",
     "contribTarget": "Contribution goal: {target}",
     "contribProgress": "{collected} raised of {target}",
     "contribDeadline": "Contribute by: {date}",
     "contribSuggested": "Choose an amount",
     "contribWhen": "The event: {date}, {venue}",
-    "contribMeta": "Contribution for the {kind} of {couple}",
+    "contribMeta": "Contribution for the {kindOf} {couple}",
     "contribMetaDescription": "Contribute by phone. {sender}.",
     "contribClosed": "Contributions are not being taken through this card right now."
   },
@@ -698,13 +698,20 @@
     "cardKindContribution": "Contribution card",
     "filter": {
       "contribution": "Contribution cards"
-    }
+    },
+    "cardTypeLabel": "Card type",
+    "cardTypes": {
+      "all": "All cards",
+      "invitation": "Invitation cards",
+      "contribution": "Contribution cards"
+    },
+    "bulkCardKind": "Change card type",
+    "cardKindTitle": "Change the card type for {count, plural, one {# guest} other {# guests}}",
+    "cardKindBody": "The link they already have stays the same but shows the new card. Anyone whose card was already sent is listed as not sent again, so you can send them the new one. People who already replied keep their reply.",
+    "cardKindUpdated": "Card type changed for {count, plural, one {# guest} other {# guests}}"
   },
   "guestForm": {
     "cardKind": "Card type",
-    "cardKindInvitation": "Invitation card",
-    "cardKindContribution": "Contribution card (asks for a contribution only)",
-    "cardKindHint": "A contribution card has no RSVP and no gate QR.",
     "title": "Add guest",
     "editTitle": "Edit guest",
     "name": "Full name",
@@ -788,7 +795,10 @@
     "goSend": "Send cards",
     "rowsLabel": "Preview rows",
     "empty": "No rows found. Make sure each guest is on their own line.",
-    "defaultCardKind": "Send these as"
+    "defaultCardKind": "Send these as",
+    "cardKind": "Card type for this list",
+    "confirmContribution": "They will be added as contribution cards.",
+    "goSendContribution": "Send the contribution cards"
   },
   "guestDetail": {
     "back": "Back to guests",
@@ -807,7 +817,8 @@
       "invite": "Invitation",
       "reminder": "Reminder",
       "thank_you": "Thank you",
-      "test": "Test"
+      "test": "Test",
+      "contribution": "Contribution card"
     },
     "msgStatus": {
       "queued": "Queued",
@@ -847,7 +858,14 @@
     "auditEmpty": "No changes yet.",
     "checkedIn": "Arrived {time} ({count, plural, one {# person} other {# people}})",
     "version": "Card version: {version}",
-    "notFound": "This guest does not exist or was deleted."
+    "notFound": "This guest does not exist or was deleted.",
+    "cardKind": "Card type",
+    "changeCardKind": "Change card type",
+    "toContribution": "Make this a contribution card",
+    "toInvitation": "Make this an invitation card",
+    "toContributionBody": "{name} will no longer get reply buttons or a QR code, and will not be admitted at the gate. Their link stays the same and shows the contribution card.",
+    "toInvitationBody": "{name} will get reply buttons and a QR code, and will count in the invitation list. If their card was already sent they are listed as not sent again, so you can send the invitation.",
+    "timelineContribution": "Contribution card status"
   },
   "send": {
     "title": "Send cards",
@@ -893,7 +911,8 @@
       "cancel": "Cancel",
       "cancelLabel": "Cancel the {kind} on {date}",
       "cancelled": "Cancelled",
-      "cancelFailed": "Could not cancel. It may have already started."
+      "cancelFailed": "Could not cancel. It may have already started.",
+      "contribution": "Contribution cards"
     },
     "progressTitle": "Sending cards…",
     "progressDone": "Sending complete",
@@ -917,7 +936,22 @@
       "t1": "1 day before"
     },
     "remindersSaved": "Reminder settings saved",
-    "offline": "Sending needs a network. You can send when you are back online."
+    "offline": "Sending needs a network. You can send when you are back online.",
+    "cardType": "What to send",
+    "cardTypes": {
+      "invitation": "Invitation cards",
+      "contribution": "Contribution cards"
+    },
+    "contributionHelp": "A contribution card asks for a contribution only: no reply buttons and no QR. Send these first if you are raising money before you invite people.",
+    "contributionFollowUp": "Contribution cards are sent once. To nudge people who still owe, use the reminder button on the Contributions tab.",
+    "contributionsTab": "Open Contributions",
+    "contributionsOff": "Contributions are switched off for this event, so a contribution card would only say that contributions are closed. Switch them on in Settings first.",
+    "openSettings": "Open settings",
+    "noContributionGuests": "Nobody holds a contribution card yet. Add a guest as a contribution card, or import a list as contribution cards.",
+    "addGuestLink": "Add a guest",
+    "importLink": "Import a list",
+    "confirmTitleContribution": "Send contribution cards to {count, plural, one {# person} other {# people}}?",
+    "whatsappTemplateContribution": "{sender} invite you to contribute to the {kindOf} {couple}. Contribute here: {link}"
   },
   "cards": {
     "title": "Cards",

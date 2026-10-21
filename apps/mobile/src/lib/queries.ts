@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { GuestQuery, ImportRowInput, SendRequest, WeddingEvent } from '@harusi/api-client';
-import type { EventInput, GuestInput, PaymentMethod } from '@harusi/schemas';
+import type { CardKind, EventInput, GuestInput, PaymentMethod } from '@harusi/schemas';
 
 export type ManualMethod = PaymentMethod;
 import { getRepository } from './repo';
@@ -58,8 +58,14 @@ export const useCreateGuest = (eventId: string) =>
   );
 export const useImportGuests = (eventId: string) =>
   useInvalidating(
-    (v: { rows: ImportRowInput[]; key: string }) => repo().importGuests(eventId, v.rows, v.key),
+    (v: { rows: ImportRowInput[]; key: string; cardKind?: CardKind }) =>
+      repo().importGuests(eventId, v.rows, v.key, { cardKind: v.cardKind }),
     () => [['guests', eventId], keys.event(eventId)],
+  );
+export const useUpdateGuest = (eventId: string) =>
+  useInvalidating(
+    (v: { guestId: string; patch: Partial<GuestInput> }) => repo().updateGuest(v.guestId, v.patch),
+    (v) => [keys.guest(v.guestId), ['guests', eventId], keys.event(eventId)],
   );
 export const useRecordPayment = (eventId: string) =>
   useInvalidating(

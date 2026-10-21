@@ -1,9 +1,17 @@
 import { and, asc, desc, eq, lte, sql } from 'drizzle-orm';
 import { events, newId, scheduledSends } from '@harusi/db';
+import type { CardKind } from '@harusi/schemas';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
-import { assertTargetFits, type DeliveryService, type SendInput, type SendKind } from './delivery';
+import {
+  assertCardKindFits,
+  assertContributionsOpen,
+  assertTargetFits,
+  type DeliveryService,
+  type SendInput,
+  type SendKind,
+} from './delivery';
 import type { SendSummary, SendTarget } from './delivery';
 import type { EventService } from './events';
 
@@ -19,6 +27,8 @@ const MISSED_AFTER_MS = 24 * 3_600_000;
 
 export interface ScheduleInput {
   kind: SendKind;
+  /** Which cards the send is for; left out, both kinds match (ADR 041). */
+  cardKind?: CardKind;
   target: SendTarget;
   channel?: 'auto' | 'whatsapp' | 'sms';
   scheduledFor: Date;
@@ -28,6 +38,8 @@ export interface ScheduledSendView {
   id: string;
   eventId: string;
   kind: SendKind;
+  /** `null` for sends made before cards had a kind, which went to both. */
+  cardKind: CardKind | null;
   target: SendTarget;
   channel: 'auto' | 'whatsapp' | 'sms';
   scheduledFor: string;
@@ -44,6 +56,7 @@ const view = (r: Row): ScheduledSendView => ({
   id: r.id,
   eventId: r.eventId,
   kind: r.kind,
+  cardKind: r.cardKind ?? null,
   target: r.target as SendTarget,
   channel: r.channel as ScheduledSendView['channel'],
   scheduledFor: r.scheduledFor.toISOString(),
@@ -76,9 +89,11 @@ export class ScheduledSendService {
   async create(eventId: string, userId: string, input: ScheduleInput): Promise<ScheduledSendView> {
     await this.assertCanManage(eventId, userId);
     assertTargetFits(input.kind, input.target);
+    assertCardKindFits(input.kind, input.cardKind);
     const now = this.deps.now();
     const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
     if (!event) throw new ApiError('not_found', 'Event not found');
+    assertContributionsOpen(event, input.cardKind);
     if (input.scheduledFor.getTime() < now.getTime() + MIN_LEAD_MS)
       throw new ApiError('validation', 'Pick a time at least a minute from now', {
         field: 'scheduledFor',
@@ -100,6 +115,7 @@ export class ScheduledSendService {
     const recipientCount = await this.delivery.countAudience(eventId, {
       target: input.target,
       kind: input.kind,
+      cardKind: input.cardKind,
     });
     const [row] = await this.deps.db
       .insert(scheduledSends)
@@ -108,6 +124,7 @@ export class ScheduledSendService {
         eventId,
         createdBy: userId,
         kind: input.kind,
+        cardKind: input.cardKind ?? null,
         target: input.target,
         channel,
         scheduledFor: input.scheduledFor,
@@ -122,6 +139,7 @@ export class ScheduledSendService {
       entityId: row!.id,
       diff: {
         kind: input.kind,
+        cardKind: input.cardKind ?? null,
         channel,
         scheduledFor: input.scheduledFor.toISOString(),
         recipientCount,
@@ -223,6 +241,7 @@ export class ScheduledSendService {
         target: row.target as SendTarget,
         channel: row.channel as SendInput['channel'],
         kind: row.kind,
+        cardKind: row.cardKind ?? undefined,
       };
       try {
         const summary = await this.delivery.run(row.eventId, input);
@@ -235,6 +254,7 @@ export class ScheduledSendService {
           entityId: id,
           diff: {
             kind: row.kind,
+            cardKind: row.cardKind,
             total: summary.total,
             sent: summary.sent,
             failed: summary.failed,

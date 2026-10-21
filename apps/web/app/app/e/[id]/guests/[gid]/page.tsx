@@ -15,9 +15,10 @@ import {
   RefreshCw,
   RotateCcw,
   Wallet,
+  WalletCards,
 } from 'lucide-react';
 import { STATUS_RANK, mockQrPayload, type Guest } from '@harusi/api-client';
-import type { InvitationStatus } from '@harusi/schemas';
+import type { CardKind, InvitationStatus } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { QueryState } from '@/components/console/query-state';
 import { ChannelIcon, GuestStatusPill } from '@/components/console/status';
@@ -51,7 +52,12 @@ function timeline(
   fmt: (iso: string) => string,
 ): TimelineStep[] {
   const declined = g.status === 'declined';
-  return STAGES.map((s) => {
+  // a contribution card has no reply and no gate, so its story ends at "opened"
+  const stages =
+    g.cardKind === 'contribution'
+      ? STAGES.filter((s) => s !== 'confirmed' && s !== 'checked_in')
+      : STAGES;
+  return stages.map((s) => {
     const stage: InvitationStatus = declined && s === 'confirmed' ? 'declined' : s;
     const at = g.timeline[stage];
     const reached = declined
@@ -114,6 +120,7 @@ export default function GuestDetailPage({
   const [editOpen, setEditOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [reissueOpen, setReissueOpen] = useState(false);
+  const [cardKindOpen, setCardKindOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState('');
   const [pledgeOpen, setPledgeOpen] = useState(false);
@@ -152,6 +159,15 @@ export default function GuestDetailPage({
       await refresh();
     },
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+  });
+  const recard = useMutation({
+    mutationFn: (kind: CardKind) => getRepository().updateGuest(gid, { cardKind: kind }),
+    onSuccess: async () => {
+      setCardKindOpen(false);
+      toast({ tone: 'success', title: tg('cardKindUpdated', { count: 1 }) });
+      await refresh();
+    },
+    onError: () => toast({ tone: 'error', title: ts('rolledBack') }),
   });
   const addNote = useMutation({
     mutationFn: () => getRepository().addGuestNote(gid, note),
@@ -211,6 +227,9 @@ export default function GuestDetailPage({
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <GuestStatusPill guest={g} />
+                    {g.cardKind === 'contribution' ? (
+                      <StatusPill tone="info">{tg('cardKindContribution')}</StatusPill>
+                    ) : null}
                     {!g.hasSmartphone ? <StatusPill>{tg('featurePhone')}</StatusPill> : null}
                   </div>
                 </div>
@@ -236,11 +255,15 @@ export default function GuestDetailPage({
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <KeyValue label={t('group')}>{g.groupLabel || '—'}</KeyValue>
-                <KeyValue label={t('party')}>
-                  {g.rsvpPartySize
-                    ? t('partyConfirmed', { count: g.rsvpPartySize })
-                    : t('partyAllowed', { count: g.partySizeAllowed })}
-                </KeyValue>
+                {g.cardKind === 'invitation' ? (
+                  <KeyValue label={t('party')}>
+                    {g.rsvpPartySize
+                      ? t('partyConfirmed', { count: g.rsvpPartySize })
+                      : t('partyAllowed', { count: g.partySizeAllowed })}
+                  </KeyValue>
+                ) : (
+                  <KeyValue label={t('cardKind')}>{tg('cardKindContribution')}</KeyValue>
+                )}
                 <KeyValue label={t('channel')}>
                   <span className="inline-flex items-center gap-1.5">
                     <ChannelIcon
@@ -253,11 +276,13 @@ export default function GuestDetailPage({
                     {tch(g.inviteChannelPref)}
                   </span>
                 </KeyValue>
-                <KeyValue label={t('version', { version: g.tokenVersion })}>
-                  {g.checkedInAt
-                    ? t('checkedIn', { time: fmt(g.checkedInAt), count: g.partyAdmitted })
-                    : '—'}
-                </KeyValue>
+                {g.cardKind === 'invitation' ? (
+                  <KeyValue label={t('version', { version: g.tokenVersion })}>
+                    {g.checkedInAt
+                      ? t('checkedIn', { time: fmt(g.checkedInAt), count: g.partyAdmitted })
+                      : '—'}
+                  </KeyValue>
+                ) : null}
               </dl>
             </Card>
 
@@ -271,14 +296,16 @@ export default function GuestDetailPage({
               >
                 {t('resend')}
               </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                icon={<QrCode className="size-4" aria-hidden="true" />}
-                onClick={() => setQrOpen(true)}
-              >
-                {t('showQr')}
-              </Button>
+              {g.cardKind === 'invitation' ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<QrCode className="size-4" aria-hidden="true" />}
+                  onClick={() => setQrOpen(true)}
+                >
+                  {t('showQr')}
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="secondary"
@@ -287,14 +314,25 @@ export default function GuestDetailPage({
               >
                 {tg('edit')}
               </Button>
+              {g.cardKind === 'invitation' ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<FileDown className="size-4" aria-hidden="true" />}
+                  onClick={() => printCard.mutate()}
+                  loading={printCard.isPending}
+                >
+                  {t('printCard')}
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="secondary"
-                icon={<FileDown className="size-4" aria-hidden="true" />}
-                onClick={() => printCard.mutate()}
-                loading={printCard.isPending}
+                icon={<WalletCards className="size-4" aria-hidden="true" />}
+                onClick={() => setCardKindOpen(true)}
+                data-testid="change-card-kind"
               >
-                {t('printCard')}
+                {t('changeCardKind')}
               </Button>
               <Button
                 size="sm"
@@ -316,9 +354,12 @@ export default function GuestDetailPage({
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <Card title={t('timeline')} titleId="tl-h">
+              <Card
+                title={t(g.cardKind === 'contribution' ? 'timelineContribution' : 'timeline')}
+                titleId="tl-h"
+              >
                 <Timeline
-                  label={t('timeline')}
+                  label={t(g.cardKind === 'contribution' ? 'timelineContribution' : 'timeline')}
                   steps={timeline(g, (s) => tl(s as 'created'), fmt)}
                 />
               </Card>
@@ -380,7 +421,12 @@ export default function GuestDetailPage({
                             <ChannelIcon channel={m.channel} />
                             <div className="min-w-0 flex-1">
                               <p className="font-medium">
-                                {t(`kind.${m.kind}`)} · {t(`msgStatus.${m.status}`)}
+                                {t(
+                                  g.cardKind === 'contribution' && m.kind === 'invite'
+                                    ? 'kind.contribution'
+                                    : `kind.${m.kind}`,
+                                )}{' '}
+                                · {t(`msgStatus.${m.status}`)}
                               </p>
                               {m.error ? (
                                 <p className="text-sm text-danger">
@@ -484,6 +530,24 @@ export default function GuestDetailPage({
                 ) : null}
               </div>
             </BottomSheet>
+
+            <ConfirmSheet
+              open={cardKindOpen}
+              onOpenChange={setCardKindOpen}
+              tone="primary"
+              title={t(g.cardKind === 'contribution' ? 'toInvitation' : 'toContribution')}
+              consequence={t(
+                g.cardKind === 'contribution' ? 'toInvitationBody' : 'toContributionBody',
+                { name: g.displayName },
+              )}
+              confirmLabel={t(g.cardKind === 'contribution' ? 'toInvitation' : 'toContribution')}
+              cancelLabel={tc('cancel')}
+              closeLabel={tc('close')}
+              loading={recard.isPending}
+              onConfirm={() =>
+                recard.mutate(g.cardKind === 'contribution' ? 'invitation' : 'contribution')
+              }
+            />
 
             <ConfirmSheet
               open={reissueOpen}

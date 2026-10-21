@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { eventInputSchema, eventKindLabel, eventKindSuggestions } from '@harusi/schemas';
+import {
+  defaultEventTitle,
+  eventInputSchema,
+  eventKindLabel,
+  eventKindSuggestions,
+  hostNames,
+} from '@harusi/schemas';
 import { COUNTRIES, type Country } from '@harusi/schemas/country';
 import { KENYA_ENABLED } from '../../../src/lib/country';
 import { useCreateEvent } from '../../../src/lib/queries';
@@ -24,6 +30,7 @@ export default function NewEvent() {
   const { locale } = useLocale();
   const create = useCreateEvent();
   const [country, setCountry] = useState<Country>('TZ');
+  // the event type starts as the first suggestion in the language of the screen (Wedding / Harusi)
   const [kind, setKind] = useState<string>(eventKindSuggestions(locale)[0]!);
   const [a, setA] = useState('');
   const [b, setB] = useState('');
@@ -38,7 +45,7 @@ export default function NewEvent() {
   const submit = async () => {
     const iso = toIso(date, time);
     const parsed = eventInputSchema.safeParse({
-      title: `${kind.trim() || 'Mwaliko'} ya ${[a.trim(), b.trim()].filter(Boolean).join(' & ')}`,
+      title: defaultEventTitle(kind, hostNames(a, b), locale),
       eventKind: kind,
       country,
       partnerA: a,

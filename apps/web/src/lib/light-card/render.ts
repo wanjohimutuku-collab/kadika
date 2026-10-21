@@ -1,4 +1,4 @@
-import { eventKindLabel, occasionOf } from '@harusi/schemas';
+import { eventKindLabel, eventKindOf, occasionOf } from '@harusi/schemas';
 import {
   flag,
   pick,
@@ -9,7 +9,7 @@ import {
 import { messages, pickMessages, type Locale } from '@harusi/i18n';
 import { lightColors } from '@harusi/ui-tokens/colors';
 import { mixHex, resolvePalette, type Palette } from '@harusi/ui-tokens/palette';
-import type { CardView } from '@harusi/api-client';
+import { senderNameFor, type CardView } from '@harusi/api-client';
 import { formatIcu } from '../icu';
 import { qrMatrix, qrPath, QR_QUIET_ZONE } from '../qr';
 import {
@@ -253,6 +253,8 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const L = (v?: { sw?: string; en?: string }) => pick(v, locale);
   const kindName = eventKindLabel(event.eventKind, locale);
   const kindLower = kindName.toLowerCase();
+  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 041)
+  const kindOfName = eventKindOf(event.eventKind, locale);
   // Built-in wording per card category (uchumba, send-off); the organiser's own text always wins.
   const occasion = occasionOf(event.eventKind);
   const occBody =
@@ -271,7 +273,8 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
         ? t.occSendoffContrib
         : undefined;
   const senderKind = senderKindOf(content);
-  const sender = content.sender?.name?.trim() || event.senderName;
+  // the organiser's own wording wins; the stored default is Swahili, so it is re-worded for an English reader
+  const sender = senderNameFor(event, locale);
   const phoneRaw = content.sender?.phone?.trim() || event.committeePhone || '';
   const phone = formatPhone(phoneRaw, event.country ?? 'TZ');
   const telHref = phoneRaw.replace(/[^\d+]/g, '');
@@ -414,10 +417,10 @@ ${hasPhone ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(
       : fmt(t.contribEyebrow!, { kind: kindLower })
     : L(inv.eyebrow)
       ? say(L(inv.eyebrow)!)
-      : fmt(t.weddingOf!, { kind: kindName });
+      : fmt(t.weddingOf!, { kind: kindName, kindOf: kindOfName });
   const showWhen = !isContribution || shown(con.show, 'eventDetails');
   const lead = isContribution
-    ? `<p class="lead">${esc(L(con.greeting) ? say(L(con.greeting)!) : fmt(t.contribGreeting!, { guest: guest.displayName, kind: kindLower }))}</p>`
+    ? `<p class="lead">${esc(L(con.greeting) ? say(L(con.greeting)!) : fmt(t.contribGreeting!, { guest: guest.displayName, couple: event.coupleNames, kindOf: kindOfName.toLowerCase() }))}</p>`
     : L(inv.greeting)
       ? `<p class="lead">${esc(say(L(inv.greeting)!))}</p>`
       : event.greeting
@@ -499,6 +502,7 @@ ${closingSection}
       start: event.dateStart,
       couple: event.coupleNames,
       kind: eventKindLabel(event.eventKind, locale),
+      kindOf: kindOfName,
       venue: event.venueName,
       dress: event.dressCode ?? '',
       domain: o.domain,
@@ -506,8 +510,12 @@ ${closingSection}
   };
 
   const title = isContribution
-    ? fmt(t.contribMeta!, { couple: event.coupleNames, kind: kindLower })
-    : fmt(t.metaTitle!, { couple: event.coupleNames, kind: kindName });
+    ? fmt(t.contribMeta!, {
+        couple: event.coupleNames,
+        kind: kindLower,
+        kindOf: kindOfName.toLowerCase(),
+      })
+    : fmt(t.metaTitle!, { couple: event.coupleNames, kind: kindName, kindOf: kindOfName });
   const description = isContribution
     ? fmt(t.contribMetaDescription!, { sender })
     : fmt(t.metaDescription!, {

@@ -3,6 +3,7 @@ import { buildContributionSms, buildInviteSms, buildReminderSms } from '@harusi/
 import {
   defaultSender,
   eventKindLabel,
+  eventKindOf,
   formatMoney,
   hostNames,
   toZoned,
@@ -143,6 +144,6 @@ export function composeSms(
   // pledge reminder default
   const sw = locale === 'sw';
   return sw
-    ? `Habari ${vars.guest}, mchango wa ${vars.kind} ya ${vars.hosts}: ahadi ${vars.pledged}, salio ${vars.balance}. Lipa hapa: ${vars.link}`
-    : `Hello ${vars.guest}, your gift for the ${vars.kind} of ${vars.hosts}: pledged ${vars.pledged}, balance ${vars.balance}. Pay here: ${vars.link}`;
+    ? `Habari ${vars.guest}, mchango wa ${eventKindOf(i.event.eventKind, locale).toLowerCase()} ${vars.hosts}: ahadi ${vars.pledged}, salio ${vars.balance}. Lipa hapa: ${vars.link}`
+    : `Hello ${vars.guest}, your contribution to the ${eventKindOf(i.event.eventKind, locale).toLowerCase()} ${vars.hosts}: pledged ${vars.pledged}, balance ${vars.balance}. Pay here: ${vars.link}`;
 }

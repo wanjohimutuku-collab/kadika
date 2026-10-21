@@ -27,6 +27,7 @@ import type {
   GateOverview,
   Guest,
   GuestQuery,
+  ImportOptions,
   ImportResult,
   ImportRowInput,
   Member,
@@ -105,6 +106,7 @@ export interface Repository {
     eventId: string,
     rows: ImportRowInput[],
     idempotencyKey: string,
+    options?: ImportOptions,
   ): Promise<ImportResult>;
   reissueGuest(guestId: string): Promise<Guest>;
   addGuestNote(guestId: string, note: string): Promise<AuditEntry>;

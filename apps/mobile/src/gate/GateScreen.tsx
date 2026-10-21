@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { BundleGuest, GateRole, ScanOutcome } from '@harusi/gate';
-import { gateColorsAaa } from '@harusi/ui-tokens';
+import { gateColors } from '@harusi/ui-tokens';
 import { useT } from '../lib/i18n';
 import { useColors } from '../lib/theme';
 import { Banner, Button, Field, Sheet, Txt } from '../ui/kit';
@@ -404,10 +404,10 @@ function ResultOverlay({
   const t = useT();
   const fill =
     outcome.kind === 'admit'
-      ? gateColorsAaa.admit
+      ? gateColors.admit
       : outcome.kind === 'duplicate'
-        ? gateColorsAaa.duplicate
-        : gateColorsAaa.deny;
+        ? gateColors.duplicate
+        : gateColors.deny;
   const icon = outcome.kind === 'admit' ? '✔' : outcome.kind === 'duplicate' ? '⚠' : '✖';
   const word =
     outcome.kind === 'admit'

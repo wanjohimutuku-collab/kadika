@@ -5,7 +5,7 @@ import { mergeVariant, type MessageCountry } from './variants';
 export type Messages = typeof sw;
 export const locales = ['sw', 'en'] as const;
 export type Locale = (typeof locales)[number];
-export const defaultLocale: Locale = 'sw';
+export const defaultLocale: Locale = 'en';
 export const LOCALE_COOKIE = 'NEXT_LOCALE';
 
 export const messages: Record<Locale, Messages> = { sw, en: en as Messages };

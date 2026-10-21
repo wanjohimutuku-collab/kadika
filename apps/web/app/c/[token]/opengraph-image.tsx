@@ -3,6 +3,7 @@ import { resolvePalette } from '@harusi/ui-tokens/palette';
 import { previewCardOnServer } from '@/lib/server-card';
 import { eventKindOf, hostNames } from '@harusi/schemas';
 import { formatDate } from '@/lib/format';
+import { LOGO_SVG, svgDataUri } from '@/lib/brand-assets';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -29,7 +30,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
       }}
     >
       <div style={{ fontSize: 34, letterSpacing: 8, textTransform: 'uppercase', opacity: 0.9 }}>
-        {eventKindOf(ev?.eventKind, 'sw')}
+        {eventKindOf(ev?.eventKind, 'en')}
       </div>
       <div style={{ fontSize: 110, fontWeight: 700, marginTop: 10 }}>
         {ev ? hostNames(ev.partnerA, ev.partnerB) : 'Harusi Pass'}
@@ -37,18 +38,26 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
       {ev ? (
         <div
           style={{ fontSize: 40, marginTop: 18 }}
-        >{`${formatDate(ev.dateStart, 'sw')} · ${ev.venueName}`}</div>
+        >{`${formatDate(ev.dateStart, 'en')} · ${ev.venueName}`}</div>
       ) : null}
+      {/* The business logo on a light badge, so the dark logo reads on every theme colour (ADR 036). */}
       <div
         style={{
           position: 'absolute',
-          bottom: 36,
-          fontSize: 28,
-          opacity: 0.85,
+          bottom: 30,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 22,
+          background: '#FBF8F3',
+          color: '#1B1B1F',
+          borderRadius: 20,
+          padding: '10px 28px',
+          fontSize: 26,
           fontFamily: 'sans-serif',
         }}
       >
-        harusipass · mwaliko rasmi
+        <img src={svgDataUri(LOGO_SVG)} width={Math.round((52 * 503.1) / 260)} height={52} />
+        <span>mwaliko rasmi</span>
       </div>
     </div>,
     size,

@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
 import { COUNTRIES, currencyOf } from '@harusi/schemas/country';
 import { Select, TextField } from '@/components/ui/form';
+import { KindChips } from '@/components/console/kind-chips';
 import { KENYA_ENABLED } from '@/lib/country';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
@@ -67,7 +68,7 @@ const COVERS = [
 
 const EMPTY: EventInput = {
   title: '',
-  eventKind: 'Harusi',
+  eventKind: 'Wedding',
   country: 'TZ',
   partnerA: '',
   partnerB: '',
@@ -75,7 +76,7 @@ const EMPTY: EventInput = {
   venueName: '',
   venueMapUrl: '',
   dressCode: '',
-  languageDefault: 'sw',
+  languageDefault: 'en',
   themeId: 'emerald-gold',
   coverGradient: '',
   rsvpDeadline: '',
@@ -262,6 +263,13 @@ export default function NewEventPage() {
                   options={COUNTRIES.map((c) => ({ value: c, label: tc(`countries.${c}`) }))}
                 />
               ) : null}
+              <KindChips
+                label={t('kind')}
+                value={values.eventKind ?? ''}
+                onChange={(k) =>
+                  setValue('eventKind', k, { shouldDirty: true, shouldValidate: true })
+                }
+              />
               <TextField
                 label={t('kind')}
                 hint={t('kindHint')}

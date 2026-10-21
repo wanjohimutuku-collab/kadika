@@ -74,6 +74,8 @@ export const users = pgTable(
     status: userStatusEnum('status').notNull().default('active'),
     suspendedReason: text('suspended_reason'),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+    /** Set when staff complete a PDPA deletion request (ADR 039): name and phone are wiped. */
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex('users_phone_e164_uq').on(t.phoneE164)],
@@ -97,7 +99,7 @@ export const events = pgTable('events', {
   committeePhone: text('committee_phone'),
   senderName: text('sender_name'),
   greeting: text('greeting'),
-  languageDefault: languageEnum('language_default').notNull().default('sw'),
+  languageDefault: languageEnum('language_default').notNull().default('en'),
   /** Country, currency and time zone of the event (ADR 025). Amount columns are in `currency`. */
   country: countryEnum('country').notNull().default('TZ'),
   currency: currencyEnum('currency').notNull().default('TZS'),
@@ -171,7 +173,7 @@ export const guests = pgTable(
     // Last 8 hex characters of the guest id: the on-card id inside the signed QR (ADR 013).
     guestShort: text('guest_short').notNull(),
     tokenVersion: integer('token_version').notNull().default(1),
-    language: languageEnum('language').notNull().default('sw'),
+    language: languageEnum('language').notNull().default('en'),
     inviteChannelPref: channelPrefEnum('invite_channel_pref').notNull().default('mixed'),
     notes: text('notes'),
     /** Guest asked to stop reminders from the card page (§7.4). Invitations are unaffected. */
@@ -470,4 +472,77 @@ export const retiredCardTokens = pgTable(
     ...timestamps,
   },
   (t) => [uniqueIndex('retired_card_tokens_hash_uq').on(t.tokenHash)],
+);
+
+/**
+ * SMS and WhatsApp provider settings, edited by staff in /ops (ADR 031). One row per route
+ * (`sms_tz`, `sms_ke`, `whatsapp`). The whole provider config, secrets included, is AES-GCM
+ * encrypted with KEY_ENC_SECRET. A route without a row uses the environment variables.
+ */
+export const messagingSettings = pgTable('messaging_settings', {
+  route: text('route').primaryKey(),
+  provider: text('provider').notNull(),
+  configEnc: text('config_enc').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+/**
+ * Payment gateway settings staff edit in /ops/settings (ADR 036), one row per route. Same storage as
+ * messaging_settings: the provider config is AES-GCM encrypted with KEY_ENC_SECRET. No row = the
+ * environment variables are used.
+ */
+export const paymentSettings = pgTable('payment_settings', {
+  route: text('route').primaryKey(),
+  provider: text('provider').notNull(),
+  configEnc: text('config_enc').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+/**
+ * Business branding (ADR 036): a single row (`id = 'default'`). Public by design: name, colours and fonts
+ * are served to every visitor, and the logo at /v1/branding/logo. `logo_data` is the SVG source, or
+ * base64 for PNG/JPEG/WebP; `logo_version` changes on every upload so caches refresh.
+ */
+export const brandSettings = pgTable('brand_settings', {
+  id: text('id').primaryKey(),
+  businessName: text('business_name').notNull(),
+  tagline: text('tagline').notNull().default(''),
+  primary: text('primary'),
+  accent: text('accent'),
+  fontBody: text('font_body').notNull().default('system'),
+  fontDisplay: text('font_display').notNull().default('elegant'),
+  logoMime: text('logo_mime'),
+  logoData: text('logo_data'),
+  logoVersion: integer('logo_version').notNull().default(0),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+export const dataRequestKindEnum = pgEnum('data_request_kind', ['export', 'deletion']);
+export const dataRequestStatusEnum = pgEnum('data_request_status', ['open', 'done', 'rejected']);
+
+/**
+ * PDPA requests customers file from Akaunti and staff resolve in /ops/requests (ADR 012, 039).
+ * `user_name` and `phone_e164` are copied at filing time so the queue still reads after a deletion
+ * wipes the account; a completed deletion clears the phone here too.
+ */
+export const dataRequests = pgTable(
+  'data_requests',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    userName: text('user_name').notNull(),
+    phoneE164: text('phone_e164'),
+    kind: dataRequestKindEnum('kind').notNull(),
+    status: dataRequestStatusEnum('status').notNull().default('open'),
+    note: text('note').notNull().default(''),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+    resolvedBy: uuid('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [index('data_requests_status_idx').on(t.status, t.createdAt)],
 );

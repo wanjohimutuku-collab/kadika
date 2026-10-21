@@ -1,0 +1,152 @@
+{
+  "sw": {
+    "ops": {
+      "nav": {
+        "messaging": "SMS na WhatsApp"
+      },
+      "messaging": {
+        "title": "SMS na WhatsApp",
+        "intro": "Watoa huduma wanaotuma kadi, vikumbusho na namba za kuingia. Mabadiliko yanaanza kutumika mara moja, bila kuwasha upya seva.",
+        "route": {
+          "sms_tz": "SMS · Tanzania",
+          "sms_ke": "SMS · Kenya",
+          "whatsapp": "WhatsApp"
+        },
+        "provider": "Mtoa huduma",
+        "providers": {
+          "fake": "Majaribio (haitumi chochote)",
+          "nextsms": "NextSMS",
+          "africastalking": "Africa's Talking",
+          "evolution": "Evolution API",
+          "cloud": "WhatsApp Cloud API (Meta)"
+        },
+        "fakeWarning": "Hakuna ujumbe utakaotumwa kwa mtoa huduma huyu. Waandaaji hawatapokea namba za kuingia.",
+        "source": {
+          "database": "Imehifadhiwa hapa · {when} na {by}",
+          "environment": "Inatoka kwenye vigezo vya mazingira (env) ya seva"
+        },
+        "active": "Inayotuma sasa: {name}",
+        "secretSaved": "Imehifadhiwa ({hint}). Acha tupu kuiweka.",
+        "secretNew": "Haijawekwa",
+        "templates": "Violezo vya WhatsApp vilivyoidhinishwa",
+        "templatesKe": "Violezo vya Kenya",
+        "save": "Hifadhi",
+        "saved": "Mipangilio ya {route} imehifadhiwa",
+        "reset": "Rudi kwenye env",
+        "resetTitle": "Rudisha {route} kwenye vigezo vya mazingira?",
+        "resetBody": "Mipangilio iliyohifadhiwa hapa itafutwa na seva itatumia tena vigezo vya env.",
+        "resetDone": "{route} inatumia vigezo vya env tena",
+        "test": "Tuma ujumbe wa majaribio",
+        "testTo": "Namba ya kupokea",
+        "testSend": "Tuma",
+        "testOk": "Ujumbe umetumwa kupitia {provider}",
+        "testFailed": "Haukutumwa: {error}",
+        "webhooks": "Anwani za taarifa za kufika (webhooks)",
+        "webhooksIntro": "Weka anwani hizi kwenye dashibodi ya mtoa huduma. Zinahitaji WEBHOOK_SECRET (au App Secret ya Meta).",
+        "noPermission": "Ni wafanyakazi wenye ngazi ya admin pekee wanaoweza kuona na kubadilisha mipangilio hii.",
+        "field": {
+          "username": "Jina la mtumiaji",
+          "password": "Nenosiri",
+          "senderId": "Jina la mtumaji (Sender ID)",
+          "apiKey": "API key",
+          "baseUrl": "Anwani ya API (URL)",
+          "instance": "Jina la instance",
+          "token": "Access token",
+          "phoneNumberId": "Phone number ID",
+          "apiVersion": "Toleo la Graph API",
+          "verifyToken": "Verify token ya webhook",
+          "appSecret": "App secret",
+          "templateInvite": "Mwaliko",
+          "templateReminder": "Kikumbusho",
+          "templatePledge": "Ahadi",
+          "templateContribution": "Kadi ya mchango",
+          "templateInviteKe": "Mwaliko (Kenya)",
+          "templateReminderKe": "Kikumbusho (Kenya)",
+          "templatePledgeKe": "Ahadi (Kenya)",
+          "templateContributionKe": "Kadi ya mchango (Kenya)"
+        },
+        "missing": "Jaza sehemu hizi kwanza: {fields}"
+      },
+      "audit": {
+        "action": {
+          "messaging": "Alibadilisha SMS/WhatsApp"
+        }
+      }
+    }
+  },
+  "en": {
+    "ops": {
+      "nav": {
+        "messaging": "SMS & WhatsApp"
+      },
+      "messaging": {
+        "title": "SMS & WhatsApp",
+        "intro": "The providers that send cards, reminders and login codes. Changes apply straight away, without restarting the server.",
+        "route": {
+          "sms_tz": "SMS · Tanzania",
+          "sms_ke": "SMS · Kenya",
+          "whatsapp": "WhatsApp"
+        },
+        "provider": "Provider",
+        "providers": {
+          "fake": "Test (sends nothing)",
+          "nextsms": "NextSMS",
+          "africastalking": "Africa's Talking",
+          "evolution": "Evolution API",
+          "cloud": "WhatsApp Cloud API (Meta)"
+        },
+        "fakeWarning": "Nothing is sent with this provider. Organizers will not receive their login codes.",
+        "source": {
+          "database": "Saved here · {when} by {by}",
+          "environment": "From the server's environment variables"
+        },
+        "active": "Sending now: {name}",
+        "secretSaved": "Saved ({hint}). Leave empty to keep it.",
+        "secretNew": "Not set",
+        "templates": "Approved WhatsApp templates",
+        "templatesKe": "Kenya templates",
+        "save": "Save",
+        "saved": "{route} settings saved",
+        "reset": "Back to env",
+        "resetTitle": "Reset {route} to the environment variables?",
+        "resetBody": "The settings saved here are deleted and the server uses its env variables again.",
+        "resetDone": "{route} uses the env variables again",
+        "test": "Send a test message",
+        "testTo": "Recipient number",
+        "testSend": "Send",
+        "testOk": "Message sent through {provider}",
+        "testFailed": "Not sent: {error}",
+        "webhooks": "Delivery report addresses (webhooks)",
+        "webhooksIntro": "Enter these in the provider's dashboard. They need WEBHOOK_SECRET (or Meta's App Secret).",
+        "noPermission": "Only admin-level staff can see and change these settings.",
+        "field": {
+          "username": "Username",
+          "password": "Password",
+          "senderId": "Sender ID",
+          "apiKey": "API key",
+          "baseUrl": "API URL",
+          "instance": "Instance name",
+          "token": "Access token",
+          "phoneNumberId": "Phone number ID",
+          "apiVersion": "Graph API version",
+          "verifyToken": "Webhook verify token",
+          "appSecret": "App secret",
+          "templateInvite": "Invitation",
+          "templateReminder": "Reminder",
+          "templatePledge": "Pledge",
+          "templateContribution": "Contribution card",
+          "templateInviteKe": "Invitation (Kenya)",
+          "templateReminderKe": "Reminder (Kenya)",
+          "templatePledgeKe": "Pledge (Kenya)",
+          "templateContributionKe": "Contribution card (Kenya)"
+        },
+        "missing": "Fill in these fields first: {fields}"
+      },
+      "audit": {
+        "action": {
+          "messaging": "Changed SMS/WhatsApp"
+        }
+      }
+    }
+  }
+}

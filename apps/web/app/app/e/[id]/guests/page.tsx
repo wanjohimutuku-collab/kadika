@@ -103,7 +103,7 @@ function GuestsInner({ id }: { id: string }) {
       ? (params.get('filter') as GuestFilter)
       : 'all',
   );
-  // which cards to list: everyone, or only invitation or contribution cards (ADR 031)
+  // which cards to list: everyone, or only invitation or contribution cards (ADR 040)
   const [cardKind, setCardKind] = useState<'all' | CardKind>(
     (CARD_KINDS as readonly string[]).includes(params.get('card') ?? '')
       ? (params.get('card') as CardKind)

@@ -1,7 +1,223 @@
-# Coolify deploy notes
+# Build, push and deploy
 
-Placeholder for Phase 7. Planned services: api, web, postgres, redis, minio.
+> **Deploys no longer use GitHub Actions** ([ADR 037](../../docs/adr/037-local-deploys.md)). The workflow was
+> removed after the account's Actions budget ran out and every run failed before starting. `./scripts/deploy.sh`
+> does the same steps from your machine; see "Deploying without GitHub Actions" below. Older text on this page
+> that mentions the workflow or a green run describes what the script now does.
 
-- Build context: repo root; Dockerfiles in `infra/docker/`.
-- API release command (before start): `node dist/migrate.js`.
-- Env: see `/.env.example`.
+How a commit becomes a running server: `scripts/deploy.sh` builds the API and web images, pushes them to GitHub
+Container Registry (GHCR), then moves a deploy branch to that commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
+redeploys it, and only once the new images exist ([ADR 034](../../docs/adr/034-deploy-branch-webhook.md)). The run
+then waits until the live API and web app report the new commit, so a green run means the deploy is live
+([ADR 035](../../docs/adr/035-confirm-deploys-went-live.md)).
+
+## The flow
+
+| You do                               | Images are tagged                    | Branch moved                           | Coolify deploys |
+| ------------------------------------ | ------------------------------------ | -------------------------------------- | --------------- |
+| Merge or push to `main`              | `staging`, `main`, `sha-<short>`     | `deploy/staging`                       | staging         |
+| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>` | `deploy/production`                    | production      |
+| Run the workflow by hand on `main`   | `staging`, `main`, `sha-<short>`     | `deploy/staging` if "deploy" is ticked | staging         |
+| Run the workflow by hand on a branch | `<branch>`, `sha-<short>`            | none                                   | nothing         |
+
+- A release tag only builds if CI already passed on that commit, so tag a commit that is green on `main`.
+- The images are `ghcr.io/<owner>/<repo>-api` and `ghcr.io/<owner>/<repo>-web` (lower case).
+- `staging` and `production` move with each build. `sha-<short>` and the version tag never move, so use them to
+  pin or roll back.
+- One Coolify stack per environment ([`docker-compose.coolify.yml`](../../docker-compose.coolify.yml)) runs api,
+  web, postgres and redis, so one push to its deploy branch redeploys it. The API (and its migrations) starts
+  before the web app.
+- The branch moves only after both images are pushed and pass the smoke test. The stack never tracks `main`
+  directly: a push to `main` reaches Coolify minutes before the new images exist, so it would redeploy the old ones.
+- Never commit to `deploy/*` by hand. The workflow force-moves them, and nothing else should.
+- The images are built for `linux/amd64`.
+
+## One-time setup
+
+### 1. GitHub environments
+
+Create two environments, `staging` and `production`, under Settings → Environments. On `production`, add a
+required reviewer and limit it to `v*` tags. The workflow reads these from the environment it deploys to:
+
+| Kind     | Name                        | Value                                                                                                                                                                           |
+| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable | `NEXT_PUBLIC_API_URL`       | Public `https://` address of that environment's API. **Required**; the build stops without it.                                                                                  |
+| Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The official link domain; when set it also turns on host routing (below). Set it on `production` only, to `kadisasa.com`. Defaults to `harusipass.co.tz`, no routing. |
+| Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                                                                                                   |
+| Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                          |
+| Variable | `DEPLOY_WEB_URL`            | Optional. Public `https://` address of that environment's web app, used to confirm the deploy. Defaults to `NEXT_PUBLIC_SITE_URL`; without either only the API is confirmed.    |
+
+The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not
+just a restart. Images are never built in mock mode. No Coolify secret is needed in GitHub: the workflow's own
+token moves the deploy branch, and Coolify hears about it through its GitHub App.
+
+### 2. GHCR access
+
+The first push creates the two packages, private by default. Either make them public, or give Coolify a GitHub
+personal access token with the `read:packages` scope as a registry credential so it can pull them.
+
+### 3. Coolify (one stack per environment)
+
+On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coolify.korahost.com), project
+`kadika`, for staging (production is the same with the production values):
+
+1. **+ New → Application → Private Repository (with GitHub App)**, branch **`deploy/staging`** (`deploy/production`
+   for production), build pack **Docker Compose**. Base directory `/`, Docker Compose location
+   `/docker-compose.coolify.yml`. Coolify only reads the compose file from the repo; it pulls the prebuilt GHCR
+   images and builds nothing on the VPS. The branch exists after the first workflow run that deploys; run the
+   workflow on `main` with "deploy" ticked if it does not exist yet.
+2. **Domains.** Coolify lists `api` and `web`. Staging uses `https://staging-api.kadisasa.com` (port 3001) on
+   `api` and `https://staging.kadisasa.com` (port 3000) on `web`; single-level names, so Cloudflare's free
+   certificate covers them. The `api` domain must equal the `NEXT_PUBLIC_API_URL` GitHub variable.
+   DNS: an A record per domain pointing at the VPS. Behind Cloudflare's proxy, set SSL/TLS to **Full (strict)**.
+3. **Environment variables.** Coolify generates the database and Redis passwords, `JWT_SECRET`,
+   `KEY_ENC_SECRET` and `WEBHOOK_SECRET` (the `SERVICE_*` magic variables) and keeps them. Fill in:
+   - `SHORT_BASE_URL` (required; the short link domain, or the web URL),
+   - `IMAGE_TAG`: leave `staging`; use `production` on the production stack,
+   - the SMS, WhatsApp and payment provider values when they are chosen (all default to `fake`).
+
+   Never regenerate or edit `KEY_ENC_SECRET` once events exist: it decrypts every event's signing key.
+
+4. **GHCR pull access** (step 2) on the server, then **Deploy** once by hand.
+5. **Configuration → General → Auto Deploy: on.** The GitHub App already delivers push events, so there is no
+   webhook to add in GitHub. To check it: run the workflow on `main` with "deploy" ticked, look for
+   `Deploy requested: deploy/staging -> <sha>` in the run summary, and a new deployment in Coolify's Deployments tab
+   a few seconds later. If nothing arrives, open the GitHub App's **Advanced → Recent Deliveries** in GitHub
+   (Settings → Developer settings → GitHub Apps) and check the `push` delivery for `deploy/staging`.
+
+**Migrations.** The stack's `api` command runs `node dist/migrate.js` before the server starts, in the new
+image, so no Coolify pre-deployment hook is needed. Keep one `api` container: the migrator takes no lock.
+
+**Backups.** Postgres lives in the stack's `pgdata` volume. Schedule `infra/backup/pg-backup.sh` (see
+[`RESTORE.md`](RESTORE.md)); Coolify's built-in scheduled backups only cover standalone database resources.
+
+## Production hostnames (kadisasa.com)
+
+One web image serves three surfaces, and the hostname decides which one a request reaches
+([ADR 032](../../docs/adr/032-host-routing.md)). A request for a surface that lives on another host is redirected
+there, so the staff panel never answers on the public host.
+
+| Host                               | Serves                                            | Where             |
+| ---------------------------------- | ------------------------------------------------- | ----------------- |
+| `kadisasa.com`, `www.kadisasa.com` | Public site and the guest card (`/c`, `/s`, `/k`) | the `web` service |
+| `app.kadisasa.com`                 | Customer and reseller console (`/app`)            | the `web` service |
+| `my.kadisasa.com`                  | Staff panel (`/ops`)                              | the `web` service |
+| `api.kadisasa.com`                 | The API                                           | the `api` service |
+| `blog.kadisasa.com`                | Nothing yet: there is no blog in this repo        | not deployed      |
+| `mail.kadisasa.com`                | Nothing yet: there is no mail server in this repo | not deployed      |
+
+In the production stack, give the **one** `web` service all four web domains (`kadisasa.com`, `www.kadisasa.com`,
+`app.kadisasa.com`, `my.kadisasa.com`), with `https://kadisasa.com` first, and the `api` service `api.kadisasa.com`.
+The stack sets `CORS_ORIGINS` and `APP_BASE_URL` from the `web` service's first domain. Build the production image
+with `NEXT_PUBLIC_APP_DOMAIN=kadisasa.com` and `NEXT_PUBLIC_API_URL=https://api.kadisasa.com`.
+
+Environment variables for the production stack's `api` service (see [`/.env.example`](../../.env.example) for the rest):
+
+| Variable             | Value                                                                       | Why                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `CORS_EXTRA_ORIGINS` | `https://www.kadisasa.com,https://app.kadisasa.com,https://my.kadisasa.com` | The browser calls the API from every web host; the stack already allows the `web` service's first domain. |
+| `SHORT_BASE_URL`     | `https://kadisasa.com`                                                      | Card links in SMS and WhatsApp messages open on the public host.                                          |
+
+A staff member signs in at `my.kadisasa.com` and a customer at `app.kadisasa.com`. The session belongs to the host,
+so signing in on the wrong one sends you to the right host to sign in again.
+
+**DNS (Cloudflare).** `kadisasa.com`, `www`, `app`, `my` and `mail` already have records. `api` and `blog` do not;
+add `api` before the first deploy, or the web app has no API to call. Turn the Cloudflare proxy off for anything
+that carries mail (the `MX` target and the SMTP and IMAP hosts), because the proxy only carries web traffic. The
+free Cloudflare certificate covers `kadisasa.com` and `*.kadisasa.com` only, so a name two levels down, such as
+`api.staging.kadisasa.com`, will not get a valid certificate while it is proxied. For staging use a single-level
+name such as `staging-api.kadisasa.com`.
+
+## Did the deploy work?
+
+Look at the run of **Build and push images** for your commit in GitHub → Actions:
+
+| Run ends with                                  | Meaning                                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Green, summary says `Live on staging: <sha>`   | The new version is serving on both the API and the web app.                                  |
+| Red at **Build and push** or **Smoke-test**    | The images did not build or cannot start. Nothing was deployed; the old version is still up. |
+| Red at **Wait for the new version to go live** | Coolify was asked to deploy but the new version never answered within 15 minutes.            |
+
+For the last case, open the stack's **Deployments** tab in Coolify, then the `api` and `web` logs. A failed
+migration stops the `api` container, and `web` waits for `api`, so the site may be down until it is fixed.
+
+**Get told instead of checking.**
+
+- GitHub emails whoever pushed when a run fails (GitHub → Settings → Notifications → Actions: "Only notify for
+  failed workflows" is the default). The GitHub mobile app can push these too.
+- In Coolify, **Notifications** (per team): set up Email, Telegram, Discord or Slack and tick **Deployment
+  success** and **Deployment failed**, plus **Container status changes** to hear when a container stops later.
+  Telegram is the quickest to set up and reaches your phone.
+
+## Deploying without GitHub Actions
+
+**Default: Coolify builds on the server** ([ADR 038](../../docs/adr/038-server-side-builds.md)). Set these variables on
+the Coolify resource first: `NEXT_PUBLIC_API_URL` (required, equal to the api domain, for staging
+`https://staging-api.kadisasa.com`), `NEXT_PUBLIC_APP_DOMAIN`, `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_KENYA_ENABLED`.
+Then `./scripts/deploy.sh staging` moves `deploy/staging` and waits for the new version to answer. The rest of this
+section describes the older build-and-push flow, available as `--registry`.
+
+If the workflow does not run or is red, `scripts/deploy.sh` builds, pushes and deploys from your own machine
+([ADR 037](../../docs/adr/037-local-deploys.md)). The result is the same: the same image tags, the same deploy
+branch move, and the same wait for the live version.
+
+One-time setup:
+
+1. Install and start Docker Desktop. Run the script from Git Bash (or WSL).
+2. Create a GitHub personal access token (classic) with the **write:packages** scope.
+3. Copy `.deploy.env.example` to `.deploy.env` and fill in `GHCR_USER`, `GHCR_TOKEN` and the `NEXT_PUBLIC_*`
+   values (the same ones as the GitHub environment variables). The file is gitignored.
+
+Then:
+
+```bash
+./scripts/deploy.sh staging --dry-run   # build and smoke-test only, nothing leaves your machine
+./scripts/deploy.sh staging             # HEAD must be origin/main
+git tag v1.2.3 && ./scripts/deploy.sh production
+```
+
+The script refuses to run with uncommitted changes or from a commit that is not what the team sees on `main`. To
+stop the workflow running on every push, disable it under GitHub → Actions → Build and push images → ⋯ → Disable
+workflow.
+
+## Rolling back
+
+Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
+roll back with the image, so check an old image still works with the current schema first.
+
+## Keeping deploys fast
+
+**The pipeline.** A push to `main` builds both images in parallel in GitHub Actions (`docker buildx bake`,
+[`infra/docker/docker-bake.hcl`](../docker/docker-bake.hcl)), with the layer cache in the GitHub Actions cache.
+The dependency install is reused until the lockfile or a `package.json` changes, so a code-only change rebuilds
+just the app (about a minute, versus about four before). Each image is then booted and its `/health` checked
+before the deploy branch moves, so an image that cannot start never reaches the server. Coolify only pulls, so the
+deploy itself is a pull and a restart; the run reports how long it took to go live.
+
+**The server.** Coolify, its deployments and every app share one VPS, so anything that builds on it slows the
+rest, including the Coolify UI (504/524 timeouts through Cloudflare).
+
+1. **Never build on the VPS.** The older `kadika-api-*` / `kadika-web-*` applications (Dockerfile build pack, GitHub
+   App) rebuild from source, `pnpm install` and `next build` each, on every push to `main`, for staging _and_
+   production, which is four builds per merge. The compose stack replaces them: turn off their auto-deploy, or
+   delete them once nothing depends on them.
+2. **One deployment at a time.** Server → Settings: set concurrent builds to 1, so a burst of deploys queues instead
+   of competing for CPU and memory.
+3. **Docker cleanup.** Server → Settings → Docker cleanup: enable the scheduled cleanup (e.g. daily) with a disk
+   threshold around 80%. Old images and build cache otherwise fill the disk and slow Docker down.
+4. **Headroom.** On the VPS check `free -m`, `df -h` and `docker stats --no-stream`. With 4 GB RAM or less, add swap
+   (2–4 GB) so a spike swaps instead of freezing; set resource limits on the heaviest stacks.
+5. **Real-time service.** The Coolify UI logs "Cannot connect to real-time service": its websocket ports are not
+   reachable through Cloudflare, which makes pages slower and status updates stale. Follow Coolify's Cloudflare
+   guide for the real-time ports.
+
+## Not covered yet
+
+- Staging is set up as above on coolify.kadisasa.com (environment `staging`, tracking `deploy/staging`).
+- Production on coolify.kadisasa.com is a Docker Compose **service** pasted into Coolify, not linked to the
+  repository, so moving `deploy/production` does not redeploy it. Until it is recreated as a repository resource
+  tracking `deploy/production`, redeploy it by hand (**Pull latest and restart**) after a release tag builds; the
+  release run's "Wait for the new version" step then confirms it, or times out if nobody redeployed.
+- The API image carries React Native and Expo packages (`drizzle-orm`'s optional `expo-sqlite` peer is resolved
+  against the mobile app), roughly 300 MB the server never uses. Slimming it would make every pull faster.
+- Backups, restore and uptime checks: see [`RESTORE.md`](RESTORE.md) and [`UPTIME.md`](UPTIME.md).

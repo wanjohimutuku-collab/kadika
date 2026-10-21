@@ -97,7 +97,12 @@ export function CardPreview({ data, compact }: { data: CardPreviewData; compact?
                 {t('trustSender', {
                   sender:
                     data.senderName ||
-                    defaultSender(data.eventKind, hostNames(data.partnerA, data.partnerB)),
+                    defaultSender(
+                      data.eventKind,
+                      hostNames(data.partnerA, data.partnerB),
+                      'committee',
+                      locale,
+                    ),
                 })}
               </p>
               {data.committeePhone ? (

@@ -21,13 +21,21 @@ export type ISODate = string;
 
 export type StaffRole = 'support' | 'billing' | 'admin';
 
-export type StaffPermission = 'read' | 'lookup' | 'reveal' | 'requests' | 'plan' | 'suspend';
+export type StaffPermission =
+  | 'read'
+  | 'lookup'
+  | 'reveal'
+  | 'requests'
+  | 'plan'
+  | 'suspend'
+  /** SMS and WhatsApp provider settings (ADR 031). */
+  | 'settings';
 
 /** What each staff level may do. Reads of aggregate data are open to all staff. */
 export const STAFF_PERMISSIONS: Record<StaffRole, StaffPermission[]> = {
   support: ['read', 'lookup', 'reveal', 'requests'],
   billing: ['read', 'plan'],
-  admin: ['read', 'lookup', 'reveal', 'requests', 'plan', 'suspend'],
+  admin: ['read', 'lookup', 'reveal', 'requests', 'plan', 'suspend', 'settings'],
 };
 
 export interface User {
@@ -354,7 +362,7 @@ export interface SendRequest {
   scheduleAt: ISODate | null;
   kind: 'invite' | 'reminder' | 'thank_you';
   /**
-   * Which cards to send: invitation cards or contribution cards. Left out, both go, as before (ADR 031).
+   * Which cards to send: invitation cards or contribution cards. Left out, both go, as before (ADR 040).
    * A contribution card is a first message; its follow-up is a pledge reminder, not a `reminder`.
    */
   cardKind?: CardKind;
@@ -598,7 +606,16 @@ export interface OpsAuditEntry {
   id: string;
   at: ISODate;
   actorName: string;
-  action: 'reveal_phone' | 'suspend' | 'reactivate' | 'set_plan' | 'resolve_request' | 'lookup';
+  action:
+    | 'reveal_phone'
+    | 'suspend'
+    | 'reactivate'
+    | 'set_plan'
+    | 'resolve_request'
+    | 'lookup'
+    | 'messaging'
+    | 'payments'
+    | 'branding';
   target: string;
   details: string;
 }

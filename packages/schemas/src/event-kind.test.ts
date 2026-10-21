@@ -8,7 +8,7 @@ import {
   eventKindSuggestions,
 } from './domain';
 
-describe('event kinds (ADR 024, 031)', () => {
+describe('event kinds (ADR 024, 040)', () => {
   it('names the known kinds in the language of whoever reads them', () => {
     expect(eventKindLabel('Harusi', 'en')).toBe('Wedding');
     expect(eventKindLabel('wedding', 'sw')).toBe('Harusi');
@@ -29,11 +29,11 @@ describe('event kinds (ADR 024, 031)', () => {
   it('offers the same three suggestions in both languages', () => {
     expect(eventKindSuggestions('sw')).toEqual(['Harusi', 'Send-off', 'Uchumba']);
     expect(eventKindSuggestions('en')).toEqual(['Wedding', 'Send-off', 'Engagement']);
-    expect([...EVENT_KIND_SUGGESTIONS]).toEqual(eventKindSuggestions('sw'));
+    expect([...EVENT_KIND_SUGGESTIONS]).toEqual(eventKindSuggestions('en'));
   });
 });
 
-describe('wording that follows the language (ADR 031)', () => {
+describe('wording that follows the language (ADR 040)', () => {
   it('starts a new event with a title in the language of the screen', () => {
     expect(defaultEventTitle('Uchumba', 'Asha & Juma', 'sw')).toBe('Uchumba wa Asha & Juma');
     expect(defaultEventTitle('Uchumba', 'Asha & Juma', 'en')).toBe('Engagement of Asha & Juma');
@@ -59,7 +59,7 @@ describe('wording that follows the language (ADR 031)', () => {
   });
 });
 
-describe('the "of" that agrees with the kind (ADR 031)', () => {
+describe('the "of" that agrees with the kind (ADR 040)', () => {
   it('says "wa" after uchumba and "ya" after the other Swahili kinds', () => {
     expect(eventKindOf('Uchumba', 'sw')).toBe('Uchumba wa');
     expect(eventKindOf('engagement', 'sw')).toBe('Uchumba wa');

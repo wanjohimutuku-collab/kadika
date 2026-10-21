@@ -121,7 +121,7 @@ export type GuestInputParsed = z.output<typeof guestInputSchema>;
 /**
  * The kinds of event the app knows by name. What the organiser picks or types is stored as written; for a
  * known kind the word follows the language of whoever reads it, so an English guest's card says
- * "engagement" where a Swahili one says "uchumba". Anything else typed is shown as written (ADR 024, 031).
+ * "engagement" where a Swahili one says "uchumba". Anything else typed is shown as written (ADR 024, 040).
  */
 export const EVENT_KINDS = [
   { sw: 'Harusi', en: 'Wedding', aliases: ['harusi', 'wedding'] },
@@ -129,7 +129,7 @@ export const EVENT_KINDS = [
   { sw: 'Uchumba', en: 'Engagement', aliases: ['uchumba', 'engagement'] },
 ] as const;
 /** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
-export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const;
+export const EVENT_KIND_SUGGESTIONS = ['Wedding', 'Send-off', 'Engagement'] as const;
 /**
  * The kind with the "of" that goes with it: "Harusi ya" but "Uchumba wa" in Swahili, because the little word
  * agrees with the noun ("uchumba" takes "wa"); "Engagement of" in English. A kind the organiser typed is
@@ -153,6 +153,24 @@ export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | '
   );
   return known ? known[locale] : text;
 }
+/**
+ * The three card categories the product ships presets for (uchumba, send-off, wedding). The kind itself stays
+ * free text (ADR 024); this only chooses default wording, so any other kind behaves as before.
+ */
+export const OCCASIONS = ['wedding', 'engagement', 'sendoff', 'other'] as const;
+export type Occasion = (typeof OCCASIONS)[number];
+export function occasionOf(kind: string | null | undefined): Occasion {
+  const k =
+    kind
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '') ?? '';
+  if (!k || k.includes('harusi') || k.includes('wedding')) return 'wedding';
+  if (k.includes('uchumba') || k.includes('engagement') || k.includes('ruracio'))
+    return 'engagement';
+  if (k.includes('sendoff') || k.includes('kitchenparty')) return 'sendoff';
+  return 'other';
+}
 /** Host names joined for display; a single host has no dangling ampersand. */
 export function hostNames(a: string, b?: string | null): string {
   return [a, b]
@@ -166,7 +184,7 @@ export function defaultSender(
   kind: string | null | undefined,
   hosts: string,
   senderKind: 'family' | 'committee' | 'couple' | 'host' | 'custom' = 'committee',
-  locale: 'sw' | 'en' = 'sw',
+  locale: 'sw' | 'en' = 'en',
 ): string {
   const sw = locale === 'sw';
   // a known kind is named in the reader's language: "Kamati ya Uchumba ya …" or "The engagement committee of …"

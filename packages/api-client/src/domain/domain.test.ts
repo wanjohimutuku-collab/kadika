@@ -135,7 +135,7 @@ describe('kind-aware messages', () => {
   });
 });
 
-describe('senderNameFor (ADR 031)', () => {
+describe('senderNameFor (ADR 040)', () => {
   const event = {
     senderName: 'Familia ya Asha & Juma',
     cardContent: { sender: { kind: 'family' as const } },

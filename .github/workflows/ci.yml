@@ -20,11 +20,38 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Turbo's local cache, kept between runs: a package whose files did not change replays its
+      # typecheck, lint, test and build results instead of running them again. Keyed per commit and
+      # restored from the newest earlier run (PRs can read main's).
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      # Tests run TS through vitest, which forgives ESM import paths that plain Node rejects in the
+      # bundle (a missing `.js` once crash-looped the deployed API). Boot the bundle and hit /health.
+      - name: Smoke-test the built API bundle
+        working-directory: apps/api
+        env:
+          NODE_ENV: production
+          JWT_SECRET: ci-smoke-${{ github.run_id }}-secret
+          KEY_ENC_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          DATABASE_URL: postgres://ci:ci@127.0.0.1:1/ci
+          API_PORT: 3999
+          LOG_REQUESTS: 0
+        run: |
+          node dist/index.js > api.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -sf http://127.0.0.1:3999/health > /dev/null; then kill $!; exit 0; fi
+            sleep 1
+          done
+          cat api.log
+          exit 1
       - run: pnpm --filter @harusi/web build-storybook
       - run: pnpm audit --prod --audit-level=high
         continue-on-error: true # advisory until Phase 7 hardening
@@ -32,7 +59,8 @@ jobs:
   web-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: ci
+    # Runs alongside the ci job rather than after it: CI finishes in the time of the longer job instead
+    # of the sum of both, at the cost of e2e minutes on a run whose ci job fails.
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -6,6 +6,8 @@ export interface Config {
   /** 32-byte key, base64. Encrypts event signing keys at rest (§9). */
   keyEncSecret: string;
   appBaseUrl: string;
+  /** Public URL of this API (`API_PUBLIC_URL`), where gateways post callbacks. Null until set. */
+  apiPublicUrl: string | null;
   shortBaseUrl: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
@@ -73,7 +75,10 @@ function required(env: Record<string, string | undefined>, key: string): string 
   return v;
 }
 
-export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
+export function loadConfig(input: Record<string, string | undefined> = process.env): Config {
+  // An empty value means unset. Coolify passes blank optional variables as "", which would
+  // otherwise slip past `??` (e.g. WHATSAPP_PROVIDER="" stopping startup, a blank fallback = 0 h).
+  const env = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== ''));
   const production = env.NODE_ENV === 'production';
   const jwtSecret = required(env, 'JWT_SECRET');
   const keyEncSecret = required(env, 'KEY_ENC_SECRET');
@@ -86,6 +91,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     jwtSecret,
     keyEncSecret,
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
+    apiPublicUrl: env.API_PUBLIC_URL ? env.API_PUBLIC_URL.replace(/\/$/, '') : null,
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',
@@ -168,7 +174,12 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
         : null,
     redisUrl: env.REDIS_URL ?? null,
     whatsappFallbackHours: Number(env.WHATSAPP_FALLBACK_HOURS ?? 6),
-    corsOrigins: (env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000')
+    // CORS_EXTRA_ORIGINS adds hosts to the list, e.g. the console and staff hosts in production (ADR 032).
+    corsOrigins: [
+      env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000',
+      env.CORS_EXTRA_ORIGINS ?? '',
+    ]
+      .join(',')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),

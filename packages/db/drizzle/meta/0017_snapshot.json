@@ -1,5 +1,5 @@
 {
-  "id": "3f28cd13-38be-4702-bc61-8d2082db5773",
+  "id": "b3530a46-0d99-4e1e-b24a-496a19e2519a",
   "prevId": "5ba48851-e9c6-48ee-a1bd-e182a2e8a24a",
   "version": "7",
   "dialect": "postgresql",
@@ -1403,6 +1403,71 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.messaging_settings": {
+      "name": "messaging_settings",
+      "schema": "",
+      "columns": {
+        "route": {
+          "name": "route",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "config_enc": {
+          "name": "config_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "messaging_settings_updated_by_users_id_fk": {
+          "name": "messaging_settings_updated_by_users_id_fk",
+          "tableFrom": "messaging_settings",
+          "tableTo": "users",
+          "columnsFrom": [
+            "updated_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.payments": {
       "name": "payments",
       "schema": "",
@@ -2085,13 +2150,6 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
-        },
-        "card_kind": {
-          "name": "card_kind",
-          "type": "card_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
         },
         "target": {
           "name": "target",

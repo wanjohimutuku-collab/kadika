@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   Activity,
+  ArrowLeft,
   BarChart3,
   CalendarHeart,
   CreditCard,
@@ -15,8 +16,11 @@ import {
   ShieldCheck,
   Users,
   Gauge,
+  Settings,
 } from 'lucide-react';
 import { useSession } from '@/lib/queries';
+import { useStaffCan } from '@/components/ops/ops-ui';
+import { BrandMark } from '@/components/brand/brand-provider';
 import { getRepository } from '@/lib/repo';
 import { Skeleton } from '@/components/ui/display';
 import { Button, buttonClasses } from '@/components/ui/button';
@@ -35,6 +39,8 @@ const ITEMS = [
   { key: 'support', href: '/ops/support', icon: LifeBuoy },
   { key: 'requests', href: '/ops/requests', icon: ShieldCheck },
   { key: 'audit', href: '/ops/audit', icon: FileClock },
+  /** Branding, SMS and WhatsApp, payment gateway (ADR 036): admin staff only. */
+  { key: 'settings', href: '/ops/settings', icon: Settings, permission: 'settings' },
 ] as const;
 
 /** Harusi Pass staff area. Customers (role_global = user) are refused; the data layer enforces it too. */
@@ -46,6 +52,9 @@ export function OpsShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const session = useSession();
   const user = session.data?.user;
+  const canSettings = useStaffCan('settings');
+  // Items a role may not use are hidden, not just refused (the data layer enforces it too).
+  const items = ITEMS.filter((i) => !('permission' in i) || canSettings);
 
   useEffect(() => {
     if (session.isSuccess && !session.data)
@@ -88,11 +97,11 @@ export function OpsShell({ children }: { children: ReactNode }) {
       </a>
       <aside className="no-print sticky top-0 hidden h-dvh flex-col border-r border-border bg-surface md:flex">
         <div className="flex min-h-16 flex-col justify-center border-b border-border px-5">
-          <span className="text-xl font-semibold text-primary">{tc('appName')}</span>
+          <BrandMark className="text-xl" />
           <span className="text-xs text-muted">{t('title')}</span>
         </div>
         <nav aria-label={t('title')} className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
-          {ITEMS.map(({ key, href, icon: Icon }) => (
+          {items.map(({ key, href, icon: Icon }) => (
             <Link
               key={key}
               href={href}
@@ -117,18 +126,24 @@ export function OpsShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-col">
         <header className="no-print sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
           <div className="flex min-h-14 items-center justify-between gap-2 px-3 md:px-6">
-            <span className="font-semibold md:hidden">{t('title')}</span>
+            {/* The brand side gives way on a 360 px phone; if this row overflows, the whole page zooms out. */}
+            <span className="flex min-w-0 items-center gap-2 md:hidden">
+              <BrandMark logoOnly logoClassName="h-8 max-w-20 shrink-0" />
+              <span className="truncate text-sm font-semibold text-muted">{t('title')}</span>
+            </span>
             <span className="hidden text-sm text-muted md:block">{user.name}</span>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <SyncIndicator />
               <span className="md:hidden">
                 <LanguageChip />
               </span>
               <Link
                 href="/app"
-                className="inline-flex min-h-10 items-center px-2 text-sm font-semibold text-primary"
+                className="inline-flex min-h-10 items-center gap-1.5 px-2 text-sm font-semibold text-primary"
+                aria-label={t('backToConsole')}
               >
-                {t('backToConsole')}
+                <ArrowLeft className="size-5 sm:hidden" aria-hidden="true" />
+                <span className="hidden sm:inline">{t('backToConsole')}</span>
               </Link>
               <Button
                 size="sm"
@@ -143,7 +158,7 @@ export function OpsShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <nav aria-label={t('title')} className="flex gap-1 overflow-x-auto px-2 pb-2 md:hidden">
-            {ITEMS.map(({ key, href }) => (
+            {items.map(({ key, href }) => (
               <Link
                 key={key}
                 href={href}

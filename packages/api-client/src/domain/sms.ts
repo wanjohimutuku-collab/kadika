@@ -78,7 +78,7 @@ export interface InviteTextInput {
 
 /** §7.2 SMS template (≤ 160 chars when names are of normal length). */
 export function buildInviteSms(i: InviteTextInput): string {
-  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 031)
+  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 040)
   const kindOf = eventKindOf(i.kind, i.locale).toLowerCase();
   const hosts = hostNames(i.partnerA, i.partnerB);
   return i.locale === 'sw'
@@ -104,7 +104,7 @@ export interface ContributionTextInput {
   shortLink: string;
 }
 
-/** What a send is for when estimating its cost or previewing its text (ADR 031). */
+/** What a send is for when estimating its cost or previewing its text (ADR 040). */
 export interface SampleSmsInput {
   kind: 'invite' | 'reminder' | 'contribution';
   locale: 'sw' | 'en';

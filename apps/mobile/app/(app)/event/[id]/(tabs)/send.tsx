@@ -38,7 +38,7 @@ export default function Send() {
   const { locale } = useLocale();
   const online = useOnline();
   const ev = useEvent(id);
-  // which cards to send (ADR 031): invitation cards, or contribution cards, which go out first when money comes before guests
+  // which cards to send (ADR 040): invitation cards, or contribution cards, which go out first when money comes before guests
   const [cardKind, setCardKind] = useState<CardKind>(
     card === 'contribution' ? 'contribution' : 'invitation',
   );

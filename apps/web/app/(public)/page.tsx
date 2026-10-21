@@ -17,6 +17,7 @@ import {
   Lock,
   Link2Off,
 } from 'lucide-react';
+import { getPage, pagePath, textOf } from '@/content';
 import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
 
@@ -36,6 +37,16 @@ export async function generateMetadata(): Promise<Metadata> {
     },
   };
 }
+
+/** Extra occasion and guide pages linked from the homepage (internal links for search). */
+const MORE_OCCASIONS = [
+  'kadi-za-mwaliko-mtandaoni',
+  'kadi-ya-kuzaliwa',
+  'kadi-ya-kitchen-party',
+  'kadi-ya-mahafali',
+  'kadi-za-mwaliko-biashara',
+  'kutuma-kadi-za-mwaliko-whatsapp',
+] as const;
 
 const STEP_ICONS = [UserPlus, Send, HandCoins, DoorOpen] as const;
 
@@ -62,6 +73,23 @@ export default async function Landing() {
     description: tc('tagline'),
     areaServed: 'TZ',
   };
+  const website = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: tc('appName'),
+    url: SITE_URL,
+    inLanguage: ['sw', 'en'],
+  };
+  const software = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: tc('appName'),
+    applicationCategory: 'LifestyleApplication',
+    operatingSystem: 'Web, Android',
+    url: SITE_URL,
+    description: tc('tagline'),
+    areaServed: 'TZ',
+  };
   const faqLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -78,6 +106,14 @@ export default async function Landing() {
         type="application/ld+json"
         // Static, server-built object; `<` is escaped so the JSON cannot close the tag.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(website).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(software).replace(/</g, '\\u003c') }}
       />
       <script
         type="application/ld+json"
@@ -153,6 +189,21 @@ export default async function Landing() {
               </Link>
             </li>
           ))}
+        </ul>
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {MORE_OCCASIONS.map((slug) => {
+            const page = getPage(slug);
+            return page ? (
+              <li key={slug}>
+                <Link
+                  href={localeUrl(pagePath(page), locale)}
+                  className="inline-flex min-h-12 items-center rounded-full border border-border bg-surface px-4 text-sm font-medium hover:border-primary"
+                >
+                  {textOf(page, locale).nav}
+                </Link>
+              </li>
+            ) : null;
+          })}
         </ul>
       </section>
 

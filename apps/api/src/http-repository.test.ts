@@ -319,7 +319,7 @@ describe('HttpRepository against the real API', () => {
     expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe('%PDF-');
   });
 
-  it('previews and sends contribution cards, then invitations, through the repository (ADR 031)', async () => {
+  it('previews and sends contribution cards, then invitations, through the repository (ADR 040)', async () => {
     const r = repo();
     await login(r, '0712 100 150');
     const ev = await r.createEvent({

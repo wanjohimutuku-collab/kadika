@@ -1,5 +1,6 @@
 'use client';
 
+import { BrandMark } from '@/components/brand/brand-provider';
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -219,7 +220,7 @@ function EventSwitcher({ current }: { current?: WeddingEvent }) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
-        className="inline-flex min-h-12 max-w-[52vw] items-center gap-1.5 rounded-input px-2 text-left font-semibold hover:bg-ink/6 md:max-w-xs"
+        className="inline-flex min-h-12 min-w-0 max-w-[52vw] items-center gap-1.5 rounded-input px-2 text-left font-semibold hover:bg-ink/6 md:max-w-xs"
         aria-label={current ? t('currentEvent', { name: current.coupleNames }) : t('switchEvent')}
       >
         <span className="truncate text-lg">{current?.coupleNames ?? t('events')}</span>
@@ -343,6 +344,9 @@ export function ConsoleHeader({ event, onMore }: { event?: WeddingEvent; onMore?
   const t = useTranslations('nav');
   return (
     <header className="no-print sticky top-0 z-30 flex min-h-16 items-center gap-1 border-b border-border bg-surface/95 px-2 backdrop-blur md:px-4">
+      <Link href="/app" className="shrink-0 px-1 md:hidden" aria-label={t('events')}>
+        <BrandMark logoOnly logoClassName="h-8 max-w-20" />
+      </Link>
       <EventSwitcher current={event} />
       <div className="ml-auto flex items-center gap-1">
         <SyncIndicator />
@@ -396,9 +400,9 @@ export function ConsoleShell({
       <aside className="no-print sticky top-0 hidden h-dvh flex-col border-r border-border bg-surface md:flex">
         <Link
           href="/app"
-          className="flex min-h-16 items-center gap-2 border-b border-border px-5 text-xl font-semibold text-primary"
+          className="flex min-h-16 items-center gap-2 border-b border-border px-5 text-xl"
         >
-          {tc('appName')}
+          <BrandMark />
         </Link>
         {nav ? (
           <nav

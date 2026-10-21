@@ -7,17 +7,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const v = await previewCardOnServer(token);
   const name =
     v?.state === 'ok' && v.event
-      ? `${eventKindOf(v.event.eventKind, 'sw')} ${v.event.coupleNames}`
-      : 'Kadi ya mwaliko';
+      ? `${eventKindOf(v.event.eventKind, 'en')} ${v.event.coupleNames}`
+      : 'Invitation card';
   const body = {
     name,
-    short_name: v?.state === 'ok' && v.event ? v.event.coupleNames : 'Kadi',
+    short_name: v?.state === 'ok' && v.event ? v.event.coupleNames : 'Card',
     start_url: `/c/${token}`,
     scope: '/c/',
     display: 'standalone',
     background_color: '#FBF8F3',
     theme_color: '#0F5C4D',
-    lang: 'sw',
+    lang: 'en',
     icons: [
       { src: '/icons/192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
       { src: '/icons/512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },

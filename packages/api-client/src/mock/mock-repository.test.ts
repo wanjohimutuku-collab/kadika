@@ -528,7 +528,7 @@ describe('saved demo state from before the money rename', () => {
   });
 });
 
-describe('sending by card type (ADR 031)', () => {
+describe('sending by card type (ADR 040)', () => {
   const base = { channel: 'auto' as const, whatsappFallbackToSms: true };
   const unsent = { kind: 'unsent' as const };
 

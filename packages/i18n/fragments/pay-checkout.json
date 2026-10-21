@@ -1,0 +1,28 @@
+{
+  "sw": {
+    "pay": {
+      "quick": "Chagua kiasi",
+      "useBalance": "Salio lote",
+      "submitAmount": "Lipa {amount}",
+      "network": "Mtandao wa simu",
+      "networkDetected": "Ombi litatumwa kupitia {provider}.",
+      "networkChange": "Badilisha",
+      "networkPick": "Chagua mtandao wa simu hii",
+      "amountPlaceholder": "Kiasi unachotaka kulipa",
+      "poweredBy": "Malipo na {name}"
+    }
+  },
+  "en": {
+    "pay": {
+      "quick": "Quick amounts",
+      "useBalance": "Full balance",
+      "submitAmount": "Pay {amount}",
+      "network": "Mobile network",
+      "networkDetected": "The request will go through {provider}.",
+      "networkChange": "Change",
+      "networkPick": "Choose this phone's network",
+      "amountPlaceholder": "How much you want to pay",
+      "poweredBy": "Payments by {name}"
+    }
+  }
+}

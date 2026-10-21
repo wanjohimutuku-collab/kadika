@@ -1,4 +1,4 @@
-import { eventKindLabel, eventKindOf } from '@harusi/schemas';
+import { eventKindLabel, eventKindOf, occasionOf } from '@harusi/schemas';
 import {
   flag,
   pick,
@@ -29,10 +29,17 @@ import { CLIENT_SCRIPT } from './client-script';
  * CSS and a ~10 KB vanilla script, so the first load stays well under the §7.3 100 KB budget.
  * Every dynamic string goes through `esc()`; the script reads its data from a JSON block.
  */
+/** The business brand shown on the card page (ADR 036). The logo is a small cached `<img>`, never inlined. */
+export interface LightBrand {
+  name: string;
+  logoSrc: string | null;
+}
+
 export interface LightCardOptions {
   token: string;
   locale: Locale;
   domain: string;
+  brand?: LightBrand;
   /** `mock`: the browser overlays its local demo state. `api`: RSVP posts to `apiUrl`. */
   mode: 'mock' | 'api';
   apiUrl: string;
@@ -43,6 +50,12 @@ const esc = (v: unknown): string =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
+
+/** The business logo as a link home, or nothing when there is none. Height is fixed so nothing jumps as it loads. */
+function brandLogo(brand?: LightBrand): string {
+  if (!brand?.logoSrc) return '';
+  return `<a class="brand" href="/" data-testid="card-brand"><img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}" height="28" style="height:28px;width:auto;max-width:160px;object-fit:contain"></a>`;
+}
 
 /** Safe inside <script type="application/json">: `<` can never close the tag. */
 const jsonForScript = (v: unknown): string => JSON.stringify(v).replace(/</g, '\\u003c');
@@ -89,7 +102,7 @@ h2{font-size:18px;font-weight:600}
 .trust>div{display:flex;gap:12px;align-items:flex-start;font-size:14px}
 .trust .ic{color:var(--success);width:24px;height:24px;margin-top:2px}
 .muted{color:var(--muted)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:600 16px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font:600 16px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer}
 .btn:disabled{opacity:.5}
 .btn.block{width:100%}
 .btn.primary{background:var(--hp-primary);border-color:var(--hp-primary);color:var(--hp-on-primary)}
@@ -126,6 +139,7 @@ h2{font-size:18px;font-weight:600}
 footer{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 20px;font-size:14px;background:var(--bg)}
 footer nav{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center}
 footer nav a{min-height:40px;display:inline-flex;align-items:center}
+.brand{display:inline-flex;align-items:center;min-height:40px;margin-bottom:4px}
 .lang{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
 .lang button{min-height:40px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
 .lang button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
@@ -196,7 +210,7 @@ function shell(opts: {
 /** Invalid / reissued / unavailable token page (§17.6 visible states). */
 export function renderProblem(
   state: 'invalid' | 'reissued' | 'error',
-  o: Pick<LightCardOptions, 'locale' | 'domain'>,
+  o: Pick<LightCardOptions, 'locale' | 'domain' | 'brand'>,
 ): string {
   const m = messages[o.locale] as unknown as { card: Msg; states: Msg };
   const title = state === 'error' ? m.states.errorTitle! : m.card[`${state}Title`]!;
@@ -205,7 +219,7 @@ export function renderProblem(
     locale: o.locale,
     title,
     palette: resolvePalette(undefined),
-    body: `<main class="problem" data-testid="card-${state}">
+    body: `<main class="problem" data-testid="card-${state}">${brandLogo(o.brand)}
 <span aria-hidden="true" style="color:var(--warning)">${icon('x', 'big').replace('width="24" height="24"', 'width="56" height="56"')}</span>
 <h1>${esc(title)}</h1><p>${esc(body)}</p>
 <a class="btn" href="/k">${esc(m.card.enterCodeInstead)}</a>
@@ -239,8 +253,25 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const L = (v?: { sw?: string; en?: string }) => pick(v, locale);
   const kindName = eventKindLabel(event.eventKind, locale);
   const kindLower = kindName.toLowerCase();
-  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 031)
+  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 040)
   const kindOfName = eventKindOf(event.eventKind, locale);
+  // Built-in wording per card category (uchumba, send-off); the organiser's own text always wins.
+  const occasion = occasionOf(event.eventKind);
+  const occBody =
+    occasion === 'engagement'
+      ? t.occEngagementBody
+      : occasion === 'sendoff'
+        ? t.occSendoffBody
+        : // Events made before kinds existed (no kind) keep their cards as they were.
+          occasion === 'wedding' && event.eventKind?.trim()
+          ? t.occWeddingBody
+          : undefined;
+  const occContrib =
+    occasion === 'engagement'
+      ? t.occEngagementContrib
+      : occasion === 'sendoff'
+        ? t.occSendoffContrib
+        : undefined;
   const senderKind = senderKindOf(content);
   // the organiser's own wording wins; the stored default is Swahili, so it is re-worded for an English reader
   const sender = senderNameFor(event, locale);
@@ -394,10 +425,12 @@ ${hasPhone ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(
         ? `<p class="lead">${esc(event.greeting)}.<span><b>${esc(fmt(t.dearGuest!, { guest: guest.displayName }))}</b></span></p>`
         : `<p class="lead">${esc(fmt(t.invitesYou!, { guest: guest.displayName }))}</p>`;
   const message = isContribution
-    ? `<section class="msg">${paras(L(con.message) ?? t.contribMessage!)}</section>`
+    ? `<section class="msg">${paras(L(con.message) ?? occContrib ?? t.contribMessage!)}</section>`
     : L(inv.body)
       ? `<section class="msg">${paras(L(inv.body)!)}</section>`
-      : '';
+      : occBody
+        ? `<section class="msg">${paras(occBody)}</section>`
+        : '';
   const programme =
     !isContribution && inv.programme?.length
       ? `<section><h2>${esc(t.programmeTitle)}</h2><ul class="prog" data-testid="programme">${inv.programme.map((p) => `<li><b>${esc(p.time)}</b><span>${esc(say(p.title))}</span></li>`).join('')}</ul></section>`
@@ -443,7 +476,7 @@ ${confirmed ? '' : qrSection}
 ${pledge}
 ${contributionSection}
 ${closingSection}
-<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
+<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).

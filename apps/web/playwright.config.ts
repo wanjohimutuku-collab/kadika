@@ -11,7 +11,9 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
-  workers: 1,
+  // Two spec files at a time: each test keeps its data in its own browser context (the mock
+  // repository), so files do not share state. About 30% faster than one worker.
+  workers: 2,
   retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
   use: {

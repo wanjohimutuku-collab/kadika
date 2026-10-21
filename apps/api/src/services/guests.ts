@@ -129,7 +129,7 @@ export class GuestService {
           partySizeAllowed: input.partySizeAllowed ?? 1,
           cardKind: input.cardKind ?? 'invitation',
           shortCode: await this.uniqueShortCode(eventId, tx as Deps['db']),
-          language: input.language ?? 'sw',
+          language: input.language ?? 'en',
           inviteChannelPref: phone ? (input.inviteChannelPref ?? 'mixed') : 'print',
           notes: input.notes ?? null,
         })
@@ -285,7 +285,7 @@ export class GuestService {
       .returning();
     if (set.cardKind !== undefined && set.cardKind !== g.cardKind) {
       // The guest now holds a different card and it has not gone out, so they are "not sent" again. That
-      // is how a contribution card first and an invitation later reach the same person (ADR 031).
+      // is how a contribution card first and an invitation later reach the same person (ADR 040).
       // Someone who already answered keeps their answer.
       await this.deps.db
         .update(invitations)

@@ -1,3 +1,4 @@
+import { BrandMark } from '@/components/brand/brand-provider';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { NextIntlClientProvider } from 'next-intl';
@@ -6,7 +7,8 @@ import { pickMessages, type Locale } from '@harusi/i18n';
 import { LanguageChip } from '@/components/ui/language-chip';
 import { OrnamentBand } from '@/components/card/ornament';
 import { localeUrl } from '@/lib/seo';
-import { pagePath, pagesIn, pagesOf, textOf } from '@/content';
+import { SiteNav } from '@/components/public/site-nav';
+import { getPage, pagePath, pagesIn, pagesOf, textOf } from '@/content';
 import type { PageGroup } from '@/content/types';
 
 const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
@@ -15,6 +17,18 @@ const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
   { group: 'company', sw: 'Kampuni', en: 'Company' },
   { group: 'legal', sw: 'Sheria', en: 'Legal' },
 ];
+const NAV_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
+  { group: 'product', sw: 'Huduma', en: 'Services' },
+  { group: 'guide', sw: 'Miongozo', en: 'Guides' },
+];
+const NAV_LINKS = [
+  { slug: 'maswali', sw: 'Maswali', en: 'FAQ' },
+  { slug: 'kuhusu', sw: 'Kuhusu', en: 'About' },
+] as const;
+const NAV_LABELS = {
+  sw: { menu: 'Fungua menyu', close: 'Funga menyu', main: 'Menyu kuu' },
+  en: { menu: 'Open menu', close: 'Close menu', main: 'Main navigation' },
+} as const;
 const KENYA_LABEL = { sw: 'Kenya', en: 'Kenya' } as const;
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
@@ -32,13 +46,29 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       >
         {t('skipToContent')}
       </a>
-      <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex min-h-16 max-w-5xl items-center justify-between gap-3 px-4">
-          <Link href="/" className="text-xl font-semibold text-primary">
-            {t('appName')}
-          </Link>
-          <LanguageChip />
-        </div>
+      <header>
+        <SiteNav
+          brand={
+            <Link href="/" className="text-xl">
+              <BrandMark />
+            </Link>
+          }
+          groups={NAV_GROUPS.map((g) => ({
+            id: g.group,
+            label: g[locale],
+            links: pagesIn(g.group).map((p) => ({
+              href: localeUrl(pagePath(p), locale),
+              label: textOf(p, locale).nav,
+            })),
+          }))}
+          links={NAV_LINKS.flatMap((l) => {
+            const p = getPage(l.slug);
+            return p ? [{ href: localeUrl(pagePath(p), locale), label: l[locale] }] : [];
+          })}
+          cardLink={{ href: '/k', label: tl('openCard') }}
+          cta={{ href: '/login', label: tl('cta') }}
+          labels={NAV_LABELS[locale]}
+        />
       </header>
       <div id="main">{children}</div>
       <footer className="mt-12 bg-surface">

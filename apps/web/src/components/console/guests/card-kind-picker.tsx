@@ -4,7 +4,7 @@ import { CARD_KINDS, type CardKind } from '@harusi/schemas';
 import { cn } from '@/lib/cn';
 
 /**
- * Invitation card or contribution card (ADR 029, 031): one choice for a guest, or for a whole imported list.
+ * Invitation card or contribution card (ADR 029, 040): one choice for a guest, or for a whole imported list.
  * Radio cards rather than a segmented control because each option reads as a short sentence.
  */
 export function CardKindPicker({

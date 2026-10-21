@@ -1,4 +1,4 @@
-# ADR 031: sending by card type, and wording that follows the reader's language
+# ADR 040: sending by card type, and wording that follows the reader's language
 
 Status: accepted. API, client, web console, mobile app and guest card are built.
 
@@ -21,7 +21,7 @@ contribution greeting said "yetu", which does not agree with every kind.
 1. **A send can name one card type.** `SendInput.cardKind` is `invitation` or `contribution` (also on the preview
    and on a scheduled send). When it is left out, a send reaches both types, as before. `pick` filters guests on
    `guests.card_kind` only when a type is given.
-2. **Older schedules keep going to both.** Migration 0017 adds `scheduled_sends.card_kind` as a nullable column.
+2. **Older schedules keep going to both.** Migration 0021 adds `scheduled_sends.card_kind` as a nullable column.
    Rows made before it have `null`, which `run` passes on as "no type", so they send to both types.
 3. **Reminders are for invitations.** A reminder with `cardKind: contribution` is a `validation` error
    (`assertCardKindFits`): contribution cards are followed up with pledge reminders, which know who still owes.

@@ -59,6 +59,8 @@ async function add(
       phone,
       hasSmartphone: false,
       inviteChannelPref: 'sms',
+      // English is the default language now; these tests read the Swahili texts unless they say otherwise
+      language: 'sw',
       cardKind,
       ...extra,
     },
@@ -73,7 +75,7 @@ const statuses = async (t: string, evId: string, cardKind: string) =>
       .items as { status: string }[]
   ).map((g) => g.status);
 
-describe('sending by card type (ADR 031)', () => {
+describe('sending by card type (ADR 040)', () => {
   it('sends contribution cards first, only to contribution guests, then invitations to the rest', async () => {
     const { t, evId } = await setup();
     const i1 = await add(t, evId, 'Mgeni Mmoja', 'invitation');
@@ -311,7 +313,7 @@ describe('sending by card type (ADR 031)', () => {
   });
 });
 
-describe('an engagement, a send-off and a wedding (ADR 024, 031)', () => {
+describe('an engagement, a send-off and a wedding (ADR 024, 040)', () => {
   const kinds = [
     // the little word agrees with the noun: "uchumba wa", but "harusi ya" and "send-off ya"
     { kind: 'Uchumba', sw: 'uchumba', of: 'wa', en: 'engagement' },

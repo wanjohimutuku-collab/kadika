@@ -44,7 +44,7 @@ const EMPTY: GuestInput = {
   cardKind: 'invitation',
   inviteChannelPref: 'whatsapp',
   hasSmartphone: true,
-  language: 'sw',
+  language: 'en',
   notes: '',
 };
 

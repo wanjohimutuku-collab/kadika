@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import {
   defaultEventTitle,
   eventInputSchema,
+  eventKindLabel,
   eventKindSuggestions,
   hostNames,
 } from '@harusi/schemas';
@@ -102,7 +103,12 @@ export default function NewEvent() {
         />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {eventKindSuggestions(locale).map((k) => (
-            <Chip key={k} label={k} active={kind === k} onPress={() => setKind(k)} />
+            <Chip
+              key={k}
+              label={k}
+              active={eventKindLabel(kind, locale) === k}
+              onPress={() => setKind(k)}
+            />
           ))}
         </View>
         <Field label={t('wizard.hostA')} value={a} onChangeText={setA} error={errors.partnerA} />

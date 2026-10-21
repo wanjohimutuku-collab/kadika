@@ -1,21 +1,51 @@
 # syntax=docker/dockerfile:1
 # Build from the repo root: docker build -f infra/docker/Dockerfile.web .
 FROM node:22-alpine AS base
-RUN corepack enable
+ENV CI=true npm_config_store_dir=/pnpm/store
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /repo
 
-FROM base AS build
+# Only the files that decide what gets installed (see Dockerfile.api): the install layer is reused
+# until a package.json, the lockfile or .npmrc changes.
+FROM base AS manifests
 COPY . .
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter @harusi/web...
+RUN for f in $(find . -name node_modules -prune -o \( -name package.json -o -name pnpm-lock.yaml \
+      -o -name pnpm-workspace.yaml -o -name .npmrc \) -print); do \
+      mkdir -p "/m/$(dirname "$f")" && cp "$f" "/m/$f"; done
+
+FROM base AS deps
+COPY --from=manifests /m/ ./
+# Isolated linker: only the web app's tree, not the hoisted Expo workspace.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter @harusi/web... --config.node-linker=isolated
+
+FROM deps AS build
+COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @harusi/web build
+# Next.js bakes NEXT_PUBLIC_* into the bundle at build time, so they are build arguments, not runtime
+# settings. The app falls back to mock data unless NEXT_PUBLIC_USE_MOCKS=0, so an image is never a mock
+# build by default. Empty values are unset below so the app's own defaults still apply.
+ARG NEXT_PUBLIC_USE_MOCKS=0
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_DOMAIN
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_KENYA_ENABLED=0
+RUN [ -n "$NEXT_PUBLIC_API_URL" ] || unset NEXT_PUBLIC_API_URL; \
+    [ -n "$NEXT_PUBLIC_APP_DOMAIN" ] || unset NEXT_PUBLIC_APP_DOMAIN; \
+    [ -n "$NEXT_PUBLIC_SITE_URL" ] || unset NEXT_PUBLIC_SITE_URL; \
+    pnpm --filter @harusi/web build
 
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
+# The standalone output leaves out public/, which holds the guest card's service worker (sw.js).
+COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
+# The commit this image was built from, reported by /health so a deploy can be confirmed (ADR 035).
+# Set last so it never invalidates the build layers above.
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

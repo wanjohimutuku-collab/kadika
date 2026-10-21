@@ -4,7 +4,7 @@
     "note": "Rasimu — inahitaji kupitiwa na mzungumzaji asilia wa Kiswahili kabla ya kuzinduliwa (CLAUDE.md §17.11)."
   },
   "common": {
-    "appName": "Harusi Pass",
+    "appName": "Kadi Sasa",
     "tagline": "Kadi za harusi, majibu, michango na mlango — sehemu moja.",
     "loading": "Inapakia…",
     "retry": "Jaribu tena",
@@ -55,11 +55,12 @@
   "validation": {
     "phone": {
       "empty": "Weka namba ya simu",
-      "invalid_chars": "Tumia tarakimu tu, mfano 0712 345 678",
+      "invalid_chars": "Hatukuona namba ya simu hapa. Mfano: 0712 345 678",
       "wrong_length": "Namba haijakamilika — inapaswa kuwa tarakimu 10, mfano 0712 345 678",
       "not_tanzanian": "Tumia namba ya Tanzania (+255)",
       "not_mobile": "Hii si namba ya simu ya mkononi",
-      "unsupported_country": "Tumia namba ya +255 (Tanzania) au +254 (Kenya)"
+      "unsupported_country": "Tumia namba ya +255 (Tanzania) au +254 (Kenya)",
+      "multiple_numbers": "Weka namba moja tu ya simu"
     },
     "otp": {
       "invalid": "Weka tarakimu 6"
@@ -159,6 +160,11 @@
   "card": {
     "metaTitle": "Mwaliko wa {kindOf} {couple}",
     "metaDescription": "{date} · {venue}. Fungua kadi yako ya mwaliko.",
+    "occWeddingBody": "Tunakualika kwa heshima kushuhudia na kushiriki furaha ya harusi yetu. Uwepo wako utakamilisha siku hii.",
+    "occEngagementBody": "Tunakualika kushuhudia na kushiriki furaha ya uchumba wetu. Uwepo wako utatupa baraka.",
+    "occSendoffBody": "Tunakualika kwenye sherehe ya kuaga (send-off) kabla ya harusi. Karibu tushiriki furaha hii pamoja.",
+    "occEngagementContrib": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha sherehe ya uchumba. Asante kwa kuwa nasi.",
+    "occSendoffContrib": "Mchango wako, mdogo au mkubwa, unatusaidia kufanikisha sherehe ya send-off. Asante kwa kuwa nasi.",
     "weddingOf": "{kindOf}",
     "invitesYou": "Wanakualika, {guest}",
     "dateLine": "{weekday} {date}",
@@ -278,7 +284,16 @@
     "backToCard": "Rudi kwenye kadi",
     "duplicateNote": "Tumepokea taarifa ya malipo zaidi ya mara moja; imehesabiwa mara moja tu.",
     "noPledges": "Malipo hayajawezeshwa kwa tukio hili.",
-    "safety": "Hatutakuomba PIN au namba ya siri. Ombi la malipo linaonyesha jina la mtoa huduma tu."
+    "safety": "Hatutakuomba PIN au namba ya siri. Ombi la malipo linaonyesha jina la mtoa huduma tu.",
+    "quick": "Chagua kiasi",
+    "useBalance": "Salio lote",
+    "submitAmount": "Lipa {amount}",
+    "network": "Mtandao wa simu",
+    "networkDetected": "Ombi litatumwa kupitia {provider}.",
+    "networkChange": "Badilisha",
+    "networkPick": "Chagua mtandao wa simu hii",
+    "amountPlaceholder": "Kiasi unachotaka kulipa",
+    "poweredBy": "Malipo na {name}"
   },
   "short": {
     "redirecting": "Inafungua kadi yako…",
@@ -355,7 +370,7 @@
     "wrongStaffCode": "Namba si sahihi. Jaribu tena."
   },
   "landing": {
-    "metaTitle": "Kadi ya Harusi Mtandaoni Tanzania | Harusi Pass",
+    "metaTitle": "Kadi za Mwaliko Mtandaoni Tanzania | Harusi Pass",
     "heroTitle": "Kadi moja ya harusi: inafika kwa kila mgeni, inajibu, inachangia, inaingia mlangoni.",
     "heroBody": "WhatsApp, SMS au karatasi — kila mgeni anapata kadi yake yenye QR na namba. Hata bila smartphone, hata bila mtandao.",
     "cta": "Anza",
@@ -428,7 +443,7 @@
     },
     "footerTagline": "Imetengenezwa Tanzania kwa ajili ya harusi na sherehe za Kitanzania.",
     "openCard": "Fungua kadi yako",
-    "metaDescription": "Tuma kadi ya harusi, send-off au uchumba kwa WhatsApp, SMS au karatasi. Fuatilia majibu na michango, na ingiza wageni langoni kwa QR bila mtandao.",
+    "metaDescription": "Tengeneza kadi za mwaliko za harusi, send-off, siku ya kuzaliwa na zaidi. Tuma kwa WhatsApp, SMS au karatasi. Fuatilia majibu na michango, na ingiza wageni langoni kwa QR bila mtandao.",
     "definitionTitle": "Harusi Pass ni nini?",
     "definition": "Harusi Pass ni huduma ya Kitanzania ya kadi za mwaliko za mtandaoni. Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi, ikiwa na QR na namba fupi. Kamati inaona nani amejibu, nani amechangia, na nani ameingia langoni, hata mtandao ukikatika.",
     "eventsTitle": "Kwa harusi, send-off, uchumba na zaidi",
@@ -692,6 +707,7 @@
     "cardKindUpdated": "Aina ya kadi imebadilishwa kwa {count, plural, one {mgeni #} other {wageni #}}"
   },
   "guestForm": {
+    "cardKind": "Aina ya kadi",
     "title": "Ongeza mgeni",
     "editTitle": "Badilisha mgeni",
     "name": "Jina kamili",
@@ -712,7 +728,6 @@
     "duplicatePhone": "Namba hii tayari ni ya mgeni mwingine",
     "decrease": "Punguza idadi",
     "increase": "Ongeza idadi",
-    "cardKind": "Aina ya kadi",
     "cardKinds": {
       "invitation": "Kadi ya mwaliko (jibu na QR)",
       "contribution": "Kadi ya mchango (inaomba mchango tu)"
@@ -1243,7 +1258,9 @@
       "support": "Msaada",
       "requests": "Maombi ya data",
       "audit": "Kumbukumbu za wafanyakazi",
-      "pilot": "Majaribio"
+      "pilot": "Majaribio",
+      "messaging": "SMS na WhatsApp",
+      "settings": "Mipangilio"
     },
     "overview": {
       "organizers": "Wateja",
@@ -1414,7 +1431,10 @@
         "reactivate": "Alirudisha",
         "set_plan": "Alibadilisha mpango",
         "resolve_request": "Alishughulikia ombi",
-        "lookup": "Alitafuta"
+        "lookup": "Alitafuta",
+        "messaging": "Alibadilisha SMS/WhatsApp",
+        "payments": "Alibadilisha mipangilio ya malipo",
+        "branding": "Alibadilisha chapa"
       },
       "empty": "Hakuna kumbukumbu."
     },
@@ -1480,6 +1500,219 @@
       "assumption": "Majina ya mitandao yanatoka kwenye msimbo wa mtandao kwenye ripoti za kufika na yanakamilika kadri mtoa huduma anavyotoa. Namba ya kasi ni pengo kati ya walioingia kwenye lango moja, kipimo mbadala cha muda kwa kila mgeni.",
       "untilFlag": "Kenya imezimwa kwenye toleo hili, kwa hiyo Tanzania pekee inaonyeshwa.",
       "period": "Kipindi"
+    },
+    "messaging": {
+      "title": "SMS na WhatsApp",
+      "intro": "Watoa huduma wanaotuma kadi, vikumbusho na namba za kuingia. Mabadiliko yanaanza kutumika mara moja, bila kuwasha upya seva.",
+      "route": {
+        "sms_tz": "SMS · Tanzania",
+        "sms_ke": "SMS · Kenya",
+        "whatsapp": "WhatsApp"
+      },
+      "provider": "Mtoa huduma",
+      "providers": {
+        "fake": "Majaribio (haitumi chochote)",
+        "nextsms": "NextSMS",
+        "africastalking": "Africa's Talking",
+        "evolution": "Evolution API",
+        "cloud": "WhatsApp Cloud API (Meta)"
+      },
+      "fakeWarning": "Hakuna ujumbe utakaotumwa kwa mtoa huduma huyu. Waandaaji hawatapokea namba za kuingia.",
+      "source": {
+        "database": "Imehifadhiwa hapa · {when} na {by}",
+        "environment": "Inatoka kwenye vigezo vya mazingira (env) ya seva"
+      },
+      "active": "Inayotuma sasa: {name}",
+      "secretSaved": "Imehifadhiwa ({hint}). Acha tupu kuiweka.",
+      "secretNew": "Haijawekwa",
+      "templates": "Violezo vya WhatsApp vilivyoidhinishwa",
+      "templatesKe": "Violezo vya Kenya",
+      "save": "Hifadhi",
+      "saved": "Mipangilio ya {route} imehifadhiwa",
+      "reset": "Rudi kwenye env",
+      "resetTitle": "Rudisha {route} kwenye vigezo vya mazingira?",
+      "resetBody": "Mipangilio iliyohifadhiwa hapa itafutwa na seva itatumia tena vigezo vya env.",
+      "resetDone": "{route} inatumia vigezo vya env tena",
+      "test": "Tuma ujumbe wa majaribio",
+      "testTo": "Namba ya kupokea",
+      "testSend": "Tuma",
+      "testOk": "Ujumbe umetumwa kupitia {provider}",
+      "testFailed": "Haukutumwa: {error}",
+      "webhooks": "Anwani za taarifa za kufika (webhooks)",
+      "webhooksIntro": "Weka anwani hizi kwenye dashibodi ya mtoa huduma. Zinahitaji WEBHOOK_SECRET (au App Secret ya Meta).",
+      "noPermission": "Ni wafanyakazi wenye ngazi ya admin pekee wanaoweza kuona na kubadilisha mipangilio hii.",
+      "field": {
+        "username": "Jina la mtumiaji",
+        "password": "Nenosiri",
+        "senderId": "Jina la mtumaji (Sender ID)",
+        "apiKey": "API key",
+        "baseUrl": "Anwani ya API (URL)",
+        "instance": "Jina la instance",
+        "token": "Access token",
+        "phoneNumberId": "Phone number ID",
+        "apiVersion": "Toleo la Graph API",
+        "verifyToken": "Verify token ya webhook",
+        "appSecret": "App secret",
+        "templateInvite": "Mwaliko",
+        "templateReminder": "Kikumbusho",
+        "templatePledge": "Ahadi",
+        "templateContribution": "Kadi ya mchango",
+        "templateInviteKe": "Mwaliko (Kenya)",
+        "templateReminderKe": "Kikumbusho (Kenya)",
+        "templatePledgeKe": "Ahadi (Kenya)",
+        "templateContributionKe": "Kadi ya mchango (Kenya)"
+      },
+      "missing": "Jaza sehemu hizi kwanza: {fields}",
+      "importEnv": {
+        "title": "Hamisha kutoka mazingira ya seva",
+        "body": "Nakili funguo za SMS na WhatsApp zilizowekwa kwenye vigezo vya seva kuziweka hapa, zikiwa zimefichwa. Mipangilio uliyokwisha kuhifadhi haibadilishwi.",
+        "button": "Hamisha mipangilio",
+        "done": "Imehamishwa: {routes}",
+        "nothing": "Hakuna cha kuhamisha: kila njia imehifadhiwa tayari au haina mipangilio kwenye seva.",
+        "after": "Baada ya kuhamisha unaweza kufuta vigezo vya NEXTSMS_*, SMS_SENDER_ID na WHATSAPP_* kwenye seva; mipangilio iliyohifadhiwa itaendelea kufanya kazi."
+      }
+    },
+    "settings": {
+      "title": "Mipangilio",
+      "navLabel": "Sehemu za mipangilio",
+      "tabs": {
+        "branding": "Chapa",
+        "messaging": "SMS na WhatsApp",
+        "payments": "Malipo"
+      },
+      "noPermission": "Ni wasimamizi pekee wanaoweza kufungua mipangilio."
+    },
+    "branding": {
+      "title": "Chapa ya biashara",
+      "intro": "Jina, nembo, rangi na herufi zinazotumika kwenye tovuti, programu ya waandaaji na ukurasa wa malipo. Mabadiliko yanafika kwa kila mtu ndani ya dakika moja.",
+      "noPermission": "Ni wasimamizi pekee wanaoweza kubadilisha chapa.",
+      "sourceDefault": "Bado hakuna chapa iliyohifadhiwa; chapa chaguomsingi inatumika.",
+      "sourceDatabase": "Imehifadhiwa {when} na {by}.",
+      "identity": "Jina na maelezo",
+      "businessName": "Jina la biashara",
+      "tagline": "Maelezo mafupi",
+      "taglineHint": "Si lazima. Huonekana chini ya jina kwenye ukurasa wa malipo.",
+      "logo": {
+        "title": "Nembo",
+        "hint": "SVG (inapendekezwa), PNG, JPEG au WebP, hadi KB 200.",
+        "none": "Hakuna nembo iliyohifadhiwa.",
+        "choose": "Chagua faili",
+        "replace": "Badilisha nembo",
+        "remove": "Ondoa nembo",
+        "saved": "Nembo imehifadhiwa",
+        "removed": "Nembo imeondolewa",
+        "svgNote": "Faili za SVG hukaguliwa: hati, viungo vya nje na vishikio vya matukio vinakataliwa.",
+        "alt": "Nembo ya {name}",
+        "removeTitle": "Ondoa nembo?",
+        "removeBody": "Nembo iliyojengwa ndani itatumika badala yake.",
+        "reasons": {
+          "too_large": "Faili ni kubwa kuliko KB 200.",
+          "not_svg": "Hii si faili sahihi ya SVG.",
+          "doctype": "Matamko ya DOCTYPE na ENTITY hayaruhusiwi.",
+          "forbidden_element": "Hati, kurasa zilizopachikwa na uhuishaji haviruhusiwi.",
+          "event_handler": "Vishikio vya matukio kama onclick haviruhusiwi.",
+          "external_reference": "SVG inaunganisha na kitu nje ya faili.",
+          "script_url": "Anwani za hati haziruhusiwi.",
+          "no_size": "SVG inahitaji viewBox (au upana na urefu).",
+          "type_mismatch": "Faili si aina ya picha inayodai kuwa.",
+          "bad_type": "Nembo lazima iwe SVG, PNG, JPEG au WebP.",
+          "unreadable": "Faili haikuweza kusomwa."
+        },
+        "builtin": "Hakuna nembo uliyohifadhi bado, kwa hivyo nembo iliyojengwa ndani inatumika kila mahali. Pakia yako kuibadilisha."
+      },
+      "colours": {
+        "title": "Rangi",
+        "primary": "Rangi kuu",
+        "accent": "Rangi ya pili",
+        "pick": "Chagua rangi",
+        "useDefault": "Tumia rangi chaguomsingi",
+        "default": "Chaguomsingi",
+        "invalid": "Andika rangi kama #0F5C4D.",
+        "readable": "Inasomeka vizuri ({ratio}:1)",
+        "hard": "Ngumu kusoma ({ratio}:1, inahitaji {min}:1)",
+        "hint": "Rangi kuu hutumika kwa vitufe na vichwa; maandishi juu yake huchaguliwa kiotomatiki (nyeupe au nyeusi)."
+      },
+      "fonts": {
+        "title": "Herufi",
+        "body": "Herufi za maandishi",
+        "display": "Herufi za vichwa",
+        "note": "Herufi hizi tayari zipo kwenye simu ya mgeni, kwa hivyo hazipakuliwi wala kupunguza kasi.",
+        "names": {
+          "system": "Mfumo (chaguomsingi)",
+          "humanist": "Humanist",
+          "geometric": "Geometric",
+          "rounded": "Mviringo",
+          "classical": "Classical (serif)",
+          "transitional": "Transitional (serif)",
+          "elegant": "Elegant (Cormorant)"
+        },
+        "sample": "Karibu kwenye harusi yetu"
+      },
+      "preview": {
+        "title": "Onyesho",
+        "button": "Lipa sasa",
+        "secondary": "Rudi kwenye kadi",
+        "unsaved": "Mabadiliko ambayo hayajahifadhiwa"
+      },
+      "save": "Hifadhi chapa",
+      "saved": "Chapa imehifadhiwa",
+      "errorGeneric": "Chapa haikuhifadhiwa."
+    },
+    "paymentSettings": {
+      "title": "Malipo",
+      "intro": "Mtoa huduma wa malipo ya simu kwa michango ya wageni. Mabadiliko yanaanza kutumika mara moja, bila kuwasha upya seva.",
+      "noPermission": "Ni wasimamizi pekee wanaoweza kubadilisha mipangilio ya malipo.",
+      "route": {
+        "tz": "Malipo · Tanzania"
+      },
+      "provider": "Mtoa huduma",
+      "providers": {
+        "fake": "Majaribio (hakuna malipo halisi)",
+        "snippe": "Snippe (M-Pesa, Airtel, Mixx, Halopesa)"
+      },
+      "fakeWarning": "Hakuna malipo halisi yatakayofanyika kwa mtoa huduma huyu. Wageni hawawezi kulipa kwa simu.",
+      "source": {
+        "database": "Imehifadhiwa {when} na {by}.",
+        "environment": "Hakuna kilichohifadhiwa bado; vigezo vya seva vinatumika."
+      },
+      "active": "Inayotumika sasa: {name}",
+      "inactive": "Malipo yamezimwa",
+      "field": {
+        "apiKey": "Ufunguo wa API",
+        "webhookSigningKey": "Ufunguo wa kusaini webhook",
+        "environment": "Mazingira",
+        "receiptEmail": "Barua pepe ya stakabadhi"
+      },
+      "fieldHint": {
+        "apiKey": "Unaanza na snp_. Kutoka dashibodi ya Snippe.",
+        "webhookSigningKey": "Unaonyeshwa mara moja Snippe inapounda webhook.",
+        "environment": "Tumia sandbox kujaribu bila pesa halisi.",
+        "receiptEmail": "Snippe inahitaji barua pepe ya mlipaji. Wageni hawaulizwi, kwa hivyo hii hutumika."
+      },
+      "environments": {
+        "production": "Halisi (production)",
+        "sandbox": "Majaribio (sandbox)"
+      },
+      "secretSaved": "Imehifadhiwa: {hint}. Iache wazi kuendelea kuitumia.",
+      "secretNew": "Haitaonyeshwa tena baada ya kuhifadhi.",
+      "missing": "Jaza: {fields}",
+      "save": "Hifadhi malipo",
+      "saved": "Mipangilio ya malipo imehifadhiwa",
+      "reset": "Rudi kwenye mazingira ya seva",
+      "resetTitle": "Rudi kwenye mazingira ya seva?",
+      "resetBody": "Mipangilio iliyohifadhiwa itafutwa. Seva itatumia vigezo vyake (majaribio) hadi uhifadhi tena.",
+      "resetDone": "Mipangilio ya malipo imeondolewa",
+      "test": "Jaribu muunganisho",
+      "testBody": "Huuliza Snippe kama ufunguo wako unafanya kazi. Hakuna pesa inayosogezwa.",
+      "testOk": "Snippe imejibu: ufunguo unafanya kazi.",
+      "testFailed": "Jaribio limeshindwa: {error}",
+      "webhook": {
+        "title": "Webhook ya Snippe",
+        "intro": "Ongeza anwani hii kwenye dashibodi ya Snippe kama webhook ya matukio ya malipo (payment.completed, payment.failed, payment.expired, payment.voided). Bila hiyo malipo hayatathibitishwa.",
+        "copy": "Nakili",
+        "copied": "Imenakiliwa",
+        "missing": "Seva haina anwani yake ya umma (API_PUBLIC_URL), kwa hivyo Snippe haina pa kutuma matokeo."
+      }
     }
   },
   "mobile": {

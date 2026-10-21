@@ -99,8 +99,8 @@ describe('picking texts and toggles', () => {
 
 describe('default sender line', () => {
   it('keeps the committee wording and adds family, couple and host', () => {
-    expect(defaultSender('Harusi', 'Asha & Juma')).toBe('Wedding committee of Asha & Juma');
-    expect(defaultSender(undefined, 'Neema')).toBe('Committee of Neema');
+    expect(defaultSender('Harusi', 'Asha & Juma')).toBe('The wedding committee of Asha & Juma');
+    expect(defaultSender(undefined, 'Neema')).toBe('The Neema committee');
     expect(defaultSender('Harusi', 'Asha & Juma', 'committee', 'sw')).toBe(
       'Kamati ya Harusi ya Asha & Juma',
     );

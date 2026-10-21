@@ -137,6 +137,20 @@ describe('events, members and signing keys', () => {
     expect(patched.body?.eventKind).toBe('Send-off');
   });
 
+  it('treats an event patch with nothing to change as a no-op, not an error', async () => {
+    const owner = await loginAs(ctx, '0711000098');
+    const created = await api(ctx, 'POST', '/v1/events', {
+      token: owner.accessToken,
+      body: eventBody(),
+    });
+    const same = await api(ctx, 'PATCH', `/v1/events/${created.body!.id}`, {
+      token: owner.accessToken,
+      body: {},
+    });
+    expect(same.status).toBe(200);
+    expect(same.body).toMatchObject({ id: created.body!.id, title: created.body!.title });
+  });
+
   it('hides events from non-members and limits roles', async () => {
     const owner = await loginAs(ctx, '0711000002');
     const stranger = await loginAs(ctx, '0711000003');

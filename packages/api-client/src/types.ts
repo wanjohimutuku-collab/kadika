@@ -85,6 +85,8 @@ export interface EventStats {
   guestsWithBalance: number;
   failedMessages: number;
   featurePhoneGuests: number;
+  /** Guests who hold a contribution card; they are counted apart from the invitation funnel (ADR 029). */
+  contributionGuests: number;
 }
 
 export type EventStatus = 'draft' | 'active' | 'completed' | 'archived';
@@ -361,6 +363,11 @@ export interface SendRequest {
   whatsappFallbackToSms: boolean;
   scheduleAt: ISODate | null;
   kind: 'invite' | 'reminder' | 'thank_you';
+  /**
+   * Which cards to send: invitation cards or contribution cards. Left out, both go, as before (ADR 041).
+   * A contribution card is a first message; its follow-up is a pledge reminder, not a `reminder`.
+   */
+  cardKind?: CardKind;
   idempotencyKey: string;
   /** Optional custom body for thank-you broadcasts. */
   body?: string;
@@ -377,6 +384,8 @@ export interface SendJob {
   id: string;
   eventId: string;
   kind: SendRequest['kind'];
+  /** The cards this send is for; `null` when it went to both (older sends). */
+  cardKind?: CardKind | null;
   total: number;
   counts: { queued: number; sent: number; delivered: number; failed: number };
   byChannel: Record<MessageChannel, number>;
@@ -424,6 +433,11 @@ export interface ImportRowInput {
 export interface ImportResult {
   created: number;
   skipped: number;
+}
+
+/** What a whole imported list is: invitation cards (the default) or contribution cards (ADR 029). */
+export interface ImportOptions {
+  cardKind?: CardKind;
 }
 
 export interface PaymentStart {

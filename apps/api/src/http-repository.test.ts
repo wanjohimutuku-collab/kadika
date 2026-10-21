@@ -319,6 +319,125 @@ describe('HttpRepository against the real API', () => {
     expect(new TextDecoder().decode((await pdf.arrayBuffer()).slice(0, 5))).toBe('%PDF-');
   });
 
+  it('previews and sends contribution cards, then invitations, through the repository (ADR 041)', async () => {
+    const r = repo();
+    await login(r, '0712 100 150');
+    const ev = await r.createEvent({
+      title: 'Uchumba',
+      partnerA: 'Asha',
+      partnerB: 'Juma',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 1_000_000,
+    });
+    const guest = (name: string, phone: string, cardKind: 'invitation' | 'contribution') =>
+      r.createGuest(ev.id, {
+        displayName: name,
+        phone,
+        partySizeAllowed: 1,
+        cardKind,
+        inviteChannelPref: 'sms',
+        hasSmartphone: false,
+        language: 'sw',
+        notes: '',
+      });
+    await guest('Mgeni Mmoja', '0712 100 151', 'invitation');
+    await guest('Mchangiaji Mmoja', '0712 100 152', 'contribution');
+    await guest('Mchangiaji Wawili', '0712 100 153', 'contribution');
+    const ask = {
+      audience: { kind: 'unsent' as const },
+      channel: 'sms' as const,
+      whatsappFallbackToSms: true,
+      kind: 'invite' as const,
+    };
+
+    // the API applies the audience rules; the client prices the SMS from a sample text
+    const preview = await r.previewSend(ev.id, { ...ask, cardKind: 'contribution' });
+    expect(preview).toMatchObject({
+      total: 2,
+      byChannel: { sms: 2, whatsapp: 0, print: 0 },
+      withoutPhone: 0,
+    });
+    expect(preview.smsSegments).toBeGreaterThan(0);
+    expect(preview.estimatedSmsCost).toBe(preview.smsSegments * 2 * 25);
+    expect((await r.previewSend(ev.id, { ...ask, cardKind: 'invitation' })).total).toBe(1);
+    // print is chosen here, not by the API: everyone the audience matches is a printed card
+    expect(
+      await r.previewSend(ev.id, { ...ask, channel: 'print', cardKind: 'contribution' }),
+    ).toMatchObject({ total: 2, byChannel: { print: 2, sms: 0 }, estimatedSmsCost: 0 });
+    // and a contribution card has no reminder
+    await expect(
+      r.previewSend(ev.id, { ...ask, kind: 'reminder', cardKind: 'contribution' }),
+    ).rejects.toMatchObject({ code: 'validation' });
+
+    ctx.sms.sent.length = 0; // the login code
+    const job = await r.sendInvitations(ev.id, {
+      ...ask,
+      cardKind: 'contribution',
+      scheduleAt: null,
+      idempotencyKey: 'card-type-key-1',
+    });
+    expect(job).toMatchObject({ status: 'done', cardKind: 'contribution', total: 2 });
+    expect(job.counts).toMatchObject({ sent: 2, failed: 0 });
+    expect(ctx.sms.sent.map((m) => m.to).sort()).toEqual(['+255712100152', '+255712100153']);
+    // they are counted apart from the invitation funnel
+    expect((await r.getEvent(ev.id)).stats).toMatchObject({ invited: 1, contributionGuests: 2 });
+
+    const invitations = await r.sendInvitations(ev.id, {
+      ...ask,
+      cardKind: 'invitation',
+      scheduleAt: null,
+      idempotencyKey: 'card-type-key-2',
+    });
+    expect(invitations).toMatchObject({ cardKind: 'invitation', total: 1 });
+    expect(invitations.counts).toMatchObject({ sent: 1, failed: 0 });
+
+    // a list imported as contribution cards, and a send for later that keeps its card type
+    const imported = await r.importGuests(
+      ev.id,
+      [
+        {
+          displayName: 'Ndugu Mmoja',
+          phoneRaw: '0712 100 154',
+          groupLabel: 'Ndugu',
+          partySizeAllowed: 1,
+          hasSmartphone: false,
+          inviteChannelPref: 'sms',
+        },
+      ],
+      'import-key-0001',
+      { cardKind: 'contribution' },
+    );
+    expect(imported).toMatchObject({ created: 1 });
+    expect((await r.listGuests(ev.id, { cardKind: 'contribution' })).length).toBe(3);
+    const later = await r.sendInvitations(ev.id, {
+      ...ask,
+      cardKind: 'contribution',
+      scheduleAt: '2027-03-10T08:00:00Z',
+      idempotencyKey: 'card-type-key-3',
+    });
+    expect(later).toMatchObject({ status: 'scheduled', cardKind: 'contribution', total: 1 });
+    expect(await r.listScheduledSends(ev.id)).toEqual([
+      expect.objectContaining({ id: later.id, cardKind: 'contribution' }),
+    ]);
+    // contributions can be switched off: the API refuses to ask for money it cannot collect
+    await r.updateEvent(ev.id, { pledgesEnabled: false });
+    await expect(
+      r.sendInvitations(ev.id, {
+        ...ask,
+        cardKind: 'contribution',
+        scheduleAt: null,
+        idempotencyKey: 'card-type-key-4',
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+
   it('runs pledges and payments through the repository: pledge, cash, pay from the card, webhook, export', async () => {
     const tokens = memoryTokenStore();
     const r = repo(tokens);

@@ -3,6 +3,7 @@ import { pledgeTotals, progress, summarizePledge } from './pledge';
 import { buildInviteSms, estimateSmsCost, smsSegments } from './sms';
 import { advanceStatus, funnelCounts } from './funnel';
 import { isMockPayload, mockQrPayload } from './token';
+import { senderNameFor } from './sender';
 
 describe('pledge math', () => {
   it('derives status and balance', () => {
@@ -131,5 +132,37 @@ describe('kind-aware messages', () => {
     expect(buildInviteSms({ ...base, partnerB: 'Juma', locale: 'sw' })).toMatch(
       /^Karibu kwenye harusi ya Neema & Juma,/,
     );
+  });
+});
+
+describe('senderNameFor (ADR 041)', () => {
+  const event = {
+    senderName: 'Familia ya Asha & Juma',
+    cardContent: { sender: { kind: 'family' as const } },
+    eventKind: 'Harusi',
+    coupleNames: 'Asha & Juma',
+    partnerA: 'Asha',
+    partnerB: 'Juma',
+  };
+
+  it('follows the language when the organiser wrote no name of their own', () => {
+    expect(senderNameFor(event, 'sw')).toBe('Familia ya Asha & Juma');
+    expect(senderNameFor(event, 'en')).toBe('The Asha & Juma family');
+    const committee = {
+      ...event,
+      senderName: 'Kamati ya Harusi ya Asha & Juma',
+      cardContent: {},
+    };
+    expect(senderNameFor(committee, 'en')).toBe('The wedding committee of Asha & Juma');
+  });
+
+  it('keeps the organiser’s own name in every language', () => {
+    const own = { ...event, senderName: 'Familia ya Mzee Mwinyi' };
+    expect(senderNameFor(own, 'en')).toBe('Familia ya Mzee Mwinyi');
+    const inContent = {
+      ...event,
+      cardContent: { sender: { kind: 'custom' as const, name: 'Mama Neema' } },
+    };
+    expect(senderNameFor(inContent, 'en')).toBe('Mama Neema');
   });
 });

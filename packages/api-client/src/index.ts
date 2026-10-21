@@ -5,6 +5,7 @@ export * from './errors';
 export type { Repository } from './repository';
 export * from './domain/pledge';
 export * from './domain/sms';
+export * from './domain/sender';
 export * from './domain/funnel';
 export * from './domain/guest-filter';
 export * from '@harusi/schemas/import';

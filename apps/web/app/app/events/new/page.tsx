@@ -9,11 +9,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Check, ImagePlus } from 'lucide-react';
 import {
+  defaultEventTitle,
   eventInputSchema,
-  eventKindLabel,
   eventKindSuggestions,
+  hostNames,
   type EventInput,
 } from '@harusi/schemas';
+import type { Locale } from '@harusi/i18n';
 import {
   contrastRatio,
   lightColors,
@@ -91,10 +93,10 @@ function readDraft(): { values: EventInput; step: Step } | null {
 }
 
 export default function NewEventPage() {
-  const locale = useLocale() as 'sw' | 'en';
   const t = useTranslations('wizard');
   const tc = useTranslations('common');
   const tl = useTranslations('common.languageName');
+  const locale = useLocale() as Locale;
   const fieldError = useFieldError();
   const router = useRouter();
   const toast = useToast();
@@ -102,9 +104,14 @@ export default function NewEventPage() {
   const [step, setStep] = useState<Step>('names');
   const [restored, setRestored] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  // the event type starts as the first suggestion in the language of the screen (Wedding / Harusi)
+  const empty = useMemo<EventInput>(
+    () => ({ ...EMPTY, eventKind: eventKindSuggestions(locale)[0] }),
+    [locale],
+  );
   const form = useForm<EventInput>({
     resolver: zodResolver(eventInputSchema),
-    defaultValues: EMPTY,
+    defaultValues: empty,
     mode: 'onTouched',
   });
   const { register, control, formState, trigger, setValue, reset, handleSubmit } = form;
@@ -114,11 +121,11 @@ export default function NewEventPage() {
   useEffect(() => {
     const d = readDraft();
     if (d && (d.values.partnerA || d.values.partnerB || d.values.venueName)) {
-      reset({ ...EMPTY, ...d.values });
+      reset({ ...empty, ...d.values });
       setStep(d.step);
       setRestored(true);
     }
-  }, [reset]);
+  }, [reset, empty]);
   useEffect(() => {
     const id = setTimeout(() => {
       try {
@@ -140,13 +147,7 @@ export default function NewEventPage() {
     if (!titleTouched && (values.partnerA || values.partnerB))
       setValue(
         'title',
-        `${values.eventKind?.trim() ? eventKindLabel(values.eventKind, locale) : locale === 'sw' ? 'Mwaliko' : 'Invitation'} ${locale === 'sw' ? 'ya' : 'of'} ${[
-          values.partnerA,
-          values.partnerB,
-        ]
-          .map((n) => n?.trim())
-          .filter(Boolean)
-          .join(' & ')}`,
+        defaultEventTitle(values.eventKind, hostNames(values.partnerA, values.partnerB), locale),
       );
   }, [values.eventKind, values.partnerA, values.partnerB, titleTouched, setValue, locale]);
 
@@ -225,7 +226,7 @@ export default function NewEventPage() {
               variant="ghost"
               onClick={() => {
                 localStorage.removeItem(DRAFT_KEY);
-                reset(EMPTY);
+                reset(empty);
                 setStep('names');
                 setRestored(false);
               }}

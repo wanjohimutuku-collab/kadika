@@ -1,8 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Switch, Text, View } from 'react-native';
-import { useGlobalSearchParams } from 'expo-router';
+import { router, useGlobalSearchParams } from 'expo-router';
 import type { SendJob } from '@harusi/api-client';
-import { buildInviteSms, estimateSmsCostFor } from '@harusi/api-client';
+import {
+  buildContributionSms,
+  buildInviteSms,
+  estimateSmsCostFor,
+  senderNameFor,
+} from '@harusi/api-client';
+import type { CardKind } from '@harusi/schemas';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { formatDate, formatMoney } from '../../../../../src/lib/format';
@@ -25,14 +31,19 @@ import {
 type Channel = 'auto' | 'whatsapp' | 'sms';
 
 export default function Send() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const { currency } = useEventLocale(id);
   const t = useT();
   const c = useColors();
   const { locale } = useLocale();
   const online = useOnline();
   const ev = useEvent(id);
-  const guests = useGuests(id, { filter: 'unsent' });
+  // which cards to send (ADR 041): invitation cards, or contribution cards, which go out first when money comes before guests
+  const [cardKind, setCardKind] = useState<CardKind>(
+    card === 'contribution' ? 'contribution' : 'invitation',
+  );
+  const contribution = cardKind === 'contribution';
+  const guests = useGuests(id, { filter: 'unsent', cardKind });
   const send = useSend(id);
   const retry = useRetryFailed(id);
   const [channel, setChannel] = useState<Channel>('auto');
@@ -48,6 +59,16 @@ export default function Send() {
   const sample = useMemo(() => {
     const e = ev.data;
     if (!e) return '';
+    if (contribution)
+      return buildContributionSms({
+        locale,
+        partnerA: e.partnerA,
+        partnerB: e.partnerB,
+        kind: e.eventKind,
+        // the sender in the language of the screen, as the API picks it for each guest
+        sender: senderNameFor(e, locale),
+        shortLink: 'harusi.example/s/…',
+      });
     return buildInviteSms({
       locale,
       partnerA: e.partnerA,
@@ -57,7 +78,9 @@ export default function Send() {
       shortLink: 'harusi.example/s/…',
       code: 'KH-4821',
     });
-  }, [ev.data, locale]);
+  }, [ev.data, locale, contribution]);
+  const contributionGuests = ev.data?.stats.contributionGuests ?? 0;
+  const contributionsOff = contribution && ev.data?.pledgesEnabled === false;
   // Who gets which channel: smartphone guests by WhatsApp, the rest by SMS, unless one is forced.
   const waCount =
     channel === 'sms'
@@ -74,6 +97,7 @@ export default function Send() {
         whatsappFallbackToSms: fallback,
         scheduleAt: null,
         kind: 'invite',
+        cardKind,
         idempotencyKey: key,
       });
       setJob(j);
@@ -147,13 +171,66 @@ export default function Send() {
         <Button
           icon="send"
           label={`${t('send.sendNow')} (${targets.length})`}
-          disabled={targets.length === 0 || !online}
+          disabled={targets.length === 0 || !online || contributionsOff}
           loading={send.isPending}
           onPress={() => setConfirm(true)}
         />
       }
     >
       {!online ? <Banner tone="warning" text={t('send.offline')} /> : null}
+
+      <SectionTitle>{t('send.cardType')}</SectionTitle>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <Tile
+          icon="invite"
+          label={t('send.cardTypes.invitation')}
+          hint={String(ev.data?.stats.invited ?? 0)}
+          selected={!contribution}
+          onPress={() => setCardKind('invitation')}
+        />
+        <Tile
+          icon="pledges"
+          label={t('send.cardTypes.contribution')}
+          hint={String(contributionGuests)}
+          selected={contribution}
+          onPress={() => setCardKind('contribution')}
+        />
+      </View>
+      {contribution ? (
+        <>
+          <Txt size={14} color={c.muted}>
+            {t('send.contributionHelp')}
+          </Txt>
+          {contributionsOff ? (
+            <>
+              <Banner tone="warning" text={t('send.contributionsOff')} />
+              <Button
+                variant="secondary"
+                label={t('send.openSettings')}
+                onPress={() => router.push(`/event/${id}/settings`)}
+              />
+            </>
+          ) : null}
+          {contributionGuests === 0 ? (
+            <>
+              <Banner tone="info" text={t('send.noContributionGuests')} />
+              <Button
+                variant="secondary"
+                label={t('send.addGuestLink')}
+                onPress={() => router.push(`/event/${id}/guests/new?card=contribution`)}
+              />
+              <Button
+                variant="secondary"
+                label={t('send.importLink')}
+                onPress={() => router.push(`/event/${id}/guests/import?card=contribution`)}
+              />
+            </>
+          ) : null}
+          <Txt size={14} color={c.muted}>
+            {t('send.contributionFollowUp')}
+          </Txt>
+        </>
+      ) : null}
 
       <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
@@ -252,7 +329,11 @@ export default function Send() {
       {send.isError ? <Banner tone="danger" text={t('states.errorBody')} /> : null}
       <ConfirmSheet
         open={confirm}
-        title={t('send.confirmTitle', { count: targets.length })}
+        title={
+          contribution
+            ? t('send.confirmTitleContribution', { count: targets.length })
+            : t('send.confirmTitle', { count: targets.length })
+        }
         body={t('send.confirmBody', {
           whatsapp: waCount,
           sms: smsCount,

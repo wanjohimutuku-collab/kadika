@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
 import { previewCardOnServer } from '@/lib/server-card';
-import { eventKindLabel, hostNames } from '@harusi/schemas';
+import { eventKindOf, hostNames } from '@harusi/schemas';
 import { formatDate } from '@/lib/format';
 import { LOGO_SVG, svgDataUri } from '@/lib/brand-assets';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
@@ -31,7 +31,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
       }}
     >
       <div style={{ fontSize: 34, letterSpacing: 8, textTransform: 'uppercase', opacity: 0.9 }}>
-        {`${eventKindLabel(ev?.eventKind, 'en')} of`}
+        {eventKindOf(ev?.eventKind, 'en')}
       </div>
       <div style={{ fontSize: 110, fontWeight: 700, marginTop: 10 }}>
         {ev ? hostNames(ev.partnerA, ev.partnerB) : DEFAULT_BRANDING.businessName}

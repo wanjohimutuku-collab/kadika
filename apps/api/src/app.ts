@@ -99,6 +99,8 @@ const sendInputSchema = z.object({
   target: sendTargetSchema,
   channel: z.enum(['auto', 'whatsapp', 'sms']).optional(),
   kind: z.enum(['invite', 'reminder']).optional(),
+  /** Which cards: invitation or contribution; left out, both, as before (ADR 041). */
+  cardKind: cardKindSchema.optional(),
 });
 const guestBase = z.object({
   displayName: z.string().trim().min(2).max(80),
@@ -620,6 +622,16 @@ export function createApp(deps: Deps) {
     }
     return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
   });
+  // What a send would do, with nothing sent: the same audience rules as the send itself (ADR 041).
+  app.post('/v1/events/:id/invitations/preview', async (c) =>
+    c.json(
+      await deliverySvc.preview(
+        c.req.param('id'),
+        c.get('userId'),
+        parse(sendInputSchema, await body(c)),
+      ),
+    ),
+  );
   app.post('/v1/events/:id/scheduled-sends', async (c) => {
     const input = parse(
       sendInputSchema.extend({ scheduledFor: z.string().datetime({ offset: true }) }),
@@ -628,6 +640,7 @@ export function createApp(deps: Deps) {
     return c.json(
       await scheduledSvc.create(c.req.param('id'), c.get('userId'), {
         kind: input.kind ?? 'invite',
+        cardKind: input.cardKind,
         target: input.target,
         channel: input.channel,
         scheduledFor: new Date(input.scheduledFor),

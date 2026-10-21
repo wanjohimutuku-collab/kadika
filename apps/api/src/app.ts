@@ -503,6 +503,31 @@ export function createApp(deps: Deps) {
     c.header('etag', etag);
     return c.json(bundle);
   });
+  // The web console's gate monitor (§17.8): a signed-in owner or committee member, never a gate token.
+  const consoleUser = (c: Context<Env>) => {
+    if (c.get('gate')) throw new ApiError('forbidden', 'Gate agents use the gate app');
+    return c.get('userId');
+  };
+  app.get('/v1/events/:id/gate/overview', async (c) =>
+    c.json(await gateSvc.overview(c.req.param('id'), consoleUser(c))),
+  );
+  app.get('/v1/events/:id/gate/scans', async (c) =>
+    c.json(await gateSvc.scans(c.req.param('id'), consoleUser(c))),
+  );
+  app.post('/v1/events/:id/gate/manual-checkin', async (c) => {
+    const input = parse(
+      z.object({
+        guestId: z.string().uuid(),
+        partySize: z.number().int().min(1).max(99),
+        reason: z.string().max(300).nullish(),
+      }),
+      await body(c),
+    );
+    return c.json(
+      await gateSvc.manualCheckIn(c.req.param('id'), consoleUser(c), input.guestId, input),
+      201,
+    );
+  });
   app.get('/v1/events/:id/gate/admitted', async (c) =>
     c.json(await gateSvc.admitted(c.req.param('id'), actorOf(c))),
   );

@@ -469,3 +469,71 @@ describe('gate engine, offline', () => {
     expect(rows[0]!.guestId).toBeNull(); // a guest from another event is dropped, not linked
   });
 });
+
+describe('the web console gate monitor (§17.8)', () => {
+  it('shows who is in and the scan log, and admits a guest by hand once', async () => {
+    const s = await setup(3);
+    const [a, b] = s.guests;
+    const ev = s.ev.id;
+    // nothing yet
+    const empty = (await api(ctx, 'GET', `/v1/events/${ev}/gate/overview`, { token: s.t })).body!;
+    expect(empty).toMatchObject({ admittedGuests: 0, admittedPeople: 0, duplicates: 0, manual: 0 });
+    expect((await api(ctx, 'GET', `/v1/events/${ev}/gate/scans`, { token: s.t })).body).toEqual([]);
+
+    const admit = (guestId: string, reason?: string) =>
+      api(ctx, 'POST', `/v1/events/${ev}/gate/manual-checkin`, {
+        token: s.t,
+        body: { guestId, partySize: 1, reason },
+      });
+    const first = await admit(a!.id, 'Simu imezima');
+    expect(first.status).toBe(201);
+    expect(first.body).toMatchObject({
+      guestId: a!.id,
+      guestName: a!.displayName,
+      result: 'manual_ok',
+      partyAdmitted: 1,
+      gateName: 'Dashibodi (wavuti)',
+      reason: 'Simu imezima',
+    });
+    // the same guest again is a duplicate, never a second admission
+    expect((await admit(a!.id)).body).toMatchObject({ result: 'duplicate', partyAdmitted: 0 });
+    await admit(b!.id);
+
+    const o = (await api(ctx, 'GET', `/v1/events/${ev}/gate/overview`, { token: s.t })).body!;
+    expect(o).toMatchObject({ admittedGuests: 2, admittedPeople: 2, duplicates: 1, manual: 2 });
+    expect(o.perGate).toEqual([
+      { gateName: 'Dashibodi (wavuti)', ok: 0, duplicate: 1, invalid: 0, manual: 2 },
+    ]);
+    expect(o.arrivalsByHour.reduce((n: number, h: { count: number }) => n + h.count, 0)).toBe(2);
+    const log = (await api(ctx, 'GET', `/v1/events/${ev}/gate/scans`, { token: s.t })).body!;
+    expect(log).toHaveLength(3);
+    // the guest list shows them as arrived
+    const g = (await api(ctx, 'GET', `/v1/guests/${a!.id}`, { token: s.t })).body!;
+    expect(g.status).toBe('checked_in');
+  });
+
+  it('is for event members only, never a gate token', async () => {
+    const s = await setup(1);
+    const other = await setup(1);
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${s.ev.id}/gate/overview`, { token: other.t })).status,
+    ).toBe(404); // not a member: the event is not shown to exist
+    const link = (await api(ctx, 'POST', `/v1/events/${s.ev.id}/gate-links`, { token: s.t })).body!;
+    const tok = (
+      await api(ctx, 'POST', '/v1/gate/join', {
+        body: { code: link.code, pin: link.pin, deviceId: 'device-cccc-0003' },
+      })
+    ).body!.accessToken;
+    expect(
+      (await api(ctx, 'GET', `/v1/events/${s.ev.id}/gate/overview`, { token: tok })).status,
+    ).toBe(403);
+    expect(
+      (
+        await api(ctx, 'POST', `/v1/events/${s.ev.id}/gate/manual-checkin`, {
+          token: tok,
+          body: { guestId: s.guests[0]!.id, partySize: 1 },
+        })
+      ).status,
+    ).toBe(403);
+  });
+});

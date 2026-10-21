@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { scryptAsync } from '@noble/hashes/scrypt';
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import {
   eventMembers,
   events,
@@ -10,7 +10,9 @@ import {
   invitations,
   newId,
   scanLog,
+  users,
 } from '@harusi/db';
+import { toZoned } from '@harusi/schemas';
 import { toHex } from '@harusi/crypto';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
@@ -367,6 +369,194 @@ export class GateService {
         .update(invitations)
         .set({ status: 'checked_in' })
         .where(eq(invitations.guestId, guestId));
+  }
+
+  // ---- the web console's gate monitor (§17.8: monitor + manual check-in; scanning stays in the app)
+
+  /** The device id the web console's manual check-ins are recorded under. */
+  static readonly CONSOLE_DEVICE = 'web-console';
+
+  private async consoleRole(eventId: string, userId: string) {
+    const role = await this.eventsSvc.role(eventId, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents use the gate app');
+    return role;
+  }
+
+  /** Names for devices: the name the gate app gave at join, or the console's own label. */
+  private async deviceNames(eventId: string): Promise<Map<string, string>> {
+    const rows = await this.deps.db
+      .select({ deviceId: gateDevices.deviceId, name: gateDevices.name })
+      .from(gateDevices)
+      .where(eq(gateDevices.eventId, eventId));
+    const m = new Map(rows.map((r) => [r.deviceId, r.name || 'Lango']));
+    m.set(GateService.CONSOLE_DEVICE, 'Dashibodi (wavuti)');
+    return m;
+  }
+
+  /** Who is in, who is expected, and how each gate is doing (the console's Gate page). */
+  async overview(eventId: string, userId: string) {
+    await this.consoleRole(eventId, userId);
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    if (!event) throw new ApiError('not_found', 'Event not found');
+    const scans = await this.deps.db
+      .select({
+        guestId: scanLog.guestId,
+        deviceId: scanLog.deviceId,
+        result: scanLog.result,
+        override: scanLog.override,
+        partyAdmitted: scanLog.partyAdmitted,
+        scannedAt: scanLog.scannedAt,
+      })
+      .from(scanLog)
+      .where(eq(scanLog.eventId, eventId));
+    const admitted = scans.filter(
+      (s) => (s.result === 'ok' || s.result === 'manual_ok') && !s.override && !!s.guestId,
+    );
+    const expected = await this.deps.db
+      .select({ party: invitations.rsvpPartySize })
+      .from(invitations)
+      .innerJoin(guests, eq(guests.id, invitations.guestId))
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          eq(guests.cardKind, 'invitation'),
+          inArray(invitations.status, ['confirmed', 'checked_in']),
+        ),
+      );
+    const names = await this.deviceNames(eventId);
+    const perGate = new Map<
+      string,
+      { gateName: string; ok: number; duplicate: number; invalid: number; manual: number }
+    >();
+    for (const s of scans) {
+      const gateName = names.get(s.deviceId) ?? 'Lango';
+      const row = perGate.get(gateName) ?? { gateName, ok: 0, duplicate: 0, invalid: 0, manual: 0 };
+      if (s.result === 'ok') row.ok++;
+      else if (s.result === 'duplicate') row.duplicate++;
+      else if (s.result === 'manual_ok' || s.result === 'manual_denied') row.manual++;
+      else row.invalid++;
+      perGate.set(gateName, row);
+    }
+    const byHour = new Map<string, number>();
+    for (const s of admitted) {
+      const hour = toZoned(s.scannedAt, event.timezone).getUTCHours();
+      const key = `${String(hour).padStart(2, '0')}:00`;
+      byHour.set(key, (byHour.get(key) ?? 0) + s.partyAdmitted);
+    }
+    const revoked = await this.deps.db
+      .select({
+        guestId: guests.id,
+        guestName: guests.displayName,
+        shortCode: guests.shortCode,
+        tokenVersion: guests.tokenVersion,
+        revokedAt: guests.updatedAt,
+      })
+      .from(guests)
+      .where(
+        and(eq(guests.eventId, eventId), isNull(guests.deletedAt), gt(guests.tokenVersion, 1)),
+      );
+    const invalidResults = ['invalid_sig', 'wrong_event', 'not_found'];
+    return {
+      admittedGuests: new Set(admitted.map((s) => s.guestId)).size,
+      admittedPeople: admitted.reduce((n, s) => n + s.partyAdmitted, 0),
+      expectedGuests: expected.length,
+      expectedPeople: expected.reduce((n, e) => n + (e.party ?? 1), 0),
+      duplicates: scans.filter((s) => s.result === 'duplicate').length,
+      invalid: scans.filter((s) => invalidResults.includes(s.result)).length,
+      manual: scans.filter((s) => s.result === 'manual_ok').length,
+      arrivalsByHour: [...byHour.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([hour, count]) => ({ hour, count })),
+      perGate: [...perGate.values()],
+      revoked: revoked.map((r) => ({ ...r, revokedAt: r.revokedAt.toISOString() })),
+    };
+  }
+
+  /** The scan log, newest first, with the guest, gate and person for each line. */
+  async scans(eventId: string, userId: string, limit = 500) {
+    await this.consoleRole(eventId, userId);
+    const rows = await this.deps.db
+      .select({ s: scanLog, guestName: guests.displayName, by: users.name })
+      .from(scanLog)
+      .leftJoin(guests, eq(guests.id, scanLog.guestId))
+      .leftJoin(users, eq(users.id, scanLog.scannedBy))
+      .where(eq(scanLog.eventId, eventId))
+      .orderBy(desc(scanLog.scannedAt), desc(scanLog.id))
+      .limit(limit);
+    const names = await this.deviceNames(eventId);
+    return rows.map(({ s, guestName, by }) => {
+      const gateName = names.get(s.deviceId) ?? 'Lango';
+      return {
+        id: s.id,
+        eventId: s.eventId,
+        guestId: s.guestId,
+        guestName: guestName ?? null,
+        result: s.result,
+        // a claim the ordering turned into a duplicate admitted nobody
+        partyAdmitted: s.result === 'ok' || s.result === 'manual_ok' ? s.partyAdmitted : 0,
+        gateName,
+        deviceName: s.deviceId === GateService.CONSOLE_DEVICE ? 'Kivinjari' : gateName,
+        scannedBy: by ?? gateName,
+        scannedAt: s.scannedAt.toISOString(),
+        reason: s.reason,
+      };
+    });
+  }
+
+  /**
+   * Admits a guest by hand from the console (owner or committee, §6.2 path 4). Goes through the same
+   * ordering as the gate app's scans, so a guest who is already in comes back as a `duplicate`.
+   */
+  async manualCheckIn(
+    eventId: string,
+    userId: string,
+    guestId: string,
+    input: { partySize: number; reason?: string | null },
+  ) {
+    const role = await this.consoleRole(eventId, userId);
+    if (role !== 'owner' && role !== 'committee')
+      throw new ApiError('forbidden', 'Only the owner or committee can admit by hand');
+    const [g] = await this.deps.db
+      .select()
+      .from(guests)
+      .where(and(eq(guests.id, guestId), eq(guests.eventId, eventId), isNull(guests.deletedAt)));
+    if (!g) throw new ApiError('not_found', 'Guest not found');
+    const clientId = `console-${newId()}`;
+    const reason = input.reason?.trim() || null;
+    await this.sync(
+      eventId,
+      { kind: 'user', userId },
+      {
+        deviceId: GateService.CONSOLE_DEVICE,
+        scans: [
+          {
+            clientId,
+            guestId,
+            result: 'manual_ok',
+            partyAdmitted: Math.max(1, Math.min(input.partySize, g.partySizeAllowed)),
+            scannedAt: this.deps.now(),
+            offline: false,
+            reason,
+          },
+        ],
+      },
+    );
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'gate.manual_check_in',
+      entity: 'guest',
+      entityId: guestId,
+      diff: { partySize: input.partySize, reason },
+    });
+    const [mine] = await this.deps.db
+      .select({ id: scanLog.id })
+      .from(scanLog)
+      .where(and(eq(scanLog.eventId, eventId), eq(scanLog.clientId, clientId)));
+    const entry = (await this.scans(eventId, userId)).find((e) => e.id === mine?.id);
+    if (!entry) throw new ApiError('internal', 'Check-in was not recorded');
+    return entry;
   }
 
   /** Members of this event with their roles, for the "who can run the gate" hint. */

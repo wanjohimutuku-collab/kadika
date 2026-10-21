@@ -225,10 +225,44 @@ describe('HttpRepository against the real API', () => {
     expect((await guestView.getCard('nope')).state).toBe('invalid');
   });
 
+  it('runs the console Gate page: overview, scan log and a manual check-in (§17.8)', async () => {
+    const r = repo();
+    await login(r, '0712 100 109');
+    const ev = await r.createEvent({
+      title: 'Harusi ya Gate',
+      partnerA: 'Neema',
+      partnerB: 'Daudi',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Mlimani City Hall',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 0,
+    });
+    const g = await r.createGuest(ev.id, {
+      displayName: 'Bibi Pendo',
+      phone: '0712 100 199',
+      partySizeAllowed: 2,
+      inviteChannelPref: 'sms',
+      hasSmartphone: true,
+      language: 'sw',
+      notes: '',
+    });
+    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 0, expectedGuests: 0 });
+    expect(await r.listScans(ev.id)).toEqual([]);
+    const entry = await r.manualCheckIn(ev.id, g.id, { partySize: 2, reason: 'Mlango wa nyuma' });
+    expect(entry).toMatchObject({ guestName: 'Bibi Pendo', result: 'manual_ok', partyAdmitted: 2 });
+    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 1, admittedPeople: 2 });
+    expect((await r.listScans(ev.id)).map((s) => s.result)).toEqual(['manual_ok']);
+  });
+
   it('rejects not-yet-built features with not_implemented', async () => {
     const r = repo();
     await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });
-    await expect(r.listScans('x')).rejects.toMatchObject({ code: 'not_implemented' });
+    await expect(r.listActivity('x')).rejects.toMatchObject({ code: 'not_implemented' });
   });
 
   it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {

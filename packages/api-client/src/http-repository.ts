@@ -29,6 +29,8 @@ import { buildSampleSms, estimateSmsCostFor } from './domain/sms';
 import type {
   CardView,
   DataRequest,
+  GateOverview,
+  ScanEntry,
   Guest,
   GuestQuery,
   ImportOptions,
@@ -590,6 +592,20 @@ export function createHttpRepository(
         'POST',
         `/v1/events/${encodeURIComponent(eventId)}/guests/print-card`,
         { guestIds, printCard },
+      );
+    },
+    // The console's gate monitor (§17.8); scanning itself stays in the Android gate app.
+    async getGateOverview(eventId) {
+      return call<GateOverview>('GET', `/v1/events/${encodeURIComponent(eventId)}/gate/overview`);
+    },
+    async listScans(eventId) {
+      return call<ScanEntry[]>('GET', `/v1/events/${encodeURIComponent(eventId)}/gate/scans`);
+    },
+    async manualCheckIn(eventId, guestId, input) {
+      return call<ScanEntry>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/gate/manual-checkin`,
+        { guestId, partySize: input.partySize, reason: input.reason || null },
       );
     },
     async opsPricing() {

@@ -1,10 +1,10 @@
-# Harusi Pass
+# Kadi Sasa
 
-Wedding invitations, RSVPs, contributions (michango) and gate check-in for Tanzania, built mobile-first, offline-capable and Swahili-first. _Harusi Pass is the working name._
+Wedding invitations, RSVPs, contributions (michango) and gate check-in for Tanzania, built mobile-first, offline-capable and Swahili-first. Live at [kadisasa.com](https://kadisasa.com). Internal package names still use the old working name (`@harusi/*`).
 
 A guest gets one card that works on a smartphone, on a feature phone (SMS with a short code) and on paper (a printable card with the same QR and a human-readable code). The same card ties to a pledge and to entry at the gate, which still works with no internet.
 
-> **Status:** everything is built and tested locally, but nothing is deployed yet and the real WhatsApp, SMS and payment providers have not been run against live accounts. See [docs/TODO.md](docs/TODO.md) for exactly what is done, what is unverified and what needs an outside party.
+> **Status:** in production on Coolify: the public site and guest cards on `kadisasa.com`, the organiser console on `app.kadisasa.com`, the staff panel on `my.kadisasa.com` and the API on `api.kadisasa.com`. See [docs/TODO.md](docs/TODO.md) for what is done, what is unverified and what needs an outside party.
 
 ## What is in the repo
 
@@ -14,7 +14,7 @@ A guest gets one card that works on a smartphone, on a feature phone (SMS with a
 | **Organiser console** (`/app`) | Web console for events, guests (paste, CSV or contacts import), sending, card design and print PDFs, pledges and payments, gate monitor, team and reports.                           |
 | **Mobile app**                 | Expo app for Android: the organiser tools plus the offline-first gate scanner (signed QR checked on the phone, code and name fallbacks, duplicate detection, sync when back online). |
 | **API**                        | Hono REST API with zod validation, phone-OTP login, background worker for sending, reminders and payment reconciliation.                                                             |
-| **Staff panel** (`/ops`)       | For Harusi Pass employees: customers, weddings, payments, support lookups and audit log.                                                                                             |
+| **Staff panel** (`/ops`)       | For Kadi Sasa staff: customers, weddings, payments, support lookups, audit log and settings (branding, SMS/WhatsApp, payment gateway).                                               |
 
 Sending goes by WhatsApp or SMS with automatic fallback, and a guest can hold either an **invitation card** (RSVP, QR, gate entry) or a **contribution card** (contribution only). Kenya support is built but switched off behind `KENYA_ENABLED`.
 
@@ -106,9 +106,9 @@ Point the app at an API with `EXPO_PUBLIC_API_URL`.
 | `pnpm --filter @harusi/web e2e:build` then `e2e` | Playwright end-to-end and accessibility tests          |
 | `pnpm db:generate`                               | Generate a Drizzle migration after changing the schema |
 
-The API tests each start their own in-memory Postgres and run every migration, so the API suite takes a couple of minutes. Run a single file with `pnpm --filter @harusi/api exec vitest run src/<file>.test.ts`.
+The API tests run the migrations once per run and give each test a clone of that in-memory Postgres (PGlite). Run a single file with `pnpm --filter @harusi/api exec vitest run src/<file>.test.ts`.
 
-CI (`.github/workflows/ci.yml`) runs install, typecheck, lint, format check, tests, build, the Storybook build and a production dependency audit, then Playwright and Lighthouse for the web app.
+CI (`.github/workflows/ci.yml`) runs install, typecheck, lint, format check, tests, build, the Storybook build and a production dependency audit, and, alongside it, Playwright and Lighthouse for the web app. Releases go out by pushing a `v*` tag on a green `main` commit (`.github/workflows/build-push.yml`, about 7 minutes from tag to live; see [infra/coolify](infra/coolify)).
 
 ## Configuration
 
@@ -116,7 +116,7 @@ All settings are environment variables, documented in [.env.example](.env.exampl
 
 - **WhatsApp:** `WHATSAPP_PROVIDER` chooses between the official Cloud API and a self-hosted Evolution API (see [ADR 020](docs/adr/020-whatsapp-two-providers.md)).
 - **SMS:** `SMS_PROVIDER` is `fake` or `nextsms`.
-- **Payments:** `PAYMENT_PROVIDER` is `fake`, `selcom`, `azampay` or `clickpesa`.
+- **Payments:** the Tanzanian gateway (Snippe) is set by staff in `/ops/settings/payments`; until then `PAYMENT_PROVIDER=fake`. Kenya uses `PAYMENT_PROVIDER_KE` (`fake` or `aggregator`).
 
 Never commit `.env`. It is already git-ignored.
 
@@ -127,7 +127,7 @@ Never commit `.env`. It is already git-ignored.
 - [docs/adr](docs/adr): architecture decision records
 - [docs/ops](docs/ops): Kenya pilot runbook and WhatsApp template notes
 - [docs/qa](docs/qa): print test and gate device checklists
-- [infra/coolify](infra/coolify): deployment and restore notes (still a placeholder)
+- [infra/coolify](infra/coolify): how releases deploy to Coolify, and backup restore notes
 
 ## Contributing
 

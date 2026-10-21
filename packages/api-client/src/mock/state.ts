@@ -1,3 +1,4 @@
+import type { PricingCatalog, PurchaseView } from '@harusi/schemas/billing';
 import type { BrandingInput } from '@harusi/schemas/branding';
 import {
   generateShortCode,
@@ -143,6 +144,10 @@ export interface MockState {
   };
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
+  /** Prices saved in /ops (ADR 042); undefined uses `DEFAULT_PRICING`. */
+  pricing?: { catalog: PricingCatalog; updatedAt: string; updatedBy: string };
+  /** Card bundles, message packs and staff grants per event (ADR 042). */
+  purchases?: (PurchaseView & { eventId: string; phone: string | null })[];
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */

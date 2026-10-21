@@ -57,6 +57,7 @@ import { formatPhone, formatMoney } from '@/lib/format';
 import { useCurrency } from '@/lib/country';
 import { downloadBlob, SELECTED_GUESTS_KEY as SELECTED_KEY } from '@/lib/download';
 import { cn } from '@/lib/cn';
+import { useQuotaToast } from '@/components/console/quota';
 
 type SortBy = NonNullable<GuestQuery['sort']>['by'];
 interface SavedFilter {
@@ -86,6 +87,7 @@ function GuestsInner({ id }: { id: string }) {
   const router = useRouter();
   const params = useSearchParams();
   const toast = useToast();
+  const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
   const guests = useQuery({
     queryKey: qk.guests(id),
@@ -181,7 +183,7 @@ function GuestsInner({ id }: { id: string }) {
       toast({ tone: 'success', title: `${t('resend')} · ${job.total}` });
       setTimeout(() => void invalidate(), 4000);
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
   });
 
   const del = useMutation({

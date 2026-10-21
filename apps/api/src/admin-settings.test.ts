@@ -1,3 +1,4 @@
+import { ContributionRecords } from './services/contribution-records';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { auditLog, brandSettings, messagingSettings, paymentSettings, payments } from '@harusi/db';
@@ -430,7 +431,11 @@ describe('payment gateway settings (ADR 036)', () => {
       .select()
       .from(payments)
       .where(eq(payments.providerRef, reference));
-    expect(pending).toMatchObject({ provider: 'snippe', status: 'pending', amount: 20_000 });
+    expect(await ContributionRecords.of(ctx.deps).openPayment(pending!)).toMatchObject({
+      provider: 'snippe',
+      status: 'pending',
+      amount: 20_000,
+    });
     providerRef = (pending!.raw as { providerRef: string }).providerRef;
     expect(providerRef).toBe('snp_pay_42');
 
@@ -467,7 +472,9 @@ describe('payment gateway settings (ADR 036)', () => {
     expect(ok.status).toBe(200);
     expect(await ok.json()).toMatchObject({ known: true, applied: true, duplicate: false });
     expect(
-      (await ctx.db.select().from(payments).where(eq(payments.providerRef, reference)))[0],
+      await ContributionRecords.of(ctx.deps).openPayment(
+        (await ctx.db.select().from(payments).where(eq(payments.providerRef, reference)))[0]!,
+      ),
     ).toMatchObject({
       status: 'success',
       amount: 20_000,

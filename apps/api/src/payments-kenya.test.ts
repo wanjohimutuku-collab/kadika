@@ -1,3 +1,4 @@
+import { ContributionRecords } from './services/contribution-records';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { count, eq } from 'drizzle-orm';
 import { payments } from '@harusi/db';
@@ -179,7 +180,8 @@ describe('Kenyan mobile money (ADR 027)', () => {
       }),
     );
     const [row] = await ctx.db.select().from(payments).where(eq(payments.providerRef, ref));
-    expect(row).toMatchObject({ status: 'success', amount: 450 });
+    expect(row).toMatchObject({ status: 'success', amount: 0 }); // sealed (ADR 043)
+    expect(await ContributionRecords.of(ctx.deps).openPayment(row!)).toMatchObject({ amount: 450 });
     expect((row!.raw as { amountMismatch?: unknown }).amountMismatch).toEqual({
       requested: 500,
       received: 450,

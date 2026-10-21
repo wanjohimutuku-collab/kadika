@@ -12,6 +12,7 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import type { EventService } from './events';
+import { BillingService, type MessageBudget } from './billing';
 
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
@@ -90,6 +91,11 @@ export class DeliveryService {
     private deps: Deps,
     private eventsSvc: EventService,
   ) {}
+
+  private billingSvc?: BillingService;
+  private get billing(): BillingService {
+    return (this.billingSvc ??= new BillingService(this.deps, this.eventsSvc));
+  }
 
   private async assertCanSend(eventId: string, userId: string) {
     const role = await this.eventsSvc.role(eventId, userId);
@@ -227,17 +233,25 @@ export class DeliveryService {
     channels: MessageChannel[],
     daysLeft?: number,
     built?: { text: string; template: MessageTemplate },
+    budget?: MessageBudget,
   ): Promise<{ ok: true; channel: MessageChannel } | { ok: false; error: string }> {
     // Rollback lever: nothing new goes out for Kenya; the invitation stays `created` for a later resend.
     if (event.country !== 'TZ' && this.deps.config.kenyaSendingPaused)
       return { ok: false, error: 'sending paused' };
     const { text, template } = built ?? (await this.text(guest, inv, event, daysLeft));
+    const credit = budget ?? (await this.billing.budget(event.id));
     let lastError = 'no provider configured';
     for (const ch of channels) {
       const p = this.provider(ch, guest.phoneE164!, event.country);
       if (!p) continue;
+      // Out of messages on this channel: try the next one (WhatsApp falls back to SMS), ADR 042.
+      if (!credit.take(ch)) {
+        lastError = 'quota_exceeded';
+        continue;
+      }
       const r = await this.attempt(p, guest.phoneE164!, text, template);
       await this.log(guest.id, ch, p.name, r, kind);
+      if (!r.ok) credit.refund(ch); // a failed message is not charged
       if (r.ok) {
         await this.deps.db
           .update(invitations)
@@ -456,7 +470,7 @@ export class DeliveryService {
     const hosts = hostNames(a, b);
     const out = { sent: 0, failed: 0, skipped: 0 };
     for (const { guest, inv } of rows) {
-      const s = await pledgeSummaryOf(this.deps.db, guest.id);
+      const s = await pledgeSummaryOf(this.deps, guest.id);
       if (
         !guest.phoneE164 ||
         guest.remindersOptOut ||
@@ -493,6 +507,9 @@ export class DeliveryService {
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {
     await this.assertCanSend(eventId, userId);
+    // Refuse up front (402) when the event has too few messages left for everyone this send reaches.
+    const p = await this.preview(eventId, userId, input);
+    await this.billing.assertCanSend(eventId, p.byChannel);
     return this.run(eventId, input);
   }
 
@@ -637,6 +654,7 @@ export class DeliveryService {
       byChannel: { whatsapp: 0, sms: 0 },
       failures: [],
     };
+    const budget = await this.billing.budget(eventId);
     for (const { guest, inv } of picked) {
       const channels = this.channelsFor(guest, input.channel ?? 'auto');
       // A guest who asked to stop reminders is never reminded, even when picked by hand.
@@ -647,7 +665,7 @@ export class DeliveryService {
         summary.skipped++;
         continue;
       }
-      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft);
+      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft, undefined, budget);
       if (r.ok) {
         summary.sent++;
         summary.byChannel[r.channel === 'whatsapp' ? 'whatsapp' : 'sms']++;

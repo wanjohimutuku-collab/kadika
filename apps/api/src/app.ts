@@ -43,6 +43,7 @@ import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
 import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
+import { BillingService } from './services/billing';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
@@ -181,6 +182,7 @@ export function createApp(deps: Deps) {
   const pledgeSvc = new PledgeService(deps, eventsSvc);
   const pilotSvc = new PilotMetricsService(deps);
   const opsSvc = new OpsService(deps);
+  const billingSvc = new BillingService(deps, eventsSvc);
   const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
@@ -765,8 +767,47 @@ export function createApp(deps: Deps) {
     const raw = await c.req.text();
     const headers: Record<string, string> = {};
     c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
-    return c.json(await pledgeSvc.webhook(c.req.param('provider'), raw, headers));
+    return c.json(
+      await pledgeSvc.webhook(c.req.param('provider'), raw, headers, (p, ev) =>
+        billingSvc.applyOutcome(p, ev),
+      ),
+    );
   });
+  // ---- what the host pays for: card bundles and SMS / WhatsApp packs (ADR 042)
+  app.get('/v1/events/:id/billing', async (c) =>
+    c.json(await billingSvc.eventBilling(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/billing/orders', async (c) => {
+    const input = parse(
+      z.object({
+        itemKey: z.string().min(1).max(24),
+        method: z.enum(['mobile', 'manual']),
+        phone: z.string().min(1).max(30).optional(),
+        mobileMethod: z.enum(MOBILE_METHODS).optional(),
+      }),
+      await body(c),
+    );
+    const key = c.req.header('idempotency-key') ?? '';
+    return c.json(await billingSvc.order(c.req.param('id'), c.get('userId'), input, key), 201);
+  });
+  app.get('/v1/events/:id/billing/orders/:pid', async (c) =>
+    c.json(
+      await billingSvc.status(
+        c.req.param('id'),
+        c.get('userId'),
+        parse(z.string().uuid(), c.req.param('pid')),
+      ),
+    ),
+  );
+  app.post('/v1/events/:id/billing/orders/:pid/cancel', async (c) =>
+    c.json(
+      await billingSvc.cancel(
+        c.req.param('id'),
+        c.get('userId'),
+        parse(z.string().uuid(), c.req.param('pid')),
+      ),
+    ),
+  );
   // PDPA requests (ADR 012): a customer files them from Akaunti, staff resolve them in /ops/requests.
   app.post('/v1/me/data-requests', async (c) => {
     const { kind } = parse(z.object({ kind: z.enum(['export', 'deletion']) }), await body(c));
@@ -796,7 +837,32 @@ export function createApp(deps: Deps) {
     return c.json(await opsSvc.setEventPlan(staff(c), idParam(c), plan));
   });
   app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(staff(c))));
-  app.get('/v1/ops/payments', async (c) => c.json(await opsSvc.listPayments(staff(c))));
+  app.get('/v1/ops/pricing', async (c) => c.json(await billingSvc.opsCatalog(staff(c))));
+  app.put('/v1/ops/pricing', async (c) =>
+    c.json(await billingSvc.saveCatalog(staff(c), await body(c))),
+  );
+  app.get('/v1/ops/purchases', async (c) => {
+    const status = parse(
+      z.enum(['pending', 'paid', 'failed', 'cancelled']).optional(),
+      c.req.query('status') || undefined,
+    );
+    return c.json(await billingSvc.opsListPurchases(staff(c), { status }));
+  });
+  app.post('/v1/ops/purchases/:id/paid', async (c) => {
+    const { note } = parse(z.object({ note: z.string().max(500) }), await body(c));
+    return c.json(await billingSvc.opsMarkPaid(staff(c), idParam(c), note));
+  });
+  app.get('/v1/ops/events/:id/billing', async (c) =>
+    c.json(await billingSvc.opsEventBilling(staff(c), idParam(c))),
+  );
+  app.post('/v1/ops/events/:id/grants', async (c) => {
+    const n = z.number().int().min(0).max(100_000);
+    const input = parse(
+      z.object({ cards: n, sms: n, whatsapp: n, note: z.string().max(500) }),
+      await body(c),
+    );
+    return c.json(await billingSvc.opsGrant(staff(c), idParam(c), input), 201);
+  });
   app.get('/v1/ops/lookup', async (c) => {
     const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());
     return c.json(await opsSvc.lookup(staff(c), q));

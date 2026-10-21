@@ -18,6 +18,7 @@ import { ApiError } from '../errors';
 import { eventCountry, type EventService } from './events';
 import { pledgeSummaryOf } from './pledges';
 import { recordAudit } from './audit';
+import { BillingService } from './billing';
 
 export interface GuestInput {
   displayName: string;
@@ -44,6 +45,11 @@ export class GuestService {
     private deps: Deps,
     private eventsSvc: EventService,
   ) {}
+
+  private billingSvc?: BillingService;
+  private get billing(): BillingService {
+    return (this.billingSvc ??= new BillingService(this.deps, this.eventsSvc));
+  }
 
   private async canManage(eventId: string, userId: string) {
     const role = await this.eventsSvc.role(eventId, userId);
@@ -100,6 +106,8 @@ export class GuestService {
   async create(eventId: string, userId: string, input: GuestInput) {
     await this.canManage(eventId, userId);
     const phone = this.normalizePhone(input.phone, await eventCountry(this.deps.db, eventId));
+    // Every guest is one card: past the event's card allowance a new one is refused (ADR 042).
+    await this.billing.assertCanAddCards(eventId);
     return this.deps.db.transaction(async (tx) => {
       if (phone) {
         const [dupe] = await tx
@@ -237,7 +245,7 @@ export class GuestService {
       rsvpPartySize: inv?.rsvpPartySize ?? null,
       channelLast: inv?.channelLast ?? null,
       // money stays out of what a gate agent can read (§2)
-      pledge: role === 'gate' ? null : await pledgeSummaryOf(this.deps.db, guestId),
+      pledge: role === 'gate' ? null : await pledgeSummaryOf(this.deps, guestId),
     };
   }
 
@@ -419,8 +427,11 @@ export class GuestService {
     const summary = summarizePreview(preview);
     if (input.dryRun)
       return { summary, created: 0, skipped: summary.total - summary.valid, rows: preview };
+    const included = preview.filter((p) => p.include);
+    // Refuse the whole list up front rather than stopping halfway through it.
+    await this.billing.assertCanAddCards(eventId, included.length);
     let created = 0;
-    for (const r of preview.filter((p) => p.include)) {
+    for (const r of included) {
       await this.create(eventId, userId, {
         displayName: r.displayName,
         phone: r.phoneE164,

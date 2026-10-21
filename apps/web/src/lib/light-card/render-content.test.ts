@@ -36,6 +36,7 @@ function view(
       senderName: 'Familia ya Asha & Juma',
       committeePhone: '+255754000222',
       pledgesEnabled: true,
+      onlinePay: false,
       greeting: '',
       extraNote: '',
       cardContent: content,
@@ -183,12 +184,22 @@ describe('contribution card', () => {
   const contribution = (c: CardContent = {}, over: Partial<CardView> = {}) =>
     view(c, over, 'contribution');
 
-  it('has no QR, no RSVP and the pay button, and says it asks for a contribution', () => {
-    const html = renderCard(contribution(), opts);
+  it('has no QR, no RSVP and no pay button: it says where to send the money (ADR 043)', () => {
+    const html = renderCard(
+      contribution({
+        contribution: { payTo: [{ label: 'M-Pesa', account: '0754 111 222', name: 'Asha Juma' }] },
+      }),
+      opts,
+    );
     expect(html).toContain('data-card-kind="contribution"');
     expect(html).toContain('Mchango wa harusi');
     expect(html).toContain('data-testid="contribution-section"');
-    expect(html).toContain('data-testid="pay-link"');
+    expect(html).not.toContain('data-testid="pay-link"');
+    expect(html).toContain('data-testid="pay-to"');
+    expect(html).toContain('<b>M-Pesa</b>');
+    expect(html).toContain('0754 111 222');
+    expect(html).toContain('(Asha Juma)');
+    expect(html).toContain('Mchango unaenda moja kwa moja kwa wenyeji');
     expect(html).toContain('data-testid="contribution-target"');
     expect(html).toContain('Lengo la michango: TZS 2,000,000');
     expect(html).not.toContain('data-testid="qr-block"');
@@ -220,12 +231,21 @@ describe('contribution card', () => {
     expect(html).toContain('Mchango wa familia');
     expect(html).toContain('Karibu Bibi Pendo, tunaomba mkono wako');
     expect(html).toContain('<p>Harusi ni gharama kubwa.</p><p>Chochote kinasaidia.</p>');
-    expect(html).toContain('/pay?amount=10000');
-    expect(html).toContain('/pay?amount=25000');
+    // Amounts are suggestions only: there is nothing to pay on our side (ADR 043).
+    expect(html).not.toContain('/pay?amount=');
     expect(html).toContain('TZS 25,000');
+    expect(html).toContain('Wasiliana na kamati kujua namba ya kutuma mchango.');
     expect(html).toContain('Mwisho wa kuchangia: 20 Nov 2026');
     expect(html).toContain('Baada ya kulipa, hifadhi ujumbe wa uthibitisho.');
     expect(html).toContain('Mungu akubariki.');
+  });
+
+  it('links to the checkout only when paying through us is switched on', () => {
+    const base = contribution({ contribution: { suggestedAmounts: [10000] } });
+    const html = renderCard({ ...base, event: { ...base.event!, onlinePay: true } }, opts);
+    expect(html).toContain('data-testid="pay-link"');
+    expect(html).toContain('/pay?amount=10000');
+    expect(html).not.toContain('data-testid="pay-to"');
   });
 
   it('shows the progress bar only when the organiser asks for it', () => {

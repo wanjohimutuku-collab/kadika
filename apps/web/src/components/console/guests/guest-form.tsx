@@ -21,6 +21,7 @@ import { eventScopedKeys, qk } from '@/lib/queries';
 import { useFieldError } from '@/lib/use-field-error';
 import { formatPhone } from '@/lib/format';
 import { CardKindPicker } from './card-kind-picker';
+import { useQuotaToast } from '@/components/console/quota';
 
 export function guestToInput(g: Guest): GuestInput {
   return {
@@ -70,6 +71,7 @@ export function GuestForm({
   const tl = useTranslations('common.languageName');
   const fieldError = useFieldError();
   const toast = useToast();
+  const quota = useQuotaToast(eventId);
   const queryClient = useQueryClient();
   const listId = useId();
   const groups = useQuery({
@@ -117,7 +119,7 @@ export function GuestForm({
       if (ctx?.prev) queryClient.setQueryData(qk.guests(eventId), ctx.prev);
       if (isRepositoryError(err) && err.code === 'conflict')
         setError('phone', { message: 'duplicate' });
-      else toast({ tone: 'error', title: ts('rolledBack') });
+      else if (!quota(err)) toast({ tone: 'error', title: ts('rolledBack') });
     },
     onSuccess: async (g, _input) => {
       toast({ tone: 'success', title: t('saved', { name: g.displayName }) });

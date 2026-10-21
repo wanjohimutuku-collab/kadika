@@ -1,3 +1,4 @@
+import type { OpsPurchase } from '@harusi/schemas/billing';
 import type {
   CardContent,
   CardKind,
@@ -309,32 +310,37 @@ export interface CardView {
   state: CardState;
   /** `contribution` cards ask for a contribution only: no RSVP, no QR (ADR 029). */
   cardKind: CardKind;
-  event: Pick<
-    WeddingEvent,
-    | 'id'
-    | 'eventKind'
-    | 'partnerA'
-    | 'partnerB'
-    | 'coupleNames'
-    | 'dateStart'
-    | 'venueName'
-    | 'venueMapUrl'
-    | 'dressCode'
-    | 'themeId'
-    | 'coverGradient'
-    | 'palette'
-    | 'rsvpDeadline'
-    | 'senderName'
-    | 'committeePhone'
-    | 'pledgesEnabled'
-    | 'greeting'
-    | 'extraNote'
-    | 'timezone'
-    | 'country'
-    | 'currency'
-    | 'cardContent'
-    | 'contributionTarget'
-  > | null;
+  event:
+    | (Pick<
+        WeddingEvent,
+        | 'id'
+        | 'eventKind'
+        | 'partnerA'
+        | 'partnerB'
+        | 'coupleNames'
+        | 'dateStart'
+        | 'venueName'
+        | 'venueMapUrl'
+        | 'dressCode'
+        | 'themeId'
+        | 'coverGradient'
+        | 'palette'
+        | 'rsvpDeadline'
+        | 'senderName'
+        | 'committeePhone'
+        | 'pledgesEnabled'
+        | 'greeting'
+        | 'extraNote'
+        | 'timezone'
+        | 'country'
+        | 'currency'
+        | 'cardContent'
+        | 'contributionTarget'
+      > & {
+        /** Guests can pay through us; off by default, so the card lists the hosts' own accounts (ADR 043). */
+        onlinePay: boolean;
+      })
+    | null;
   guest: {
     displayName: string;
     partySizeAllowed: number;
@@ -515,7 +521,6 @@ export interface OpsOverview {
   messages30d: { whatsapp: number; sms: number; failed: number; total: number };
   smsCost30d: number;
   failureRate30d: number;
-  contributions30d: { count: number; amount: number };
   paidPlans: number;
   messagesByDay: { day: ISODate; sent: number; failed: number }[];
   openDataRequests: number;
@@ -546,7 +551,6 @@ export interface OpsEvent {
   sent: number;
   failedMessages: number;
   confirmed: number;
-  collected: number;
   smsCost: number;
 }
 
@@ -570,11 +574,6 @@ export interface OpsUsage {
   failureReasons: { reason: string; count: number }[];
 }
 
-export interface OpsPayment extends Payment {
-  eventId: string;
-  coupleNames: string;
-}
-
 export interface OpsGuestHit {
   guestId: string;
   eventId: string;
@@ -588,7 +587,8 @@ export interface OpsGuestHit {
 export interface OpsLookupResult {
   organizers: OpsOrganizer[];
   guests: OpsGuestHit[];
-  payments: OpsPayment[];
+  /** Billing orders (ADR 042) by reference or event; guests' contributions are not searchable (ADR 043). */
+  orders: OpsPurchase[];
 }
 
 export interface DataRequest {
@@ -617,7 +617,23 @@ export interface OpsAuditEntry {
     | 'lookup'
     | 'messaging'
     | 'payments'
-    | 'branding';
+    | 'branding'
+    | 'pricing'
+    | 'grant'
+    | 'purchase_paid';
   target: string;
   details: string;
 }
+
+export type {
+  Allowance,
+  BillingOrderInput,
+  EventBillingView,
+  OpsEventBilling,
+  OpsPurchase,
+  PricingCatalog,
+  PricingView,
+  PurchaseStatus,
+  PurchaseView,
+  QuotaExceededDetails,
+} from '@harusi/schemas/billing';

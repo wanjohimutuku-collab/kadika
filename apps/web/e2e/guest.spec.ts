@@ -60,7 +60,8 @@ test.describe('guest card', () => {
     test(`guest pays — ${outcome}`, async ({ page }) => {
       const tk = token('confirmed');
       await page.goto(`/c/${tk}`);
-      await setControls(page, { payOutcome: outcome });
+      // Pay-from-card is off by default (ADR 043); these tests cover the kept-for-later flow.
+      await setControls(page, { payOutcome: outcome, guestPayments: true });
       if (outcome === 'timeout') await page.clock.install();
       await page.goto(`/c/${tk}/pay`);
       await page.getByLabel('Kiasi (TZS)').fill('5000');

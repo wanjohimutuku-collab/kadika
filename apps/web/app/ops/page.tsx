@@ -8,7 +8,6 @@ import {
   ArrowRight,
   CalendarHeart,
   CheckCircle2,
-  HandCoins,
   MessageSquare,
   ShieldCheck,
   Users,
@@ -20,7 +19,7 @@ import { BarChart } from '@/components/ui/data';
 import { Banner, Card, KpiTile, Skeleton } from '@/components/ui/display';
 import { getRepository } from '@/lib/repo';
 import { qk } from '@/lib/queries';
-import { formatDateShort, formatNumber, formatTzs, formatTzsCompact } from '@/lib/format';
+import { formatDateShort, formatNumber, formatTzs } from '@/lib/format';
 
 export default function OpsOverviewPage() {
   const t = useTranslations('ops');
@@ -111,12 +110,6 @@ export default function OpsOverviewPage() {
                   sub={`${o.messages30d.failed} / ${o.messages30d.total}`}
                 />
                 <KpiTile label={t('overview.smsCost')} value={formatTzs(o.smsCost30d)} />
-                <KpiTile
-                  label={t('overview.contributions')}
-                  value={formatTzsCompact(o.contributions30d.amount)}
-                  sub={t('overview.contributionsCount', { count: o.contributions30d.count })}
-                  icon={<HandCoins className="size-4" />}
-                />
               </div>
 
               <Card title={t('overview.attention')} titleId="att-h">

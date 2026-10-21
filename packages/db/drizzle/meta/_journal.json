@@ -162,6 +162,20 @@
       "when": 1792555908545,
       "tag": "0022_scheduled_card_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792567425517,
+      "tag": "0023_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792568364923,
+      "tag": "0024_sealed_contributions",
+      "breakpoints": true
     }
   ]
 }

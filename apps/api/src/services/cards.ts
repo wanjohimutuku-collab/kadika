@@ -1,11 +1,12 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
-import { events, guests, invitations, payments, retiredCardTokens, signingKeys } from '@harusi/db';
+import { and, eq, isNull } from 'drizzle-orm';
+import { events, guests, invitations, retiredCardTokens, signingKeys } from '@harusi/db';
 import { hashGuestToken } from '@harusi/crypto';
 import { signQrTokenFast as signQrToken } from '../qr-sign';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret } from '../crypto-at-rest';
 import { pledgeSummaryOf, type PledgeSummary } from './pledges';
+import { ContributionRecords } from './contribution-records';
 
 type Status = typeof invitations.$inferSelect.status;
 const RANK: Record<Status, number> = {
@@ -41,6 +42,8 @@ export interface CardView {
     contributionTarget: number | null;
     brandTheme: Record<string, unknown> | null;
     pledgesEnabled: boolean;
+    /** Guests can pay through us (off by default, ADR 043); otherwise the card lists `payTo`. */
+    onlinePay: boolean;
     rsvpDeadline: Date | null;
     country: 'TZ' | 'KE';
     currency: 'TZS' | 'KES';
@@ -131,6 +134,7 @@ export class CardService {
         contributionTarget: event.contributionTarget,
         brandTheme: event.brandTheme,
         pledgesEnabled: event.pledgesEnabled,
+        onlinePay: this.deps.config.guestPaymentsEnabled,
         rsvpDeadline: event.rsvpDeadline,
         country: event.country,
         currency: event.currency,
@@ -164,12 +168,15 @@ export class CardService {
     const show = (row.event.cardContent as { contribution?: { show?: { progress?: boolean } } })
       .contribution?.show?.progress;
     if (!show || !row.event.contributionTarget) return null;
-    const [r] = await this.deps.db
-      .select({ n: sql<number>`coalesce(sum(${payments.amount}), 0)::int` })
-      .from(payments)
-      .innerJoin(guests, eq(guests.id, payments.guestId))
-      .where(and(eq(guests.eventId, row.event.id), eq(payments.status, 'success')));
-    return r?.n ?? 0;
+    const ids = await this.deps.db
+      .select({ id: guests.id })
+      .from(guests)
+      .where(eq(guests.eventId, row.event.id));
+    const paid = await ContributionRecords.of(this.deps).paidByGuest(
+      this.deps.db,
+      ids.map((g) => g.id),
+    );
+    return [...paid.values()].reduce((a, b) => a + b, 0);
   }
 
   /**
@@ -217,7 +224,7 @@ export class CardService {
       ? this.view(
           row,
           '',
-          await pledgeSummaryOf(this.deps.db, row.guest.id),
+          await pledgeSummaryOf(this.deps, row.guest.id),
           await this.collectedFor(row),
         )
       : EMPTY('invalid');
@@ -243,7 +250,7 @@ export class CardService {
     return this.view(
       row,
       row.guest.cardKind === 'contribution' ? '' : await this.qr(row),
-      await pledgeSummaryOf(this.deps.db, row.guest.id),
+      await pledgeSummaryOf(this.deps, row.guest.id),
       await this.collectedFor(row),
     );
   }
@@ -280,6 +287,6 @@ export class CardService {
       row.invitation.status = status;
       row.invitation.rsvpPartySize = party;
     }
-    return this.view(row, await this.qr(row), await pledgeSummaryOf(this.deps.db, row.guest.id));
+    return this.view(row, await this.qr(row), await pledgeSummaryOf(this.deps, row.guest.id));
   }
 }

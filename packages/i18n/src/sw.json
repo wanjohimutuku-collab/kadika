@@ -245,7 +245,10 @@
     "contribMeta": "Mchango wa {kindOf} {couple}",
     "contribMetaDescription": "Changia kwa simu. {sender}.",
     "contribClosed": "Michango haipokelewi kwa sasa kupitia kadi hii.",
-    "appLink": "Programu ya Android"
+    "appLink": "Programu ya Android",
+    "payToTitle": "Tuma mchango wako kwa:",
+    "payToNone": "Wasiliana na kamati kujua namba ya kutuma mchango.",
+    "payToDirect": "Mchango unaenda moja kwa moja kwa wenyeji. Kamati itaandika malipo yako. Usitume PIN yako kwa mtu yeyote."
   },
   "pay": {
     "title": "Lipa mchango",
@@ -335,7 +338,8 @@
     "gateNoConsole": "Walinda lango hutumia programu ya simu ya {brand}. Dashibodi hii ni kwa wenye harusi na kamati.",
     "gateNoConsoleTitle": "Huna ruhusa ya dashibodi",
     "opsLink": "Dashibodi ya wafanyakazi",
-    "content": "Maandishi ya kadi"
+    "content": "Maandishi ya kadi",
+    "billing": "Kifurushi"
   },
   "auth": {
     "title": "Ingia kwenye {brand}",
@@ -1221,7 +1225,14 @@
     "deleteWord": "FUTA",
     "deleted": "Tukio limefutwa",
     "pledgesEnabled": "Ruhusu michango kwenye kadi",
-    "fallbackHours": "Subiri saa ngapi kabla ya SMS"
+    "fallbackHours": "Subiri saa ngapi kabla ya SMS",
+    "payToTitle": "Mahali pa kutuma michango",
+    "payToHint": "Wageni hulipa moja kwa moja kwenye namba zako. Hatupokei wala kushika pesa za michango; kamati inarekodi malipo, na kumbukumbu hizo zimefichwa (encrypted) na zinaonekana kwa timu ya tukio tu.",
+    "payToLabel": "Njia (mf. M-Pesa, Lipa Namba, Benki)",
+    "payToAccount": "Namba au akaunti",
+    "payToName": "Jina linaloonekana",
+    "payToAdd": "Ongeza njia",
+    "payToRemove": "Ondoa"
   },
   "account": {
     "title": "Akaunti",
@@ -1269,7 +1280,8 @@
       "audit": "Kumbukumbu za wafanyakazi",
       "pilot": "Majaribio",
       "messaging": "SMS na WhatsApp",
-      "settings": "Mipangilio"
+      "settings": "Mipangilio",
+      "billing": "Malipo ya vifurushi"
     },
     "overview": {
       "organizers": "Wateja",
@@ -1443,7 +1455,10 @@
         "lookup": "Alitafuta",
         "messaging": "Alibadilisha SMS/WhatsApp",
         "payments": "Alibadilisha mipangilio ya malipo",
-        "branding": "Alibadilisha chapa"
+        "branding": "Alibadilisha chapa",
+        "pricing": "Alibadilisha bei",
+        "grant": "Alitoa salio",
+        "purchase_paid": "Alithibitisha malipo ya oda"
       },
       "empty": "Hakuna kumbukumbu."
     },
@@ -1722,6 +1737,60 @@
         "copied": "Imenakiliwa",
         "missing": "Seva haina anwani yake ya umma (API_PUBLIC_URL), kwa hivyo Snippe haina pa kutuma matokeo."
       }
+    },
+    "pricing": {
+      "tab": "Bei",
+      "title": "Bei ya kadi na ujumbe",
+      "intro": "Vifurushi vinauzwa kwa idadi ya kadi; vifurushi vya ujumbe huongeza SMS au WhatsApp. Bei kwa TZS na KES.",
+      "enforced": "Tekeleza malipo",
+      "enforcedHint": "Ikiwa imezimwa, matumizi yanahesabiwa tu. Ikiwashwa, kadi au ujumbe zaidi ya salio vinakataliwa.",
+      "free": "Bure kwa kila tukio",
+      "bundles": "Vifurushi vya kadi",
+      "packs": "Vifurushi vya ujumbe",
+      "key": "Kitambulisho",
+      "name": "Jina",
+      "cards": "Kadi",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp",
+      "messages": "Ujumbe",
+      "channel": "Njia",
+      "priceTzs": "Bei (TZS)",
+      "priceKes": "Bei (KES)",
+      "addBundle": "Ongeza kifurushi",
+      "addPack": "Ongeza kifurushi cha ujumbe",
+      "remove": "Ondoa",
+      "save": "Hifadhi bei",
+      "saved": "Bei zimehifadhiwa",
+      "source": {
+        "default": "Bei za mwanzo (hazijahifadhiwa)",
+        "database": "Imehifadhiwa na {name}, {when}"
+      },
+      "readOnly": "Wafanyakazi wa malipo na wasimamizi tu wanaweza kubadili bei."
+    },
+    "purchases": {
+      "title": "Oda za vifurushi",
+      "empty": "Hakuna oda.",
+      "markPaid": "Thibitisha malipo",
+      "markPaidTitle": "Thibitisha malipo ya {item}",
+      "note": "Kumbukumbu ya malipo (mf. namba ya benki)",
+      "confirm": "Thibitisha",
+      "grant": "Toa zawadi ya salio",
+      "grantTitle": "Toa salio kwa {name}",
+      "grantNote": "Sababu",
+      "granted": "Salio limeongezwa",
+      "allowance": "Salio: kadi {cards} · SMS {sms} · WhatsApp {whatsapp}",
+      "col": {
+        "date": "Tarehe",
+        "order": "Oda",
+        "amount": "Kiasi",
+        "method": "Njia",
+        "status": "Hali",
+        "action": "Kitendo"
+      },
+      "grantButton": "Toa salio",
+      "cards": "Kadi",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp"
     }
   },
   "mobile": {
@@ -1977,5 +2046,61 @@
     "guestCta": "Fungua kadi yangu",
     "trust": "Hatutakuomba nenosiri, PIN wala malipo ili kupakua. Tumia viungo vilivyo kwenye ukurasa huu tu.",
     "faqLink": "Maswali yanayoulizwa mara kwa mara"
+  },
+  "billing": {
+    "title": "Kifurushi na salio",
+    "subtitle": "Kadi, SMS na ujumbe wa WhatsApp ulionao kwa tukio hili",
+    "allowanceTitle": "Ulichonacho",
+    "resource": {
+      "cards": "Kadi",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp"
+    },
+    "usedOf": "{used} kati ya {all}",
+    "left": "zimebaki {n}",
+    "usedUp": "Zimekwisha: {what}. Nunua zaidi ili kuendelea.",
+    "freeNote": "Kila tukio linaanza na kadi {cards}, SMS {sms} na WhatsApp {whatsapp} bure.",
+    "bundlesTitle": "Vifurushi vya kadi",
+    "bundlesIntro": "Bei inategemea idadi ya kadi. Kila kifurushi kina SMS na WhatsApp za kuzituma.",
+    "cards": "Kadi {n}",
+    "bundleDetail": "Pamoja na SMS {sms} na WhatsApp {whatsapp}",
+    "packsTitle": "Ongeza SMS au WhatsApp",
+    "packsIntro": "Ujumbe ukiisha, ongeza bila kununua kadi zaidi.",
+    "smsPack": "SMS {n}",
+    "whatsappPack": "WhatsApp {n}",
+    "buy": "Nunua",
+    "buyTitle": "Nunua: {item}",
+    "methodLabel": "Njia ya kulipa",
+    "methodMobile": "Lipa kwa simu",
+    "methodManual": "Benki au taslimu",
+    "phone": "Namba ya simu itakayolipa",
+    "network": "Mtandao",
+    "mobileHint": "Utapokea ombi la malipo kwenye simu yako. Weka PIN yako kwenye simu tu, si hapa.",
+    "manualHint": "Tutakupa namba ya kumbukumbu. Ukishalipa, timu yetu itathibitisha na salio litaongezwa.",
+    "payNow": "Lipa {amount}",
+    "orderManual": "Weka oda",
+    "waitingTitle": "Thibitisha kwenye simu yako",
+    "waitingBody": "Fungua ombi la malipo kwenye simu na uweke PIN yako.",
+    "paidToast": "Malipo yamepokelewa. Salio limeongezwa.",
+    "manualToast": "Oda imewekwa. Itaongezwa ukishalipa na tukathibitisha.",
+    "failedToast": "Malipo hayakufanikiwa. Jaribu tena.",
+    "slowToast": "Bado tunasubiri jibu la malipo. Tutaongeza salio likifika.",
+    "history": "Oda zako",
+    "historyEmpty": "Bado hujanunua chochote.",
+    "grant": "Zawadi",
+    "reference": "Kumbukumbu {ref}",
+    "cancel": "Ghairi",
+    "status": {
+      "pending": "Inasubiri",
+      "paid": "Imelipwa",
+      "failed": "Imeshindwa",
+      "cancelled": "Imeghairiwa"
+    },
+    "quota": {
+      "cards": "Kadi zimekwisha. Nunua kifurushi ili kuongeza wageni.",
+      "sms": "SMS hazitoshi kwa utumaji huu ({remaining} zimebaki, zinahitajika {needed}).",
+      "whatsapp": "WhatsApp hazitoshi kwa utumaji huu ({remaining} zimebaki, zinahitajika {needed}).",
+      "action": "Nunua zaidi"
+    }
   }
 }

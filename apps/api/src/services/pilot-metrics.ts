@@ -138,8 +138,6 @@ export class PilotMetricsService {
       const ok = rows.filter((p) => p.status === 'success').length;
       return { method: m, started: rows.length, success: ok, successRate: rate(ok, rows.length) };
     });
-    const collected = new Map<string, number>();
-    for (const p of success) collected.set(p.currency, (collected.get(p.currency) ?? 0) + p.amount);
     const secondsToConfirm = success
       .filter((p) => p.paidAt && p.expiresAt)
       .map((p) => (p.paidAt!.getTime() - (p.expiresAt!.getTime() - PAY_PROMPT_MS)) / 1000)
@@ -206,7 +204,8 @@ export class PilotMetricsService {
         lateSuccesses: success.filter((p) => p.late).length,
         amountMismatches: payRows.filter((p) => p.mismatch).length,
         byMethod,
-        collected: [...collected].map(([currency, amount]) => ({ currency, amount })),
+        // Contribution amounts are the host's and sealed (ADR 043): staff see counts, not money.
+        collected: [],
       },
       gate: {
         scans: scans.length,

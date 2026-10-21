@@ -258,8 +258,12 @@ export const pledges = pgTable(
     guestId: uuid('guest_id')
       .notNull()
       .references(() => guests.id, { onDelete: 'cascade' }),
+    /** 0 once sealed: the amount lives in `amount_enc` (ADR 043). */
     amount: integer('amount').notNull(),
     note: text('note'),
+    /** AES-GCM, bound to this row (ADR 043): only the event's members can read it. */
+    amountEnc: text('amount_enc'),
+    noteEnc: text('note_enc'),
     status: pledgeStatusEnum('status').notNull().default('pledged'),
     createdBy: uuid('created_by').references(() => users.id),
     ...timestamps,
@@ -283,6 +287,10 @@ export const payments = pgTable(
     /** mpesa | mixx | airtel | halopesa | cash | bank */
     method: text('method').notNull().default('cash'),
     note: text('note'),
+    /** Sealed amount, note and payer phone (ADR 043); the plain columns hold 0 / null then. */
+    amountEnc: text('amount_enc'),
+    noteEnc: text('note_enc'),
+    phoneEnc: text('phone_enc'),
     recordedBy: uuid('recorded_by').references(() => users.id),
     /** A pending mobile-money request that is not confirmed by then counts as expired. */
     expiresAt: timestamp('expires_at', { withTimezone: true }),
@@ -557,4 +565,65 @@ export const dataRequests = pgTable(
     ...timestamps,
   },
   (t) => [index('data_requests_status_idx').on(t.status, t.createdAt)],
+);
+
+/**
+ * Prices for cards and messages (ADR 042): a single row (`id = 'default'`) holding the whole
+ * `PricingCatalog` from `@harusi/schemas/billing`. No row = the defaults in that file.
+ */
+export const pricingSettings = pgTable('pricing_settings', {
+  id: text('id').primaryKey(),
+  catalog: jsonb('catalog').$type<Record<string, unknown>>().notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+export const purchaseKindEnum = pgEnum('purchase_kind', ['bundle', 'pack', 'grant']);
+export const purchaseStatusEnum = pgEnum('purchase_status', [
+  'pending',
+  'paid',
+  'failed',
+  'cancelled',
+]);
+export const purchaseMethodEnum = pgEnum('purchase_method', ['mobile', 'manual', 'grant']);
+
+/**
+ * What a host bought for an event (ADR 042): a card bundle, an SMS or WhatsApp pack, or credit staff
+ * granted. The cards, messages and price are copied from the catalogue when ordered, so a later price
+ * change never alters an order. Only `paid` rows add to the event's allowance.
+ */
+export const eventPurchases = pgTable(
+  'event_purchases',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    kind: purchaseKindEnum('kind').notNull(),
+    itemKey: text('item_key'),
+    label: text('label').notNull(),
+    cards: integer('cards').notNull().default(0),
+    sms: integer('sms').notNull().default(0),
+    whatsapp: integer('whatsapp').notNull().default(0),
+    amount: integer('amount').notNull().default(0),
+    currency: currencyEnum('currency').notNull(),
+    status: purchaseStatusEnum('status').notNull().default('pending'),
+    method: purchaseMethodEnum('method').notNull(),
+    provider: text('provider'),
+    /** Our reference for a mobile-money payment (`bill_…`); unique so a webhook applies once. */
+    providerRef: text('provider_ref'),
+    /** The id the gateway gave the payment, for providers that look payments up by their own id. */
+    providerTxn: text('provider_txn'),
+    phoneE164: text('phone_e164'),
+    note: text('note'),
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    confirmedBy: uuid('confirmed_by').references(() => users.id, { onDelete: 'set null' }),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('event_purchases_event_idx').on(t.eventId, t.createdAt),
+    index('event_purchases_status_idx').on(t.status, t.createdAt),
+    uniqueIndex('event_purchases_ref_uq').on(t.providerRef),
+  ],
 );

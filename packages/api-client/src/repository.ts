@@ -10,6 +10,17 @@ import type {
 } from '@harusi/schemas/payment-settings';
 import type { BrandingInput, BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import type {
+  Allowance,
+  BillingOrderInput,
+  EventBillingView,
+  OpsEventBilling,
+  OpsPurchase,
+  PricingCatalog,
+  PricingView,
+  PurchaseStatus,
+  PurchaseView,
+} from '@harusi/schemas/billing';
+import type {
   Country,
   EventInput,
   GuestInput,
@@ -49,7 +60,6 @@ import type {
   OpsLookupResult,
   OpsOrganizer,
   OpsOverview,
-  OpsPayment,
   OpsUsage,
 } from './types';
 
@@ -166,6 +176,18 @@ export interface Repository {
     kind: 'guests' | 'pledges' | 'payments' | 'scans' | 'report',
   ): Promise<Blob>;
 
+  // Billing (ADR 042) — what the host pays for: card bundles and SMS / WhatsApp packs
+  /** Allowance, usage, prices in the event's currency and past orders. Owner and committee. */
+  getBilling(eventId: string): Promise<EventBillingView>;
+  /** Owner only. `mobile` sends a payment prompt to the phone; `manual` waits for staff to confirm. */
+  orderBilling(
+    eventId: string,
+    input: BillingOrderInput,
+    idempotencyKey: string,
+  ): Promise<PurchaseView>;
+  getPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
+  cancelPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
+
   // Guest card (public) — GET /v1/c/:token, POST …/rsvp, POST …/pay
   getCard(token: string): Promise<CardView>;
   rsvp(token: string, input: RsvpInput, idempotencyKey: string): Promise<CardView>;
@@ -186,7 +208,6 @@ export interface Repository {
   opsUsage(): Promise<OpsUsage>;
   /** Launch-gate numbers for one country (or all), for the pilot dashboard (Phase 5). */
   opsPilotMetrics(opts?: { country?: Country | 'all'; days?: number }): Promise<PilotMetrics>;
-  opsListPayments(): Promise<OpsPayment[]>;
   opsLookup(query: string): Promise<OpsLookupResult>;
   opsRevealPhone(
     target: { kind: 'guest' | 'organizer'; id: string },
@@ -233,6 +254,14 @@ export interface Repository {
   opsTestPayment(
     route: PaymentRoute,
   ): Promise<{ ok: boolean; provider: string | null; status: number | null; error: string | null }>;
+  /** Prices for cards and messages (ADR 042); every staff level may read, billing and admin change. */
+  opsPricing(): Promise<PricingView>;
+  opsSavePricing(catalog: PricingCatalog): Promise<PricingView>;
+  opsListPurchases(status?: PurchaseStatus): Promise<OpsPurchase[]>;
+  /** Money that came another way; needs a note (e.g. the bank reference). */
+  opsMarkPurchasePaid(purchaseId: string, note: string): Promise<PurchaseView>;
+  opsEventBilling(eventId: string): Promise<OpsEventBilling>;
+  opsGrantCredit(eventId: string, input: Allowance & { note: string }): Promise<PurchaseView>;
   /** The business brand every visitor sees (public). */
   getBranding(): Promise<PublicBranding>;
   /** Branding for the staff form: adds who last saved it. Admin staff only. */

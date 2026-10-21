@@ -157,7 +157,7 @@ describe('pilot metrics (Phase 5)', () => {
     expect(airtel!.error).toBe('AbsentSubscriber');
   });
 
-  it('reports payment success, time to confirm and collected KES', async () => {
+  it('reports payment success and time to confirm, but no contribution money (ADR 043)', async () => {
     const p = (await get('/v1/ops/pilot-metrics?country=KE')).body!.payments;
     expect(p).toMatchObject({
       started: 2,
@@ -171,9 +171,8 @@ describe('pilot metrics (Phase 5)', () => {
       amountMismatches: 0,
     });
     expect(p.byMethod).toEqual([{ method: 'mpesa', started: 2, success: 1, successRate: 0.5 }]);
-    // (the legacy-name compatibility layer adds `amountTzs` beside `amount`, so match a subset)
-    expect(p.collected).toHaveLength(1);
-    expect(p.collected[0]).toMatchObject({ currency: 'KES', amount: 500 });
+    // Contribution amounts are the host's and sealed: staff see counts, never money.
+    expect(p.collected).toEqual([]);
   });
 
   it('reports the gate launch gates', async () => {

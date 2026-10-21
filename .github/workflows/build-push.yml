@@ -106,7 +106,9 @@ jobs:
       # GHCR image names must be lower case.
       - name: Work out the image names
         id: names
-        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -189,6 +191,41 @@ jobs:
           check api http://127.0.0.1:3001/health
           check web http://127.0.0.1:3000/api/health
           curl -sf http://127.0.0.1:3000/sw.js > /dev/null || { echo "::error::web is missing /sw.js"; exit 1; }
+
+      # Report-only for now (exit-code 0): HIGH and CRITICAL findings with a fix available go to the
+      # run summary and never block a release. Set exit-code to '1' once the list is clean.
+      # A scanner outage (continue-on-error) cannot block one either. Pinned to the v0.36.0 commit,
+      # since the action's tags were once rewritten upstream.
+      - name: Scan the API image
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.names.outputs.prefix }}-api:${{ steps.names.outputs.tag }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-api.txt
+
+      - name: Scan the web image
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_SKIP_DB_UPDATE: 'true' # the API scan just downloaded it
+        with:
+          image-ref: ${{ steps.names.outputs.prefix }}-web:${{ steps.names.outputs.tag }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-web.txt
+
+      - name: Report the scan
+        run: |
+          for image in api web; do
+            echo "### Vulnerabilities in $image (HIGH/CRITICAL, fixable)"
+            echo '```'
+            cat "trivy-$image.txt" 2>/dev/null || echo "No scan output."
+            echo '```'
+          done >> "$GITHUB_STEP_SUMMARY"
 
       - name: List what was pushed
         env:

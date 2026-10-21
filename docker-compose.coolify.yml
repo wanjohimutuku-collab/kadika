@@ -10,6 +10,9 @@
 # channel: `staging` (every push to main) or `production` (v* tags). The stack tracks the
 # `deploy/staging` or `deploy/production` branch with Auto Deploy on; the workflow moves that
 # branch once the images are pushed, which triggers the deploy (ADR 034).
+#
+# The resource limits fit the whole stack (about 2.5 GB, 3.5 CPUs at most) on one small VPS next to
+# Coolify itself, so one runaway container cannot starve the others. Raise them with the VPS size.
 
 services:
   api:
@@ -19,6 +22,12 @@ services:
     # Keep ONE api replica: the migrator takes no lock.
     command: ['sh', '-c', 'node dist/migrate.js && exec node dist/index.js']
     restart: unless-stopped
+    # Also runs the BullMQ workers and renders the print PDFs, so it gets more memory than web.
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,6 +93,11 @@ services:
     image: ghcr.io/wanjohimutuku-collab/kadika-web:${IMAGE_TAG:-staging}
     pull_policy: always
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     depends_on:
       api:
         condition: service_healthy
@@ -94,8 +108,13 @@ services:
     # Healthcheck (/api/health) comes from the image.
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     environment:
       POSTGRES_USER: ${SERVICE_USER_POSTGRES}
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
@@ -109,8 +128,13 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
     command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${SERVICE_PASSWORD_REDIS}']
     volumes:
       - redisdata:/data

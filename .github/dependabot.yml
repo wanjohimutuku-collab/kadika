@@ -1,26 +1,46 @@
-# Weekly update PRs, grouped to keep the PR count (and the CI minutes they spend) low.
-# The base image digests in infra/docker and docker-compose.coolify.yml are kept current here.
+# Monthly update PRs, kept to at most two open at a time so they don't use up the Actions budget:
+#   - one PR with every npm update
+#   - one PR with every infrastructure update (GitHub Actions, Docker base images, compose images)
+# Major versions are ignored everywhere: Expo SDK, Storybook, Node, Postgres and similar upgrades
+# break things and are planned by hand. The base image digests in infra/docker and
+# docker-compose.coolify.yml are kept current by the infrastructure PR.
 version: 2
+
+multi-ecosystem-groups:
+  infrastructure:
+    schedule: { interval: monthly }
+
 updates:
-  - package-ecosystem: github-actions
-    directory: /
-    schedule: { interval: weekly }
-    groups:
-      actions: { patterns: ['*'] }
-  - package-ecosystem: docker
-    directory: /infra/docker
-    schedule: { interval: weekly }
-    groups:
-      base-images: { patterns: ['*'] }
-  - package-ecosystem: docker-compose
-    directory: /
-    schedule: { interval: weekly }
-    groups:
-      compose-images: { patterns: ['*'] }
   - package-ecosystem: npm
     directory: /
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 1
     groups:
-      minor-and-patch:
-        update-types: [minor, patch]
+      dependencies: { patterns: ['*'] }
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    patterns: ['*']
+    multi-ecosystem-group: infrastructure
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: docker
+    directory: /infra/docker
+    patterns: ['*']
+    multi-ecosystem-group: infrastructure
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: docker-compose
+    directory: /
+    patterns: ['*']
+    multi-ecosystem-group: infrastructure
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']

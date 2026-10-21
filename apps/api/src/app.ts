@@ -30,6 +30,7 @@ import { ScheduledSendService } from './services/scheduled';
 import { PrintService } from './services/print';
 import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
+import { ConsoleService } from './services/console';
 import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content';
 import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
@@ -186,6 +187,9 @@ export function createApp(deps: Deps) {
   const brandingSvc = new BrandingService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
+  const consoleSvc = new ConsoleService(deps, eventsSvc, gateSvc, pledgeSvc);
+  // A test message costs a real SMS or WhatsApp send.
+  const testMessages = new RateLimiter(deps.now, 5, 60_000, 'test-message', deps.rateStore);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
   const payReads = new RateLimiter(deps.now, 120, 60_000, 'pay-read', deps.rateStore);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000, 'gate-join', deps.rateStore);
@@ -237,6 +241,11 @@ export function createApp(deps: Deps) {
   };
   /** Staff routes check the role and the second factor themselves (staff-guard.ts, ADR 040). */
   const staff = (c: Context<Env>): StaffCaller => ({ userId: c.get('userId'), mfa: c.get('mfa') });
+  /** The console's own gate routes are for signed-in team members, not gate-link tokens. */
+  const userOnly = (c: Context<Env>): string => {
+    if (c.get('gate')) throw new ApiError('forbidden', 'Not available to gate agents');
+    return c.get('userId');
+  };
   const actorOf = (c: Context<Env>): GateActor => {
     const claims = c.get('gate');
     return claims ? { kind: 'gate', claims } : { kind: 'user', userId: c.get('userId') };
@@ -949,6 +958,60 @@ export function createApp(deps: Deps) {
   app.get('/v1/guests/:id/qr', async (c) =>
     c.json(await guestsSvc.qrToken(c.req.param('id'), c.get('userId'))),
   );
+
+  // ---- organiser console read models and small actions (§7.7, §17.4)
+  app.get('/v1/events/:id/activity', async (c) =>
+    c.json({
+      items: await consoleSvc.activity(
+        c.req.param('id'),
+        c.get('userId'),
+        Number(c.req.query('limit')) || undefined,
+      ),
+    }),
+  );
+  app.get('/v1/events/:id/gate/overview', async (c) =>
+    c.json(await consoleSvc.gateOverview(c.req.param('id'), userOnly(c))),
+  );
+  app.get('/v1/events/:id/gate/scans', async (c) =>
+    c.json({ items: await consoleSvc.scans(c.req.param('id'), userOnly(c)) }),
+  );
+  app.post('/v1/events/:id/gate/manual-check-in', async (c) => {
+    const input = parse(
+      z.object({
+        guestId: z.string().uuid(),
+        partySize: z.number().int().min(1).max(50),
+        reason: z.string().trim().max(200).nullish(),
+      }),
+      await body(c),
+    );
+    return c.json(await consoleSvc.manualCheckIn(c.req.param('id'), userOnly(c), input), 201);
+  });
+  app.get('/v1/events/:id/report', async (c) =>
+    c.json(await consoleSvc.report(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/test-message', async (c) => {
+    await testMessages.check(`u:${c.get('userId')}`);
+    const input = parse(z.object({ channel: z.enum(['whatsapp', 'sms']) }), await body(c));
+    return c.json(await deliverySvc.sendTest(c.req.param('id'), c.get('userId'), input.channel));
+  });
+  app.delete('/v1/events/:id', async (c) => {
+    await consoleSvc.deleteEvent(c.req.param('id'), c.get('userId'));
+    return c.body(null, 204);
+  });
+  app.get('/v1/guests/:id/messages', async (c) =>
+    c.json({ items: await consoleSvc.guestMessages(c.req.param('id'), c.get('userId')) }),
+  );
+  app.get('/v1/guests/:id/audit', async (c) =>
+    c.json({ items: await consoleSvc.guestAudit(c.req.param('id'), c.get('userId')) }),
+  );
+  app.post('/v1/guests/:id/notes', async (c) => {
+    const input = parse(z.object({ note: z.string().trim().min(1).max(500) }), await body(c));
+    return c.json(await consoleSvc.addNote(c.req.param('id'), c.get('userId'), input.note), 201);
+  });
+  app.post('/v1/guests/:id/restore', async (c) => {
+    await consoleSvc.restoreGuest(c.req.param('id'), c.get('userId'));
+    return c.body(null, 204);
+  });
 
   app.notFound((c) => c.json({ error: { code: 'not_found', message: 'Route not found' } }, 404));
   app.onError((err, c) => {

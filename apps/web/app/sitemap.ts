@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { SITE_URL, hreflangMap, localeUrl, marketOfPath } from '@/lib/seo';
+import { SITE_URL, hreflangMap, localeUrl } from '@/lib/seo';
 import { ALL_PAGES, counterpartOf, pagePath } from '@/content';
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -16,7 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }),
   ];
   return pages.map(({ path, counterpart, updated, weight }) => {
-    const defaultLang = marketOfPath(path) === 'ke' ? 'en' : 'sw';
+    const defaultLang = 'en';
     return {
       url: `${SITE_URL}${localeUrl(path, defaultLang)}`,
       ...(updated ? { lastModified: updated } : {}),

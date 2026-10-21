@@ -16,6 +16,7 @@ import {
 import { Upload } from 'lucide-react';
 import type { Country } from '@harusi/schemas/country';
 import { COUNTRY_INFO } from '@harusi/schemas/country';
+import { formatPhoneInternational } from '@harusi/schemas/phone';
 import { dialPrefix, parsePhone, usePhoneCountry } from '@/lib/country';
 import { cn } from '@/lib/cn';
 
@@ -272,14 +273,37 @@ export interface PhoneFieldProps extends Omit<
  * 255…; on blur it shows the national form (712 345 678), or the international form for a number
  * from another allowed country. Storage is always E.164 (§5).
  */
-export function PhoneField({ value, onChange, onE164, onBlur, country, ...rest }: PhoneFieldProps) {
+export function PhoneField({
+  value,
+  onChange,
+  onE164,
+  onBlur,
+  country,
+  hint,
+  ...rest
+}: PhoneFieldProps) {
   const fromContext = usePhoneCountry();
   const home = country ?? fromContext;
+  /** How a valid number sits in the box: without the dial code at home (712 345 678), whole when abroad. */
+  const show = (e164: string) => {
+    const dial = COUNTRY_INFO[home].dial;
+    if (!e164.startsWith(`+${dial}`)) return e164;
+    const n = e164.slice(dial.length + 1);
+    return `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`;
+  };
   const handle = (raw: string) => {
     onChange(raw);
     const r = parsePhone(raw, home);
     onE164?.(r.ok ? r.e164 : null);
   };
+  // When what was typed is not already the clean form, say how it was understood. The line stays
+  // after blur tidies the number, so the layout below does not jump under a tap that blurred it.
+  const [tidied, setTidied] = useState<string | null>(null);
+  const parsed = parsePhone(value, home);
+  const understood =
+    parsed.ok && (value.trim() !== show(parsed.e164) || tidied === parsed.e164)
+      ? formatPhoneInternational(parsed.e164)
+      : null;
   return (
     <TextField
       {...rest}
@@ -287,15 +311,34 @@ export function PhoneField({ value, onChange, onE164, onBlur, country, ...rest }
       type="tel"
       inputMode="tel"
       autoComplete="tel-national"
+      hint={
+        understood ? (
+          <>
+            {hint}
+            {hint ? ' ' : null}
+            <span className="block font-medium text-success" data-testid="phone-understood">
+              ✓ {understood}
+            </span>
+          </>
+        ) : (
+          hint
+        )
+      }
       value={value}
       onChange={(e: ChangeEvent<HTMLInputElement>) => handle(e.target.value)}
+      // Pasting a whole number in any shape (+255 (0) 712…, a wa.me link, "Simu: 0712…") tidies it at once.
+      onPaste={(e) => {
+        const r = parsePhone(e.clipboardData.getData('text'), home);
+        if (r.ok) {
+          e.preventDefault();
+          handle(show(r.e164));
+        }
+      }}
       onBlur={(e) => {
         const r = parsePhone(value, home);
-        if (r.ok) {
-          const dial = COUNTRY_INFO[home].dial;
-          const abroad = !r.e164.startsWith(`+${dial}`);
-          const n = abroad ? r.e164 : r.e164.slice(dial.length + 1);
-          onChange(abroad ? r.e164 : `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`);
+        if (r.ok && value.trim() !== show(r.e164)) {
+          setTidied(r.e164);
+          onChange(show(r.e164));
         }
         onBlur?.(e);
       }}

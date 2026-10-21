@@ -23,7 +23,7 @@ export function TinyIntlProvider({
 }
 
 export function useTinyLocale(): Locale {
-  return useContext(Ctx)?.locale ?? 'sw';
+  return useContext(Ctx)?.locale ?? 'en';
 }
 
 /** `const t = useTinyT('card'); t('rsvpYes')`. Missing keys render the key (and are caught by tests). */

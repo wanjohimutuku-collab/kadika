@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { retiredToken, setControls, shot, token, trackConsoleErrors } from './helpers';
+import { retiredToken, setControls, shot, token, trackConsoleErrors, SW_COOKIE } from './helpers';
 
 test.describe('guest card', () => {
-  test.use({ storageState: { cookies: [], origins: [] } });
+  test.use({ storageState: { cookies: [SW_COOKIE], origins: [] } });
 
   test('open card → RSVP → download QR → offline → QR still visible', async ({ page, context }) => {
     const errors = trackConsoleErrors(page);
@@ -65,6 +65,9 @@ test.describe('guest card', () => {
       await page.goto(`/c/${tk}/pay`);
       await page.getByLabel('Kiasi (TZS)').fill('5000');
       await page.getByLabel('Namba ya simu ya kulipia').fill('0712345678');
+      // 071 is Mixx by Yas: the network is guessed, and the guest can still change it
+      await expect(page.getByTestId('pay-network-detected')).toContainText('Mixx by Yas');
+      await page.getByRole('button', { name: 'Badilisha' }).click();
       await page.getByText('Airtel Money').click();
       await page.getByTestId('pay-submit').click();
       await expect(page.getByTestId('pay-waiting')).toBeVisible();
@@ -80,6 +83,43 @@ test.describe('guest card', () => {
       }
     });
   }
+
+  test('checkout: one-tap amounts fill the amount and the button says how much', async ({
+    page,
+  }) => {
+    await page.goto(`/c/${token('confirmed')}/pay`);
+    await expect(page.getByTestId('pay-flow')).toBeVisible();
+    // the amount starts at the pledge balance (§17.6), so the button already names it
+    await expect(page.getByTestId('pay-submit')).toHaveText(/^Lipa TZS [\d,]+$/);
+    await page
+      .getByTestId('pay-quick')
+      .getByRole('button', { name: /^20,000/ })
+      .click();
+    await expect(page.getByLabel('Kiasi (TZS)')).toHaveValue('20000');
+    await expect(page.getByTestId('pay-submit')).toContainText('Lipa TZS 20,000');
+    // an unknown prefix (TTCL, 073) gives no guess, so the network choice stays visible
+    await page.getByLabel('Namba ya simu ya kulipia').fill('0732345678');
+    await expect(page.getByTestId('pay-network-detected')).toHaveCount(0);
+    await expect(page.getByText('Airtel Money')).toBeVisible();
+    // a Vodacom number is recognised as M-Pesa
+    await page.getByLabel('Namba ya simu ya kulipia').fill('0744123456');
+    await expect(page.getByTestId('pay-network-detected')).toContainText('M-Pesa');
+    // any way of writing the number is understood, and shown back in one clean form
+    for (const messy of [
+      '+255 (0) 744-123-456',
+      '255744123456',
+      'Simu: 0744.123.456',
+      '00255 744 123 456',
+    ]) {
+      await page.getByLabel('Namba ya simu ya kulipia').fill(messy);
+      await expect(page.getByTestId('phone-understood')).toContainText('+255 744 123 456');
+      await expect(page.getByTestId('pay-network-detected')).toContainText('M-Pesa');
+    }
+    // two numbers in one box is refused with a clear reason
+    await page.getByLabel('Namba ya simu ya kulipia').fill('0744123456 / 0754123456');
+    await page.getByTestId('pay-submit').click();
+    await expect(page.getByText('Weka namba moja tu ya simu')).toBeVisible();
+  });
 
   test('reissued card shows "imebadilishwa"', async ({ page }) => {
     await page.goto(`/c/${retiredToken()}`);

@@ -1,7 +1,9 @@
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { inject } from 'vitest';
 import { FakeMessagingProvider } from '@harusi/messaging';
 import { FakePaymentProvider } from '@harusi/payments';
 import * as schema from '@harusi/db/schema';
@@ -12,15 +14,32 @@ import type { Deps } from '../context';
 
 export const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
 
+/**
+ * One migrated database per test file; each context gets a clone of it. Booting PGlite and running every
+ * migration takes about 3 s, a clone about 0.5 s, and most files create a context per test. The global
+ * setup migrates once per run and saves a snapshot; without it (a lone file run some other way) the
+ * template is migrated here.
+ */
+let template: Promise<PGlite> | undefined;
+function migratedTemplate() {
+  template ??= (async () => {
+    const snapshot = inject('pgliteSnapshot');
+    if (snapshot) return new PGlite({ loadDataDir: new Blob([await readFile(snapshot)]) });
+    const client = new PGlite();
+    await migrate(drizzle(client, { schema }) as never, {
+      migrationsFolder: fileURLToPath(new URL('../../../../packages/db/drizzle', import.meta.url)),
+    });
+    return client;
+  })();
+  return template;
+}
+
 /** Real SQL (PGlite, in-process Postgres) + migrations + fake SMS: no Docker needed in unit tests. */
 export async function createTestContext(
   opts: { now?: () => Date; env?: Record<string, string> } = {},
 ) {
-  const client = new PGlite();
+  const client = (await (await migratedTemplate()).clone()) as PGlite;
   const db = drizzle(client, { schema }) as unknown as Db;
-  await migrate(db as never, {
-    migrationsFolder: fileURLToPath(new URL('../../../../packages/db/drizzle', import.meta.url)),
-  });
   // Tests flip these to simulate gateway outages for chosen numbers (delivery retries, fallback).
   const fail = {
     wa: (_to: string) => false,

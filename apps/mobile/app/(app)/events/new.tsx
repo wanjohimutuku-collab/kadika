@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { EVENT_KIND_SUGGESTIONS, eventInputSchema } from '@harusi/schemas';
+import { eventInputSchema, eventKindLabel, eventKindSuggestions } from '@harusi/schemas';
 import { COUNTRIES, type Country } from '@harusi/schemas/country';
 import { KENYA_ENABLED } from '../../../src/lib/country';
 import { useCreateEvent } from '../../../src/lib/queries';
@@ -24,7 +24,7 @@ export default function NewEvent() {
   const { locale } = useLocale();
   const create = useCreateEvent();
   const [country, setCountry] = useState<Country>('TZ');
-  const [kind, setKind] = useState<string>(EVENT_KIND_SUGGESTIONS[0]);
+  const [kind, setKind] = useState<string>(eventKindSuggestions(locale)[0]!);
   const [a, setA] = useState('');
   const [b, setB] = useState('');
   const [date, setDate] = useState('');
@@ -95,8 +95,13 @@ export default function NewEvent() {
           error={errors.eventKind}
         />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {EVENT_KIND_SUGGESTIONS.map((k) => (
-            <Chip key={k} label={k} active={kind === k} onPress={() => setKind(k)} />
+          {eventKindSuggestions(locale).map((k) => (
+            <Chip
+              key={k}
+              label={k}
+              active={eventKindLabel(kind, locale) === k}
+              onPress={() => setKind(k)}
+            />
           ))}
         </View>
         <Field label={t('wizard.hostA')} value={a} onChangeText={setA} error={errors.partnerA} />

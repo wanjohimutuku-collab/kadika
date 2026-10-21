@@ -1,3 +1,4 @@
+import type { BrandingInput } from '@harusi/schemas/branding';
 import {
   generateShortCode,
   type CardKind,
@@ -116,6 +117,30 @@ export interface MockState {
   dataRequests: DataRequest[];
   /** Staff actions, including every view of a full phone number. */
   opsAudit: OpsAuditEntry[];
+  /** SMS/WhatsApp settings saved in /ops (ADR 031); a route without one shows the env defaults. */
+  messaging?: Partial<
+    Record<
+      'sms_tz' | 'sms_ke' | 'whatsapp',
+      { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
+    >
+  >;
+  /** Payment gateway settings saved in /ops (ADR 036); without one the env default (fake) shows. */
+  paymentSettings?: Partial<
+    Record<
+      'tz',
+      { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
+    >
+  >;
+  /** Business branding saved in /ops (ADR 036); undefined shows the defaults. */
+  branding?: {
+    input: BrandingInput;
+    /** SVG source, or a `data:` URL for rasters; the mock serves the logo straight from here. */
+    logoMime: string | null;
+    logoSrc: string | null;
+    logoVersion: number;
+    updatedAt: string;
+    updatedBy: string;
+  };
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
 }
@@ -192,7 +217,7 @@ function baseEvent(
     venueName: '',
     venueMapUrl: '',
     dressCode: '',
-    languageDefault: 'sw',
+    languageDefault: 'en',
     country: 'TZ',
     currency: 'TZS',
     timezone: 'Africa/Dar_es_Salaam',
@@ -308,7 +333,7 @@ function addGuest(
     shortCode: uniqueCode(ctx, eventId),
     tokenVersion: 1,
     token: rng.token(),
-    language: rng.chance(0.93) ? 'sw' : 'en',
+    language: rng.chance(0.93) ? 'en' : 'sw',
     inviteChannelPref: pref,
     notes: elder && rng.chance(0.3) ? 'Mpelekee kadi ya karatasi nyumbani' : '',
     status,

@@ -120,6 +120,34 @@
       "when": 1792076879681,
       "tag": "0016_scheduled_sends",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792257549051,
+      "tag": "0017_messaging_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792307311950,
+      "tag": "0018_english_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792429255200,
+      "tag": "0019_admin_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792520899677,
+      "tag": "0020_data_requests",
+      "breakpoints": true
     }
   ]
 }

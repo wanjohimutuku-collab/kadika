@@ -129,7 +129,7 @@ export class GuestService {
           partySizeAllowed: input.partySizeAllowed ?? 1,
           cardKind: input.cardKind ?? 'invitation',
           shortCode: await this.uniqueShortCode(eventId, tx as Deps['db']),
-          language: input.language ?? 'sw',
+          language: input.language ?? 'en',
           inviteChannelPref: phone ? (input.inviteChannelPref ?? 'mixed') : 'print',
           notes: input.notes ?? null,
         })

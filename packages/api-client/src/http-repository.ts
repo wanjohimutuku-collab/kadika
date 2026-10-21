@@ -1,3 +1,6 @@
+import type { MessagingRoute, MessagingSettingsView } from '@harusi/schemas/messaging-settings';
+import type { PaymentSettingsView } from '@harusi/schemas/payment-settings';
+import type { BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import {
   defaultSender,
@@ -16,17 +19,26 @@ import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
 import type {
   CardView,
+  DataRequest,
   Guest,
   GuestQuery,
   ImportResult,
   ImportRowInput,
   Member,
+  OpsAuditEntry,
+  OpsEvent,
+  OpsLookupResult,
+  OpsOrganizer,
+  OpsOverview,
+  OpsPayment,
+  OpsUsage,
   Payment,
   PaymentStart,
   PaymentStatusView,
   SendJob,
   SendRequest,
   Session,
+  StaffRole,
   WeddingEvent,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
@@ -74,6 +86,7 @@ interface ApiUser {
   name: string;
   phoneE164: string;
   roleGlobal: 'user' | 'admin';
+  staffRole?: StaffRole | null;
 }
 
 interface ApiEvent {
@@ -190,7 +203,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     rsvpDeadline: e.rsvpDeadline,
     contributionTarget: e.contributionTarget ?? 0,
     senderName:
-      e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
+      e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
     requirePledgeBeforeCard: false,
@@ -253,7 +266,7 @@ function mapCard(token: string, c: ApiCard): CardView {
           rsvpDeadline: e.rsvpDeadline,
           senderName:
             e.senderName ||
-            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'sw'),
+            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
           committeePhone: e.committeePhone ?? '',
           pledgesEnabled: e.pledgesEnabled ?? false,
           cardContent: e.cardContent ?? {},
@@ -397,7 +410,13 @@ export function createHttpRepository(
   }
 
   const sessionOf = (u: ApiUser): Session => ({
-    user: { id: u.id, name: u.name, phoneE164: u.phoneE164, roleGlobal: u.roleGlobal },
+    user: {
+      id: u.id,
+      name: u.name,
+      phoneE164: u.phoneE164,
+      roleGlobal: u.roleGlobal,
+      staffRole: u.staffRole ?? undefined,
+    },
     role: 'owner',
     expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   });
@@ -446,11 +465,126 @@ export function createHttpRepository(
       return sessionOf(await call<ApiUser>('GET', '/v1/me'));
     },
 
+    async requestDataExport() {
+      return call<{ requestedAt: string }>('POST', '/v1/me/data-requests', { kind: 'export' });
+    },
+    async requestAccountDeletion() {
+      return call<{ requestedAt: string }>('POST', '/v1/me/data-requests', { kind: 'deletion' });
+    },
+
+    // ---- staff (ops) panel (ADR 012); phones come back masked except from opsRevealPhone
+    async opsOverview() {
+      return call<OpsOverview>('GET', '/v1/ops/overview');
+    },
+    async opsListOrganizers() {
+      return call<OpsOrganizer[]>('GET', '/v1/ops/organizers');
+    },
+    async opsSetUserStatus(userId, status, reason) {
+      return call<OpsOrganizer>(
+        'PATCH',
+        `/v1/ops/organizers/${encodeURIComponent(userId)}/status`,
+        { status, reason },
+      );
+    },
+    async opsListEvents() {
+      return call<OpsEvent[]>('GET', '/v1/ops/events');
+    },
+    async opsSetEventPlan(eventId, plan) {
+      return call<OpsEvent>('PATCH', `/v1/ops/events/${encodeURIComponent(eventId)}/plan`, {
+        plan,
+      });
+    },
+    async opsUsage() {
+      return call<OpsUsage>('GET', '/v1/ops/usage');
+    },
+    async opsListPayments() {
+      return call<OpsPayment[]>('GET', '/v1/ops/payments');
+    },
+    async opsLookup(query) {
+      return call<OpsLookupResult>(
+        'GET',
+        `/v1/ops/lookup?${new URLSearchParams({ q: query.slice(0, 100) })}`,
+      );
+    },
+    async opsRevealPhone(target, reason) {
+      return call<{ phoneE164: string }>('POST', '/v1/ops/reveal-phone', { ...target, reason });
+    },
+    async opsListAudit() {
+      return call<OpsAuditEntry[]>('GET', '/v1/ops/audit');
+    },
+    async opsListDataRequests() {
+      return call<DataRequest[]>('GET', '/v1/ops/data-requests');
+    },
+    async opsResolveDataRequest(id, status, note) {
+      return call<DataRequest>('POST', `/v1/ops/data-requests/${encodeURIComponent(id)}/resolve`, {
+        status,
+        note,
+      });
+    },
+
     async opsPilotMetrics(opts = {}) {
       const q = new URLSearchParams();
       if (opts.country) q.set('country', opts.country);
       if (opts.days) q.set('days', String(opts.days));
       return call<PilotMetrics>('GET', `/v1/ops/pilot-metrics${q.size ? `?${q}` : ''}`);
+    },
+
+    async opsMessagingSettings() {
+      return call<MessagingSettingsView>('GET', '/v1/ops/messaging');
+    },
+    async opsSaveMessaging(route, input) {
+      return call<MessagingSettingsView>('PUT', `/v1/ops/messaging/${route}`, input);
+    },
+    async opsResetMessaging(route) {
+      return call<MessagingSettingsView>('DELETE', `/v1/ops/messaging/${route}`);
+    },
+    async opsTestMessaging(route, to) {
+      return call<{ ok: boolean; provider: string; error: string | null }>(
+        'POST',
+        `/v1/ops/messaging/${route}/test`,
+        { to },
+      );
+    },
+
+    async opsImportMessagingFromEnvironment() {
+      return call<MessagingSettingsView & { imported: MessagingRoute[] }>(
+        'POST',
+        '/v1/ops/messaging/import-env',
+      );
+    },
+
+    async opsPaymentSettings() {
+      return call<PaymentSettingsView>('GET', '/v1/ops/payment-settings');
+    },
+    async opsSavePayment(route, input) {
+      return call<PaymentSettingsView>('PUT', `/v1/ops/payment-settings/${route}`, input);
+    },
+    async opsResetPayment(route) {
+      return call<PaymentSettingsView>('DELETE', `/v1/ops/payment-settings/${route}`);
+    },
+    async opsTestPayment(route) {
+      return call<{
+        ok: boolean;
+        provider: string | null;
+        status: number | null;
+        error: string | null;
+      }>('POST', `/v1/ops/payment-settings/${route}/test`);
+    },
+
+    async getBranding() {
+      return call<PublicBranding>('GET', '/v1/branding');
+    },
+    async opsBranding() {
+      return call<BrandingView>('GET', '/v1/ops/branding');
+    },
+    async opsSaveBranding(input) {
+      return call<BrandingView>('PUT', '/v1/ops/branding', input);
+    },
+    async opsSetLogo(file) {
+      return call<BrandingView>('PUT', '/v1/ops/branding/logo', file);
+    },
+    async opsRemoveLogo() {
+      return call<BrandingView>('DELETE', '/v1/ops/branding/logo');
     },
 
     async listEvents() {

@@ -118,11 +118,47 @@ export const guestInputSchema = z.object({
 export type GuestInput = z.input<typeof guestInputSchema>;
 export type GuestInputParsed = z.output<typeof guestInputSchema>;
 
-/** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
-export const EVENT_KIND_SUGGESTIONS = ['Harusi', 'Send-off', 'Uchumba'] as const;
-/** The kind to show: what the organiser wrote, else the default for the language. */
+/** Names of the three card categories, per language, so a card never mixes languages. */
+const KIND_LABELS = {
+  wedding: { sw: 'Harusi', en: 'Wedding' },
+  engagement: { sw: 'Uchumba', en: 'Engagement' },
+  sendoff: { sw: 'Send-off', en: 'Send-off' },
+} as const;
+/** Quick suggestions for the "type of invitation" field, in the language of the screen. */
+export function eventKindSuggestions(locale: 'sw' | 'en'): string[] {
+  return Object.values(KIND_LABELS).map((l) => l[locale]);
+}
+export const EVENT_KIND_SUGGESTIONS = eventKindSuggestions('en');
+/**
+ * The kind to show. One of the three known names (in either language) is shown in the reader's language;
+ * anything else the organiser wrote is shown as written. Empty means a wedding.
+ */
 export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | 'en'): string {
-  return kind?.trim() || (locale === 'sw' ? 'Harusi' : 'Wedding');
+  const k = kind?.trim();
+  if (!k) return KIND_LABELS.wedding[locale];
+  for (const l of Object.values(KIND_LABELS)) {
+    if (k.toLowerCase() === l.sw.toLowerCase() || k.toLowerCase() === l.en.toLowerCase())
+      return l[locale];
+  }
+  return k;
+}
+/**
+ * The three card categories the product ships presets for (uchumba, send-off, wedding). The kind itself stays
+ * free text (ADR 024); this only chooses default wording, so any other kind behaves as before.
+ */
+export const OCCASIONS = ['wedding', 'engagement', 'sendoff', 'other'] as const;
+export type Occasion = (typeof OCCASIONS)[number];
+export function occasionOf(kind: string | null | undefined): Occasion {
+  const k =
+    kind
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '') ?? '';
+  if (!k || k.includes('harusi') || k.includes('wedding')) return 'wedding';
+  if (k.includes('uchumba') || k.includes('engagement') || k.includes('ruracio'))
+    return 'engagement';
+  if (k.includes('sendoff') || k.includes('kitchenparty')) return 'sendoff';
+  return 'other';
 }
 /** Host names joined for display; a single host has no dangling ampersand. */
 export function hostNames(a: string, b?: string | null): string {
@@ -137,13 +173,14 @@ export function defaultSender(
   kind: string | null | undefined,
   hosts: string,
   senderKind: 'family' | 'committee' | 'couple' | 'host' | 'custom' = 'committee',
-  locale: 'sw' | 'en' = 'sw',
+  locale: 'sw' | 'en' = 'en',
 ): string {
-  const k = kind?.trim();
+  const k = kind?.trim() ? eventKindLabel(kind, locale) : '';
   if (senderKind === 'family')
     return locale === 'sw' ? `Familia ya ${hosts}` : `The ${hosts} family`;
   if (senderKind === 'couple' || senderKind === 'host' || senderKind === 'custom') return hosts;
-  return k ? `Kamati ya ${k} ya ${hosts}` : `Kamati ya ${hosts}`;
+  if (locale === 'sw') return k ? `Kamati ya ${k} ya ${hosts}` : `Kamati ya ${hosts}`;
+  return k ? `${k} committee of ${hosts}` : `Committee of ${hosts}`;
 }
 
 export const eventKindSchema = z.string().trim().max(40, 'name.too_long');

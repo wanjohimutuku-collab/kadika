@@ -11,7 +11,7 @@ Status: accepted
 
 ## Decisions
 
-- **Gate result colours are darkened** to ADMIT `#075E20`, DUPLICATE `#7A4A00`, DENY `#8C1D17` (`gateColorsAaa`), because the §17.2 fills only reach 4.2–6.5:1 and §17.14 asks for AAA. A test asserts ≥ 7:1 with white. CLAUDE.md §17.2 still lists the old values; the spec owner should update it.
+- **Gate result colours are darkened** to ADMIT `#075E20`, DUPLICATE `#7A4A00`, DENY `#8C1D17` (`gateColors`, used by both the web tokens and the phone app), because the first §17.2 fills only reached 4.2–6.5:1 and §17.14 asks for AAA. A test asserts ≥ 7:1 with white.
 - **Search is an in-memory scan of the bundle**, not SQLite FTS (§6.2 mentions FTS). For a few thousand guests it is instant and avoids an FTS dependency; revisit above ~10,000 guests.
 - **A typed card number is logged as `manual_ok`** (reason `code`): there is no signature to check, so it is not a verified scan.
 - **Sound** is generated in code (sine-tone WAVs written to the cache and played with `expo-audio`): rising two-tone for admit, one beep for duplicate, a long low buzz for deny, with a remembered on/off toggle. The generator is unit-tested; playback has not been heard on a device.

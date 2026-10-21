@@ -633,7 +633,11 @@ export class PledgeService {
       if (!provider?.queryCollection) continue;
       let r;
       try {
-        r = await provider.queryCollection(p.providerRef);
+        // `raw.providerRef` is the id the provider gave at start (Snippe looks payments up by it).
+        r = await provider.queryCollection(
+          p.providerRef,
+          (p.raw as { providerRef?: string } | null)?.providerRef,
+        );
       } catch {
         continue; // retried on the next tick
       }

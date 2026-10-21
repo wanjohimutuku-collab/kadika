@@ -33,6 +33,13 @@ import { GateService, type GateActor } from './services/gate';
 import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content';
 import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
+import { OpsService } from './services/ops';
+import { MessagingSettingsService } from './services/messaging-settings';
+import { PaymentSettingsService } from './services/payment-settings';
+import { BrandingService } from './services/branding';
+import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
+import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
+import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
 
@@ -115,15 +122,15 @@ export function createApp(deps: Deps) {
   });
   // Security headers on every response (§9). The API only returns JSON, CSV and PDF, so nothing
   // it sends should ever be rendered or framed: a locked-down CSP costs nothing.
-  app.use(
-    '*',
-    secureHeaders({
-      strictTransportSecurity: 'max-age=63072000; includeSubDomains',
-      contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
-      referrerPolicy: 'no-referrer',
-      xFrameOptions: 'DENY',
-    }),
-  );
+  const secure = secureHeaders({
+    strictTransportSecurity: 'max-age=63072000; includeSubDomains',
+    contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+    referrerPolicy: 'no-referrer',
+    xFrameOptions: 'DENY',
+  });
+  // The public logo route sets its own, stricter set (it serves an image, so it also needs `sandbox`
+  // and an inline-style allowance); the global middleware would overwrite it after the handler runs.
+  app.use('*', (c, next) => (c.req.path === '/v1/branding/logo' ? next() : secure(c, next)));
   // One JSON line per request, never with a card token, PIN, OTP or phone number in it: the route
   // pattern (`/v1/c/:token/pay`) is logged, not the real path (§12).
   app.use('*', async (c, next) => {
@@ -147,7 +154,7 @@ export function createApp(deps: Deps) {
     cors({
       origin: deps.config.corsOrigins,
       allowHeaders: ['authorization', 'content-type', 'idempotency-key'],
-      allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       exposeHeaders: ['idempotent-replayed'],
       maxAge: 600,
     }),
@@ -163,6 +170,10 @@ export function createApp(deps: Deps) {
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
   const pilotSvc = new PilotMetricsService(deps);
+  const opsSvc = new OpsService(deps);
+  const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
+  const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
+  const brandingSvc = new BrandingService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
@@ -226,7 +237,12 @@ export function createApp(deps: Deps) {
     }
   });
   app.get('/health', (c) => {
-    const res: HealthResponse = { status: 'ok', service: 'api', time: deps.now().toISOString() };
+    const res: HealthResponse = {
+      status: 'ok',
+      service: 'api',
+      time: deps.now().toISOString(),
+      version: process.env.GIT_SHA || 'dev',
+    };
     return c.json(res);
   });
 
@@ -258,6 +274,8 @@ export function createApp(deps: Deps) {
     c.req.path.startsWith('/v1/webhooks/') ||
     c.req.path.startsWith('/v1/payments/webhook/') ||
     c.req.path === '/v1/gate/join' ||
+    c.req.path === '/v1/branding' ||
+    c.req.path === '/v1/branding/logo' ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
       : gateOrUser(c, next),
@@ -276,7 +294,14 @@ export function createApp(deps: Deps) {
       .select()
       .from(users)
       .where(eq(users.id, c.get('userId')));
-    return c.json({ id: u!.id, name: u!.name, phoneE164: u!.phoneE164, roleGlobal: u!.roleGlobal });
+    return c.json({
+      id: u!.id,
+      name: u!.name,
+      phoneE164: u!.phoneE164,
+      roleGlobal: u!.roleGlobal,
+      // Staff level (ADR 012) so /ops shows only the actions this person may use.
+      staffRole: u!.roleGlobal === 'admin' ? (u!.staffRole ?? 'support') : null,
+    });
   });
   app.patch('/v1/me', async (c) => {
     const { name } = parse(z.object({ name: z.string().trim().min(2).max(80) }), await body(c));
@@ -703,6 +728,60 @@ export function createApp(deps: Deps) {
     c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
     return c.json(await pledgeSvc.webhook(c.req.param('provider'), raw, headers));
   });
+  // PDPA requests (ADR 012): a customer files them from Akaunti, staff resolve them in /ops/requests.
+  app.post('/v1/me/data-requests', async (c) => {
+    const { kind } = parse(z.object({ kind: z.enum(['export', 'deletion']) }), await body(c));
+    return c.json(await opsSvc.fileRequest(c.get('userId'), kind), 201);
+  });
+
+  // ---- staff (ops) panel (ADR 012). Staff levels and the audit log are enforced in OpsService.
+  const idParam = (c: Context) => parse(z.string().uuid(), c.req.param('id'));
+  app.get('/v1/ops/overview', async (c) => c.json(await opsSvc.overview(c.get('userId'))));
+  app.get('/v1/ops/organizers', async (c) => c.json(await opsSvc.listOrganizers(c.get('userId'))));
+  app.patch('/v1/ops/organizers/:id/status', async (c) => {
+    const input = parse(
+      z.object({ status: z.enum(['active', 'suspended']), reason: z.string().max(500) }),
+      await body(c),
+    );
+    return c.json(
+      await opsSvc.setUserStatus(c.get('userId'), idParam(c), input.status, input.reason),
+    );
+  });
+  app.get('/v1/ops/events', async (c) => c.json(await opsSvc.listEvents(c.get('userId'))));
+  app.patch('/v1/ops/events/:id/plan', async (c) => {
+    const { plan } = parse(z.object({ plan: z.enum(['free', 'paid']) }), await body(c));
+    return c.json(await opsSvc.setEventPlan(c.get('userId'), idParam(c), plan));
+  });
+  app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(c.get('userId'))));
+  app.get('/v1/ops/payments', async (c) => c.json(await opsSvc.listPayments(c.get('userId'))));
+  app.get('/v1/ops/lookup', async (c) => {
+    const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());
+    return c.json(await opsSvc.lookup(c.get('userId'), q));
+  });
+  app.post('/v1/ops/reveal-phone', async (c) => {
+    const input = parse(
+      z.object({
+        kind: z.enum(['guest', 'organizer']),
+        id: z.string().uuid(),
+        reason: z.string().max(500),
+      }),
+      await body(c),
+    );
+    return c.json(
+      await opsSvc.revealPhone(c.get('userId'), { kind: input.kind, id: input.id }, input.reason),
+    );
+  });
+  app.get('/v1/ops/audit', async (c) => c.json(await opsSvc.listAudit(c.get('userId'))));
+  app.get('/v1/ops/data-requests', async (c) => c.json(await opsSvc.listRequests(c.get('userId'))));
+  app.post('/v1/ops/data-requests/:id/resolve', async (c) => {
+    const input = parse(
+      z.object({ status: z.enum(['done', 'rejected']), note: z.string().max(500).default('') }),
+      await body(c),
+    );
+    return c.json(
+      await opsSvc.resolveRequest(c.get('userId'), idParam(c), input.status, input.note),
+    );
+  });
   // ---- staff: launch-gate numbers per country (Phase 5, docs/ops/kenya-pilot-runbook.md)
   app.get('/v1/ops/pilot-metrics', async (c) => {
     const q = parse(
@@ -714,6 +793,103 @@ export function createApp(deps: Deps) {
     );
     return c.json(await pilotSvc.report(c.get('userId'), q));
   });
+  // ---- staff: SMS and WhatsApp provider settings (ADR 031, admin staff only)
+  const routeParam = (c: Context) => parse(z.enum(MESSAGING_ROUTES), c.req.param('route'));
+  app.get('/v1/ops/messaging', async (c) => c.json(await messagingSvc.view(c.get('userId'))));
+  app.put('/v1/ops/messaging/:route', async (c) => {
+    const input = parse(
+      z.object({
+        provider: z.string().min(1).max(40),
+        fields: z.record(z.string().max(2000)).default({}),
+      }),
+      await body(c),
+    );
+    return c.json(await messagingSvc.save(c.get('userId'), routeParam(c), input));
+  });
+  app.delete('/v1/ops/messaging/:route', async (c) =>
+    c.json(await messagingSvc.reset(c.get('userId'), routeParam(c))),
+  );
+  app.post('/v1/ops/messaging/:route/test', async (c) => {
+    const { to } = parse(z.object({ to: phone }), await body(c));
+    return c.json(await messagingSvc.test(c.get('userId'), routeParam(c), to));
+  });
+  app.post('/v1/ops/messaging/import-env', async (c) =>
+    c.json(await messagingSvc.importFromEnvironment(c.get('userId'))),
+  );
+
+  // ---- staff: payment gateway settings (ADR 036, admin staff only)
+  const paymentRouteParam = (c: Context) => parse(z.enum(PAYMENT_ROUTES), c.req.param('route'));
+  app.get('/v1/ops/payment-settings', async (c) =>
+    c.json(await paymentSettingsSvc.view(c.get('userId'))),
+  );
+  app.put('/v1/ops/payment-settings/:route', async (c) => {
+    const input = parse(
+      z.object({
+        provider: z.string().min(1).max(40),
+        fields: z.record(z.string().max(2000)).default({}),
+      }),
+      await body(c),
+    );
+    return c.json(await paymentSettingsSvc.save(c.get('userId'), paymentRouteParam(c), input));
+  });
+  app.delete('/v1/ops/payment-settings/:route', async (c) =>
+    c.json(await paymentSettingsSvc.reset(c.get('userId'), paymentRouteParam(c))),
+  );
+  app.post('/v1/ops/payment-settings/:route/test', async (c) =>
+    c.json(await paymentSettingsSvc.test(c.get('userId'), paymentRouteParam(c))),
+  );
+
+  // ---- business branding (ADR 036): public to read, admin staff only to change
+  app.get('/v1/branding', async (c) => {
+    c.header('cache-control', 'public, max-age=60');
+    return c.json(await brandingSvc.publicView());
+  });
+  app.get('/v1/branding/logo', async (c) => {
+    const logo = await brandingSvc.logo();
+    if (!logo) return c.json({ error: { code: 'not_found', message: 'No logo' } }, 404);
+    // `?v=` changes with every upload, so a versioned URL can be cached for good; a bare one revalidates.
+    const versioned = c.req.query('v') === String(logo.version);
+    const headers: Record<string, string> = {
+      'content-type': logo.mime,
+      etag: logo.etag,
+      'cache-control': versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
+      'x-content-type-options': 'nosniff',
+      'content-disposition': 'inline',
+      // The logo is an image, never a page: no script, no network, no framing, even if opened directly.
+      'content-security-policy':
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'none'; sandbox",
+      'strict-transport-security': 'max-age=63072000; includeSubDomains',
+      'referrer-policy': 'no-referrer',
+      'x-frame-options': 'DENY',
+      // The web app (another origin) shows it with <img>, which needs no CORS; the resource policy
+      // still allows that explicitly.
+      'cross-origin-resource-policy': 'cross-origin',
+    };
+    if (c.req.header('if-none-match') === logo.etag) return c.body(null, 304, headers);
+    return c.body(new Uint8Array(logo.body), 200, headers);
+  });
+  const brandingInput = z.object({
+    businessName: z.string().max(200),
+    tagline: z.string().max(400).default(''),
+    primary: z.string().max(20).nullable(),
+    accent: z.string().max(20).nullable(),
+    fontBody: z.enum(BODY_FONT_KEYS),
+    fontDisplay: z.enum(DISPLAY_FONT_KEYS),
+  });
+  app.get('/v1/ops/branding', async (c) => c.json(await brandingSvc.view(c.get('userId'))));
+  app.put('/v1/ops/branding', async (c) =>
+    c.json(await brandingSvc.save(c.get('userId'), parse(brandingInput, await body(c)))),
+  );
+  app.put('/v1/ops/branding/logo', async (c) => {
+    const input = parse(
+      z.object({ mime: z.string().max(40), data: z.string().max(400_000) }),
+      await body(c),
+    );
+    return c.json(await brandingSvc.setLogo(c.get('userId'), input));
+  });
+  app.delete('/v1/ops/branding/logo', async (c) =>
+    c.json(await brandingSvc.removeLogo(c.get('userId'))),
+  );
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),
   );

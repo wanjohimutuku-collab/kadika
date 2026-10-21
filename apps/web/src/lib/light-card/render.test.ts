@@ -50,6 +50,45 @@ function view(over: Partial<CardView> = {}): CardView {
   } as CardView;
 }
 
+describe('business brand on the guest card (ADR 036)', () => {
+  const brand = { name: 'Kadi Sasa', logoSrc: '/brand/logo.svg' };
+
+  it('shows the logo in the footer, as a small image with a fixed height and the name as its text', () => {
+    const html = renderCard(view(), { ...opts, brand });
+    expect(html).toContain('data-testid="card-brand"');
+    expect(html).toContain('<img src="/brand/logo.svg" alt="Kadi Sasa" height="28"');
+    expect(html.indexOf('card-brand')).toBeGreaterThan(html.indexOf('<footer'));
+  });
+
+  it('shows nothing when there is no logo, and works without any brand at all', () => {
+    expect(
+      renderCard(view(), { ...opts, brand: { name: 'Kadi Sasa', logoSrc: null } }),
+    ).not.toContain('card-brand');
+    expect(renderCard(view(), opts)).not.toContain('card-brand');
+  });
+
+  it('is on the problem pages too', () => {
+    for (const state of ['invalid', 'reissued', 'error'] as const)
+      expect(renderProblem(state, { locale: 'sw', domain: 'x', brand })).toContain('card-brand');
+    expect(renderProblem('invalid', { locale: 'sw', domain: 'x' })).not.toContain('card-brand');
+  });
+
+  it('escapes the name and the address, so a hostile brand cannot break out of the markup', () => {
+    const html = renderCard(view(), {
+      ...opts,
+      brand: { name: '"><script>alert(1)</script>', logoSrc: '/x" onerror="alert(1)' },
+    });
+    expect(html).not.toContain('<script>alert(1)');
+    expect(html).not.toContain('onerror="alert(1)"');
+    expect(html).toContain('&quot;&gt;&lt;script&gt;');
+  });
+
+  it('adds only a few hundred bytes, because the logo is linked and not inlined', () => {
+    const base = renderCard(view(), opts).length;
+    expect(renderCard(view(), { ...opts, brand }).length - base).toBeLessThan(400);
+  });
+});
+
 describe('light guest card', () => {
   it('renders the §17.6 essentials with a black-on-white QR and the short code', () => {
     const html = renderCard(view(), opts);

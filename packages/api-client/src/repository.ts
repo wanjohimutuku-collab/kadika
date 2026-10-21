@@ -1,4 +1,15 @@
 import type {
+  MessagingRoute,
+  MessagingSettingsInput,
+  MessagingSettingsView,
+} from '@harusi/schemas/messaging-settings';
+import type {
+  PaymentRoute,
+  PaymentSettingsInput,
+  PaymentSettingsView,
+} from '@harusi/schemas/payment-settings';
+import type { BrandingInput, BrandingView, PublicBranding } from '@harusi/schemas/branding';
+import type {
   Country,
   EventInput,
   GuestInput,
@@ -187,4 +198,40 @@ export interface Repository {
     status: 'done' | 'rejected',
     note: string,
   ): Promise<DataRequest>;
+  /** SMS and WhatsApp provider settings (ADR 031), admin staff only. Secrets come back masked. */
+  opsMessagingSettings(): Promise<MessagingSettingsView>;
+  /** A secret left empty keeps the saved one. Refused (`validation`) when required fields are missing. */
+  opsSaveMessaging(
+    route: MessagingRoute,
+    input: MessagingSettingsInput,
+  ): Promise<MessagingSettingsView>;
+  /** Drops the saved settings for a route; the environment variables apply again. */
+  opsResetMessaging(route: MessagingRoute): Promise<MessagingSettingsView>;
+  opsTestMessaging(
+    route: MessagingRoute,
+    to: string,
+  ): Promise<{ ok: boolean; provider: string; error: string | null }>;
+  /**
+   * Moves SMS and WhatsApp credentials from the server's environment into saved settings (ADR 036).
+   * Routes that already have saved settings are left alone; `imported` names the ones copied.
+   */
+  opsImportMessagingFromEnvironment(): Promise<
+    MessagingSettingsView & { imported: MessagingRoute[] }
+  >;
+  /** Payment gateway settings (ADR 036), admin staff only. Secrets come back masked. */
+  opsPaymentSettings(): Promise<PaymentSettingsView>;
+  opsSavePayment(route: PaymentRoute, input: PaymentSettingsInput): Promise<PaymentSettingsView>;
+  opsResetPayment(route: PaymentRoute): Promise<PaymentSettingsView>;
+  /** Asks the gateway whether our key works, without moving money. */
+  opsTestPayment(
+    route: PaymentRoute,
+  ): Promise<{ ok: boolean; provider: string | null; status: number | null; error: string | null }>;
+  /** The business brand every visitor sees (public). */
+  getBranding(): Promise<PublicBranding>;
+  /** Branding for the staff form: adds who last saved it. Admin staff only. */
+  opsBranding(): Promise<BrandingView>;
+  opsSaveBranding(input: BrandingInput): Promise<BrandingView>;
+  /** `data` is the SVG source, or base64 for PNG, JPEG and WebP. Refused (`validation`) if unsafe. */
+  opsSetLogo(file: { mime: string; data: string }): Promise<BrandingView>;
+  opsRemoveLogo(): Promise<BrandingView>;
 }

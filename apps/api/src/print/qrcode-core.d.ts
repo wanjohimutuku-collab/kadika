@@ -1,4 +1,4 @@
-declare module 'qrcode/lib/core/qrcode' {
+declare module 'qrcode/lib/core/qrcode.js' {
   interface BitMatrix {
     size: number;
     data: Uint8Array;

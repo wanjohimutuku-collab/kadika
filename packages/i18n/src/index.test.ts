@@ -9,8 +9,9 @@ function keys(obj: unknown, prefix = ''): string[] {
 }
 
 describe('i18n', () => {
-  it('defaults to Swahili', () => {
-    expect(t('card.rsvpYes')).toBe('Nitahudhuria');
+  it('defaults to English and still serves Swahili on request', () => {
+    expect(t('card.rsvpYes')).toBe('I will attend');
+    expect(t('card.rsvpYes', 'sw')).toBe('Nitahudhuria');
   });
   it('has the same keys in sw and en (except _meta)', () => {
     const swKeys = keys(sw).filter((k) => !k.startsWith('_meta'));

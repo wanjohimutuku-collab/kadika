@@ -81,11 +81,18 @@ describe('HttpRepository against the real API', () => {
       groupLabel: 'Marafiki',
       partySizeAllowed: 2,
       inviteChannelPref: 'whatsapp',
+      printCard: true,
       hasSmartphone: true,
       language: 'sw',
       notes: '',
     });
-    expect(g).toMatchObject({ phoneE164: '+255712345678', partySizeAllowed: 2, status: 'created' });
+    expect(g).toMatchObject({
+      phoneE164: '+255712345678',
+      partySizeAllowed: 2,
+      status: 'created',
+      printCard: true, // the form's "Printed card" choice reaches the API (ADR 042)
+      cardGenerated: false,
+    });
     await expect(
       r.createGuest(ev.id, {
         displayName: 'Mwingine',

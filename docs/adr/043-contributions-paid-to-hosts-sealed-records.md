@@ -11,7 +11,7 @@ Those records are the customer's private data and should be visible only to the 
 ## Decision
 
 1. **No collection through us.** `POST /v1/c/:token/pay` is refused with `forbidden`, `reason:
-   collected_by_host`, unless `GUEST_PAYMENTS_ENABLED=1` (off by default, kept only so payments already in
+collected_by_host`, unless `GUEST_PAYMENTS_ENABLED=1` (off by default, kept only so payments already in
    flight can still settle: webhooks and reconciliation keep working). The card API exposes
    `event.onlinePay`; with it off the guest card shows **where to send the contribution** instead of a pay
    button, and `/c/:token/pay` redirects to the card.

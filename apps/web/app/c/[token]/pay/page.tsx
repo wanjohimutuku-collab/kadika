@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { pickMessages, type Locale } from '@harusi/i18n';
 import { PayFlow } from '@/components/card/pay-flow';
 import { previewCardOnServer } from '@/lib/server-card';
+import { USE_MOCKS } from '@/lib/env';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('pay');
@@ -16,8 +17,10 @@ export default async function PayPage({ params }: { params: Promise<{ token: str
   const locale = (await getLocale()) as Locale;
   // The event's country picks the wording (currency, local vocabulary; ADR 028).
   const preview = await previewCardOnServer(token);
-  // Guests pay the hosts directly (ADR 043): the card itself lists where to send a contribution.
-  if (preview?.event && !preview.event.onlinePay) redirect(`/c/${encodeURIComponent(token)}`);
+  // Guests pay the hosts directly (ADR 043): the card itself lists where to send a contribution. With
+  // mocks the switch lives in the browser's dev panel, which the server cannot see, so the mock decides.
+  if (!USE_MOCKS && preview?.event && !preview.event.onlinePay)
+    redirect(`/c/${encodeURIComponent(token)}`);
   const country = preview?.event?.country ?? 'TZ';
   return (
     <NextIntlClientProvider

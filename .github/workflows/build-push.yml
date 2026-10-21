@@ -90,7 +90,7 @@ jobs:
     outputs:
       prefix: ${{ steps.names.outputs.prefix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The web app bakes NEXT_PUBLIC_* in at build time. Without the API address the image would
       # call http://localhost:3001, so refuse to build it.
@@ -261,7 +261,7 @@ jobs:
       contents: write # moves the deploy branch
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: docker/login-action@v4
         with:

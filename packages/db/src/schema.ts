@@ -76,6 +76,16 @@ export const users = pgTable(
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     /** Set when staff complete a PDPA deletion request (ADR 039): name and phone are wiped. */
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    /**
+     * Staff second factor (ADR 040): the TOTP secret, AES-GCM with KEY_ENC_SECRET. Set but not
+     * enrolled while the authenticator is being added; enrolled once the first code is confirmed.
+     */
+    staffTotpSecret: text('staff_totp_secret'),
+    staffTotpEnrolledAt: timestamp('staff_totp_enrolled_at', { withTimezone: true }),
+    /** Last accepted 30-second step, so a code cannot be used twice. */
+    staffTotpLastStep: integer('staff_totp_last_step'),
+    staffTotpFailedAttempts: integer('staff_totp_failed_attempts').notNull().default(0),
+    staffTotpLockedUntil: timestamp('staff_totp_locked_until', { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex('users_phone_e164_uq').on(t.phoneE164)],
@@ -392,6 +402,8 @@ export const refreshTokens = pgTable(
     tokenHash: text('token_hash').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    /** Issued after the staff second factor (ADR 040); staff can only refresh from such a token. */
+    mfa: boolean('mfa').notNull().default(false),
     ...timestamps,
   },
   (t) => [

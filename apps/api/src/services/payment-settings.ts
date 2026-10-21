@@ -15,7 +15,7 @@ import type { Deps } from '../context';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
-import { requireSettingsAdmin } from './staff-guard';
+import { requireSettingsAdmin, type StaffCaller } from './staff-guard';
 
 /** A route's provider and its fields (flat strings; secrets included). */
 export interface PaymentRouteSettings {
@@ -100,8 +100,8 @@ export class PaymentSettingsService {
     this.env = envPaymentSettings(deps.config);
   }
 
-  private requireAdmin(userId: string) {
-    return requireSettingsAdmin(this.deps.db, userId);
+  private requireAdmin(caller: StaffCaller) {
+    return requireSettingsAdmin(this.deps.db, caller);
   }
 
   private async rows() {
@@ -159,8 +159,8 @@ export class PaymentSettingsService {
     }
   }
 
-  async view(userId: string): Promise<PaymentSettingsView> {
-    await this.requireAdmin(userId);
+  async view(caller: StaffCaller): Promise<PaymentSettingsView> {
+    await this.requireAdmin(caller);
     const { s, rows } = await this.effective();
     const routes: PaymentRouteView[] = PAYMENT_ROUTES.map((route) => {
       const { provider, fields } = s[route];
@@ -194,11 +194,11 @@ export class PaymentSettingsService {
   }
 
   async save(
-    userId: string,
+    caller: StaffCaller,
     route: PaymentRoute,
     input: PaymentSettingsInput,
   ): Promise<PaymentSettingsView> {
-    await this.requireAdmin(userId);
+    await this.requireAdmin(caller);
     const { s } = await this.effective();
     const current = s[route];
     const defs = paymentProviderFields(route, input.provider);
@@ -230,10 +230,16 @@ export class PaymentSettingsService {
     const now = this.deps.now();
     await this.deps.db
       .insert(paymentSettings)
-      .values({ route, provider: next.provider, configEnc, updatedBy: userId, updatedAt: now })
+      .values({
+        route,
+        provider: next.provider,
+        configEnc,
+        updatedBy: caller.userId,
+        updatedAt: now,
+      })
       .onConflictDoUpdate({
         target: paymentSettings.route,
-        set: { provider: next.provider, configEnc, updatedBy: userId, updatedAt: now },
+        set: { provider: next.provider, configEnc, updatedBy: caller.userId, updatedAt: now },
       });
     this.appliedStamp = null;
     // §12: the audit trail names the fields that changed, never their values.
@@ -242,18 +248,18 @@ export class PaymentSettingsService {
       .map((f) => f.key);
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.payments.update',
       entity: 'payment_settings',
       entityId: route,
       diff: { provider: { from: current.provider, to: next.provider }, changed },
     });
-    return this.view(userId);
+    return this.view(caller);
   }
 
   /** Back to the environment for one route (deletes the saved row). */
-  async reset(userId: string, route: PaymentRoute): Promise<PaymentSettingsView> {
-    await this.requireAdmin(userId);
+  async reset(caller: StaffCaller, route: PaymentRoute): Promise<PaymentSettingsView> {
+    await this.requireAdmin(caller);
     const { s } = await this.effective();
     try {
       applyPayments(this.deps, { ...s, [route]: this.env[route] });
@@ -264,20 +270,20 @@ export class PaymentSettingsService {
     this.appliedStamp = null;
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.payments.reset',
       entity: 'payment_settings',
       entityId: route,
     });
-    return this.view(userId);
+    return this.view(caller);
   }
 
   /**
    * Checks the live gateway answers to our key, without moving money (Snippe: the balance call).
    * `fake` has nothing to check.
    */
-  async test(userId: string, route: PaymentRoute) {
-    await this.requireAdmin(userId);
+  async test(caller: StaffCaller, route: PaymentRoute) {
+    await this.requireAdmin(caller);
     const p = this.deps.payments;
     let ok = false;
     let status: number | null = null;
@@ -299,7 +305,7 @@ export class PaymentSettingsService {
     } else error = 'This provider has nothing to test';
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.payments.test',
       entity: 'payment_settings',
       entityId: route,

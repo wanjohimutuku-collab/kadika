@@ -367,7 +367,15 @@
     "secondFactorBody": "Kwa usalama wa data za wateja, wafanyakazi wanahitaji namba ya pili kutoka kwenye programu ya uthibitisho.",
     "secondFactorLabel": "Namba ya programu ya uthibitisho",
     "secondFactorMock": "Toleo la majaribio: tumia namba 654321.",
-    "wrongStaffCode": "Namba si sahihi. Jaribu tena."
+    "wrongStaffCode": "Namba si sahihi. Jaribu tena.",
+    "enrolTitle": "Weka programu ya uthibitisho",
+    "enrolBody": "Akaunti za wafanyakazi zinahitaji programu ya uthibitisho (kwa mfano Google Authenticator au Microsoft Authenticator). Skani msimbo huu kwa programu hiyo, kisha andika namba ya tarakimu 6 inayoonyesha.",
+    "enrolQrAlt": "Msimbo wa QR wa programu ya uthibitisho",
+    "enrolSecretLabel": "Huwezi kuskani? Andika ufunguo huu kwenye programu:",
+    "enrolLoading": "Tunaandaa msimbo wako wa uthibitisho…",
+    "staffLocked": "Namba zisizo sahihi zimezidi. Kwa usalama wako, subiri hadi {time} kisha ujaribu tena.",
+    "staffWrongCode": "Namba si sahihi. {attempts, plural, one {Jaribio # limebaki} other {Majaribio # yamebaki}}.",
+    "staffExpired": "Muda wa kuingia umeisha. Ingia tena kwa namba mpya ya SMS."
   },
   "landing": {
     "metaTitle": "Kadi za Mwaliko Mtandaoni Tanzania | Harusi Pass",

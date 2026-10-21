@@ -7,8 +7,10 @@ import { inject } from 'vitest';
 import { FakeMessagingProvider } from '@harusi/messaging';
 import { FakePaymentProvider } from '@harusi/payments';
 import * as schema from '@harusi/db/schema';
-import type { Db } from '@harusi/db';
+import { newId, type Db } from '@harusi/db';
 import { createApp } from '../app';
+import { parsePhone } from '../auth/service';
+import { base32Decode, hotp, totpStep } from '../auth/totp';
 import { loadConfig } from '../config';
 import type { Deps } from '../context';
 
@@ -146,5 +148,50 @@ export async function loginAs(ctx: TestContext, phone: string) {
     accessToken: string;
     refreshToken: string;
     user: { id: string; phoneE164: string; name: string };
+  };
+}
+
+/** The authenticator app's current code for a base32 secret, on the test clock. */
+export function totpNow(ctx: TestContext, secret: string, stepOffset = 0) {
+  return hotp(base32Decode(secret), totpStep(ctx.deps.now()) + stepOffset);
+}
+
+/**
+ * Staff sign-in as /ops does it (ADR 040): the account is made staff first, then SMS code →
+ * challenge → authenticator setup → code. Returns the full session and the authenticator secret.
+ */
+export async function loginAsStaff(
+  ctx: TestContext,
+  phone: string,
+  staffRole: 'support' | 'billing' | 'admin',
+  name = '',
+) {
+  const e164 = parsePhone(phone);
+  await ctx.db
+    .insert(schema.users)
+    .values({ id: newId(), name, phoneE164: e164, roleGlobal: 'admin', staffRole })
+    .onConflictDoUpdate({
+      target: schema.users.phoneE164,
+      set: { roleGlobal: 'admin', staffRole, ...(name ? { name } : {}) },
+    });
+  const first = (await loginAs(ctx, phone)) as unknown as {
+    secondFactor: { challenge: string; enrolled: boolean };
+  };
+  if (!first.secondFactor) throw new Error('staff login did not ask for a second factor');
+  const { challenge } = first.secondFactor;
+  const enrol = await api(ctx, 'POST', '/v1/auth/staff/totp/enrol', { body: { challenge } });
+  if (enrol.status !== 200) throw new Error(`enrol failed: ${JSON.stringify(enrol.body)}`);
+  const secret = enrol.body!.secret as string;
+  const verified = await api(ctx, 'POST', '/v1/auth/staff/totp/verify', {
+    body: { challenge, code: totpNow(ctx, secret) },
+  });
+  if (verified.status !== 200) throw new Error(`2fa failed: ${JSON.stringify(verified.body)}`);
+  return {
+    ...(verified.body as {
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; phoneE164: string; name: string };
+    }),
+    secret,
   };
 }

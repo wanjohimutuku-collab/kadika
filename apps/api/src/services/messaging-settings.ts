@@ -24,7 +24,7 @@ import type { Deps } from '../context';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
-import { requireSettingsAdmin } from './staff-guard';
+import { requireSettingsAdmin, type StaffCaller } from './staff-guard';
 
 /** A route's provider and its fields (flat strings; secrets included). */
 export interface RouteSettings {
@@ -220,8 +220,8 @@ export class MessagingSettingsService {
     this.env = envSettings(deps.config);
   }
 
-  private requireAdmin(userId: string) {
-    return requireSettingsAdmin(this.deps.db, userId);
+  private requireAdmin(caller: StaffCaller) {
+    return requireSettingsAdmin(this.deps.db, caller);
   }
 
   private async rows() {
@@ -280,8 +280,8 @@ export class MessagingSettingsService {
     }
   }
 
-  async view(userId: string): Promise<MessagingSettingsView> {
-    await this.requireAdmin(userId);
+  async view(caller: StaffCaller): Promise<MessagingSettingsView> {
+    await this.requireAdmin(caller);
     const { s, rows } = await this.effective();
     const active: Record<MessagingRoute, string | null> = {
       sms_tz: this.deps.sms.name,
@@ -334,11 +334,11 @@ export class MessagingSettingsService {
   }
 
   async save(
-    userId: string,
+    caller: StaffCaller,
     route: MessagingRoute,
     input: MessagingSettingsInput,
   ): Promise<MessagingSettingsView> {
-    await this.requireAdmin(userId);
+    await this.requireAdmin(caller);
     if (route === 'sms_ke' && !this.deps.config.kenyaEnabled)
       throw new ApiError('validation', 'Kenya is not enabled', { field: 'route' });
     const { s } = await this.effective();
@@ -373,10 +373,16 @@ export class MessagingSettingsService {
     const now = this.deps.now();
     await this.deps.db
       .insert(messagingSettings)
-      .values({ route, provider: next.provider, configEnc, updatedBy: userId, updatedAt: now })
+      .values({
+        route,
+        provider: next.provider,
+        configEnc,
+        updatedBy: caller.userId,
+        updatedAt: now,
+      })
       .onConflictDoUpdate({
         target: messagingSettings.route,
-        set: { provider: next.provider, configEnc, updatedBy: userId, updatedAt: now },
+        set: { provider: next.provider, configEnc, updatedBy: caller.userId, updatedAt: now },
       });
     this.appliedStamp = null; // the next refresh re-reads (cheap) and records the new stamp
     // §12: the audit trail names the fields that changed, never their values.
@@ -385,18 +391,18 @@ export class MessagingSettingsService {
       .map((f) => f.key);
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.messaging.update',
       entity: 'messaging_settings',
       entityId: route,
       diff: { provider: { from: current.provider, to: next.provider }, changed },
     });
-    return this.view(userId);
+    return this.view(caller);
   }
 
   /** Back to the environment variables for one route (deletes the saved row). */
-  async reset(userId: string, route: MessagingRoute): Promise<MessagingSettingsView> {
-    await this.requireAdmin(userId);
+  async reset(caller: StaffCaller, route: MessagingRoute): Promise<MessagingSettingsView> {
+    await this.requireAdmin(caller);
     const { s } = await this.effective();
     try {
       applyMessaging(this.deps, { ...s, [route]: this.env[route] }, this.opts);
@@ -407,12 +413,12 @@ export class MessagingSettingsService {
     this.appliedStamp = null;
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.messaging.reset',
       entity: 'messaging_settings',
       entityId: route,
     });
-    return this.view(userId);
+    return this.view(caller);
   }
 
   /**
@@ -422,9 +428,9 @@ export class MessagingSettingsService {
    * be deleted from the server; the saved settings keep working.
    */
   async importFromEnvironment(
-    userId: string,
+    caller: StaffCaller,
   ): Promise<MessagingSettingsView & { imported: MessagingRoute[] }> {
-    await this.requireAdmin(userId);
+    await this.requireAdmin(caller);
     const saved = await this.rows();
     const imported: MessagingRoute[] = [];
     const now = this.deps.now();
@@ -439,25 +445,31 @@ export class MessagingSettingsService {
       );
       await this.deps.db
         .insert(messagingSettings)
-        .values({ route, provider: env.provider, configEnc, updatedBy: userId, updatedAt: now })
+        .values({
+          route,
+          provider: env.provider,
+          configEnc,
+          updatedBy: caller.userId,
+          updatedAt: now,
+        })
         .onConflictDoNothing({ target: messagingSettings.route });
       imported.push(route);
     }
     this.appliedStamp = null;
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.messaging.import_env',
       entity: 'messaging_settings',
       entityId: 'all',
       diff: { routes: imported },
     });
-    return { ...(await this.view(userId)), imported };
+    return { ...(await this.view(caller)), imported };
   }
 
   /** Sends one test message through a route's live provider. */
-  async test(userId: string, route: MessagingRoute, phone: string) {
-    await this.requireAdmin(userId);
+  async test(caller: StaffCaller, route: MessagingRoute, phone: string) {
+    await this.requireAdmin(caller);
     const provider =
       route === 'whatsapp'
         ? this.deps.whatsapp
@@ -486,7 +498,7 @@ export class MessagingSettingsService {
     }
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.messaging.test',
       entity: 'messaging_settings',
       entityId: route,

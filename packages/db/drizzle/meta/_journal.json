@@ -152,8 +152,15 @@
     {
       "idx": 21,
       "version": "7",
-      "when": 1792542785870,
-      "tag": "0021_scheduled_card_kind",
+      "when": 1792541909006,
+      "tag": "0021_staff_totp",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792555908545,
+      "tag": "0022_scheduled_card_kind",
       "breakpoints": true
     }
   ]

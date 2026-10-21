@@ -56,6 +56,8 @@ export interface Session {
   user: User;
   /** Staff accounts must pass a second factor before any data is available. */
   needsSecondFactor?: boolean;
+  /** With `needsSecondFactor`: false when the authenticator app still has to be set up (ADR 040). */
+  secondFactorEnrolled?: boolean;
   /** Role on the currently selected event (mock: switchable in the dev panel). */
   role: MemberRole;
   expiresAt: ISODate;

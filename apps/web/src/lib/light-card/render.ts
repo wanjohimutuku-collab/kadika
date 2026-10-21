@@ -309,9 +309,11 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const qr = view.qrPayload && !isContribution ? qrMatrix(view.qrPayload) : null;
   const qrDim = qr ? qr.size + QR_QUIET_ZONE * 2 : 0;
   const qrD = qr ? qrPath(qr) : '';
+  // Only an http(s) link is used as given: `esc()` stops markup, not a `javascript:` scheme.
   const mapHref =
-    event.venueMapUrl ||
-    `https://www.openstreetmap.org/search?query=${encodeURIComponent(event.venueName)}`;
+    event.venueMapUrl && /^https?:\/\//i.test(event.venueMapUrl.trim())
+      ? event.venueMapUrl.trim()
+      : `https://www.openstreetmap.org/search?query=${encodeURIComponent(event.venueName)}`;
   const cover =
     event.coverGradient && SAFE_GRADIENT.test(event.coverGradient)
       ? ` style="background:${esc(event.coverGradient)}"`

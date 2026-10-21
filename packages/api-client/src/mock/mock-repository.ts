@@ -544,6 +544,8 @@ export class MockRepository implements Repository {
           role: 'owner',
           expiresAt: iso(this.now() + 30 * DAY),
           needsSecondFactor: true,
+          // Demo staff already have an authenticator; the setup screen is exercised against the API.
+          secondFactorEnrolled: true,
         };
       }
       return this.session()!;
@@ -559,6 +561,19 @@ export class MockRepository implements Repository {
       this.state.staffVerified = true;
       this.persist();
       return this.session()!;
+    });
+  }
+
+  startStaffEnrolment(): Promise<{ secret: string; otpauthUrl: string }> {
+    return this.run('online-only', 'otp', () => {
+      const u = this.state.users.find((x) => x.id === this.state.sessionUserId);
+      if (!u || u.roleGlobal !== 'admin')
+        throw new RepositoryError('unauthorized', 'Sign in required');
+      const secret = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+      return {
+        secret,
+        otpauthUrl: `otpauth://totp/Kadi%20Sasa:demo?secret=${secret}&issuer=Kadi+Sasa&algorithm=SHA1&digits=6&period=30`,
+      };
     });
   }
 

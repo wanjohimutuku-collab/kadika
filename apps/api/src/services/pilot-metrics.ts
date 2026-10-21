@@ -1,10 +1,10 @@
 import { and, count, eq, gte, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
-import { events, guests, invitations, messageLog, payments, scanLog, users } from '@harusi/db';
+import { events, guests, invitations, messageLog, payments, scanLog } from '@harusi/db';
 import { networkLabel } from '@harusi/schemas/operators';
 import type { Country } from '@harusi/schemas/country';
 import type { PilotMetrics } from '@harusi/schemas/pilot';
 import type { Deps } from '../context';
-import { ApiError } from '../errors';
+import { requireStaff, type StaffCaller } from './staff-guard';
 
 /** Anchor for "when a payment started": the prompt window is 60 s, see `PledgeService`. */
 const PAY_PROMPT_MS = 60_000;
@@ -31,20 +31,11 @@ function median(xs: number[]): number | null {
 export class PilotMetricsService {
   constructor(private deps: Deps) {}
 
-  private async requireStaff(userId: string) {
-    const [u] = await this.deps.db
-      .select({ role: users.roleGlobal, status: users.status })
-      .from(users)
-      .where(eq(users.id, userId));
-    if (!u || u.role !== 'admin' || u.status !== 'active')
-      throw new ApiError('forbidden', 'Staff only');
-  }
-
   async report(
-    userId: string,
+    caller: StaffCaller,
     opts: { country?: Country | 'all'; days?: number } = {},
   ): Promise<PilotMetrics> {
-    await this.requireStaff(userId);
+    await requireStaff(this.deps.db, caller);
     const country = opts.country ?? 'all';
     const days = Math.min(Math.max(Math.round(opts.days ?? 30), 1), 365);
     const now = this.deps.now();

@@ -1,5 +1,5 @@
 {
-  "id": "ec9c666b-27ba-46c6-a4f4-498f6c463129",
+  "id": "be419526-581f-4990-ad8b-3fb1221bfae8",
   "prevId": "480954a6-dc58-4a6f-a63e-9348368ecf7c",
   "version": "7",
   "dialect": "postgresql",
@@ -2090,6 +2090,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "mfa": {
+          "name": "mfa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2461,13 +2468,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "card_kind": {
-          "name": "card_kind",
-          "type": "card_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
         "target": {
           "name": "target",
           "type": "jsonb",
@@ -2749,6 +2749,37 @@
         },
         "deleted_at": {
           "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "staff_totp_secret": {
+          "name": "staff_totp_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "staff_totp_enrolled_at": {
+          "name": "staff_totp_enrolled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "staff_totp_last_step": {
+          "name": "staff_totp_last_step",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "staff_totp_failed_attempts": {
+          "name": "staff_totp_failed_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "staff_totp_locked_until": {
+          "name": "staff_totp_locked_until",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

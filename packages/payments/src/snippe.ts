@@ -186,7 +186,9 @@ export class SnippePaymentProvider implements PaymentProvider {
     const sig = headers['x-webhook-signature'];
     if (!ts || !sig || !this.o.webhookSigningKey || !/^\d{1,12}$/.test(ts)) return false;
     const now = (this.o.nowMs ?? Date.now)() / 1000;
-    if (now - Number(ts) > (this.o.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS)) return false;
+    // Both ways: a timestamp far in the future would otherwise stay replayable until it ages out.
+    if (Math.abs(now - Number(ts)) > (this.o.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS))
+      return false;
     if (!/^[0-9a-f]+$/i.test(sig)) return false;
     const want = createHmac('sha256', this.o.webhookSigningKey).update(`${ts}.${rawBody}`).digest();
     const got = Buffer.from(sig, 'hex');

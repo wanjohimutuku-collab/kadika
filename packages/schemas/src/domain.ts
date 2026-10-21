@@ -215,7 +215,14 @@ export const eventInputSchema = z.object({
   partnerB: z.string().trim().max(40).optional().default(''),
   dateStart: z.string().min(1, 'date.required'), // ISO date-time (local Africa/Dar_es_Salaam)
   venueName: z.string().trim().min(2, 'venue.required').max(120),
-  venueMapUrl: z.string().trim().url('url.invalid').or(z.literal('')).optional().default(''),
+  venueMapUrl: z
+    .string()
+    .trim()
+    .url('url.invalid')
+    .refine((u) => /^https?:\/\//i.test(u), 'url.invalid')
+    .or(z.literal(''))
+    .optional()
+    .default(''),
   dressCode: z.string().trim().max(80).optional().default(''),
   languageDefault: languageSchema,
   themeId: themeIdSchema,

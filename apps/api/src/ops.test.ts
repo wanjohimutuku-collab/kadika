@@ -2,7 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, like } from 'drizzle-orm';
 import { auditLog, events, messageLog, refreshTokens, users } from '@harusi/db';
 import { createHttpRepository, memoryTokenStore } from '@harusi/api-client';
-import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
+import {
+  api,
+  createTestContext,
+  loginAs,
+  loginAsStaff,
+  type TestContext,
+} from './testing/test-app';
 
 let ctx: TestContext;
 let admin: string;
@@ -23,21 +29,12 @@ const opsAudit = async (action: string) =>
 
 beforeAll(async () => {
   ctx = await createTestContext();
-  const a = await loginAs(ctx, '0711900001');
-  const s = await loginAs(ctx, '0711900002');
-  const b = await loginAs(ctx, '0711900003');
+  const a = await loginAsStaff(ctx, '0711900001', 'admin', 'Amina Staff');
+  const s = await loginAsStaff(ctx, '0711900002', 'support', 'Saidi Support');
+  const b = await loginAsStaff(ctx, '0711900003', 'billing', 'Bahati Billing');
   owner = await loginAs(ctx, '0711900004');
   other = await loginAs(ctx, '0711900005');
   staffAdminId = a.user.id;
-  for (const [id, staffRole, name] of [
-    [a.user.id, 'admin', 'Amina Staff'],
-    [s.user.id, 'support', 'Saidi Support'],
-    [b.user.id, 'billing', 'Bahati Billing'],
-  ] as const)
-    await ctx.db
-      .update(users)
-      .set({ roleGlobal: 'admin', staffRole, name })
-      .where(eq(users.id, id));
   await ctx.db.update(users).set({ name: 'Asha Mteja' }).where(eq(users.id, owner.user.id));
   admin = a.accessToken;
   support = s.accessToken;

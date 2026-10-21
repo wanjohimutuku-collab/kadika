@@ -14,7 +14,7 @@ Status: accepted
 - **Suspension** blocks dashboard login (`forbidden`) but guests' cards keep working, so a suspended organizer cannot silently break a wedding that is already in progress.
 - **Data requests**: customers file them from Akaunti; staff resolve them in `/ops/requests`. Completing a deletion removes the account and soft-deletes the weddings they own.
 - **Billing stays manual** (open decision 5 is unanswered): staff mark a wedding as paid/free. No pricing, invoices or provider reconciliation yet; refunds and disputes belong to Phase 6 with the real payment provider.
-- Staff accounts: in mocks the staff login is `0700 000 999` + `123456` and lands on `/ops`. In production, staff accounts are created by direct database/CLI action, never by self-signup. The person logs in once (so the account exists), then someone with database access runs `pnpm --filter @harusi/db make-staff <phone> <support|billing|admin|remove>` and they sign in again.
+- Staff accounts: in mocks the staff login is `0700 000 999` + `123456` and lands on `/ops`. In production, staff accounts are created by direct database/CLI action, never by self-signup. The person logs in once (so the account exists), then someone with database access runs `pnpm --filter @harusi/db make-staff <phone> <support|billing|admin|remove>` and they sign in again. For the very first staff account, before anyone has logged in, run `infra/ops/create-admin.sh "<name>" <phone> admin` inside the Coolify postgres container: it creates the account directly.
 
 ## Also fixed (found while designing this)
 
@@ -24,7 +24,7 @@ Status: accepted
 ## Staff roles and second factor (added)
 
 - **Three staff levels** (`users.staff_role`): **support** (lookups, phone reveals, data requests), **billing** (plan changes) and **admin** (everything, including suspending customers). Aggregate dashboards are readable by all staff. The data layer enforces this (`forbidden` with `missing_permission`); the UI hides actions a role cannot use.
-- **Second factor for staff**: after the SMS code, staff enter a second code (authenticator app in production, `654321` in mocks). Until then the session has no data access (`getSession()` returns null). Customers are unaffected.
+- **Second factor for staff**: after the SMS code, staff enter a second code (authenticator app in production, `654321` in mocks). Until then the session has no data access (`getSession()` returns null). Customers are unaffected. On the real API this is TOTP with an `mfa` token claim (ADR 040).
 - Mock staff logins: `0700 000 999` admin, `0700 000 998` support, `0700 000 997` billing.
 - Production needs: TOTP enrolment and recovery, session expiry for staff, and the `staff_role` column (Phase 1).
 

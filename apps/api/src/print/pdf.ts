@@ -59,6 +59,7 @@ export function hexToCmyk(hex: string): CMYK {
 /** The colours a printed card is drawn in: the same theme and palette as the guest's digital card. */
 export interface PrintTheme {
   primary: CMYK;
+  onPrimary: CMYK;
   accent: CMYK;
   pattern: CMYK;
   ink: CMYK;
@@ -75,6 +76,7 @@ export function printThemeFrom(brandTheme: Record<string, unknown> | null | unde
   );
   return {
     primary: hexToCmyk(p.primary),
+    onPrimary: hexToCmyk(p.onPrimary),
     accent: hexToCmyk(p.accent),
     pattern: hexToCmyk(p.pattern),
     ink: hexToCmyk(p.ink),
@@ -157,50 +159,67 @@ function drawCard(
   w: number,
   h: number,
   theme: PrintTheme = DEFAULT_THEME,
+  /** Bleed around the trim (mm): the paper colour and the header run into it, so cutting leaves no edge. */
+  bleed = 0,
 ) {
   const cx = mm(ox + w / 2);
   const sw = c.language === 'sw';
-  // The card's paper colour, ornament and names follow its theme, like the digital card. The QR
-  // block below is always pure black on white, whatever the theme (§6.4).
-  page.drawRectangle({ x: mm(ox), y: mm(oy), width: mm(w), height: mm(h), color: theme.surface });
-  // top ornament: a band in the accent with a row of small diamonds in the pattern tint
-  const bandY = oy + h - SAFE_MM - 1;
+  // The same template as the digital card (ADR 044): the paper in the theme's surface colour, a header
+  // in the theme's primary with the couple's names in its text colour, and the ornament band under it.
+  // The QR block below is always pure black on white, whatever the theme (§6.4).
   page.drawRectangle({
-    x: mm(ox + SAFE_MM),
-    y: mm(bandY),
-    width: mm(w - 2 * SAFE_MM),
-    height: mm(0.6),
-    color: theme.accent,
+    x: mm(ox - bleed),
+    y: mm(oy - bleed),
+    width: mm(w + 2 * bleed),
+    height: mm(h + 2 * bleed),
+    color: theme.surface,
   });
-  for (let x = ox + SAFE_MM + 3; x < ox + w - SAFE_MM - 2; x += 6)
-    page.drawSquare({
-      x: mm(x),
-      y: mm(bandY - 2.2),
-      size: mm(1.2),
-      rotate: degrees(45),
-      color: theme.pattern,
-    });
-  // centre diamond under the band
+  const headerMm = 36;
+  page.drawRectangle({
+    x: mm(ox - bleed),
+    y: mm(oy + h - headerMm),
+    width: mm(w + 2 * bleed),
+    height: mm(headerMm + bleed),
+    color: theme.primary,
+  });
+  // a fine accent rule and a centre diamond inside the header, as on the digital cover
   page.drawSquare({
     x: cx - mm(1.1),
-    y: mm(oy + h - 19),
+    y: mm(oy + h - 12),
     size: mm(2.2),
     rotate: degrees(45),
     color: theme.accent,
   });
-  centered(page, f.serifBold, c.coupleNames, 26, cx, mm(oy + h - 28), theme.primary);
+  centered(page, f.serifBold, c.coupleNames, 26, cx, mm(oy + h - 24), theme.onPrimary);
+  page.drawRectangle({
+    x: cx - mm(12),
+    y: mm(oy + h - 30),
+    width: mm(24),
+    height: mm(0.4),
+    color: theme.accent,
+  });
+  // the ornament band right under the header: a row of diamonds in the pattern tint
+  const bandY = oy + h - headerMm - 2.5;
+  for (let x = ox + 3; x < ox + w - 2; x += 5)
+    page.drawSquare({
+      x: mm(x),
+      y: mm(bandY),
+      size: mm(1.4),
+      rotate: degrees(45),
+      color: theme.pattern,
+    });
   centered(
     page,
     f.sans,
     sw ? 'Wanawaalika' : 'You are invited,',
     11,
     cx,
-    mm(oy + h - 40),
+    mm(oy + h - 46),
     theme.ink,
   );
-  centered(page, f.serifBold, c.guestName, 18, cx, mm(oy + h - 48), theme.ink);
-  centered(page, f.sansBold, c.dateText, 13, cx, mm(oy + h - 60), theme.ink);
-  if (c.venue) centered(page, f.sans, c.venue, 12, cx, mm(oy + h - 67), theme.ink);
+  centered(page, f.serifBold, c.guestName, 18, cx, mm(oy + h - 54), theme.ink);
+  centered(page, f.sansBold, c.dateText, 13, cx, mm(oy + h - 64), theme.ink);
+  if (c.venue) centered(page, f.sans, c.venue, 12, cx, mm(oy + h - 71), theme.ink);
   if (c.dressCode)
     centered(
       page,
@@ -208,7 +227,7 @@ function drawCard(
       `${sw ? 'Mavazi' : 'Dress'}: ${c.dressCode}`,
       11,
       cx,
-      mm(oy + h - 74),
+      mm(oy + h - 77),
       theme.ink,
     );
   if (c.committeePhone)
@@ -218,7 +237,7 @@ function drawCard(
       `${sw ? 'Simu ya kamati' : 'Committee'}: ${c.committeePhone}`,
       10,
       cx,
-      mm(oy + h - 81),
+      mm(oy + h - 83),
       theme.ink,
     );
   // a thin rule above the QR band, in the theme's border colour
@@ -317,7 +336,7 @@ export async function buildCardsPdf(
     const { w, h } = PAGE_MM[format];
     for (const c of cards) {
       const page = doc.addPage([mm(w + 2 * BLEED_MM), mm(h + 2 * BLEED_MM)]);
-      drawCard(page, f, c, BLEED_MM, BLEED_MM, w, h, theme);
+      drawCard(page, f, c, BLEED_MM, BLEED_MM, w, h, theme, BLEED_MM);
       cropMarks(page, w, h, BLEED_MM);
     }
   }

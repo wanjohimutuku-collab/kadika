@@ -1,7 +1,6 @@
 # ADR 044: Buying cards at sign-up, and printed cards in the card's own theme
 
-Status: accepted. Built with tests; the welcome flow is web only (the mobile app keeps its own event
-creation until it gets a buying screen).
+Status: accepted. Built with tests, on the web console and in the mobile app.
 
 ## Context
 
@@ -29,10 +28,16 @@ and gold, so a host who chose Navy & Silver for the digital card got a different
      Once charging is enforced (ADR 042), sending or printing beyond the free cards asks them to buy.
 2. **One purchase sheet** (`BuySheet`), shared by the Plan page and the welcome flow, so both pay the
    same way and poll a pending phone payment the same way.
-3. **Printed cards follow the digital theme.** The print PDF resolves the event's `brand_theme`
-   (`themeId` plus any custom palette) exactly as the digital card does, and draws the paper colour,
-   the ornament band and diamonds, the couple's names, the text and the rule above the QR band in those
-   colours, converted to CMYK. The QR block stays pure black on white whatever the theme (§6.4).
+3. **Mobile app too.** Creating an event in the app leads to the same screen (`event/[id]/karibu`): the
+   steps (busy state and progress announced to screen readers, instant under the phone's reduce-motion
+   setting), then the offer with quick picks, the total, and pay by phone or bank or cash. This is the
+   app's first buying screen.
+4. **Printed cards use the digital card's template.** The print PDF resolves the event's `brand_theme`
+   (`themeId` plus any custom palette) exactly as the digital card does, and follows its layout: a header
+   in the theme's primary colour with the couple's names in its text colour (running into the bleed so
+   cutting leaves no edge), the ornament band of diamonds under it, then the guest, date, venue and
+   contact in the theme's ink on its paper colour, all converted to CMYK. The print preview on Kadi
+   shows the same header. The QR block stays pure black on white whatever the theme (§6.4).
 
 ## Consequences
 

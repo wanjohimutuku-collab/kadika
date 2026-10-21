@@ -1,8 +1,8 @@
 {
   "sw": {
     "ops": {
-      "title": "Dashibodi ya Harusi Pass",
-      "staffOnly": "Sehemu hii ni kwa wafanyakazi wa Harusi Pass tu.",
+      "title": "Dashibodi ya wafanyakazi",
+      "staffOnly": "Sehemu hii ni kwa wafanyakazi wa {brand} tu.",
       "staffOnlyTitle": "Huna ruhusa",
       "backToConsole": "Rudi kwenye harusi zangu",
       "nav": {
@@ -177,14 +177,14 @@
       }
     },
     "auth": {
-      "suspended": "Akaunti hii imesimamishwa. Wasiliana na Harusi Pass kwa msaada.",
-      "staffHint": "Wafanyakazi wa Harusi Pass: ingia kwa 0700 000 999 kuona dashibodi ya /ops."
+      "suspended": "Akaunti hii imesimamishwa. Wasiliana na {brand} kwa msaada.",
+      "staffHint": "Wafanyakazi wa {brand}: 0700 000 999 (msimamizi), 0700 000 998 (msaada) au 0700 000 997 (malipo); namba ya pili ni 654321."
     }
   },
   "en": {
     "ops": {
-      "title": "Harusi Pass operations",
-      "staffOnly": "This area is for Harusi Pass staff only.",
+      "title": "Staff operations",
+      "staffOnly": "This area is for {brand} staff only.",
       "staffOnlyTitle": "No access",
       "backToConsole": "Back to my weddings",
       "nav": {
@@ -359,8 +359,8 @@
       }
     },
     "auth": {
-      "suspended": "This account is suspended. Contact Harusi Pass for help.",
-      "staffHint": "Harusi Pass staff: sign in with 0700 000 999 to see the /ops dashboard."
+      "suspended": "This account is suspended. Contact {brand} for help.",
+      "staffHint": "{brand} staff: 0700 000 999 (admin), 0700 000 998 (support) or 0700 000 997 (billing); the second code is 654321."
     }
   }
 }

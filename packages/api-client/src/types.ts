@@ -42,7 +42,7 @@ export interface User {
   id: string;
   name: string;
   phoneE164: string;
-  /** `admin` = Harusi Pass staff (ops panel). Customers are `user`. */
+  /** `admin` = staff of the business (ops panel). Customers are `user`. */
   roleGlobal?: 'user' | 'admin';
   /** Staff level (ops panel). support: lookups, reveals, data requests · billing: plans · admin: everything incl. suspension. */
   staffRole?: StaffRole;

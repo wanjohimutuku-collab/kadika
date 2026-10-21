@@ -16,16 +16,16 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Maswali yanayoulizwa mara kwa mara',
-      title: 'Maswali kuhusu Kadi za Harusi za Mtandaoni | Harusi Pass',
+      title: 'Maswali kuhusu Kadi za Harusi za Mtandaoni | Kadi Sasa',
       description:
-        'Majibu ya maswali ya kawaida kuhusu Harusi Pass: gharama, WhatsApp na SMS, michango, lango bila mtandao, usalama wa kadi na data za wageni.',
+        'Majibu ya maswali ya kawaida kuhusu Kadi Sasa: gharama, WhatsApp na SMS, michango, lango bila mtandao, usalama wa kadi na data za wageni.',
       h1: 'Maswali yanayoulizwa mara kwa mara',
       answer:
-        'Harusi Pass ni huduma ya kutuma kadi ya mwaliko kwa kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni kwa QR au namba. Hapa kuna majibu ya maswali yanayoulizwa mara nyingi kuhusu gharama, usalama, michango na siku ya tukio.',
+        'Kadi Sasa ni huduma ya kutuma kadi ya mwaliko kwa kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni kwa QR au namba. Hapa kuna majibu ya maswali yanayoulizwa mara nyingi kuhusu gharama, usalama, michango na siku ya tukio.',
       sections: [],
       faq: [
         {
-          q: 'Harusi Pass ni nini?',
+          q: 'Kadi Sasa ni nini?',
           a: 'Ni huduma ya kutuma kadi ya mwaliko kwa kila mgeni kwa WhatsApp, SMS au karatasi, kufuatilia majibu na michango, na kuingiza wageni langoni kwa QR au namba, hata bila mtandao.',
         },
         {
@@ -88,16 +88,16 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Frequently asked questions',
-      title: 'Digital Wedding Invitation FAQ | Harusi Pass',
+      title: 'Digital Wedding Invitation FAQ | Kadi Sasa',
       description:
-        'Answers to common questions about Harusi Pass: cost, WhatsApp and SMS, contributions, offline gate, card safety and guest data.',
+        'Answers to common questions about Kadi Sasa: cost, WhatsApp and SMS, contributions, offline gate, card safety and guest data.',
       h1: 'Frequently asked questions',
       answer:
-        'Harusi Pass sends each guest their own invitation, tracks replies and contributions, and admits guests at the gate by QR or number. Here are answers to common questions about cost, safety, contributions and the day itself.',
+        'Kadi Sasa sends each guest their own invitation, tracks replies and contributions, and admits guests at the gate by QR or number. Here are answers to common questions about cost, safety, contributions and the day itself.',
       sections: [],
       faq: [
         {
-          q: 'What is Harusi Pass?',
+          q: 'What is Kadi Sasa?',
           a: 'A service that sends each guest their own invitation by WhatsApp, SMS or paper, tracks replies and contributions, and admits guests at the gate by QR or number, even offline.',
         },
         {
@@ -166,13 +166,13 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     updated: UPDATED,
     related: ['kadi-ya-harusi-mtandaoni', 'usalama-wa-kadi-za-mtandaoni', 'mawasiliano', 'privacy'],
     sw: {
-      nav: 'Kuhusu Harusi Pass',
-      title: 'Kuhusu Harusi Pass: Kadi za Harusi za Kitanzania',
+      nav: 'Kuhusu Kadi Sasa',
+      title: 'Kuhusu Kadi Sasa: Kadi za Harusi za Kitanzania',
       description:
-        'Harusi Pass inasaidia kamati na wenyeji wa harusi, send-off na uchumba Tanzania kutuma kadi, kufuatilia michango na kuingiza wageni langoni.',
-      h1: 'Kuhusu Harusi Pass',
+        'Kadi Sasa inasaidia kamati na wenyeji wa harusi, send-off na uchumba Tanzania kutuma kadi, kufuatilia michango na kuingiza wageni langoni.',
+      h1: 'Kuhusu Kadi Sasa',
       answer:
-        'Harusi Pass inatengenezwa Tanzania ili kamati na wenyeji wa harusi, send-off na uchumba waweze kutuma kadi kwa kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni bila msongamano, hata mtandao ukikatika.',
+        'Kadi Sasa inatengenezwa Tanzania ili kamati na wenyeji wa harusi, send-off na uchumba waweze kutuma kadi kwa kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni bila msongamano, hata mtandao ukikatika.',
       sections: [
         {
           id: 'kwa-nini',
@@ -221,26 +221,26 @@ export const COMPANY_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Harusi Pass iko kwenye hatua ya majaribio na harusi chache. Tunasikiliza kamati na wageni ili kuboresha. Maoni yako yanakaribishwa kupitia ukurasa wa mawasiliano.',
+              text: 'Kadi Sasa iko kwenye hatua ya majaribio na harusi chache. Tunasikiliza kamati na wageni ili kuboresha. Maoni yako yanakaribishwa kupitia ukurasa wa mawasiliano.',
             },
           ],
         },
       ],
       faq: [
         {
-          q: 'Nani anaweza kutumia Harusi Pass?',
+          q: 'Nani anaweza kutumia Kadi Sasa?',
           a: 'Wenyeji na kamati za harusi, send-off, uchumba na sherehe nyingine za faragha nchini Tanzania.',
         },
       ],
     },
     en: {
-      nav: 'About Harusi Pass',
-      title: 'About Harusi Pass: Tanzanian Wedding Invitations',
+      nav: 'About Kadi Sasa',
+      title: 'About Kadi Sasa: Tanzanian Wedding Invitations',
       description:
-        'Harusi Pass helps hosts and committees for weddings, send-offs and engagements in Tanzania send cards, track contributions and admit guests at the gate.',
-      h1: 'About Harusi Pass',
+        'Kadi Sasa helps hosts and committees for weddings, send-offs and engagements in Tanzania send cards, track contributions and admit guests at the gate.',
+      h1: 'About Kadi Sasa',
       answer:
-        'Harusi Pass is built in Tanzania so hosts and committees for weddings, send-offs and engagements can send every guest a card, track replies and contributions, and admit guests at the gate without a crush, even when the network drops.',
+        'Kadi Sasa is built in Tanzania so hosts and committees for weddings, send-offs and engagements can send every guest a card, track replies and contributions, and admit guests at the gate without a crush, even when the network drops.',
       sections: [
         {
           id: 'why',
@@ -289,14 +289,14 @@ export const COMPANY_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Harusi Pass is in a pilot with a small number of weddings. We listen to committees and guests to improve. Your feedback is welcome through the contact page.',
+              text: 'Kadi Sasa is in a pilot with a small number of weddings. We listen to committees and guests to improve. Your feedback is welcome through the contact page.',
             },
           ],
         },
       ],
       faq: [
         {
-          q: 'Who can use Harusi Pass?',
+          q: 'Who can use Kadi Sasa?',
           a: 'Hosts and committees for weddings, send-offs, engagements and other private celebrations in Tanzania.',
         },
       ],
@@ -310,12 +310,12 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     related: ['maswali', 'ombi-la-data', 'usalama-wa-kadi-za-mtandaoni', 'kuhusu'],
     sw: {
       nav: 'Mawasiliano',
-      title: 'Wasiliana na Harusi Pass',
+      title: 'Wasiliana na Kadi Sasa',
       description:
-        'Wasiliana na Harusi Pass kwa maswali ya huduma, kuthibitisha kadi, au maombi ya data na faragha. Barua pepe: faragha@harusipass.co.tz.',
+        'Wasiliana na Kadi Sasa kwa maswali ya huduma, kuthibitisha kadi, au maombi ya data na faragha. Barua pepe: faragha@kadisasa.com.',
       h1: 'Wasiliana nasi',
       answer:
-        'Tuandikie kwa barua pepe faragha@harusipass.co.tz kwa maswali ya huduma, kuthibitisha kama kadi ni halali, au maombi kuhusu data zako. Kama swali linahusu mwaliko mahususi, kamati ya tukio ndiyo yenye jibu la haraka zaidi.',
+        'Tuandikie kwa barua pepe faragha@kadisasa.com kwa maswali ya huduma, kuthibitisha kama kadi ni halali, au maombi kuhusu data zako. Kama swali linahusu mwaliko mahususi, kamati ya tukio ndiyo yenye jibu la haraka zaidi.',
       sections: [
         {
           id: 'njia',
@@ -332,11 +332,11 @@ export const COMPANY_PAGES: ContentPageDef[] = [
                 ['Kuthibitisha kama kadi ni halali', 'Kamati ya tukio, au sisi kwa barua pepe'],
                 [
                   'Maombi ya data, kufuta au kupata nakala',
-                  'faragha@harusipass.co.tz (angalia ukurasa wa maombi ya data)',
+                  'faragha@kadisasa.com (angalia ukurasa wa maombi ya data)',
                 ],
                 [
                   'Hitilafu kwenye huduma au maoni',
-                  'faragha@harusipass.co.tz kwa sasa; anwani maalum ya msaada itatangazwa hapa',
+                  'faragha@kadisasa.com kwa sasa; anwani maalum ya msaada itatangazwa hapa',
                 ],
               ],
             },
@@ -348,7 +348,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Hatutakuomba kamwe nenosiri, PIN au OTP kwa barua pepe, SMS wala simu. Mtu akidai kuwa ni Harusi Pass na kuomba hivyo, usimjibu.',
+              text: 'Hatutakuomba kamwe nenosiri, PIN au OTP kwa barua pepe, SMS wala simu. Mtu akidai kuwa ni Kadi Sasa na kuomba hivyo, usimjibu.',
             },
           ],
         },
@@ -356,12 +356,12 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Contact',
-      title: 'Contact Harusi Pass',
+      title: 'Contact Kadi Sasa',
       description:
-        'Contact Harusi Pass for service questions, to verify a card, or for data and privacy requests. Email: faragha@harusipass.co.tz.',
+        'Contact Kadi Sasa for service questions, to verify a card, or for data and privacy requests. Email: faragha@kadisasa.com.',
       h1: 'Contact us',
       answer:
-        'Email faragha@harusipass.co.tz for service questions, to check whether a card is genuine, or for requests about your data. If your question is about a specific invitation, the event committee is the fastest way to an answer.',
+        'Email faragha@kadisasa.com for service questions, to check whether a card is genuine, or for requests about your data. If your question is about a specific invitation, the event committee is the fastest way to an answer.',
       sections: [
         {
           id: 'ways',
@@ -378,11 +378,11 @@ export const COMPANY_PAGES: ContentPageDef[] = [
                 ['To check a card is genuine', 'The event committee, or us by email'],
                 [
                   'A data request, deletion or a copy',
-                  'faragha@harusipass.co.tz (see the data requests page)',
+                  'faragha@kadisasa.com (see the data requests page)',
                 ],
                 [
                   'A fault in the service or feedback',
-                  'faragha@harusipass.co.tz for now; a dedicated support address will be announced here',
+                  'faragha@kadisasa.com for now; a dedicated support address will be announced here',
                 ],
               ],
             },
@@ -394,7 +394,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'We will never ask for a password, PIN or OTP by email, SMS or phone. If someone claims to be Harusi Pass and asks, do not reply.',
+              text: 'We will never ask for a password, PIN or OTP by email, SMS or phone. If someone claims to be Kadi Sasa and asks, do not reply.',
             },
           ],
         },

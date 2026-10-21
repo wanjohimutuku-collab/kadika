@@ -238,11 +238,11 @@ export function StatesGallery({ card }: { card: CardView }) {
                   className="h-[560px] w-full rounded-md border border-border bg-bg"
                   srcDoc={
                     typeof view === 'string'
-                      ? renderProblem(view, { locale, domain: 'harusipass.example' })
+                      ? renderProblem(view, { locale, domain: 'kadisasa.example' })
                       : renderCard(view, {
                           token: card.token,
                           locale,
-                          domain: 'harusipass.example',
+                          domain: 'kadisasa.example',
                           mode: 'mock',
                           apiUrl: '',
                         })

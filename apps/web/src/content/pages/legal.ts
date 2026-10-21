@@ -16,12 +16,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     related: ['ombi-la-data', 'cookies', 'terms', 'usalama-wa-kadi-za-mtandaoni'],
     sw: {
       nav: 'Sera ya faragha',
-      title: 'Sera ya Faragha | Harusi Pass',
+      title: 'Sera ya Faragha | Kadi Sasa',
       description:
-        'Sera ya faragha ya Harusi Pass: taarifa tunazokusanya, tunavyozitumia, tunavyozishiriki, muda wa kuzihifadhi na haki zako chini ya sheria ya Tanzania.',
+        'Sera ya faragha ya Kadi Sasa: taarifa tunazokusanya, tunavyozitumia, tunavyozishiriki, muda wa kuzihifadhi na haki zako chini ya sheria ya Tanzania.',
       h1: 'Sera ya faragha',
       answer:
-        'Harusi Pass inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni langoni. Hatuuzi data wala hatutumii matangazo. Mwenyeji anaweza kupakua au kufuta data za wageni, na mgeni anaweza kuomba nakala au kufutwa.',
+        'Kadi Sasa inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni langoni. Hatuuzi data wala hatutumii matangazo. Mwenyeji anaweza kupakua au kufuta data za wageni, na mgeni anaweza kuomba nakala au kufutwa.',
       sections: [
         {
           id: 'sisi',
@@ -29,7 +29,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Harusi Pass inaendeshwa nchini Tanzania na tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania ya mwaka 2022. Kwa taarifa za wageni, mwenyeji wa tukio ndiye anayeamua ni nani aalikwe na kwa nini, kwa hiyo ndiye mdhibiti wa data hizo; sisi tunazishughulikia kwa niaba yake. Kwa taarifa za akaunti ya mwenyeji na kamati, sisi ndio wadhibiti.',
+              text: 'Kadi Sasa inaendeshwa nchini Tanzania na tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania ya mwaka 2022. Kwa taarifa za wageni, mwenyeji wa tukio ndiye anayeamua ni nani aalikwe na kwa nini, kwa hiyo ndiye mdhibiti wa data hizo; sisi tunazishughulikia kwa niaba yake. Kwa taarifa za akaunti ya mwenyeji na kamati, sisi ndio wadhibiti.',
             },
             {
               t: 'p',
@@ -178,18 +178,18 @@ export const LEGAL_PAGES: ContentPageDef[] = [
         {
           id: 'mawasiliano',
           h2: 'Mawasiliano',
-          blocks: [{ t: 'p', text: 'Maswali kuhusu faragha: faragha@harusipass.co.tz.' }],
+          blocks: [{ t: 'p', text: 'Maswali kuhusu faragha: faragha@kadisasa.com.' }],
         },
       ],
     },
     en: {
       nav: 'Privacy policy',
-      title: 'Privacy Policy | Harusi Pass',
+      title: 'Privacy Policy | Kadi Sasa',
       description:
-        'Harusi Pass privacy policy: what we collect, how we use and share it, how long we keep it, and your rights under Tanzanian law.',
+        'Kadi Sasa privacy policy: what we collect, how we use and share it, how long we keep it, and your rights under Tanzanian law.',
       h1: 'Privacy policy',
       answer:
-        'Harusi Pass collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We do not sell data or use advertising. A host can download or delete guest data, and a guest can ask for a copy or for erasure.',
+        'Kadi Sasa collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We do not sell data or use advertising. A host can download or delete guest data, and a guest can ask for a copy or for erasure.',
       sections: [
         {
           id: 'who',
@@ -197,7 +197,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Harusi Pass operates in Tanzania and follows the Personal Data Protection Act, 2022. For guest information, the event host decides who is invited and why, so the host is the controller of that data and we process it on their behalf. For host and committee account information, we are the controller.',
+              text: 'Kadi Sasa operates in Tanzania and follows the Personal Data Protection Act, 2022. For guest information, the event host decides who is invited and why, so the host is the controller of that data and we process it on their behalf. For host and committee account information, we are the controller.',
             },
             {
               t: 'p',
@@ -340,7 +340,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
         {
           id: 'contact',
           h2: 'Contact',
-          blocks: [{ t: 'p', text: 'Privacy questions: faragha@harusipass.co.tz.' }],
+          blocks: [{ t: 'p', text: 'Privacy questions: faragha@kadisasa.com.' }],
         },
       ],
     },
@@ -354,12 +354,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     related: ['privacy', 'matumizi-yanayokubalika', 'cookies', 'mawasiliano'],
     sw: {
       nav: 'Masharti ya matumizi',
-      title: 'Masharti ya Matumizi | Harusi Pass',
+      title: 'Masharti ya Matumizi | Kadi Sasa',
       description:
-        'Masharti ya kutumia Harusi Pass: akaunti, wajibu wa mwenyeji, ujumbe, malipo ya michango, walinda lango, mipaka ya dhima na mabadiliko.',
+        'Masharti ya kutumia Kadi Sasa: akaunti, wajibu wa mwenyeji, ujumbe, malipo ya michango, walinda lango, mipaka ya dhima na mabadiliko.',
       h1: 'Masharti ya matumizi',
       answer:
-        'Kwa kutumia Harusi Pass unakubali masharti haya. Mwenyeji anawajibika kwa orodha ya wageni na ujumbe anaotuma, michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa, na huduma iko kwenye majaribio na inatolewa kama ilivyo.',
+        'Kwa kutumia Kadi Sasa unakubali masharti haya. Mwenyeji anawajibika kwa orodha ya wageni na ujumbe anaotuma, michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa, na huduma iko kwenye majaribio na inatolewa kama ilivyo.',
       sections: [
         {
           id: 'ukubali',
@@ -367,7 +367,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Ukiingia au kutumia Harusi Pass unakubali masharti haya na sera ya faragha. Kama hukubali, usitumie huduma. Wageni wanaofungua kadi hawahitaji kukubali masharti ya mwenyeji, lakini wanafunikwa na sera ya faragha.',
+              text: 'Ukiingia au kutumia Kadi Sasa unakubali masharti haya na sera ya faragha. Kama hukubali, usitumie huduma. Wageni wanaofungua kadi hawahitaji kukubali masharti ya mwenyeji, lakini wanafunikwa na sera ya faragha.',
             },
           ],
         },
@@ -412,7 +412,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Harusi Pass si benki wala mtoa huduma wa pesa za simu, na haihifadhi PIN za malipo. Uhusiano wa mchango upo kati ya mgeni na mwenyeji. Jinsi kamati inavyopokea pesa, ada na marejesho vitaelezwa hapa kabla ya kuanza kupokea malipo halisi.',
+              text: 'Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Kadi Sasa si benki wala mtoa huduma wa pesa za simu, na haihifadhi PIN za malipo. Uhusiano wa mchango upo kati ya mgeni na mwenyeji. Jinsi kamati inavyopokea pesa, ada na marejesho vitaelezwa hapa kabla ya kuanza kupokea malipo halisi.',
             },
           ],
         },
@@ -442,7 +442,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Orodha za wageni na maandishi ya kadi ni yako. Unatupa ruhusa ya kuyatumia kadri inavyohitajika kuendesha huduma. Nembo, muundo na programu ya Harusi Pass ni mali yetu.',
+              text: 'Orodha za wageni na maandishi ya kadi ni yako. Unatupa ruhusa ya kuyatumia kadri inavyohitajika kuendesha huduma. Nembo, muundo na programu ya Kadi Sasa ni mali yetu.',
             },
           ],
         },
@@ -490,12 +490,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Terms of use',
-      title: 'Terms of Use | Harusi Pass',
+      title: 'Terms of Use | Kadi Sasa',
       description:
-        'Terms for using Harusi Pass: accounts, host responsibilities, messages, contribution payments, gate agents, limits of liability and changes.',
+        'Terms for using Kadi Sasa: accounts, host responsibilities, messages, contribution payments, gate agents, limits of liability and changes.',
       h1: 'Terms of use',
       answer:
-        'By using Harusi Pass you accept these terms. The host is responsible for the guest list and the messages they send, contributions are paid through approved payment providers, and the service is in a pilot and provided as is.',
+        'By using Kadi Sasa you accept these terms. The host is responsible for the guest list and the messages they send, contributions are paid through approved payment providers, and the service is in a pilot and provided as is.',
       sections: [
         {
           id: 'accept',
@@ -503,7 +503,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'By signing in or using Harusi Pass you accept these terms and the privacy policy. If you do not, do not use the service. Guests who open a card do not need to accept the host’s terms, but the privacy policy covers them.',
+              text: 'By signing in or using Kadi Sasa you accept these terms and the privacy policy. If you do not, do not use the service. Guests who open a card do not need to accept the host’s terms, but the privacy policy covers them.',
             },
           ],
         },
@@ -548,7 +548,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Contributions are paid through approved payment providers. Harusi Pass is not a bank or a mobile money provider and does not store payment PINs. A contribution is between the guest and the host. How the committee receives funds, fees and refunds will be set out here before real payments begin.',
+              text: 'Contributions are paid through approved payment providers. Kadi Sasa is not a bank or a mobile money provider and does not store payment PINs. A contribution is between the guest and the host. How the committee receives funds, fees and refunds will be set out here before real payments begin.',
             },
           ],
         },
@@ -578,7 +578,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Guest lists and card text are yours. You give us permission to use them as needed to run the service. The Harusi Pass name, design and software are ours.',
+              text: 'Guest lists and card text are yours. You give us permission to use them as needed to run the service. The Kadi Sasa name, design and software are ours.',
             },
           ],
         },
@@ -634,12 +634,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     related: ['privacy', 'terms', 'ombi-la-data', 'usalama-wa-kadi-za-mtandaoni'],
     sw: {
       nav: 'Vidakuzi na hifadhi ya kifaa',
-      title: 'Sera ya Vidakuzi na Hifadhi ya Kifaa | Harusi Pass',
+      title: 'Sera ya Vidakuzi na Hifadhi ya Kifaa | Kadi Sasa',
       description:
-        'Harusi Pass inatumia kidakuzi cha lugha na hifadhi ya kifaa kwa kadi kuonekana bila mtandao. Hatutumii vidakuzi vya matangazo wala vya uchanganuzi.',
+        'Kadi Sasa inatumia kidakuzi cha lugha na hifadhi ya kifaa kwa kadi kuonekana bila mtandao. Hatutumii vidakuzi vya matangazo wala vya uchanganuzi.',
       h1: 'Vidakuzi na hifadhi ya kifaa',
       answer:
-        'Harusi Pass inatumia kidakuzi kimoja cha lugha na hifadhi ya kivinjari ili kadi yako ionekane bila mtandao. Kwa sasa hatutumii vidakuzi vya matangazo wala vya uchanganuzi, kwa hiyo hakuna bango la kukubali vidakuzi.',
+        'Kadi Sasa inatumia kidakuzi kimoja cha lugha na hifadhi ya kivinjari ili kadi yako ionekane bila mtandao. Kwa sasa hatutumii vidakuzi vya matangazo wala vya uchanganuzi, kwa hiyo hakuna bango la kukubali vidakuzi.',
       sections: [
         {
           id: 'orodha',
@@ -704,12 +704,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Cookies and device storage',
-      title: 'Cookies and Device Storage Policy | Harusi Pass',
+      title: 'Cookies and Device Storage Policy | Kadi Sasa',
       description:
-        'Harusi Pass uses a language cookie and browser storage so your card shows offline. We do not use advertising or analytics cookies.',
+        'Kadi Sasa uses a language cookie and browser storage so your card shows offline. We do not use advertising or analytics cookies.',
       h1: 'Cookies and device storage',
       answer:
-        'Harusi Pass uses one language cookie and browser storage so your card shows offline. We do not currently use advertising or analytics cookies, so there is no cookie consent banner.',
+        'Kadi Sasa uses one language cookie and browser storage so your card shows offline. We do not currently use advertising or analytics cookies, so there is no cookie consent banner.',
       sections: [
         {
           id: 'list',
@@ -782,12 +782,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     related: ['privacy', 'cookies', 'mawasiliano', 'terms'],
     sw: {
       nav: 'Maombi ya data',
-      title: 'Ombi la Data: Pata Nakala au Futa Taarifa Zako | Harusi Pass',
+      title: 'Ombi la Data: Pata Nakala au Futa Taarifa Zako | Kadi Sasa',
       description:
-        'Jinsi ya kuomba nakala ya taarifa zako, kuzisahihisha au kuzifuta kutoka Harusi Pass. Mgeni au mwenyeji, na muda tunaochukua kujibu.',
+        'Jinsi ya kuomba nakala ya taarifa zako, kuzisahihisha au kuzifuta kutoka Kadi Sasa. Mgeni au mwenyeji, na muda tunaochukua kujibu.',
       h1: 'Maombi ya data: nakala, usahihishaji na kufuta',
       answer:
-        'Mgeni au mwenyeji anaweza kuomba nakala ya taarifa zake, kuzisahihisha au kuzifuta. Andika kwa faragha@harusipass.co.tz au mwombe mwenyeji wa tukio. Tunathibitisha kuwa ni wewe, kisha tunatekeleza ndani ya siku 30.',
+        'Mgeni au mwenyeji anaweza kuomba nakala ya taarifa zake, kuzisahihisha au kuzifuta. Andika kwa faragha@kadisasa.com au mwombe mwenyeji wa tukio. Tunathibitisha kuwa ni wewe, kisha tunatekeleza ndani ya siku 30.',
       sections: [
         {
           id: 'nani',
@@ -796,7 +796,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ul',
               items: [
-                'Mgeni aliyealikwa kwenye tukio lolote kupitia Harusi Pass.',
+                'Mgeni aliyealikwa kwenye tukio lolote kupitia Kadi Sasa.',
                 'Mwenyeji au mwanakamati mwenye akaunti.',
               ],
             },
@@ -809,7 +809,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ol',
               items: [
-                'Andika barua pepe kwa faragha@harusipass.co.tz. Eleza unachotaka: nakala, usahihishaji au kufuta.',
+                'Andika barua pepe kwa faragha@kadisasa.com. Eleza unachotaka: nakala, usahihishaji au kufuta.',
                 'Taja jina lako, namba ya simu iliyotumika kukualika, na jina la tukio au mwenyeji.',
                 'Tutakuuliza uthibitisho mdogo, kwa mfano kutuma namba kwenye simu hiyo, ili kuhakikisha ni wewe.',
                 'Tunajibu na kutekeleza ndani ya siku 30.',
@@ -860,12 +860,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Data requests',
-      title: 'Data Request: Get a Copy or Delete Your Information | Harusi Pass',
+      title: 'Data Request: Get a Copy or Delete Your Information | Kadi Sasa',
       description:
-        'How to ask for a copy of your information, correct it or delete it from Harusi Pass, as a guest or a host, and how long we take to respond.',
+        'How to ask for a copy of your information, correct it or delete it from Kadi Sasa, as a guest or a host, and how long we take to respond.',
       h1: 'Data requests: copy, correction and deletion',
       answer:
-        'A guest or host can ask for a copy of their information, ask for it to be corrected, or ask for it to be deleted. Email faragha@harusipass.co.tz or ask the event host. We check it is you, then act within 30 days.',
+        'A guest or host can ask for a copy of their information, ask for it to be corrected, or ask for it to be deleted. Email faragha@kadisasa.com or ask the event host. We check it is you, then act within 30 days.',
       sections: [
         {
           id: 'who',
@@ -874,7 +874,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ul',
               items: [
-                'A guest invited to any event through Harusi Pass.',
+                'A guest invited to any event through Kadi Sasa.',
                 'A host or committee member with an account.',
               ],
             },
@@ -887,7 +887,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ol',
               items: [
-                'Email faragha@harusipass.co.tz. Say what you want: a copy, a correction or deletion.',
+                'Email faragha@kadisasa.com. Say what you want: a copy, a correction or deletion.',
                 'Give your name, the phone number the invitation was sent to, and the event or host name.',
                 'We will ask for light verification, such as sending a code to that phone, to confirm it is you.',
                 'We respond and act within 30 days.',
@@ -946,12 +946,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     related: ['terms', 'privacy', 'usalama-wa-kadi-za-mtandaoni', 'mawasiliano'],
     sw: {
       nav: 'Matumizi yanayokubalika',
-      title: 'Matumizi Yanayokubalika | Harusi Pass',
+      title: 'Matumizi Yanayokubalika | Kadi Sasa',
       description:
-        'Sheria za kutumia Harusi Pass kwa heshima: bila ulaghai, bila matangazo, bila kuiga mtu, na kwa watu unaowafahamu tu.',
+        'Sheria za kutumia Kadi Sasa kwa heshima: bila ulaghai, bila matangazo, bila kuiga mtu, na kwa watu unaowafahamu tu.',
       h1: 'Matumizi yanayokubalika',
       answer:
-        'Tumia Harusi Pass kualika watu unaowafahamu kwenye tukio la kweli. Usitumie kutuma matangazo, kutapeli, kuiga mtu mwingine, au kukusanya pesa kwa udanganyifu. Tukiona ukiukaji tunaweza kusimamisha akaunti au tukio.',
+        'Tumia Kadi Sasa kualika watu unaowafahamu kwenye tukio la kweli. Usitumie kutuma matangazo, kutapeli, kuiga mtu mwingine, au kukusanya pesa kwa udanganyifu. Tukiona ukiukaji tunaweza kusimamisha akaunti au tukio.',
       sections: [
         {
           id: 'inaruhusiwa',
@@ -1004,12 +1004,12 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Acceptable use',
-      title: 'Acceptable Use Policy | Harusi Pass',
+      title: 'Acceptable Use Policy | Kadi Sasa',
       description:
-        'Rules for using Harusi Pass respectfully: no scams, no advertising, no impersonation, and only for people you know.',
+        'Rules for using Kadi Sasa respectfully: no scams, no advertising, no impersonation, and only for people you know.',
       h1: 'Acceptable use',
       answer:
-        'Use Harusi Pass to invite people you know to a real event. Do not use it to send advertising, scam, impersonate someone, or collect money deceptively. If we see a breach we may suspend an account or event.',
+        'Use Kadi Sasa to invite people you know to a real event. Do not use it to send advertising, scam, impersonate someone, or collect money deceptively. If we see a breach we may suspend an account or event.',
       sections: [
         {
           id: 'allowed',

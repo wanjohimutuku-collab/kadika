@@ -14,6 +14,7 @@ import { OtpField, PhoneField, Select, TextField } from '@/components/ui/form';
 import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
+import { useBrand } from '@/components/brand/brand-provider';
 
 const PHONE_KEY = 'harusi.login.phone';
 
@@ -30,15 +31,16 @@ export function LoginPhone() {
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<Country>('TZ');
   const tcm = useTranslations('common');
+  const brand = useBrand().brand.businessName;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
     <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
-      <h1 className="text-3xl font-semibold">{t('title')}</h1>
+      <h1 className="text-3xl font-semibold">{t('title', { brand })}</h1>
       <p className="text-muted">{t('subtitle')}</p>
       {USE_MOCKS ? (
         <Banner tone="info">
-          {t('mockPhoneHint')} {t('staffHint')}
+          {t('mockPhoneHint')} {t('staffHint', { brand })}
         </Banner>
       ) : null}
       <form
@@ -119,6 +121,7 @@ export function LoginPhone() {
 
 export function LoginOtp() {
   const t = useTranslations('auth');
+  const brandName = useBrand().brand.businessName;
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -182,7 +185,7 @@ export function LoginOtp() {
       } else if (isRepositoryError(err) && err.code === 'validation') {
         setError(t('wrongCode', { attempts: Number(err.details?.attemptsLeft ?? 0) }));
       } else if (isRepositoryError(err) && err.code === 'forbidden') {
-        setError(t('suspended'));
+        setError(t('suspended', { brand: brandName }));
       } else {
         setError(
           isRepositoryError(err) && err.code === 'offline' ? ts('offlineBanner') : ts('errorBody'),

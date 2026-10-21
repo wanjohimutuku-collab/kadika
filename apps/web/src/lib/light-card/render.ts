@@ -473,7 +473,7 @@ ${confirmed ? '' : qrSection}
 ${pledge}
 ${contributionSection}
 ${closingSection}
-<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
+<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a><a href="/programu" data-testid="card-app-link">${esc(t.appLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).

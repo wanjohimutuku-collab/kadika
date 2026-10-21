@@ -1,5 +1,5 @@
 /**
- * Grants or removes Harusi Pass staff access (/ops, ADR 012). Staff are never self-signed-up:
+ * Grants or removes staff access (/ops, ADR 012). Staff are never self-signed-up:
  *   pnpm --filter @harusi/db make-staff +255700000999 admin   (support | billing | admin)
  *   pnpm --filter @harusi/db make-staff +255700000999 remove
  * The person must have logged in once (the account exists). They sign in again to pick it up.

@@ -503,9 +503,9 @@ export function createSeedState(opts: SeedOptions = {}): MockState {
   const owner = customer('user-owner', 'Juma Mrisho', '+255712000001', 120, 0);
   const committee = customer('user-committee', 'Baraka Mushi', '+255754000222', 110, 1);
   const gate = customer('user-gate', 'Rehema Said', '+255683000333', 100, 6);
-  // Harusi Pass staff account for the ops panel (/ops). Mock login: 0700 000 999 + 123456.
+  // Staff account for the ops panel (/ops). Mock login: 0700 000 999 + 123456.
   const staff: User = {
-    ...customer('user-staff', 'Zawadi Kimaro (Harusi Pass)', '+255700000999', 200, 0),
+    ...customer('user-staff', 'Zawadi Kimaro (Kadi Sasa)', '+255700000999', 200, 0),
     roleGlobal: 'admin',
     staffRole: 'admin',
   };

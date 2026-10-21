@@ -1,7 +1,7 @@
 {
   "sw": {
     "common": {
-      "appName": "Harusi Pass",
+      "appName": "Kadi Sasa",
       "tagline": "Kadi za harusi, majibu, michango na mlango — sehemu moja.",
       "loading": "Inapakia…",
       "retry": "Jaribu tena",
@@ -117,7 +117,7 @@
   },
   "en": {
     "common": {
-      "appName": "Harusi Pass",
+      "appName": "Kadi Sasa",
       "tagline": "Wedding cards, RSVPs, contributions and the gate — in one place.",
       "loading": "Loading…",
       "retry": "Try again",

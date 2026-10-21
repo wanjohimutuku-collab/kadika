@@ -27,7 +27,7 @@
       "roleOwner": "Mwenye harusi",
       "roleCommittee": "Kamati",
       "ownerOnly": "Sehemu hii ni kwa mwenye harusi tu.",
-      "gateNoConsole": "Walinda lango hutumia programu ya simu ya Harusi Pass. Dashibodi hii ni kwa wenye harusi na kamati.",
+      "gateNoConsole": "Walinda lango hutumia programu ya simu ya {brand}. Dashibodi hii ni kwa wenye harusi na kamati.",
       "gateNoConsoleTitle": "Huna ruhusa ya dashibodi"
     }
   },
@@ -59,7 +59,7 @@
       "roleOwner": "Owner",
       "roleCommittee": "Committee",
       "ownerOnly": "This section is for the owner only.",
-      "gateNoConsole": "Gate agents use the Harusi Pass phone app. This dashboard is for owners and committee members.",
+      "gateNoConsole": "Gate agents use the {brand} phone app. This dashboard is for owners and committee members.",
       "gateNoConsoleTitle": "No dashboard access"
     }
   }

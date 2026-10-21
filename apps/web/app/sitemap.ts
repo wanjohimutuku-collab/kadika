@@ -1,10 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL, hreflangMap, localeUrl } from '@/lib/seo';
 import { ALL_PAGES, counterpartOf, pagePath } from '@/content';
+import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = [
     { path: '/', counterpart: undefined, updated: undefined, weight: 1 },
+    { path: APP_DOWNLOAD_PATH, counterpart: undefined, updated: undefined, weight: 0.6 },
     ...ALL_PAGES.map((p) => {
       const c = counterpartOf(p);
       return {

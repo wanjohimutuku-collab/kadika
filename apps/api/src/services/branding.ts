@@ -152,6 +152,18 @@ export class BrandingService {
     return value;
   }
 
+  /**
+   * The business name for text the API writes itself (OTP codes, test messages). Branding must never
+   * stop a code going out, so a database error falls back to the default name.
+   */
+  async businessName(): Promise<string> {
+    try {
+      return (await this.publicView()).businessName;
+    } catch {
+      return DEFAULT_BRANDING.businessName;
+    }
+  }
+
   async view(userId: string): Promise<BrandingView> {
     await requireSettingsAdmin(this.deps.db, userId);
     const r = await this.row();

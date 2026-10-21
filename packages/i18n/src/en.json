@@ -240,7 +240,8 @@
     "contribWhen": "The event: {date}, {venue}",
     "contribMeta": "Contribution for the {kind} of {couple}",
     "contribMetaDescription": "Contribute by phone. {sender}.",
-    "contribClosed": "Contributions are not being taken through this card right now."
+    "contribClosed": "Contributions are not being taken through this card right now.",
+    "appLink": "Android app"
   },
   "pay": {
     "title": "Pay contribution",
@@ -327,13 +328,13 @@
     "roleOwner": "Owner",
     "roleCommittee": "Committee",
     "ownerOnly": "This section is for the owner only.",
-    "gateNoConsole": "Gate agents use the Harusi Pass phone app. This dashboard is for owners and committee members.",
+    "gateNoConsole": "Gate agents use the {brand} phone app. This dashboard is for owners and committee members.",
     "gateNoConsoleTitle": "No dashboard access",
     "opsLink": "Staff dashboard",
     "content": "Card text"
   },
   "auth": {
-    "title": "Sign in to Harusi Pass",
+    "title": "Sign in to {brand}",
     "subtitle": "For couples and committees. We will send you a confirmation code by SMS.",
     "phone": "Phone number",
     "phoneHint": "For example 0712 345 678",
@@ -357,8 +358,8 @@
     "continue": "Continue",
     "trust": "We never ask for a password. The confirmation code is for you only — never share it.",
     "mockPhoneHint": "Demo build: sign in with 0712 000 001 to see the sample events.",
-    "suspended": "This account is suspended. Contact Harusi Pass for help.",
-    "staffHint": "Harusi Pass staff: 0700 000 999 (admin), 0700 000 998 (support) or 0700 000 997 (billing); the second code is 654321.",
+    "suspended": "This account is suspended. Contact {brand} for help.",
+    "staffHint": "{brand} staff: 0700 000 999 (admin), 0700 000 998 (support) or 0700 000 997 (billing); the second code is 654321.",
     "secondFactorTitle": "Second security step",
     "secondFactorBody": "To protect customer data, staff need a second code from their authenticator app.",
     "secondFactorLabel": "Authenticator code",
@@ -366,7 +367,7 @@
     "wrongStaffCode": "The code is not correct. Try again."
   },
   "landing": {
-    "metaTitle": "Digital Invitation Cards Tanzania | Harusi Pass",
+    "metaTitle": "Digital Invitation Cards Tanzania | {brand}",
     "heroTitle": "One wedding card that reaches every guest, collects replies and contributions, and opens the gate.",
     "heroBody": "WhatsApp, SMS or paper — every guest gets their own card with a QR and a number. Even without a smartphone, even without a network.",
     "cta": "Get started",
@@ -440,8 +441,8 @@
     "footerTagline": "Made in Tanzania for Tanzanian weddings and celebrations.",
     "openCard": "Open your card",
     "metaDescription": "Create digital invitation cards for weddings, send-offs, birthdays and more. Send by WhatsApp, SMS or paper. Track replies and contributions, and admit guests at the gate by QR, even offline.",
-    "definitionTitle": "What is Harusi Pass?",
-    "definition": "Harusi Pass is a Tanzanian service for online invitations. Every guest gets their own card by WhatsApp, SMS or paper, with a QR and a short number. The committee sees who replied, who contributed and who arrived at the gate, even when the network drops.",
+    "definitionTitle": "What is {brand}?",
+    "definition": "{brand} is a Tanzanian service for online invitations. Every guest gets their own card by WhatsApp, SMS or paper, with a QR and a short number. The committee sees who replied, who contributed and who arrived at the gate, even when the network drops.",
     "eventsTitle": "For weddings, send-offs, engagements and more",
     "events": {
       "wedding": {
@@ -1207,8 +1208,8 @@
     "destructive": "Destructive"
   },
   "ops": {
-    "title": "Harusi Pass operations",
-    "staffOnly": "This area is for Harusi Pass staff only.",
+    "title": "Staff operations",
+    "staffOnly": "This area is for {brand} staff only.",
     "staffOnlyTitle": "No access",
     "backToConsole": "Back to my events",
     "nav": {
@@ -1727,7 +1728,7 @@
       "tampered": "Invalid signature",
       "wrong_event": "Not for this wedding",
       "revoked": "Card was replaced",
-      "malformed": "Not a Harusi Pass card",
+      "malformed": "Not a {brand} card",
       "not_found": "Number is not on the list"
     },
     "findByName": "Search by name",
@@ -1895,5 +1896,40 @@
       "link_required": "The message must include {link}",
       "invalid": "This is not valid"
     }
+  },
+  "appDownload": {
+    "metaTitle": "Get the {brand} Android app",
+    "metaDescription": "The {brand} app for hosts, committees and gate staff: send cards, follow replies and contributions, and admit guests by QR even offline.",
+    "eyebrow": "Android app",
+    "title": "{brand} in your pocket",
+    "intro": "For hosts, committees and gate staff. Manage guests, send cards and run the gate from your phone.",
+    "play": "Get it on Google Play",
+    "apk": "Download the APK directly",
+    "apkHelp": "For phones without Google Play. Your phone will ask permission to install apps from this source. Only download from {host}.",
+    "requirements": "Android 8 or newer · Works on everyday phones",
+    "soonBadge": "Coming soon",
+    "soonTitle": "The app is not out yet",
+    "soonBody": "We are preparing it for Google Play. Meanwhile you can do everything in the browser: create an event, send cards and follow contributions.",
+    "soonCta": "Use it in the browser",
+    "featuresTitle": "What you can do",
+    "features": {
+      "send": {
+        "title": "Send cards",
+        "body": "By WhatsApp, SMS or paper, and see who received them."
+      },
+      "track": {
+        "title": "Follow replies and contributions",
+        "body": "Expected headcount and paid pledges, as they happen."
+      },
+      "gate": {
+        "title": "Run the gate offline",
+        "body": "Scan the QR or search a name; scans sync when the network returns."
+      }
+    },
+    "guestTitle": "Are you a guest?",
+    "guestBody": "You don't need the app. Your card opens from the link you were sent, or enter your card number.",
+    "guestCta": "Open my card",
+    "trust": "We never ask for a password, PIN or payment to download. Only use the links on this page.",
+    "faqLink": "Frequently asked questions"
   }
 }

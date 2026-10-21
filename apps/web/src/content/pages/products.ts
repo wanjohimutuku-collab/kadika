@@ -16,12 +16,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Kadi ya harusi mtandaoni',
-      title: 'Kadi ya Harusi Mtandaoni Tanzania | Harusi Pass',
+      title: 'Kadi ya Harusi Mtandaoni Tanzania | Kadi Sasa',
       description:
         'Tuma kadi ya harusi kwa WhatsApp, SMS au karatasi. Kila mgeni ana QR na namba yake, majibu na michango vinafuatiliwa, na lango linafanya kazi bila mtandao.',
       h1: 'Kadi ya harusi mtandaoni inayomfikia kila mgeni',
       answer:
-        'Harusi Pass ni huduma ya Kitanzania ya kadi za harusi mtandaoni. Unaingiza orodha ya wageni, kila mmoja anapata kadi yake kwa WhatsApp, SMS au karatasi, ikiwa na QR na namba fupi. Unaona nani amejibu, nani amechangia, na nani ameingia langoni.',
+        'Kadi Sasa ni huduma ya Kitanzania ya kadi za harusi mtandaoni. Unaingiza orodha ya wageni, kila mmoja anapata kadi yake kwa WhatsApp, SMS au karatasi, ikiwa na QR na namba fupi. Unaona nani amejibu, nani amechangia, na nani ameingia langoni.',
       sections: [
         {
           id: 'ni-nini',
@@ -33,7 +33,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Kadi ya Harusi Pass pia ina QR na namba fupi, kwa mfano KH-4826. Hizi mbili ndizo zinazotumika langoni siku ya harusi.',
+              text: 'Kadi ya Kadi Sasa pia ina QR na namba fupi, kwa mfano KH-4826. Hizi mbili ndizo zinazotumika langoni siku ya harusi.',
             },
           ],
         },
@@ -80,7 +80,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Ndiyo, kwa wazee wengi. Harusi Pass inatengeneza PDF ya kadi zote, kila moja ikiwa na jina la mgeni, QR kubwa ya kutosha kuskaniwa na namba. Unachapisha kwa mchapishaji yeyote. Kadi ya karatasi na ile ya simu zinatumia QR ileile, kwa hiyo mgeni mmoja hawezi kuingia mara mbili.',
+              text: 'Ndiyo, kwa wazee wengi. Kadi Sasa inatengeneza PDF ya kadi zote, kila moja ikiwa na jina la mgeni, QR kubwa ya kutosha kuskaniwa na namba. Unachapisha kwa mchapishaji yeyote. Kadi ya karatasi na ile ya simu zinatumia QR ileile, kwa hiyo mgeni mmoja hawezi kuingia mara mbili.',
             },
           ],
         },
@@ -116,12 +116,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Digital wedding cards',
-      title: 'Digital Wedding Invitations Tanzania | Harusi Pass',
+      title: 'Digital Wedding Invitations Tanzania | Kadi Sasa',
       description:
         'Send wedding cards by WhatsApp, SMS or paper. Every guest gets their own QR and number, replies and contributions are tracked, and the gate works offline.',
       h1: 'Digital wedding invitations that reach every guest',
       answer:
-        'Harusi Pass is a Tanzanian service for digital wedding invitations. You add your guest list, and each guest gets their own card by WhatsApp, SMS or paper with a QR and a short number. You see who replied, who contributed and who arrived at the gate.',
+        'Kadi Sasa is a Tanzanian service for digital wedding invitations. You add your guest list, and each guest gets their own card by WhatsApp, SMS or paper with a QR and a short number. You see who replied, who contributed and who arrived at the gate.',
       sections: [
         {
           id: 'what',
@@ -133,7 +133,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'A Harusi Pass card also carries a QR and a short number such as KH-4826. Those two are what the gate uses on the day.',
+              text: 'A Kadi Sasa card also carries a QR and a short number such as KH-4826. Those two are what the gate uses on the day.',
             },
           ],
         },
@@ -177,7 +177,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'For many elders, yes. Harusi Pass produces a PDF of all cards, each with the guest name, a QR large enough to scan and the number. Print it at any printer. Paper and phone cards use the same QR, so one guest cannot enter twice.',
+              text: 'For many elders, yes. Kadi Sasa produces a PDF of all cards, each with the guest name, a QR large enough to scan and the number. Print it at any printer. Paper and phone cards use the same QR, so one guest cannot enter twice.',
             },
           ],
         },
@@ -225,12 +225,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Michango ya harusi',
-      title: 'Michango ya Harusi: Fuatilia Ahadi na Malipo | Harusi Pass',
+      title: 'Michango ya Harusi: Fuatilia Ahadi na Malipo | Kadi Sasa',
       description:
         'Rekodi ahadi na malipo ya michango ya harusi kwa kila mgeni. Wageni wanalipa kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kutoka kwenye kadi yao.',
       h1: 'Michango ya harusi: ahadi na malipo mahali pamoja',
       answer:
-        'Harusi Pass inaweka michango ndani ya kadi ya mwaliko. Kamati inarekodi ahadi ya kila mgeni, mgeni analipa kwa simu kutoka kwenye kadi yake, na kamati inaona kilichokusanywa, kilichoahidiwa na salio la kila mtu. Malipo ya taslimu yanarekodiwa pia.',
+        'Kadi Sasa inaweka michango ndani ya kadi ya mwaliko. Kamati inarekodi ahadi ya kila mgeni, mgeni analipa kwa simu kutoka kwenye kadi yake, na kamati inaona kilichokusanywa, kilichoahidiwa na salio la kila mtu. Malipo ya taslimu yanarekodiwa pia.',
       sections: [
         {
           id: 'tatizo',
@@ -244,7 +244,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
         },
         {
           id: 'inavyofanya',
-          h2: 'Jinsi michango inavyofanya kazi kwenye Harusi Pass',
+          h2: 'Jinsi michango inavyofanya kazi kwenye Kadi Sasa',
           blocks: [
             {
               t: 'ol',
@@ -295,7 +295,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
           a: 'Malipo yanapita kwa mtoa huduma wa malipo aliyeidhinishwa. Mpangilio wa kupokea pesa kwa kamati bado unakamilishwa wakati wa majaribio; tutaeleza hapa utakapokuwa tayari.',
         },
         {
-          q: 'Je, Harusi Pass inahifadhi PIN za malipo?',
+          q: 'Je, Kadi Sasa inahifadhi PIN za malipo?',
           a: 'Hapana. Mgeni anathibitisha kwenye simu yake na hatuombi PIN wala nenosiri.',
         },
         {
@@ -306,12 +306,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Wedding contributions',
-      title: 'Wedding Contributions (Michango): Track Pledges | Harusi Pass',
+      title: 'Wedding Contributions (Michango): Track Pledges | Kadi Sasa',
       description:
         'Record pledges and payments for each wedding guest. Guests pay with M-Pesa, Mixx by Yas, Airtel Money or HaloPesa straight from their card.',
       h1: 'Wedding contributions (michango): pledges and payments in one place',
       answer:
-        'Harusi Pass puts contributions inside the invitation. The committee records each guest’s pledge, the guest pays by phone from their card, and the committee sees collected, pledged and balance per person. Cash payments are recorded too.',
+        'Kadi Sasa puts contributions inside the invitation. The committee records each guest’s pledge, the guest pays by phone from their card, and the committee sees collected, pledged and balance per person. Cash payments are recorded too.',
       sections: [
         {
           id: 'problem',
@@ -325,7 +325,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
         },
         {
           id: 'how',
-          h2: 'How contributions work in Harusi Pass',
+          h2: 'How contributions work in Kadi Sasa',
           blocks: [
             {
               t: 'ol',
@@ -376,7 +376,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
           a: 'Payments pass through an approved payment provider. How the committee receives funds is still being finalised during the pilot; we will explain it here when ready.',
         },
         {
-          q: 'Does Harusi Pass store payment PINs?',
+          q: 'Does Kadi Sasa store payment PINs?',
           a: 'No. The guest confirms on their own phone and we never ask for a PIN or password.',
         },
         {
@@ -399,12 +399,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Kadi ya send-off',
-      title: 'Kadi ya Send-off Mtandaoni Tanzania | Harusi Pass',
+      title: 'Kadi ya Send-off Mtandaoni Tanzania | Kadi Sasa',
       description:
         'Tuma mwaliko wa send-off kwa kila mgeni kwa WhatsApp, SMS au karatasi. Fuatilia majibu na michango, na ingiza wageni langoni kwa QR.',
       h1: 'Kadi ya send-off: mwaliko, majibu na michango',
       answer:
-        'Send-off ni sherehe ya kumuaga binti kabla ya harusi, mara nyingi inayoandaliwa na familia yake. Harusi Pass inakuruhusu kuandika aina ya mwaliko unayotaka, kutuma kadi ya kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni kwa QR au namba.',
+        'Send-off ni sherehe ya kumuaga binti kabla ya harusi, mara nyingi inayoandaliwa na familia yake. Kadi Sasa inakuruhusu kuandika aina ya mwaliko unayotaka, kutuma kadi ya kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni kwa QR au namba.',
       sections: [
         {
           id: 'send-off',
@@ -471,12 +471,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Send-off invitations',
-      title: 'Send-off Invitation Cards Online Tanzania | Harusi Pass',
+      title: 'Send-off Invitation Cards Online Tanzania | Kadi Sasa',
       description:
         'Send a send-off invitation to every guest by WhatsApp, SMS or paper. Track replies and contributions, and admit guests at the gate with a QR or number.',
       h1: 'Send-off invitations: invite, reply and contribute',
       answer:
-        'A send-off is a celebration to bid a bride farewell before her wedding, usually hosted by her family. With Harusi Pass you write the kind of invitation you want, send each guest their own card, track replies and contributions, and admit guests at the gate by QR or number.',
+        'A send-off is a celebration to bid a bride farewell before her wedding, usually hosted by her family. With Kadi Sasa you write the kind of invitation you want, send each guest their own card, track replies and contributions, and admit guests at the gate by QR or number.',
       sections: [
         {
           id: 'what',
@@ -555,12 +555,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Kadi ya uchumba',
-      title: 'Kadi ya Uchumba na Engagement Party Mtandaoni | Harusi Pass',
+      title: 'Kadi ya Uchumba na Engagement Party Mtandaoni | Kadi Sasa',
       description:
         'Tuma mwaliko wa uchumba au engagement party kwa kila mgeni. Fuatilia majibu, ahadi za michango na uingiaji wa wageni kwa QR au namba.',
       h1: 'Kadi ya uchumba na engagement party',
       answer:
-        'Harusi Pass inafaa uchumba na engagement party kama inavyofaa harusi. Unaandika aina ya mwaliko wako, kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi, na unaona majibu, michango na waliofika.',
+        'Kadi Sasa inafaa uchumba na engagement party kama inavyofaa harusi. Unaandika aina ya mwaliko wako, kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi, na unaona majibu, michango na waliofika.',
       sections: [
         {
           id: 'uchumba',
@@ -580,7 +580,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
         },
         {
           id: 'faida',
-          h2: 'Faida za kutumia Harusi Pass kwa uchumba',
+          h2: 'Faida za kutumia Kadi Sasa kwa uchumba',
           blocks: [
             {
               t: 'ul',
@@ -614,12 +614,12 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Engagement invitations',
-      title: 'Engagement Party Invitation Cards Online | Harusi Pass',
+      title: 'Engagement Party Invitation Cards Online | Kadi Sasa',
       description:
         'Send an engagement (uchumba) invitation to every guest. Track replies, pledges and arrivals, and admit guests with a QR or number.',
       h1: 'Engagement (uchumba) invitations',
       answer:
-        'Harusi Pass suits an engagement party as it does a wedding. You write the kind of invitation you want, every guest gets their own card by WhatsApp, SMS or paper, and you see replies, contributions and arrivals.',
+        'Kadi Sasa suits an engagement party as it does a wedding. You write the kind of invitation you want, every guest gets their own card by WhatsApp, SMS or paper, and you see replies, contributions and arrivals.',
       sections: [
         {
           id: 'content',
@@ -639,7 +639,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
         },
         {
           id: 'benefits',
-          h2: 'Benefits of Harusi Pass for an engagement',
+          h2: 'Benefits of Kadi Sasa for an engagement',
           blocks: [
             {
               t: 'ul',

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Harusi Pass",
+    "name": "Kadi Sasa",
     "slug": "harusi-pass",
     "version": "0.0.0",
     "scheme": "harusipass",
@@ -16,7 +16,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Harusi Pass inahitaji kamera kuskani QR za kadi."
+          "cameraPermission": "Kadi Sasa inahitaji kamera kuskani QR za kadi."
         }
       ],
       "expo-sqlite",

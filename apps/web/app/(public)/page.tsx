@@ -20,17 +20,19 @@ import {
 import { getPage, pagePath, textOf } from '@/content';
 import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
+import { getBrandingOnServer } from '@/lib/server-branding';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('landing');
   const locale = (await getLocale()) as Locale;
+  const brand = (await getBrandingOnServer()).businessName;
   return {
-    title: { absolute: t('metaTitle') },
+    title: { absolute: t('metaTitle', { brand }) },
     description: t('metaDescription'),
     openGraph: {
       type: 'website',
-      siteName: 'Harusi Pass',
-      title: t('metaTitle'),
+      siteName: brand,
+      title: t('metaTitle', { brand }),
       description: t('metaDescription'),
       locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
       url: absoluteLocaleUrl('/', locale),
@@ -53,6 +55,7 @@ const STEP_ICONS = [UserPlus, Send, HandCoins, DoorOpen] as const;
 /** Swahili-first landing (server-rendered, no client JS beyond the language chip). */
 export default async function Landing() {
   const t = await getTranslations('landing');
+  const brand = (await getBrandingOnServer()).businessName;
   const steps = ['1', '2', '3', '4'] as const;
   const faqs = ['1', '2', '3', '4', '5', '6'] as const;
   const tc = await getTranslations('common');
@@ -142,9 +145,9 @@ export default async function Landing() {
 
       <section className="mx-auto max-w-3xl px-4 pt-12" aria-labelledby="what">
         <h2 id="what" className="text-3xl font-semibold">
-          {t('definitionTitle')}
+          {t('definitionTitle', { brand })}
         </h2>
-        <p className="mt-3 text-lg leading-relaxed">{t('definition')}</p>
+        <p className="mt-3 text-lg leading-relaxed">{t('definition', { brand })}</p>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-12" aria-labelledby="how">

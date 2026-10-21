@@ -56,7 +56,7 @@ Owners can override every colour of the digital and print card on the Kadi page 
 - **PDF export** returns a one-line mock PDF. The real batch PDF (A6/A5, A4 4-up, test sheet) is Phase 3 and must keep the §6.4 assertions; the console already blocks layouts with a QR below 25 mm or modules below 0.8 mm.
 - **Contacts picker** uses the Contact Picker API on Android Chrome; elsewhere it shows sample contacts.
 - **Reminder scheduler** (T-14/T-7/T-1) is configuration only; the BullMQ scheduler is Phase 3.
-- **Staff panel** has no pricing, invoices or refunds yet (ADR 012). Staff sub-roles and a second factor exist in the mock.
+- **Staff panel** has no pricing, invoices or refunds yet (ADR 012). Staff sub-roles and the second factor (TOTP on the real API, ADR 040) are built.
 - **Gate scanner** is not on the web (by design, ADR 005/010); the web Lango page is a monitor with manual check-in.
 - **Storybook** covers the framework-agnostic `src/components/ui` set. `ConsoleShell`, headers and `LanguageChip` depend on next-intl/router and are covered by Playwright screenshots and `/dev/states` (ADR 011).
 - **Token contrast**: §17.2 gate fills and the gold accent don't reach the ratios the spec claims (ADR 006). The web uses the accent decoratively only; the Android gate overlay (Phase 5) must darken the fills.

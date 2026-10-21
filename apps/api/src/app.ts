@@ -34,6 +34,7 @@ import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content'
 import { fromLegacyKeys, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
 import { OpsService } from './services/ops';
+import { requireStaff, type StaffCaller } from './services/staff-guard';
 import { MessagingSettingsService } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
 import { BrandingService } from './services/branding';
@@ -43,7 +44,7 @@ import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
 
-type Env = { Variables: { userId: string; gate?: GateClaims } };
+type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
 function parse<T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> {
   const r = schema.safeParse(data);
@@ -186,6 +187,8 @@ export function createApp(deps: Deps) {
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
   const payReads = new RateLimiter(deps.now, 120, 60_000, 'pay-read', deps.rateStore);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000, 'gate-join', deps.rateStore);
+  // On top of the per-account lockout in StaffTotpService (ADR 040).
+  const staffFactor = new RateLimiter(deps.now, 10, 60_000, 'staff-2fa', deps.rateStore);
   // Public endpoints are rate-limited per client and per token (§9) so tokens cannot be probed.
   const cardReads = new RateLimiter(
     deps.now,
@@ -209,6 +212,7 @@ export function createApp(deps: Deps) {
     if (u.status === 'suspended')
       throw new ApiError('forbidden', 'Account suspended', { reason: 'suspended' });
     c.set('userId', claims.userId);
+    c.set('mfa', claims.mfa === true);
     await next();
   };
 
@@ -229,6 +233,8 @@ export function createApp(deps: Deps) {
     }
     return requireAuth(c, next);
   };
+  /** Staff routes check the role and the second factor themselves (staff-guard.ts, ADR 040). */
+  const staff = (c: Context<Env>): StaffCaller => ({ userId: c.get('userId'), mfa: c.get('mfa') });
   const actorOf = (c: Context<Env>): GateActor => {
     const claims = c.get('gate');
     return claims ? { kind: 'gate', claims } : { kind: 'user', userId: c.get('userId') };
@@ -268,6 +274,19 @@ export function createApp(deps: Deps) {
   app.post('/v1/auth/refresh', async (c) => {
     const { refreshToken } = parse(z.object({ refreshToken: z.string().min(10) }), await body(c));
     return c.json(await auth.refresh(refreshToken));
+  });
+  // Staff second factor (ADR 040): the challenge from /otp/verify, never an access token.
+  const challenge = z.string().min(20).max(2000);
+  app.post('/v1/auth/staff/totp/enrol', async (c) => {
+    await staffFactor.check(`ip:${client(c)}`);
+    const input = parse(z.object({ challenge }), await body(c));
+    const issuer = (await brandingSvc.publicView()).businessName;
+    return c.json(await auth.startStaffEnrolment(input.challenge, issuer));
+  });
+  app.post('/v1/auth/staff/totp/verify', async (c) => {
+    await staffFactor.check(`ip:${client(c)}`);
+    const input = parse(z.object({ challenge, code: z.string().regex(/^\d{6}$/) }), await body(c));
+    return c.json(await auth.verifyStaffSecondFactor(input.challenge, input.code));
   });
   app.post('/v1/auth/logout', async (c) => {
     const { refreshToken } = parse(z.object({ refreshToken: z.string().min(10) }), await body(c));
@@ -742,28 +761,32 @@ export function createApp(deps: Deps) {
   });
 
   // ---- staff (ops) panel (ADR 012). Staff levels and the audit log are enforced in OpsService.
+  // Every /v1/ops route first needs an active staff member whose session passed the second factor
+  // (ADR 040), before any input is read; the services check the same again with the exact level.
+  app.use('/v1/ops/*', async (c, next) => {
+    await requireStaff(deps.db, staff(c));
+    await next();
+  });
   const idParam = (c: Context) => parse(z.string().uuid(), c.req.param('id'));
-  app.get('/v1/ops/overview', async (c) => c.json(await opsSvc.overview(c.get('userId'))));
-  app.get('/v1/ops/organizers', async (c) => c.json(await opsSvc.listOrganizers(c.get('userId'))));
+  app.get('/v1/ops/overview', async (c) => c.json(await opsSvc.overview(staff(c))));
+  app.get('/v1/ops/organizers', async (c) => c.json(await opsSvc.listOrganizers(staff(c))));
   app.patch('/v1/ops/organizers/:id/status', async (c) => {
     const input = parse(
       z.object({ status: z.enum(['active', 'suspended']), reason: z.string().max(500) }),
       await body(c),
     );
-    return c.json(
-      await opsSvc.setUserStatus(c.get('userId'), idParam(c), input.status, input.reason),
-    );
+    return c.json(await opsSvc.setUserStatus(staff(c), idParam(c), input.status, input.reason));
   });
-  app.get('/v1/ops/events', async (c) => c.json(await opsSvc.listEvents(c.get('userId'))));
+  app.get('/v1/ops/events', async (c) => c.json(await opsSvc.listEvents(staff(c))));
   app.patch('/v1/ops/events/:id/plan', async (c) => {
     const { plan } = parse(z.object({ plan: z.enum(['free', 'paid']) }), await body(c));
-    return c.json(await opsSvc.setEventPlan(c.get('userId'), idParam(c), plan));
+    return c.json(await opsSvc.setEventPlan(staff(c), idParam(c), plan));
   });
-  app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(c.get('userId'))));
-  app.get('/v1/ops/payments', async (c) => c.json(await opsSvc.listPayments(c.get('userId'))));
+  app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(staff(c))));
+  app.get('/v1/ops/payments', async (c) => c.json(await opsSvc.listPayments(staff(c))));
   app.get('/v1/ops/lookup', async (c) => {
     const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());
-    return c.json(await opsSvc.lookup(c.get('userId'), q));
+    return c.json(await opsSvc.lookup(staff(c), q));
   });
   app.post('/v1/ops/reveal-phone', async (c) => {
     const input = parse(
@@ -775,19 +798,17 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(
-      await opsSvc.revealPhone(c.get('userId'), { kind: input.kind, id: input.id }, input.reason),
+      await opsSvc.revealPhone(staff(c), { kind: input.kind, id: input.id }, input.reason),
     );
   });
-  app.get('/v1/ops/audit', async (c) => c.json(await opsSvc.listAudit(c.get('userId'))));
-  app.get('/v1/ops/data-requests', async (c) => c.json(await opsSvc.listRequests(c.get('userId'))));
+  app.get('/v1/ops/audit', async (c) => c.json(await opsSvc.listAudit(staff(c))));
+  app.get('/v1/ops/data-requests', async (c) => c.json(await opsSvc.listRequests(staff(c))));
   app.post('/v1/ops/data-requests/:id/resolve', async (c) => {
     const input = parse(
       z.object({ status: z.enum(['done', 'rejected']), note: z.string().max(500).default('') }),
       await body(c),
     );
-    return c.json(
-      await opsSvc.resolveRequest(c.get('userId'), idParam(c), input.status, input.note),
-    );
+    return c.json(await opsSvc.resolveRequest(staff(c), idParam(c), input.status, input.note));
   });
   // ---- staff: launch-gate numbers per country (Phase 5, docs/ops/kenya-pilot-runbook.md)
   app.get('/v1/ops/pilot-metrics', async (c) => {
@@ -798,11 +819,11 @@ export function createApp(deps: Deps) {
       }),
       c.req.query(),
     );
-    return c.json(await pilotSvc.report(c.get('userId'), q));
+    return c.json(await pilotSvc.report(staff(c), q));
   });
   // ---- staff: SMS and WhatsApp provider settings (ADR 031, admin staff only)
   const routeParam = (c: Context) => parse(z.enum(MESSAGING_ROUTES), c.req.param('route'));
-  app.get('/v1/ops/messaging', async (c) => c.json(await messagingSvc.view(c.get('userId'))));
+  app.get('/v1/ops/messaging', async (c) => c.json(await messagingSvc.view(staff(c))));
   app.put('/v1/ops/messaging/:route', async (c) => {
     const input = parse(
       z.object({
@@ -811,24 +832,22 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(await messagingSvc.save(c.get('userId'), routeParam(c), input));
+    return c.json(await messagingSvc.save(staff(c), routeParam(c), input));
   });
   app.delete('/v1/ops/messaging/:route', async (c) =>
-    c.json(await messagingSvc.reset(c.get('userId'), routeParam(c))),
+    c.json(await messagingSvc.reset(staff(c), routeParam(c))),
   );
   app.post('/v1/ops/messaging/:route/test', async (c) => {
     const { to } = parse(z.object({ to: phone }), await body(c));
-    return c.json(await messagingSvc.test(c.get('userId'), routeParam(c), to));
+    return c.json(await messagingSvc.test(staff(c), routeParam(c), to));
   });
   app.post('/v1/ops/messaging/import-env', async (c) =>
-    c.json(await messagingSvc.importFromEnvironment(c.get('userId'))),
+    c.json(await messagingSvc.importFromEnvironment(staff(c))),
   );
 
   // ---- staff: payment gateway settings (ADR 036, admin staff only)
   const paymentRouteParam = (c: Context) => parse(z.enum(PAYMENT_ROUTES), c.req.param('route'));
-  app.get('/v1/ops/payment-settings', async (c) =>
-    c.json(await paymentSettingsSvc.view(c.get('userId'))),
-  );
+  app.get('/v1/ops/payment-settings', async (c) => c.json(await paymentSettingsSvc.view(staff(c))));
   app.put('/v1/ops/payment-settings/:route', async (c) => {
     const input = parse(
       z.object({
@@ -837,13 +856,13 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(await paymentSettingsSvc.save(c.get('userId'), paymentRouteParam(c), input));
+    return c.json(await paymentSettingsSvc.save(staff(c), paymentRouteParam(c), input));
   });
   app.delete('/v1/ops/payment-settings/:route', async (c) =>
-    c.json(await paymentSettingsSvc.reset(c.get('userId'), paymentRouteParam(c))),
+    c.json(await paymentSettingsSvc.reset(staff(c), paymentRouteParam(c))),
   );
   app.post('/v1/ops/payment-settings/:route/test', async (c) =>
-    c.json(await paymentSettingsSvc.test(c.get('userId'), paymentRouteParam(c))),
+    c.json(await paymentSettingsSvc.test(staff(c), paymentRouteParam(c))),
   );
 
   // ---- business branding (ADR 036): public to read, admin staff only to change
@@ -883,20 +902,18 @@ export function createApp(deps: Deps) {
     fontBody: z.enum(BODY_FONT_KEYS),
     fontDisplay: z.enum(DISPLAY_FONT_KEYS),
   });
-  app.get('/v1/ops/branding', async (c) => c.json(await brandingSvc.view(c.get('userId'))));
+  app.get('/v1/ops/branding', async (c) => c.json(await brandingSvc.view(staff(c))));
   app.put('/v1/ops/branding', async (c) =>
-    c.json(await brandingSvc.save(c.get('userId'), parse(brandingInput, await body(c)))),
+    c.json(await brandingSvc.save(staff(c), parse(brandingInput, await body(c)))),
   );
   app.put('/v1/ops/branding/logo', async (c) => {
     const input = parse(
       z.object({ mime: z.string().max(40), data: z.string().max(400_000) }),
       await body(c),
     );
-    return c.json(await brandingSvc.setLogo(c.get('userId'), input));
+    return c.json(await brandingSvc.setLogo(staff(c), input));
   });
-  app.delete('/v1/ops/branding/logo', async (c) =>
-    c.json(await brandingSvc.removeLogo(c.get('userId'))),
-  );
+  app.delete('/v1/ops/branding/logo', async (c) => c.json(await brandingSvc.removeLogo(staff(c))));
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),
   );

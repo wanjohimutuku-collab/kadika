@@ -2,6 +2,8 @@
  * Local development without Docker: the real API on an in-memory PGlite database with fake
  * providers. Data is lost on restart. Prints OTP codes to the log. NEVER used in production.
  *   pnpm --filter @harusi/api exec tsx src/dev-pglite.ts
+ * DEV_STAFF_PHONE=+255700000999 also creates that number as an admin staff account, to try the
+ * staff sign-in with its authenticator step (ADR 040).
  */
 import { serve } from '@hono/node-server';
 import { PGlite } from '@electric-sql/pglite';
@@ -11,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { FakeMessagingProvider } from '@harusi/messaging';
 import { FakePaymentProvider } from '@harusi/payments';
 import * as schema from '@harusi/db/schema';
-import type { Db } from '@harusi/db';
+import { newId, type Db } from '@harusi/db';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { systemRandom } from './context';
@@ -22,6 +24,14 @@ const db = drizzle(client, { schema }) as unknown as Db;
 await migrate(db as never, {
   migrationsFolder: fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url)),
 });
+if (process.env.DEV_STAFF_PHONE)
+  await db.insert(schema.users).values({
+    id: newId(),
+    name: 'Dev Staff',
+    phoneE164: process.env.DEV_STAFF_PHONE,
+    roleGlobal: 'admin',
+    staffRole: 'admin',
+  });
 const log = (kind: string) => {
   const fake = new FakeMessagingProvider(kind === 'sms' ? 'sms' : 'whatsapp');
   return {

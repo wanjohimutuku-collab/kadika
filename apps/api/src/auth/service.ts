@@ -6,12 +6,30 @@ import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { OtpService } from './otp';
-import { REFRESH_TTL_MS, newRefreshToken, signAccessToken } from './tokens';
+import { StaffTotpService } from './staff-totp';
+import {
+  REFRESH_TTL_MS,
+  newRefreshToken,
+  signAccessToken,
+  signStaffChallenge,
+  verifyStaffChallenge,
+} from './tokens';
+
+type AuthUser = { id: string; name: string; phoneE164: string; roleGlobal: 'user' | 'admin' };
 
 export interface AuthResult {
   accessToken: string;
   refreshToken: string;
-  user: { id: string; name: string; phoneE164: string; roleGlobal: 'user' | 'admin' };
+  user: AuthUser;
+}
+
+/**
+ * What staff get after the SMS code (ADR 040): no access token, only a short-lived challenge that
+ * `/v1/auth/staff/totp/*` accepts. `enrolled: false` means the authenticator must be set up first.
+ */
+export interface StaffChallengeResult {
+  secondFactor: { challenge: string; enrolled: boolean; expiresAt: string };
+  user: AuthUser;
 }
 
 /**
@@ -31,9 +49,11 @@ export function parsePhone(
 
 export class AuthService {
   readonly otp: OtpService;
+  readonly totp: StaffTotpService;
 
   constructor(private deps: Deps) {
     this.otp = new OtpService(deps);
+    this.totp = new StaffTotpService(deps);
   }
 
   async requestOtp(phoneInput: string) {
@@ -42,7 +62,7 @@ export class AuthService {
     return { phone, ...res };
   }
 
-  async verifyOtp(phoneInput: string, code: string): Promise<AuthResult> {
+  async verifyOtp(phoneInput: string, code: string): Promise<AuthResult | StaffChallengeResult> {
     const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
     this.otp.verify(phone, code);
     const { db } = this.deps;
@@ -60,7 +80,33 @@ export class AuthService {
     }
     if (!user) throw new ApiError('internal');
     await this.acceptInvites(user.id, phone);
+    if (user.roleGlobal === 'admin') {
+      // Staff can read every customer: the SMS code alone is not enough (ADR 012, 040).
+      const c = await signStaffChallenge(this.deps, user.id);
+      return {
+        secondFactor: {
+          challenge: c.token,
+          enrolled: !!user.staffTotpEnrolledAt,
+          expiresAt: c.expiresAt.toISOString(),
+        },
+        user: { id: user.id, name: user.name, phoneE164: phone, roleGlobal: user.roleGlobal },
+      };
+    }
     return this.issue(user.id, user.name, phone, user.roleGlobal);
+  }
+
+  /** Authenticator setup for staff who have none yet; needs the challenge from `verifyOtp`. */
+  async startStaffEnrolment(challenge: string, issuer: string) {
+    return this.totp.startEnrolment(await verifyStaffChallenge(this.deps, challenge), issuer);
+  }
+
+  /** Second step for staff: a good authenticator code turns the challenge into a full session. */
+  async verifyStaffSecondFactor(challenge: string, code: string): Promise<AuthResult> {
+    const userId = await verifyStaffChallenge(this.deps, challenge);
+    await this.totp.verify(userId, code);
+    const [u] = await this.deps.db.select().from(users).where(eq(users.id, userId));
+    if (!u) throw new ApiError('internal');
+    return this.issue(u.id, u.name, u.phoneE164, u.roleGlobal, true);
   }
 
   /** Pending team invitations for this phone become memberships (the gap found in ADR 012). */
@@ -84,6 +130,7 @@ export class AuthService {
     name: string,
     phoneE164: string,
     roleGlobal: 'user' | 'admin',
+    mfa = false,
   ): Promise<AuthResult> {
     const refresh = newRefreshToken(this.deps);
     await this.deps.db.insert(refreshTokens).values({
@@ -91,9 +138,10 @@ export class AuthService {
       userId,
       tokenHash: refresh.hash,
       expiresAt: new Date(this.deps.now().getTime() + REFRESH_TTL_MS),
+      mfa,
     });
     return {
-      accessToken: await signAccessToken(this.deps, { userId, roleGlobal }),
+      accessToken: await signAccessToken(this.deps, { userId, roleGlobal, mfa }),
       refreshToken: refresh.token,
       user: { id: userId, name, phoneE164, roleGlobal },
     };
@@ -119,8 +167,15 @@ export class AuthService {
     const [user] = await db.select().from(users).where(eq(users.id, row.userId));
     if (!user || user.status === 'suspended')
       throw new ApiError('forbidden', 'Account suspended', { reason: 'suspended' });
+    // A session from before someone became staff (or before ADR 040) cannot be refreshed into one.
+    if (user.roleGlobal === 'admin' && !row.mfa) {
+      await db.update(refreshTokens).set({ revokedAt: now }).where(eq(refreshTokens.id, row.id));
+      throw new ApiError('unauthorized', 'Second factor required', {
+        reason: 'second_factor_required',
+      });
+    }
     await db.update(refreshTokens).set({ revokedAt: now }).where(eq(refreshTokens.id, row.id));
-    return this.issue(user.id, user.name, user.phoneE164, user.roleGlobal);
+    return this.issue(user.id, user.name, user.phoneE164, user.roleGlobal, row.mfa);
   }
 
   async logout(token: string) {

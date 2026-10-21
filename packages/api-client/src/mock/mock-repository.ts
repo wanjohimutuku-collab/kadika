@@ -17,11 +17,13 @@ import {
 } from '@harusi/schemas';
 import { RepositoryError } from '../errors';
 import {
+  CARD_DELIVERY_KINDS,
   DEFAULT_PRICING,
   addAllowance,
   pricingCatalogSchema,
-  quoteItem,
+  quote,
   remainingOf,
+  sortedTiers,
   type Allowance,
   type BillingOrderInput,
   type EventBillingView,
@@ -380,9 +382,19 @@ export class MockRepository implements Repository {
     last: Map<string, MessageLogEntry>,
   ): Guest {
     const paid = paidBy.get(g.id) ?? 0;
-    const { token: _t, deletedAt: _d, pledgeAmount, pledgeWaived, ...rest } = g;
+    const {
+      token: _t,
+      deletedAt: _d,
+      pledgeAmount,
+      pledgeWaived,
+      printCard,
+      cardGeneratedAt: _g,
+      ...rest
+    } = g;
     return {
       ...rest,
+      printCard: printCard ?? !g.phoneE164,
+      cardGenerated: this.isGenerated(g),
       lastMessageFailed: last.get(g.id)?.status === 'failed',
       pledge:
         pledgeAmount != null
@@ -391,6 +403,16 @@ export class MockRepository implements Repository {
             ? summarizePledge(0, paid)
             : null,
     };
+  }
+
+  /** A card is generated the first time it is sent or printed (ADR 042). */
+  private isGenerated(g: GuestRecord): boolean {
+    return !!g.cardGeneratedAt || (g.cardGeneratedAt === undefined && g.status !== 'created');
+  }
+
+  private markGenerated(list: GuestRecord[]): void {
+    const now = iso(this.now());
+    for (const g of list) if (!this.isGenerated(g)) g.cardGeneratedAt = now;
   }
 
   private guestsOf(eventId: string): GuestRecord[] {
@@ -878,6 +900,8 @@ export class MockRepository implements Repository {
       token: this.rng.token(),
       language: v.language,
       inviteChannelPref: !v.phone ? 'print' : v.inviteChannelPref,
+      printCard: v.printCard ?? !v.phone,
+      cardGeneratedAt: null,
       notes: v.notes,
       status: 'created',
       timeline: { created: now },
@@ -919,6 +943,7 @@ export class MockRepository implements Repository {
         partySizeAllowed: g.partySizeAllowed,
         cardKind: g.cardKind,
         inviteChannelPref: g.inviteChannelPref,
+        printCard: g.printCard ?? !g.phoneE164,
         hasSmartphone: g.hasSmartphone,
         language: g.language,
         notes: g.notes,
@@ -1248,6 +1273,7 @@ export class MockRepository implements Repository {
       );
       this.state.idempotency[`send:${req.idempotencyKey}`] = JSON.stringify(job.id);
       if (req.kind === 'invite' && !scheduled) {
+        this.markGenerated(list.filter((g) => !!g.phoneE164));
         for (const g of list)
           if (STATUS_RANK[g.status] < STATUS_RANK.queued) {
             g.status = 'queued';
@@ -1527,11 +1553,26 @@ export class MockRepository implements Repository {
 
   requestCardsPdf(
     eventId: string,
-    opts: { format: 'A6' | 'A5'; layout: 'single' | 'a4-4up' | 'test-sheet'; guestIds?: string[] },
+    opts: {
+      format: 'A6' | 'A5';
+      layout: 'single' | 'a4-4up' | 'test-sheet';
+      guestIds?: string[];
+      marked?: boolean;
+    },
   ): Promise<Blob> {
     return this.run('online-only', 'pdf', () => {
       const e = this.event(eventId);
-      const count = opts.guestIds?.length ?? this.guestsOf(eventId).length;
+      const list = this.guestsOf(eventId).filter(
+        (g) =>
+          (!opts.guestIds || opts.guestIds.includes(g.id)) &&
+          (!opts.marked || (g.printCard ?? !g.phoneE164)),
+      );
+      if (opts.layout !== 'test-sheet') {
+        if (list.length === 0) throw new RepositoryError('validation', 'No guests to print');
+        this.markGenerated(list);
+        this.persist();
+      }
+      const count = list.length;
       return new Blob(
         [
           minimalPdf(
@@ -2154,13 +2195,17 @@ export class MockRepository implements Repository {
     const c = this.catalog();
     const bought = (this.state.purchases ?? [])
       .filter((p) => p.eventId === eventId && p.status === 'paid')
-      .reduce((a, p) => addAllowance(a, p.adds), { cards: 0, sms: 0, whatsapp: 0 });
+      .reduce((a, p) => addAllowance(a, p.adds), { cards: 0, messages: 0 });
     const allowance = addAllowance(c.free, bought);
-    const sent = this.state.messages.filter((m) => m.eventId === eventId && m.status !== 'failed');
     const used: Allowance = {
-      cards: this.guestsOf(eventId).length,
-      sms: sent.filter((m) => m.channel === 'sms').length,
-      whatsapp: sent.filter((m) => m.channel === 'whatsapp').length,
+      cards: this.state.guests.filter((g) => g.eventId === eventId && this.isGenerated(g)).length,
+      messages: this.state.messages.filter(
+        (m) =>
+          m.eventId === eventId &&
+          m.status !== 'failed' &&
+          m.channel !== 'print' &&
+          !(CARD_DELIVERY_KINDS as readonly string[]).includes(m.kind),
+      ).length,
     };
     return { enforced: c.enforced, allowance, used, remaining: remainingOf(allowance, used) };
   }
@@ -2178,6 +2223,19 @@ export class MockRepository implements Repository {
     return { ...view };
   }
 
+  setPrintCard(
+    eventId: string,
+    guestIds: string[],
+    printCard: boolean,
+  ): Promise<{ updated: number }> {
+    return this.run('write', 'Kadi za kuchapisha', () => {
+      this.requireSession();
+      const list = this.guestsOf(eventId).filter((g) => guestIds.includes(g.id));
+      for (const g of list) g.printCard = printCard;
+      return { updated: list.length };
+    });
+  }
+
   getBilling(eventId: string): Promise<EventBillingView> {
     return this.run('read', 'billing', () => {
       this.requireSession();
@@ -2188,8 +2246,13 @@ export class MockRepository implements Repository {
         ...this.billingNumbers(eventId),
         currency: cur,
         free: c.free,
-        bundles: c.bundles.map(({ price, ...b }) => ({ ...b, amount: price[cur] })),
+        messagesPerCard: c.messagesPerCard,
+        cardTiers: sortedTiers(c.cardTiers).map((t) => ({
+          minCards: t.minCards,
+          price: t.price[cur],
+        })),
         packs: c.packs.map(({ price, ...p }) => ({ ...p, amount: price[cur] })),
+        cardsToGenerate: this.guestsOf(eventId).filter((g) => !this.isGenerated(g)).length,
         purchases: (this.state.purchases ?? [])
           .filter((p) => p.eventId === eventId)
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -2209,8 +2272,12 @@ export class MockRepository implements Repository {
       const e = this.event(eventId);
       const known = this.state.idempotency[`bill:${idempotencyKey}`];
       if (known) return this.purchaseView(this.purchaseOf(eventId, known));
-      const q = quoteItem(this.catalog(), input.itemKey, e.currency);
-      if (!q) throw new RepositoryError('validation', 'Unknown item', { field: 'itemKey' });
+      const q = quote(
+        this.catalog(),
+        input.cards !== undefined ? { cards: input.cards } : { packKey: input.packKey ?? '' },
+        e.currency,
+      );
+      if (!q) throw new RepositoryError('validation', 'Unknown item or quantity');
       if (input.method === 'mobile' && !input.phoneE164)
         throw new RepositoryError('validation', 'Invalid phone number', { field: 'phone' });
       const now = iso(this.now());
@@ -2219,9 +2286,10 @@ export class MockRepository implements Repository {
         id: this.rng.uuid(),
         eventId,
         kind: q.kind,
-        itemKey: q.key,
+        itemKey: q.itemKey,
         label: q.label,
         adds: q.adds,
+        unitPrice: q.unitPrice,
         amount: q.amount,
         currency: e.currency,
         // The mock has no phone to approve the prompt: a mobile order is paid at once.
@@ -2235,7 +2303,7 @@ export class MockRepository implements Repository {
       };
       (this.state.purchases ??= []).push(p);
       this.state.idempotency[`bill:${idempotencyKey}`] = p.id;
-      if (mobile && p.kind === 'bundle') e.plan = 'paid';
+      if (mobile && p.kind === 'cards') e.plan = 'paid';
       this.persist();
       return this.purchaseView(p);
     });
@@ -2323,7 +2391,7 @@ export class MockRepository implements Repository {
       p.paidAt = iso(this.now());
       p.note = note.trim();
       const e = this.event(p.eventId);
-      if (p.kind === 'bundle') e.plan = 'paid';
+      if (p.kind === 'cards') e.plan = 'paid';
       this.opsLog('purchase_paid', e.coupleNames, `${p.label} · ${note.trim()}`);
       return this.purchaseView(p);
     });
@@ -2342,7 +2410,7 @@ export class MockRepository implements Repository {
       const why = input.note.trim();
       if (why.length < 3)
         throw new RepositoryError('validation', 'reason_required', { field: 'note' });
-      if (input.cards + input.sms + input.whatsapp <= 0)
+      if (input.cards + input.messages <= 0)
         throw new RepositoryError('validation', 'Grant at least one card or message');
       const e = this.event(eventId);
       const now = iso(this.now());
@@ -2352,7 +2420,8 @@ export class MockRepository implements Repository {
         kind: 'grant' as const,
         itemKey: null,
         label: 'Zawadi ya kamati ya huduma',
-        adds: { cards: input.cards, sms: input.sms, whatsapp: input.whatsapp },
+        adds: { cards: input.cards, messages: input.messages },
+        unitPrice: null,
         amount: 0,
         currency: e.currency,
         status: 'paid' as PurchaseStatus,

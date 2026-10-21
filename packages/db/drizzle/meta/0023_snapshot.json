@@ -1,5 +1,5 @@
 {
-  "id": "83626768-6d80-4d4f-b929-34dbc450fb1a",
+  "id": "0ac5c4d9-b55f-4933-a5f1-299c7be1e0f3",
   "prevId": "6db5a62b-83e9-4c55-8eb0-698f821ecfcb",
   "version": "7",
   "dialect": "postgresql",
@@ -643,19 +643,18 @@
           "notNull": true,
           "default": 0
         },
-        "sms": {
-          "name": "sms",
+        "messages": {
+          "name": "messages",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "default": 0
         },
-        "whatsapp": {
-          "name": "whatsapp",
+        "unit_price": {
+          "name": "unit_price",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": false
         },
         "amount": {
           "name": "amount",
@@ -1421,6 +1420,19 @@
           "notNull": true,
           "default": false
         },
+        "print_card": {
+          "name": "print_card",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "card_generated_at": {
+          "name": "card_generated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "deleted_at": {
           "name": "deleted_at",
           "type": "timestamp with time zone",
@@ -2099,6 +2111,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "amount_enc": {
+          "name": "amount_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_enc": {
+          "name": "note_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_enc": {
+          "name": "phone_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "recorded_by": {
           "name": "recorded_by",
           "type": "uuid",
@@ -2226,6 +2256,18 @@
         },
         "note": {
           "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "amount_enc": {
+          "name": "amount_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note_enc": {
+          "name": "note_enc",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3294,7 +3336,7 @@
       "name": "purchase_kind",
       "schema": "public",
       "values": [
-        "bundle",
+        "cards",
         "pack",
         "grant"
       ]

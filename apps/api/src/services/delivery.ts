@@ -12,7 +12,8 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import type { EventService } from './events';
-import { BillingService, type MessageBudget } from './billing';
+import { BillingService, type CreditBudget } from './billing';
+import { CARD_DELIVERY_KINDS } from '@harusi/schemas/billing';
 
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
@@ -233,26 +234,31 @@ export class DeliveryService {
     channels: MessageChannel[],
     daysLeft?: number,
     built?: { text: string; template: MessageTemplate },
-    budget?: MessageBudget,
+    budget?: CreditBudget,
   ): Promise<{ ok: true; channel: MessageChannel } | { ok: false; error: string }> {
     // Rollback lever: nothing new goes out for Kenya; the invitation stays `created` for a later resend.
     if (event.country !== 'TZ' && this.deps.config.kenyaSendingPaused)
       return { ok: false, error: 'sending paused' };
     const { text, template } = built ?? (await this.text(guest, inv, event, daysLeft));
     const credit = budget ?? (await this.billing.budget(event.id));
+    // ADR 042: sending a guest's card the first time generates it (one card); everything else that is
+    // not the card itself (reminders, pledge reminders) spends one reminder credit per message.
+    const delivers = (CARD_DELIVERY_KINDS as readonly string[]).includes(kind);
+    const generates = delivers && !guest.cardGeneratedAt;
+    if (generates && !credit.takeCard()) return { ok: false, error: 'quota_exceeded' };
     let lastError = 'no provider configured';
     for (const ch of channels) {
       const p = this.provider(ch, guest.phoneE164!, event.country);
       if (!p) continue;
-      // Out of messages on this channel: try the next one (WhatsApp falls back to SMS), ADR 042.
-      if (!credit.take(ch)) {
+      if (!delivers && !credit.takeMessage()) {
         lastError = 'quota_exceeded';
-        continue;
+        break;
       }
       const r = await this.attempt(p, guest.phoneE164!, text, template);
       await this.log(guest.id, ch, p.name, r, kind);
-      if (!r.ok) credit.refund(ch); // a failed message is not charged
+      if (!r.ok && !delivers) credit.refundMessage(); // a failed message is not charged
       if (r.ok) {
+        if (generates) await this.billing.markGenerated([guest.id]);
         await this.deps.db
           .update(invitations)
           .set({
@@ -268,6 +274,7 @@ export class DeliveryService {
       }
       lastError = r.error;
     }
+    if (generates) credit.refundCard(); // nothing reached the guest: the card is not charged
     return { ok: false, error: lastError };
   }
 
@@ -507,10 +514,31 @@ export class DeliveryService {
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {
     await this.assertCanSend(eventId, userId);
-    // Refuse up front (402) when the event has too few messages left for everyone this send reaches.
-    const p = await this.preview(eventId, userId, input);
-    await this.billing.assertCanSend(eventId, p.byChannel);
+    // Refuse up front (402) when the event cannot generate every card, or pay for every reminder, that
+    // this send would need (ADR 042).
+    await this.billing.assertCanUse(eventId, await this.needs(eventId, input));
     return this.run(eventId, input);
+  }
+
+  /** Cards a send would generate and reminder credits it would spend, by the same rules as `run`. */
+  private async needs(eventId: string, input: SendInput) {
+    const { kind, picked } = await this.pick(eventId, input);
+    const reminded =
+      kind === 'reminder'
+        ? await this.recentlyReminded(
+            picked.map((p) => p.guest.id),
+            this.deps.now(),
+          )
+        : new Set<string>();
+    let cards = 0;
+    let messages = 0;
+    for (const { guest } of picked) {
+      if (this.channelsFor(guest, input.channel ?? 'auto').length === 0) continue;
+      if (kind === 'reminder') {
+        if (!guest.remindersOptOut && !reminded.has(guest.id)) messages++;
+      } else if (!guest.cardGeneratedAt) cards++;
+    }
+    return { cards, messages };
   }
 
   /** The guests an audience matches, with the event; nothing is sent. */

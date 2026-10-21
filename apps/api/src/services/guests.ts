@@ -18,7 +18,6 @@ import { ApiError } from '../errors';
 import { eventCountry, type EventService } from './events';
 import { pledgeSummaryOf } from './pledges';
 import { recordAudit } from './audit';
-import { BillingService } from './billing';
 
 export interface GuestInput {
   displayName: string;
@@ -30,6 +29,8 @@ export interface GuestInput {
   hasSmartphone?: boolean | null;
   language?: 'sw' | 'en';
   inviteChannelPref?: 'whatsapp' | 'sms' | 'print' | 'mixed';
+  /** Gets a printed card (ADR 042). Left out: yes for a guest without a phone, else no. */
+  printCard?: boolean;
   notes?: string | null;
 }
 
@@ -45,11 +46,6 @@ export class GuestService {
     private deps: Deps,
     private eventsSvc: EventService,
   ) {}
-
-  private billingSvc?: BillingService;
-  private get billing(): BillingService {
-    return (this.billingSvc ??= new BillingService(this.deps, this.eventsSvc));
-  }
 
   private async canManage(eventId: string, userId: string) {
     const role = await this.eventsSvc.role(eventId, userId);
@@ -106,8 +102,6 @@ export class GuestService {
   async create(eventId: string, userId: string, input: GuestInput) {
     await this.canManage(eventId, userId);
     const phone = this.normalizePhone(input.phone, await eventCountry(this.deps.db, eventId));
-    // Every guest is one card: past the event's card allowance a new one is refused (ADR 042).
-    await this.billing.assertCanAddCards(eventId);
     return this.deps.db.transaction(async (tx) => {
       if (phone) {
         const [dupe] = await tx
@@ -139,6 +133,7 @@ export class GuestService {
           shortCode: await this.uniqueShortCode(eventId, tx as Deps['db']),
           language: input.language ?? 'en',
           inviteChannelPref: phone ? (input.inviteChannelPref ?? 'mixed') : 'print',
+          printCard: input.printCard ?? !phone,
           notes: input.notes ?? null,
         })
         .returning();
@@ -150,6 +145,22 @@ export class GuestService {
       });
       return { ...guest!, cardToken: token };
     });
+  }
+
+  /**
+   * Chooses, many at once, which guests get a printed card (ADR 042). Choosing is free; the card is
+   * charged when it is generated (printed or sent).
+   */
+  async setPrintCard(eventId: string, userId: string, guestIds: string[], printCard: boolean) {
+    await this.canManage(eventId, userId);
+    const done = await this.deps.db
+      .update(guests)
+      .set({ printCard })
+      .where(
+        and(eq(guests.eventId, eventId), inArray(guests.id, guestIds), isNull(guests.deletedAt)),
+      )
+      .returning({ id: guests.id });
+    return { updated: done.length };
   }
 
   /**
@@ -282,6 +293,7 @@ export class GuestService {
       'hasSmartphone',
       'language',
       'inviteChannelPref',
+      'printCard',
       'notes',
     ] as const) {
       if (patch[k] !== undefined) (set as Record<string, unknown>)[k] = patch[k];
@@ -428,8 +440,6 @@ export class GuestService {
     if (input.dryRun)
       return { summary, created: 0, skipped: summary.total - summary.valid, rows: preview };
     const included = preview.filter((p) => p.include);
-    // Refuse the whole list up front rather than stopping halfway through it.
-    await this.billing.assertCanAddCards(eventId, included.length);
     let created = 0;
     for (const r of included) {
       await this.create(eventId, userId, {

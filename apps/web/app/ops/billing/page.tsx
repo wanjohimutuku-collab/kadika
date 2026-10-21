@@ -223,49 +223,38 @@ function PricingEditor() {
               <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <legend className="mb-2 font-semibold">{t('free')}</legend>
                 {num(t('cards'), draft.free.cards, (n) => edit((c) => void (c.free.cards = n)))}
-                {num(t('sms'), draft.free.sms, (n) => edit((c) => void (c.free.sms = n)))}
-                {num(t('whatsapp'), draft.free.whatsapp, (n) =>
-                  edit((c) => void (c.free.whatsapp = n)),
+                {num(t('messages'), draft.free.messages, (n) =>
+                  edit((c) => void (c.free.messages = n)),
+                )}
+                {num(t('messagesPerCard'), draft.messagesPerCard, (n) =>
+                  edit((c) => void (c.messagesPerCard = n)),
                 )}
               </fieldset>
 
-              <section aria-labelledby="pricing-bundles" className="flex flex-col gap-3">
-                <h3 id="pricing-bundles" className="font-semibold">
-                  {t('bundles')}
+              <section aria-labelledby="pricing-tiers" className="flex flex-col gap-3">
+                <h3 id="pricing-tiers" className="font-semibold">
+                  {t('tiers')}
                 </h3>
-                {draft.bundles.map((b, i) => (
+                {draft.cardTiers.map((x, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-2 items-end gap-3 rounded-card border border-border p-3 md:grid-cols-8"
+                    className="grid grid-cols-2 items-end gap-3 rounded-card border border-border p-3 md:grid-cols-4"
+                    data-testid="pricing-tier"
                   >
-                    <TextField
-                      label={t('key')}
-                      value={b.key}
-                      disabled={ro}
-                      onChange={(e) => edit((c) => void (c.bundles[i]!.key = e.target.value))}
-                    />
-                    <TextField
-                      label={t('name')}
-                      value={b.name}
-                      disabled={ro}
-                      onChange={(e) => edit((c) => void (c.bundles[i]!.name = e.target.value))}
-                    />
-                    {num(t('cards'), b.cards, (n) => edit((c) => void (c.bundles[i]!.cards = n)))}
-                    {num(t('sms'), b.sms, (n) => edit((c) => void (c.bundles[i]!.sms = n)))}
-                    {num(t('whatsapp'), b.whatsapp, (n) =>
-                      edit((c) => void (c.bundles[i]!.whatsapp = n)),
+                    {num(t('minCards'), x.minCards, (n) =>
+                      edit((c) => void (c.cardTiers[i]!.minCards = Math.max(1, n))),
                     )}
-                    {num(t('priceTzs'), b.price.TZS, (n) =>
-                      edit((c) => void (c.bundles[i]!.price.TZS = n)),
+                    {num(t('priceTzs'), x.price.TZS, (n) =>
+                      edit((c) => void (c.cardTiers[i]!.price.TZS = n)),
                     )}
-                    {num(t('priceKes'), b.price.KES, (n) =>
-                      edit((c) => void (c.bundles[i]!.price.KES = n)),
+                    {num(t('priceKes'), x.price.KES, (n) =>
+                      edit((c) => void (c.cardTiers[i]!.price.KES = n)),
                     )}
-                    {ro ? null : (
+                    {ro || draft.cardTiers.length === 1 ? null : (
                       <IconButton
                         label={t('remove')}
                         icon={<Trash2 className="size-5" aria-hidden="true" />}
-                        onClick={() => edit((c) => void c.bundles.splice(i, 1))}
+                        onClick={() => edit((c) => void c.cardTiers.splice(i, 1))}
                       />
                     )}
                   </div>
@@ -276,18 +265,14 @@ function PricingEditor() {
                     icon={<Plus className="size-5" aria-hidden="true" />}
                     onClick={() =>
                       edit((c) =>
-                        c.bundles.push({
-                          key: `b${c.bundles.length + 1}`,
-                          name: '',
-                          cards: 100,
-                          sms: 100,
-                          whatsapp: 200,
+                        c.cardTiers.push({
+                          minCards: Math.max(...c.cardTiers.map((x) => x.minCards)) * 2,
                           price: { TZS: 0, KES: 0 },
                         }),
                       )
                     }
                   >
-                    {t('addBundle')}
+                    {t('addTier')}
                   </Button>
                 )}
               </section>
@@ -299,7 +284,7 @@ function PricingEditor() {
                 {draft.packs.map((p, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-2 items-end gap-3 rounded-card border border-border p-3 md:grid-cols-6"
+                    className="grid grid-cols-2 items-end gap-3 rounded-card border border-border p-3 md:grid-cols-5"
                   >
                     <TextField
                       label={t('key')}
@@ -307,23 +292,6 @@ function PricingEditor() {
                       disabled={ro}
                       onChange={(e) => edit((c) => void (c.packs[i]!.key = e.target.value))}
                     />
-                    <label className="flex flex-col gap-1 text-sm font-medium">
-                      {t('channel')}
-                      <select
-                        className="min-h-12 rounded-input border border-border bg-surface px-3 text-base"
-                        value={p.channel}
-                        disabled={ro}
-                        onChange={(e) =>
-                          edit(
-                            (c) =>
-                              void (c.packs[i]!.channel = e.target.value as 'sms' | 'whatsapp'),
-                          )
-                        }
-                      >
-                        <option value="sms">SMS</option>
-                        <option value="whatsapp">WhatsApp</option>
-                      </select>
-                    </label>
                     {num(t('messages'), p.messages, (n) =>
                       edit((c) => void (c.packs[i]!.messages = n)),
                     )}
@@ -350,7 +318,6 @@ function PricingEditor() {
                       edit((c) =>
                         c.packs.push({
                           key: `p${c.packs.length + 1}`,
-                          channel: 'sms',
                           messages: 100,
                           price: { TZS: 0, KES: 0 },
                         }),

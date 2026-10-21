@@ -1,8 +1,10 @@
 /**
- * What hosts pay for (ADR 042): cards, SMS and WhatsApp messages. A **bundle** is priced by the number
- * of cards and includes some messages; **message packs** top up SMS or WhatsApp when the bundle's run
- * out. Staff set the prices in /ops; the API and the console both read this file, so the rules cannot
- * disagree. Prices are whole units of the event's currency (§5).
+ * What hosts pay for (ADR 042): **generated cards**. A card is generated once per guest, the first time
+ * it is sent (SMS or WhatsApp) or printed; sending or printing it again is free. Cards are priced per
+ * piece, cheaper the more are bought at once, and every card comes with reminder credits that can be
+ * spent on SMS or WhatsApp. **Credit packs** add reminder credits without buying cards. Staff set the
+ * prices in /ops; the API and the console both read this file, so the rules cannot disagree. Prices are
+ * whole units of the event's currency (§5).
  */
 import { z } from 'zod';
 import type { Currency } from './country';
@@ -16,27 +18,20 @@ export interface Price {
   KES: number;
 }
 
-/** What an event may use: cards on its guest list and messages sent. */
+/** What an event may use: cards it can generate and reminder credits (one per SMS or WhatsApp). */
 export interface Allowance {
   cards: number;
-  sms: number;
-  whatsapp: number;
+  messages: number;
 }
 
-export interface CardBundle {
-  key: string;
-  name: string;
-  /** Cards (guests on the list) the bundle adds. */
-  cards: number;
-  /** Messages included with the cards. */
-  sms: number;
-  whatsapp: number;
+/** From `minCards` cards in one order, each card costs `price`. */
+export interface CardTier {
+  minCards: number;
   price: Price;
 }
 
-export interface MessagePack {
+export interface CreditPack {
   key: string;
-  channel: BillingChannel;
   messages: number;
   price: Price;
 }
@@ -44,63 +39,43 @@ export interface MessagePack {
 export interface PricingCatalog {
   /**
    * Off: usage is counted and shown, nothing is refused (how every event worked before ADR 042).
-   * On: adding a card or sending a message past the event's allowance is refused.
+   * On: generating a card or sending a reminder past the event's allowance is refused.
    */
   enforced: boolean;
   /** What every event gets before buying anything, so a host can try it out. */
   free: Allowance;
-  bundles: CardBundle[];
-  packs: MessagePack[];
+  /** Reminder credits (SMS or WhatsApp) that come with each card bought. */
+  messagesPerCard: number;
+  /** Price per card by order size; the tier with the largest `minCards` not above the quantity applies. */
+  cardTiers: CardTier[];
+  packs: CreditPack[];
 }
 
+/** Message kinds that deliver the card itself: included with the card, never a reminder credit. */
+export const CARD_DELIVERY_KINDS = ['invite', 'fallback', 'test'] as const;
+
 /**
- * Starting prices. Assumptions until the business confirms them (ADR 042): message packs sit above the
- * SMS gateway's TZS 25 / KES 1 per segment (ADR 026) and WhatsApp's per-conversation fee.
+ * Starting prices (ADR 042), from the business: under 100 cards TZS 2,400 each, 100 to 499 TZS 2,200,
+ * 500 and more TZS 1,950, each with 4 reminder credits. KES prices, the free allowance and the credit
+ * packs are assumptions until confirmed (Kenya is not open yet).
  */
 export const DEFAULT_PRICING: PricingCatalog = {
   enforced: false,
-  free: { cards: 10, sms: 10, whatsapp: 20 },
-  bundles: [
-    {
-      key: 'b100',
-      name: 'Kadi 100',
-      cards: 100,
-      sms: 100,
-      whatsapp: 200,
-      price: { TZS: 30_000, KES: 1_500 },
-    },
-    {
-      key: 'b250',
-      name: 'Kadi 250',
-      cards: 250,
-      sms: 250,
-      whatsapp: 500,
-      price: { TZS: 65_000, KES: 3_200 },
-    },
-    {
-      key: 'b500',
-      name: 'Kadi 500',
-      cards: 500,
-      sms: 500,
-      whatsapp: 1_000,
-      price: { TZS: 120_000, KES: 6_000 },
-    },
-    {
-      key: 'b1000',
-      name: 'Kadi 1,000',
-      cards: 1_000,
-      sms: 1_000,
-      whatsapp: 2_000,
-      price: { TZS: 220_000, KES: 11_000 },
-    },
+  free: { cards: 10, messages: 40 },
+  messagesPerCard: 4,
+  cardTiers: [
+    { minCards: 1, price: { TZS: 2_400, KES: 120 } },
+    { minCards: 100, price: { TZS: 2_200, KES: 110 } },
+    { minCards: 500, price: { TZS: 1_950, KES: 100 } },
   ],
   packs: [
-    { key: 'sms100', channel: 'sms', messages: 100, price: { TZS: 3_000, KES: 150 } },
-    { key: 'sms500', channel: 'sms', messages: 500, price: { TZS: 14_000, KES: 700 } },
-    { key: 'wa100', channel: 'whatsapp', messages: 100, price: { TZS: 2_000, KES: 100 } },
-    { key: 'wa500', channel: 'whatsapp', messages: 500, price: { TZS: 9_000, KES: 450 } },
+    { key: 'credits100', messages: 100, price: { TZS: 3_000, KES: 150 } },
+    { key: 'credits500', messages: 500, price: { TZS: 14_000, KES: 700 } },
   ],
 };
+
+/** Most cards one order can buy. */
+export const MAX_CARDS_PER_ORDER = 10_000;
 
 const count = z.number().int().min(0).max(1_000_000);
 const amount = z.number().int().min(0).max(100_000_000);
@@ -113,110 +88,110 @@ const price = z.object({ TZS: amount, KES: amount });
 export const pricingCatalogSchema = z
   .object({
     enforced: z.boolean(),
-    free: z.object({ cards: count, sms: count, whatsapp: count }),
-    bundles: z
-      .array(
-        z.object({
-          key,
-          name: z.string().trim().min(1).max(40),
-          cards: count.min(1),
-          sms: count,
-          whatsapp: count,
-          price,
-        }),
-      )
-      .max(12),
-    packs: z
-      .array(
-        z.object({
-          key,
-          channel: z.enum(BILLING_CHANNELS),
-          messages: count.min(1),
-          price,
-        }),
-      )
-      .max(12),
+    free: z.object({ cards: count, messages: count }),
+    messagesPerCard: z.number().int().min(0).max(100),
+    cardTiers: z
+      .array(z.object({ minCards: z.number().int().min(1).max(MAX_CARDS_PER_ORDER), price }))
+      .min(1)
+      .max(10),
+    packs: z.array(z.object({ key, messages: count.min(1), price })).max(12),
   })
   .superRefine((c, ctx) => {
-    const seen = new Set<string>();
-    for (const [list, items] of [
-      ['bundles', c.bundles],
-      ['packs', c.packs],
-    ] as const)
-      items.forEach((item, i) => {
-        if (seen.has(item.key))
-          ctx.addIssue({
-            code: 'custom',
-            path: [list, i, 'key'],
-            message: `Key "${item.key}" is used twice`,
-          });
-        seen.add(item.key);
+    const mins = c.cardTiers.map((t) => t.minCards);
+    if (!mins.includes(1))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['cardTiers'],
+        message: 'One tier must start at 1 card',
       });
+    if (new Set(mins).size !== mins.length)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['cardTiers'],
+        message: 'Two tiers start at the same number of cards',
+      });
+    const keys = c.packs.map((p) => p.key);
+    keys.forEach((k, i) => {
+      if (keys.indexOf(k) !== i)
+        ctx.addIssue({
+          code: 'custom',
+          path: ['packs', i, 'key'],
+          message: `Key "${k}" is used twice`,
+        });
+    });
   });
 
-export type PurchaseKind = 'bundle' | 'pack' | 'grant';
-export type PurchaseStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
-/** `mobile`: mobile-money push from the console. `manual`: paid another way, confirmed by staff. */
-export type PurchaseMethod = 'mobile' | 'manual' | 'grant';
+/** Tiers from the smallest order up. */
+export const sortedTiers = (tiers: CardTier[]): CardTier[] =>
+  [...tiers].sort((a, b) => a.minCards - b.minCards);
 
-/** What one catalogue item adds, priced for an event's currency; null for an unknown key. */
-export function quoteItem(
+/** The price of one card when `quantity` are bought in one order. */
+export function unitPrice(
+  catalog: Pick<PricingCatalog, 'cardTiers'>,
+  quantity: number,
+  currency: Currency,
+) {
+  const tier = sortedTiers(catalog.cardTiers)
+    .filter((t) => t.minCards <= Math.max(1, quantity))
+    .at(-1);
+  return (tier ?? sortedTiers(catalog.cardTiers)[0])?.price[currency] ?? 0;
+}
+
+export type OrderItem = { cards: number } | { packKey: string };
+
+/** What an order adds and costs in an event's currency; null for an unknown pack or a bad quantity. */
+export function quote(
   catalog: PricingCatalog,
-  itemKey: string,
+  item: OrderItem,
   currency: Currency,
 ): {
-  kind: 'bundle' | 'pack';
-  key: string;
+  kind: 'cards' | 'pack';
+  itemKey: string | null;
   label: string;
   adds: Allowance;
+  unitPrice: number | null;
   amount: number;
 } | null {
-  const b = catalog.bundles.find((x) => x.key === itemKey);
-  if (b)
+  if ('cards' in item) {
+    const n = item.cards;
+    if (!Number.isInteger(n) || n < 1 || n > MAX_CARDS_PER_ORDER) return null;
+    const each = unitPrice(catalog, n, currency);
     return {
-      kind: 'bundle',
-      key: b.key,
-      label: b.name,
-      adds: { cards: b.cards, sms: b.sms, whatsapp: b.whatsapp },
-      amount: b.price[currency],
+      kind: 'cards',
+      itemKey: null,
+      label: `Kadi ${n}`,
+      adds: { cards: n, messages: n * catalog.messagesPerCard },
+      unitPrice: each,
+      amount: n * each,
     };
-  const p = catalog.packs.find((x) => x.key === itemKey);
-  if (p)
-    return {
-      kind: 'pack',
-      key: p.key,
-      label: `${p.channel === 'sms' ? 'SMS' : 'WhatsApp'} ${p.messages}`,
-      adds: {
-        cards: 0,
-        sms: p.channel === 'sms' ? p.messages : 0,
-        whatsapp: p.channel === 'whatsapp' ? p.messages : 0,
-      },
-      amount: p.price[currency],
-    };
-  return null;
+  }
+  const p = catalog.packs.find((x) => x.key === item.packKey);
+  if (!p) return null;
+  return {
+    kind: 'pack',
+    itemKey: p.key,
+    label: `Vikumbusho ${p.messages}`,
+    adds: { cards: 0, messages: p.messages },
+    unitPrice: null,
+    amount: p.price[currency],
+  };
 }
 
 export const addAllowance = (a: Allowance, b: Allowance): Allowance => ({
   cards: a.cards + b.cards,
-  sms: a.sms + b.sms,
-  whatsapp: a.whatsapp + b.whatsapp,
+  messages: a.messages + b.messages,
 });
 
 /** Never negative: an event that used more than it has (before enforcement was on) has 0 left. */
 export const remainingOf = (allowance: Allowance, used: Allowance): Allowance => ({
   cards: Math.max(0, allowance.cards - used.cards),
-  sms: Math.max(0, allowance.sms - used.sms),
-  whatsapp: Math.max(0, allowance.whatsapp - used.whatsapp),
+  messages: Math.max(0, allowance.messages - used.messages),
 });
 
-/** The smallest bundle that covers `cardsNeeded` more cards, or the biggest one when none does. */
-export function suggestBundle<B extends { cards: number }>(
-  catalog: { bundles: B[] },
-  cardsNeeded: number,
-): B | null {
-  const sorted = [...catalog.bundles].sort((a, b) => a.cards - b.cards);
-  return sorted.find((b) => b.cards >= cardsNeeded) ?? sorted.at(-1) ?? null;
-}
+export type PurchaseKind = 'cards' | 'pack' | 'grant';
+export type PurchaseStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+/** `mobile`: mobile-money push from the console. `manual`: paid another way, confirmed by staff. */
+export type PurchaseMethod = 'mobile' | 'manual' | 'grant';
 
 export interface PurchaseView {
   id: string;
@@ -224,6 +199,8 @@ export interface PurchaseView {
   itemKey: string | null;
   label: string;
   adds: Allowance;
+  /** Price per card for a card order. */
+  unitPrice: number | null;
   amount: number;
   currency: Currency;
   status: PurchaseStatus;
@@ -243,8 +220,11 @@ export interface EventBillingView {
   allowance: Allowance;
   used: Allowance;
   remaining: Allowance;
-  bundles: (Omit<CardBundle, 'price'> & { amount: number })[];
-  packs: (Omit<MessagePack, 'price'> & { amount: number })[];
+  messagesPerCard: number;
+  cardTiers: { minCards: number; price: number }[];
+  packs: { key: string; messages: number; amount: number }[];
+  /** Guests whose card has not been generated yet, to suggest how many to buy. */
+  cardsToGenerate: number;
   purchases: PurchaseView[];
   /** Whether mobile-money payment can be started for this event's country right now. */
   mobilePayAvailable: boolean;
@@ -253,12 +233,12 @@ export interface EventBillingView {
 /** Details of the `payment_required` refusal (HTTP 402), so the console can offer the right item. */
 export interface QuotaExceededDetails {
   reason: 'quota_exceeded';
-  resource: 'cards' | BillingChannel;
+  resource: 'cards' | 'messages';
   remaining: number;
   needed: number;
 }
 
-/** The catalogue as staff see it in /ops/settings/pricing. */
+/** The catalogue as staff see it in /ops/billing. */
 export interface PricingView {
   catalog: PricingCatalog;
   /** `default`: nothing saved yet, the defaults in this file apply. */
@@ -282,9 +262,11 @@ export interface OpsEventBilling {
   remaining: Allowance;
 }
 
-/** What the owner sends to order an item. `mobile` needs the phone and network. */
+/** What the owner sends to order cards or a credit pack. `mobile` needs the phone and network. */
 export interface BillingOrderInput {
-  itemKey: string;
+  /** Number of cards to buy; or `packKey` for reminder credits. */
+  cards?: number;
+  packKey?: string;
   method: 'mobile' | 'manual';
   phoneE164?: string;
   mobileMethod?: 'mpesa' | 'mixx' | 'airtel' | 'halopesa';

@@ -188,6 +188,13 @@ export const guests = pgTable(
     notes: text('notes'),
     /** Guest asked to stop reminders from the card page (§7.4). Invitations are unaffected. */
     remindersOptOut: boolean('reminders_opt_out').notNull().default(false),
+    /** The host wants this guest to get a printed card (generated in bulk from Kadi, ADR 042). */
+    printCard: boolean('print_card').notNull().default(false),
+    /**
+     * When this guest's card was first generated (sent or printed). That is the moment it is charged
+     * (ADR 042); sending or printing it again is free. Kept after a guest is deleted: it was used.
+     */
+    cardGeneratedAt: timestamp('card_generated_at', { withTimezone: true }),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -578,7 +585,7 @@ export const pricingSettings = pgTable('pricing_settings', {
   ...timestamps,
 });
 
-export const purchaseKindEnum = pgEnum('purchase_kind', ['bundle', 'pack', 'grant']);
+export const purchaseKindEnum = pgEnum('purchase_kind', ['cards', 'pack', 'grant']);
 export const purchaseStatusEnum = pgEnum('purchase_status', [
   'pending',
   'paid',
@@ -588,9 +595,9 @@ export const purchaseStatusEnum = pgEnum('purchase_status', [
 export const purchaseMethodEnum = pgEnum('purchase_method', ['mobile', 'manual', 'grant']);
 
 /**
- * What a host bought for an event (ADR 042): a card bundle, an SMS or WhatsApp pack, or credit staff
- * granted. The cards, messages and price are copied from the catalogue when ordered, so a later price
- * change never alters an order. Only `paid` rows add to the event's allowance.
+ * What a host bought for an event (ADR 042): cards (with their reminder credits), a reminder-credit pack,
+ * or credit staff granted. The quantities and price are copied from the catalogue when ordered, so a
+ * later price change never alters an order. Only `paid` rows add to the event's allowance.
  */
 export const eventPurchases = pgTable(
   'event_purchases',
@@ -603,8 +610,10 @@ export const eventPurchases = pgTable(
     itemKey: text('item_key'),
     label: text('label').notNull(),
     cards: integer('cards').notNull().default(0),
-    sms: integer('sms').notNull().default(0),
-    whatsapp: integer('whatsapp').notNull().default(0),
+    /** Reminder credits, each one SMS or one WhatsApp message. */
+    messages: integer('messages').notNull().default(0),
+    /** Price per card for a card order (the tier it fell in). */
+    unitPrice: integer('unit_price'),
     amount: integer('amount').notNull().default(0),
     currency: currencyEnum('currency').notNull(),
     status: purchaseStatusEnum('status').notNull().default('pending'),

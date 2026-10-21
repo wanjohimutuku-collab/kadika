@@ -1,11 +1,10 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreditCard, MessageCircle, MessageSquare, ShieldAlert, Smartphone } from 'lucide-react';
 import type { EventBillingView, PurchaseView } from '@harusi/api-client';
-import { suggestBundle } from '@harusi/schemas/billing';
 import { detectNetwork } from '@harusi/schemas/checkout';
 import { paymentMethodsFor, type MobileMoneyMethodId } from '@harusi/schemas/country';
 import type { Locale } from '@harusi/i18n';
@@ -20,7 +19,7 @@ import {
   Skeleton,
   StatusPill,
 } from '@/components/ui/display';
-import { PhoneField } from '@/components/ui/form';
+import { PhoneField, TextField } from '@/components/ui/form';
 import { SegmentedControl } from '@/components/ui/navigation';
 import { BottomSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
@@ -35,7 +34,12 @@ const NETWORK_LABEL: Record<MobileMoneyMethodId, string> = {
   halopesa: 'HaloPesa',
 };
 
-type Item = { key: string; title: string; detail: string; amount: number };
+type Item = {
+  order: { cards: number } | { packKey: string };
+  title: string;
+  detail: string;
+  amount: number;
+};
 
 const STATUS_TONE = {
   pending: 'warning',
@@ -81,8 +85,8 @@ export default function BillingPage({ params }: { params: Promise<{ id: string }
       getRepository().orderBilling(
         id,
         method === 'mobile'
-          ? { itemKey: item!.key, method, phoneE164: e164!, mobileMethod: network! }
-          : { itemKey: item!.key, method },
+          ? { ...item!.order, method, phoneE164: e164!, mobileMethod: network! }
+          : { ...item!.order, method },
         key,
       ),
     onSuccess: async (p) => {
@@ -144,7 +148,7 @@ export default function BillingPage({ params }: { params: Promise<{ id: string }
         {(b) => (
           <div className="flex flex-col gap-5">
             <Meters b={b} />
-            <Bundles
+            <BuyCards
               b={b}
               onBuy={(x) => {
                 setMethod(b.mobilePayAvailable ? 'mobile' : 'manual');
@@ -283,8 +287,7 @@ function Meters({ b }: { b: EventBillingView }) {
   const t = useTranslations('billing');
   const rows = [
     { key: 'cards' as const, icon: <CreditCard className="size-5" aria-hidden="true" /> },
-    { key: 'sms' as const, icon: <MessageSquare className="size-5" aria-hidden="true" /> },
-    { key: 'whatsapp' as const, icon: <MessageCircle className="size-5" aria-hidden="true" /> },
+    { key: 'messages' as const, icon: <MessageSquare className="size-5" aria-hidden="true" /> },
   ];
   const low = rows.filter((r) => b.allowance[r.key] > 0 && b.remaining[r.key] === 0);
   return (
@@ -294,7 +297,7 @@ function Meters({ b }: { b: EventBillingView }) {
           {t('usedUp', { what: low.map((r) => t(`resource.${r.key}`)).join(', ') })}
         </Banner>
       ) : null}
-      <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {rows.map((r) => {
           const used = b.used[r.key];
           const all = b.allowance[r.key];
@@ -320,60 +323,105 @@ function Meters({ b }: { b: EventBillingView }) {
         })}
       </ul>
       <p className="mt-4 text-sm text-muted">
+        {t('generatedNote', { per: b.messagesPerCard })}{' '}
         {t('freeNote', {
           cards: formatNumber(b.free.cards),
-          sms: formatNumber(b.free.sms),
-          whatsapp: formatNumber(b.free.whatsapp),
+          messages: formatNumber(b.free.messages),
         })}
       </p>
     </Card>
   );
 }
 
-function Bundles({ b, onBuy }: { b: EventBillingView; onBuy: (i: Item) => void }) {
+const MAX_ORDER = 10_000;
+
+/** Price per card for `n` cards: the tier with the largest start not above `n`. */
+const priceFor = (tiers: EventBillingView['cardTiers'], n: number) =>
+  tiers.filter((x) => x.minCards <= Math.max(1, n)).at(-1)?.price ?? tiers[0]?.price ?? 0;
+
+function BuyCards({ b, onBuy }: { b: EventBillingView; onBuy: (i: Item) => void }) {
   const t = useTranslations('billing');
-  const best = useMemo(
-    () => suggestBundle(b, Math.max(1, b.used.cards - b.allowance.cards + 1))?.key,
-    [b],
-  );
-  if (b.bundles.length === 0) return null;
+  // Suggest what the guest list still needs, beyond what is left.
+  const need = Math.max(0, b.cardsToGenerate - b.remaining.cards);
+  const [raw, setRaw] = useState(String(Math.max(need, 1)));
+  const n = Math.min(MAX_ORDER, Math.max(0, Math.floor(Number(raw) || 0)));
+  const each = priceFor(b.cardTiers, n);
+  const total = n * each;
+  const tiers = b.cardTiers;
   return (
-    <Card title={t('bundlesTitle')} titleId="bill-bundles">
-      <p className="mb-4 text-muted">{t('bundlesIntro')}</p>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[...b.bundles]
-          .sort((x, y) => x.cards - y.cards)
-          .map((x) => {
-            const detail = t('bundleDetail', {
-              sms: formatNumber(x.sms),
-              whatsapp: formatNumber(x.whatsapp),
-            });
-            return (
-              <li
-                key={x.key}
-                className="flex flex-col gap-2 rounded-card border border-border p-4 data-[best=true]:border-primary"
-                data-best={x.key === best}
-              >
-                <p className="text-lg font-semibold">{t('cards', { n: formatNumber(x.cards) })}</p>
-                <p className="text-sm text-muted">{detail}</p>
-                <p className="tabular text-xl font-bold">{formatMoney(x.amount, b.currency)}</p>
-                <Button
-                  variant={x.key === best ? 'primary' : 'secondary'}
-                  onClick={() =>
-                    onBuy({
-                      key: x.key,
-                      title: t('cards', { n: formatNumber(x.cards) }),
-                      detail,
-                      amount: x.amount,
-                    })
-                  }
-                >
-                  {t('buy')}
-                </Button>
-              </li>
-            );
-          })}
+    <Card title={t('buyCardsTitle')} titleId="bill-cards">
+      <p className="mb-4 text-muted">{t('buyCardsIntro', { per: b.messagesPerCard })}</p>
+      {need > 0 ? (
+        <Banner tone="info" className="mb-4">
+          {t('needCards', { n: formatNumber(b.cardsToGenerate), need: formatNumber(need) })}
+        </Banner>
+      ) : null}
+      <ul className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3" data-testid="card-tiers">
+        {tiers.map((x, i) => {
+          const next = tiers[i + 1]?.minCards;
+          const active = n >= x.minCards && (next === undefined || n < next);
+          return (
+            <li
+              key={x.minCards}
+              className="rounded-card border border-border p-3 data-[active=true]:border-primary data-[active=true]:bg-primary/5"
+              data-active={active}
+            >
+              <p className="text-sm text-muted">
+                {next === undefined
+                  ? t('tierFrom', { from: formatNumber(x.minCards) })
+                  : t('tierRange', {
+                      from: formatNumber(x.minCards),
+                      to: formatNumber(next - 1),
+                    })}
+              </p>
+              <p className="tabular text-lg font-bold">
+                {t('perCard', { price: formatMoney(x.price, b.currency) })}
+              </p>
+            </li>
+          );
+        })}
       </ul>
+      <div className="flex flex-wrap items-end gap-3">
+        <TextField
+          label={t('howMany')}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={MAX_ORDER}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          wrapperClassName="w-40"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="tabular text-2xl font-bold" data-testid="cards-total">
+            {formatMoney(total, b.currency)}
+          </p>
+          <p className="text-sm text-muted">
+            {t('orderDetail', {
+              n: formatNumber(n),
+              price: formatMoney(each, b.currency),
+              credits: formatNumber(n * b.messagesPerCard),
+            })}
+          </p>
+        </div>
+        <Button
+          disabled={n < 1}
+          onClick={() =>
+            onBuy({
+              order: { cards: n },
+              title: t('cards', { n: formatNumber(n) }),
+              detail: t('orderDetail', {
+                n: formatNumber(n),
+                price: formatMoney(each, b.currency),
+                credits: formatNumber(n * b.messagesPerCard),
+              }),
+              amount: total,
+            })
+          }
+        >
+          {t('buy')}
+        </Button>
+      </div>
     </Card>
   );
 }
@@ -386,22 +434,18 @@ function Packs({ b, onBuy }: { b: EventBillingView; onBuy: (i: Item) => void }) 
       <p className="mb-4 text-muted">{t('packsIntro')}</p>
       <ul className="flex flex-col divide-y divide-border">
         {b.packs.map((p) => {
-          const title = t(p.channel === 'sms' ? 'smsPack' : 'whatsappPack', {
-            n: formatNumber(p.messages),
-          });
+          const title = t('creditPack', { n: formatNumber(p.messages) });
           return (
             <li key={p.key} className="flex flex-wrap items-center gap-3 py-3">
-              {p.channel === 'sms' ? (
-                <MessageSquare className="size-5 text-muted" aria-hidden="true" />
-              ) : (
-                <MessageCircle className="size-5 text-muted" aria-hidden="true" />
-              )}
+              <MessageCircle className="size-5 text-muted" aria-hidden="true" />
               <span className="min-w-0 flex-1 font-medium">{title}</span>
               <span className="tabular font-semibold">{formatMoney(p.amount, b.currency)}</span>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => onBuy({ key: p.key, title, detail: title, amount: p.amount })}
+                onClick={() =>
+                  onBuy({ order: { packKey: p.key }, title, detail: title, amount: p.amount })
+                }
               >
                 {t('buy')}
               </Button>

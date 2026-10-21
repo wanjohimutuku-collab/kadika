@@ -7,6 +7,7 @@ import type { PrintFormat } from '../print/spec';
 import { dateText } from './delivery';
 import type { EventService } from './events';
 import type { GuestService } from './guests';
+import { BillingService } from './billing';
 
 const MAX_CARDS = 1000;
 
@@ -18,10 +19,15 @@ export class PrintService {
     private guestsSvc: GuestService,
   ) {}
 
+  private billingSvc?: BillingService;
+  private get billing(): BillingService {
+    return (this.billingSvc ??= new BillingService(this.deps, this.eventsSvc));
+  }
+
   async pdf(
     eventId: string,
     userId: string,
-    input: { format: PrintFormat; guestIds?: string[] },
+    input: { format: PrintFormat; guestIds?: string[]; marked?: boolean },
   ): Promise<{ bytes: Uint8Array; filename: string }> {
     const role = await this.eventsSvc.role(eventId, userId);
     if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot print cards');
@@ -42,6 +48,7 @@ export class PrintService {
           isNull(guests.deletedAt),
           eq(guests.cardKind, 'invitation'),
           input.guestIds ? inArray(guests.id, input.guestIds) : undefined,
+          input.marked ? eq(guests.printCard, true) : undefined,
         ),
       )
       .orderBy(asc(guests.displayName), asc(guests.id))
@@ -56,6 +63,10 @@ export class PrintService {
       return { bytes: await buildTestSheetPdf(token), filename: `${slug}-test-sheet.pdf` };
     }
     if (rows.length === 0) throw new ApiError('validation', 'No guests to print');
+    // Printing a card generates it (ADR 042): new ones need card credit, reprints are free. The test
+    // sheet above uses a sample and charges nothing.
+    const fresh = rows.filter((g) => !g.cardGeneratedAt).map((g) => g.id);
+    await this.billing.assertCanUse(eventId, { cards: fresh.length });
 
     const cards: CardData[] = [];
     for (const g of rows) {
@@ -73,6 +84,7 @@ export class PrintService {
       });
     }
     const bytes = await buildCardsPdf(input.format, cards);
+    await this.billing.markGenerated(fresh);
     const filename =
       rows.length === 1 ? `${slug}-${rows[0]!.shortCode}.pdf` : `${slug}-${input.format}-batch.pdf`;
     return { bytes, filename };

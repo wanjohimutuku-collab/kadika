@@ -140,6 +140,8 @@ interface ApiGuest {
   language: 'sw' | 'en';
   inviteChannelPref: Guest['inviteChannelPref'];
   notes: string | null;
+  printCard?: boolean;
+  cardGeneratedAt?: string | null;
   status?: Guest['status'];
   channelLast?: Guest['channelLast'];
   pledge?: Guest['pledge'];
@@ -314,6 +316,8 @@ function mapGuest(g: ApiGuest): Guest {
     tokenVersion: g.tokenVersion,
     language: g.language,
     inviteChannelPref: g.inviteChannelPref,
+    printCard: g.printCard ?? false,
+    cardGenerated: !!g.cardGeneratedAt,
     notes: g.notes ?? '',
     status: g.status ?? 'created',
     timeline: { created: g.createdAt },
@@ -561,7 +565,7 @@ export function createHttpRepository(
         'POST',
         `/v1/events/${encodeURIComponent(eventId)}/billing/orders`,
         {
-          itemKey: input.itemKey,
+          ...(input.cards !== undefined ? { cards: input.cards } : { packKey: input.packKey }),
           method: input.method,
           ...(input.phoneE164 ? { phone: input.phoneE164 } : {}),
           ...(input.mobileMethod ? { mobileMethod: input.mobileMethod } : {}),
@@ -579,6 +583,13 @@ export function createHttpRepository(
       return call<PurchaseView>(
         'POST',
         `/v1/events/${encodeURIComponent(eventId)}/billing/orders/${encodeURIComponent(purchaseId)}/cancel`,
+      );
+    },
+    async setPrintCard(eventId, guestIds, printCard) {
+      return call<{ updated: number }>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/guests/print-card`,
+        { guestIds, printCard },
       );
     },
     async opsPricing() {
@@ -1219,7 +1230,7 @@ export function createHttpRepository(
           'content-type': 'application/json',
           ...(tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
         },
-        body: JSON.stringify({ format, guestIds: opts.guestIds }),
+        body: JSON.stringify({ format, guestIds: opts.guestIds, marked: opts.marked }),
       });
     let res: Response;
     try {

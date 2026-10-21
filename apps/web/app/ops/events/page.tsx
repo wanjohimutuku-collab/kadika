@@ -40,20 +40,19 @@ export default function OpsEventsPage() {
   const tg = useTranslations('ops.purchases');
   const tc = useTranslations('common');
   const [granting, setGranting] = useState<OpsEvent | null>(null);
-  const [credit, setCredit] = useState({ cards: '0', sms: '0', whatsapp: '0', note: '' });
+  const [credit, setCredit] = useState({ cards: '0', messages: '0', note: '' });
   const n = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
   const grant = useMutation({
     mutationFn: () =>
       getRepository().opsGrantCredit(granting!.id, {
         cards: n(credit.cards),
-        sms: n(credit.sms),
-        whatsapp: n(credit.whatsapp),
+        messages: n(credit.messages),
         note: credit.note.trim(),
       }),
     onSuccess: async () => {
       toast({ tone: 'success', title: tg('granted') });
       setGranting(null);
-      setCredit({ cards: '0', sms: '0', whatsapp: '0', note: '' });
+      setCredit({ cards: '0', messages: '0', note: '' });
       await queryClient.invalidateQueries({ queryKey: OPS_ALL });
     },
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
@@ -68,10 +67,7 @@ export default function OpsEventsPage() {
         footer={
           <Button
             className="w-full"
-            disabled={
-              credit.note.trim().length < 3 ||
-              n(credit.cards) + n(credit.sms) + n(credit.whatsapp) === 0
-            }
+            disabled={credit.note.trim().length < 3 || n(credit.cards) + n(credit.messages) === 0}
             loading={grant.isPending}
             onClick={() => grant.mutate()}
           >
@@ -79,8 +75,8 @@ export default function OpsEventsPage() {
           </Button>
         }
       >
-        <div className="grid grid-cols-3 gap-3">
-          {(['cards', 'sms', 'whatsapp'] as const).map((k) => (
+        <div className="grid grid-cols-2 gap-3">
+          {(['cards', 'messages'] as const).map((k) => (
             <TextField
               key={k}
               label={tg(k)}

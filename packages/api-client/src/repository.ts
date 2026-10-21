@@ -112,6 +112,12 @@ export interface Repository {
   /** Undo for a soft delete (snackbar "Tendua"). */
   restoreGuests(guestIds: string[]): Promise<{ restored: number }>;
   setGuestsGroup(guestIds: string[], group: string): Promise<{ updated: number }>;
+  /** Chooses who gets a printed card (ADR 042): POST /v1/events/:id/guests/print-card. Free. */
+  setPrintCard(
+    eventId: string,
+    guestIds: string[],
+    printCard: boolean,
+  ): Promise<{ updated: number }>;
   importGuests(
     eventId: string,
     rows: ImportRowInput[],
@@ -143,7 +149,13 @@ export interface Repository {
   // Cards — POST /v1/events/:id/cards/pdf
   requestCardsPdf(
     eventId: string,
-    opts: { format: 'A6' | 'A5'; layout: 'single' | 'a4-4up' | 'test-sheet'; guestIds?: string[] },
+    opts: {
+      format: 'A6' | 'A5';
+      layout: 'single' | 'a4-4up' | 'test-sheet';
+      guestIds?: string[];
+      /** Bulk: everyone chosen for a printed card. New cards are generated (charged) once (ADR 042). */
+      marked?: boolean;
+    },
   ): Promise<Blob>;
 
   // Gate — GET …/gate/bundle, POST …/gate/scans/sync (web console: monitor + manual check-in)

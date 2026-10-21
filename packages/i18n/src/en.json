@@ -639,7 +639,8 @@
       "declined": "Declined",
       "no_smartphone": "No smartphone",
       "failed": "Message failed",
-      "checked_in": "Arrived"
+      "checked_in": "Arrived",
+      "print": "Printed cards"
     },
     "filtersLabel": "Filter guests",
     "group": "Group",
@@ -713,7 +714,12 @@
     "bulkCardKind": "Change card type",
     "cardKindTitle": "Change the card type for {count, plural, one {# guest} other {# guests}}",
     "cardKindBody": "The link they already have stays the same but shows the new card. Anyone whose card was already sent is listed as not sent again, so you can send them the new one. People who already replied keep their reply.",
-    "cardKindUpdated": "Card type changed for {count, plural, one {# guest} other {# guests}}"
+    "cardKindUpdated": "Card type changed for {count, plural, one {# guest} other {# guests}}",
+    "bulkMarkPrint": "Choose for print",
+    "bulkUnmarkPrint": "Remove from print",
+    "printMarked": "{count, plural, one {# guest will get a printed card} other {# guests will get a printed card}}",
+    "printUnmarked": "{count, plural, one {# guest removed from printing} other {# guests removed from printing}}",
+    "printBadge": "Printed card"
   },
   "guestForm": {
     "cardKind": "Card type",
@@ -741,7 +747,9 @@
       "invitation": "Invitation card (reply and QR)",
       "contribution": "Contribution card (asks for a contribution only)"
     },
-    "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate."
+    "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate.",
+    "printCard": "Printed card",
+    "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once."
   },
   "import": {
     "title": "Import guest list",
@@ -1009,7 +1017,13 @@
       "border": "Lines",
       "pattern": "Decorative border",
       "success": "Confirmation green"
-    }
+    },
+    "generateTitle": "Generate printed cards",
+    "generateIntro": "{count, plural, =0 {No guest is chosen for a printed card yet. Choose them in Guests (select several → Choose for print).} one {# guest is chosen for a printed card.} other {# guests are chosen for a printed card.}}",
+    "generateNew": "{count, plural, =0 {All are generated already: reprinting is free.} one {# new card will be generated (uses 1 card of credit).} other {# new cards will be generated (uses # cards of credit).}}",
+    "generateAll": "Generate all (PDF)",
+    "generateCollate": "Generate 4 per A4",
+    "chooseGuests": "Choose guests"
   },
   "pledges": {
     "title": "Contributions",
@@ -1740,23 +1754,17 @@
     "pricing": {
       "tab": "Pricing",
       "title": "Card and message prices",
-      "intro": "Bundles are sold by number of cards; message packs add SMS or WhatsApp. Prices in TZS and KES.",
+      "intro": "Cards are sold at a price per card that depends on the order size; every card comes with reminders. Reminder packs add more. Prices in TZS and KES.",
       "enforced": "Enforce payment",
       "enforcedHint": "Off: usage is only counted. On: cards or messages past the allowance are refused.",
       "free": "Free for every event",
-      "bundles": "Card bundles",
-      "packs": "Message packs",
+      "packs": "Reminder packs",
       "key": "Key",
-      "name": "Name",
       "cards": "Cards",
-      "sms": "SMS",
-      "whatsapp": "WhatsApp",
-      "messages": "Messages",
-      "channel": "Channel",
+      "messages": "Reminders",
       "priceTzs": "Price (TZS)",
       "priceKes": "Price (KES)",
-      "addBundle": "Add bundle",
-      "addPack": "Add message pack",
+      "addPack": "Add a reminder pack",
       "remove": "Remove",
       "save": "Save prices",
       "saved": "Prices saved",
@@ -1764,7 +1772,11 @@
         "default": "Starting prices (not saved yet)",
         "database": "Saved by {name}, {when}"
       },
-      "readOnly": "Only billing and admin staff can change prices."
+      "readOnly": "Only billing and admin staff can change prices.",
+      "tiers": "Price per card",
+      "minCards": "From cards",
+      "messagesPerCard": "Reminders per card",
+      "addTier": "Add a price tier"
     },
     "purchases": {
       "title": "Bundle orders",
@@ -1777,7 +1789,7 @@
       "grantTitle": "Grant credit to {name}",
       "grantNote": "Reason",
       "granted": "Credit added",
-      "allowance": "Credit: {cards} cards · {sms} SMS · {whatsapp} WhatsApp",
+      "allowance": "Credit: {cards} cards · {messages} reminders",
       "col": {
         "date": "Date",
         "order": "Order",
@@ -1788,8 +1800,7 @@
       },
       "grantButton": "Grant credit",
       "cards": "Cards",
-      "sms": "SMS",
-      "whatsapp": "WhatsApp"
+      "messages": "Reminders"
     }
   },
   "mobile": {
@@ -2048,25 +2059,19 @@
   },
   "billing": {
     "title": "Plan and credit",
-    "subtitle": "Cards, SMS and WhatsApp messages this event has",
+    "subtitle": "Cards you can generate and SMS or WhatsApp reminders",
     "allowanceTitle": "What you have",
     "resource": {
       "cards": "Cards",
-      "sms": "SMS",
-      "whatsapp": "WhatsApp"
+      "messages": "Reminders"
     },
     "usedOf": "{used} of {all}",
     "left": "{n} left",
     "usedUp": "Used up: {what}. Buy more to continue.",
-    "freeNote": "Every event starts with {cards} cards, {sms} SMS and {whatsapp} WhatsApp messages free.",
-    "bundlesTitle": "Card bundles",
-    "bundlesIntro": "Priced by the number of cards. Each bundle includes SMS and WhatsApp messages to send them.",
+    "freeNote": "Every event starts with {cards} cards and {messages} reminders free.",
     "cards": "{n} cards",
-    "bundleDetail": "Includes {sms} SMS and {whatsapp} WhatsApp",
-    "packsTitle": "Add SMS or WhatsApp",
-    "packsIntro": "Out of messages? Top up without buying more cards.",
-    "smsPack": "{n} SMS",
-    "whatsappPack": "{n} WhatsApp",
+    "packsTitle": "Add reminders",
+    "packsIntro": "Out of reminders? Top up without buying cards. Each one is one SMS or one WhatsApp message.",
     "buy": "Buy",
     "buyTitle": "Buy: {item}",
     "methodLabel": "How to pay",
@@ -2096,37 +2101,46 @@
       "cancelled": "Cancelled"
     },
     "quota": {
-      "cards": "No cards left. Buy a bundle to add guests.",
-      "sms": "Not enough SMS for this send ({remaining} left, {needed} needed).",
-      "whatsapp": "Not enough WhatsApp messages for this send ({remaining} left, {needed} needed).",
+      "cards": "No cards left ({remaining} left, {needed} needed). Buy cards to continue.",
+      "messages": "Not enough reminders ({remaining} left, {needed} needed).",
       "action": "Buy more"
-    }
+    },
+    "generatedNote": "A card is generated the first time it is sent or printed; sending or printing it again is free. Each card comes with {per} SMS or WhatsApp reminders.",
+    "buyCardsTitle": "Buy cards",
+    "buyCardsIntro": "The price per card drops the more you buy at once. Each card comes with {per} SMS or WhatsApp reminders.",
+    "needCards": "{n} guests have no card generated yet; you need {need} more cards.",
+    "tierRange": "{from}–{to} cards",
+    "tierFrom": "{from} cards or more",
+    "perCard": "{price} per card",
+    "howMany": "Number of cards",
+    "orderDetail": "{n} cards × {price}, with {credits} reminders",
+    "creditPack": "{n} reminders"
   },
   "pricing": {
     "metaTitle": "Digital wedding card prices | {brand}",
-    "metaDescription": "Pay for the number of cards you need. Every bundle includes SMS and WhatsApp messages to send them, RSVP, a gate QR and printable cards. {brand}.",
+    "metaDescription": "Pay for each card you generate: TZS 2,400 per card under 100, less when you buy more. Each card includes 4 SMS or WhatsApp reminders. {brand}.",
     "title": "Pay for the cards you need",
-    "intro": "Pick a bundle by the size of your guest list. Every card has RSVP, a QR for the gate and a printable copy, and each bundle comes with SMS and WhatsApp messages to send them.",
+    "intro": "You pay for each card you generate, for the guests you send to or print for. Every card has RSVP, a QR for the gate and a printable copy, plus SMS or WhatsApp reminders.",
     "pilotFree": "The service is free during the pilot. These are the prices that will apply once charging starts; we will announce it first.",
-    "bundlesTitle": "Card bundles",
-    "bundlesIntro": "One card per guest or family on your list. Buy another bundle any time your list grows.",
-    "cards": "{n} cards",
-    "perCard": "About {price} per card",
-    "includesSms": "{n} SMS included",
-    "includesWhatsapp": "{n} WhatsApp messages included",
+    "perCard": "per card",
     "feature": {
       "qr": "A QR and short code per guest",
       "rsvp": "RSVP with party size",
       "gate": "Gate check-in that works offline",
       "print": "Printable cards (PDF)"
     },
-    "freeNote": "Every event starts with {cards} cards, {sms} SMS and {whatsapp} WhatsApp messages free so you can try it.",
-    "packsTitle": "Add SMS or WhatsApp",
-    "packsIntro": "Used up the bundle’s messages (for reminders, say)? Top up without buying more cards.",
-    "smsPack": "{n} SMS",
-    "whatsappPack": "{n} WhatsApp messages",
+    "freeNote": "Every event starts with {cards} cards and {messages} reminders free so you can try it.",
+    "packsTitle": "Add reminders",
+    "packsIntro": "Out of reminders? Top up without buying more cards.",
     "contributionsTitle": "We take no cut of contributions",
     "contributionsBody": "Guests send contributions straight to the hosts. You pay only for cards and messages; contribution records are encrypted and visible to your team alone.",
-    "cta": "Start free"
+    "cta": "Start free",
+    "tiersTitle": "Price per card",
+    "tiersIntro": "The more cards you buy at once, the lower the price per card. A card counts only the first time it is sent or printed.",
+    "tierRange": "{from}–{to} cards",
+    "tierFrom": "{from} cards or more",
+    "includesReminders": "{n} SMS or WhatsApp reminders with every card",
+    "example": "Example: {n} cards = {total}",
+    "creditPack": "{n} reminders"
   }
 }

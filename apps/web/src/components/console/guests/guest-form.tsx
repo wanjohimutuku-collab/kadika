@@ -31,6 +31,7 @@ export function guestToInput(g: Guest): GuestInput {
     partySizeAllowed: g.partySizeAllowed,
     cardKind: g.cardKind,
     inviteChannelPref: g.inviteChannelPref,
+    printCard: g.printCard,
     hasSmartphone: g.hasSmartphone,
     language: g.language,
     notes: g.notes,
@@ -44,6 +45,7 @@ const EMPTY: GuestInput = {
   partySizeAllowed: 1,
   cardKind: 'invitation',
   inviteChannelPref: 'whatsapp',
+  printCard: false,
   hasSmartphone: true,
   language: 'en',
   notes: '',
@@ -233,6 +235,18 @@ export function GuestForm({
               field.onChange(!e.target.checked);
               setValue('inviteChannelPref', e.target.checked ? 'sms' : 'whatsapp');
             }}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="printCard"
+        render={({ field }) => (
+          <Checkbox
+            label={t('printCard')}
+            description={t('printCardHelp')}
+            checked={!!field.value}
+            onChange={(e) => field.onChange(e.target.checked)}
           />
         )}
       />

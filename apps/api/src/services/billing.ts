@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, ne, notInArray, sql } from 'drizzle-orm';
 import {
   eventPurchases,
   events,
@@ -10,13 +10,14 @@ import {
   users,
 } from '@harusi/db';
 import {
+  CARD_DELIVERY_KINDS,
   DEFAULT_PRICING,
   addAllowance,
   pricingCatalogSchema,
-  quoteItem,
+  quote,
   remainingOf,
+  sortedTiers,
   type Allowance,
-  type BillingChannel,
   type EventBillingView,
   type PricingCatalog,
   type PurchaseView,
@@ -39,15 +40,25 @@ type Purchase = typeof eventPurchases.$inferSelect;
 const SETTINGS_ID = 'default';
 const PAY_TIMEOUT_MS = 60_000;
 const REF_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-const NONE: Allowance = { cards: 0, sms: 0, whatsapp: 0 };
+const NONE: Allowance = { cards: 0, messages: 0 };
 
-/** Messages an event may still send in one run; refunded when an attempt fails (ADR 042). */
-export interface MessageBudget {
-  take(channel: BillingChannel): boolean;
-  refund(channel: BillingChannel): void;
+/**
+ * Cards an event may still generate and reminder credits it may still spend in one run of sends;
+ * refunded when an attempt fails (ADR 042).
+ */
+export interface CreditBudget {
+  takeCard(): boolean;
+  refundCard(): void;
+  takeMessage(): boolean;
+  refundMessage(): void;
 }
 
-const UNLIMITED: MessageBudget = { take: () => true, refund: () => {} };
+const UNLIMITED: CreditBudget = {
+  takeCard: () => true,
+  refundCard: () => {},
+  takeMessage: () => true,
+  refundMessage: () => {},
+};
 
 /** The 402 refusal the console turns into "buy more" (ADR 042). */
 export function quotaExceeded(
@@ -58,15 +69,16 @@ export function quotaExceeded(
   const details: QuotaExceededDetails = { reason: 'quota_exceeded', resource, remaining, needed };
   return new ApiError(
     'payment_required',
-    resource === 'cards' ? 'Card allowance used up' : `${resource} allowance used up`,
+    resource === 'cards' ? 'Card allowance used up' : 'Reminder credits used up',
     { ...details },
   );
 }
 
 /**
- * Charging for cards, SMS and WhatsApp (ADR 042). An event's allowance is the free allowance plus every
- * paid purchase; its usage is the cards on its guest list and the messages that went out (failed ones
- * are not counted). With the catalogue's `enforced` switch off nothing is refused.
+ * Charging for generated cards and reminders (ADR 042). An event's allowance is the free allowance plus
+ * every paid purchase. Its usage is the cards generated (a guest's card is generated the first time it is
+ * sent or printed) and the reminder credits spent: every SMS or WhatsApp message that is not the card
+ * itself and did not fail. With the catalogue's `enforced` switch off nothing is refused.
  */
 export class BillingService {
   constructor(
@@ -172,12 +184,13 @@ export class BillingService {
   // ---------------------------------------------------------------- allowance and usage
 
   async usage(eventId: string): Promise<Allowance> {
+    // A generated card stays counted after its guest is deleted: it was made and paid for.
     const [cards] = await this.db
       .select({ n: sql<number>`count(*)::int` })
       .from(guests)
-      .where(and(eq(guests.eventId, eventId), isNull(guests.deletedAt)));
-    const msgs = await this.db
-      .select({ channel: messageLog.channel, n: sql<number>`count(*)::int` })
+      .where(and(eq(guests.eventId, eventId), isNotNull(guests.cardGeneratedAt)));
+    const [msgs] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
       .from(messageLog)
       .innerJoin(guests, eq(guests.id, messageLog.guestId))
       .where(
@@ -185,14 +198,35 @@ export class BillingService {
           eq(guests.eventId, eventId),
           inArray(messageLog.channel, ['sms', 'whatsapp']),
           ne(messageLog.status, 'failed'),
+          notInArray(messageLog.kind, [...CARD_DELIVERY_KINDS]),
         ),
-      )
-      .groupBy(messageLog.channel);
-    return {
-      cards: cards?.n ?? 0,
-      sms: msgs.find((m) => m.channel === 'sms')?.n ?? 0,
-      whatsapp: msgs.find((m) => m.channel === 'whatsapp')?.n ?? 0,
-    };
+      );
+    return { cards: cards?.n ?? 0, messages: msgs?.n ?? 0 };
+  }
+
+  /** Guests on the list whose card has not been generated yet. */
+  async cardsToGenerate(eventId: string, guestIds?: string[]): Promise<number> {
+    const [r] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(guests)
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          isNull(guests.cardGeneratedAt),
+          guestIds ? inArray(guests.id, guestIds) : undefined,
+        ),
+      );
+    return r?.n ?? 0;
+  }
+
+  /** Marks cards as generated (the charge, ADR 042). A card generated before keeps its first date. */
+  async markGenerated(guestIds: string[]): Promise<void> {
+    if (guestIds.length === 0) return;
+    await this.db
+      .update(guests)
+      .set({ cardGeneratedAt: this.deps.now() })
+      .where(and(inArray(guests.id, guestIds), isNull(guests.cardGeneratedAt)));
   }
 
   async allowance(eventId: string, catalog?: PricingCatalog): Promise<Allowance> {
@@ -200,8 +234,7 @@ export class BillingService {
     const [bought] = await this.db
       .select({
         cards: sql<number>`coalesce(sum(${eventPurchases.cards}), 0)::int`,
-        sms: sql<number>`coalesce(sum(${eventPurchases.sms}), 0)::int`,
-        whatsapp: sql<number>`coalesce(sum(${eventPurchases.whatsapp}), 0)::int`,
+        messages: sql<number>`coalesce(sum(${eventPurchases.messages}), 0)::int`,
       })
       .from(eventPurchases)
       .where(and(eq(eventPurchases.eventId, eventId), eq(eventPurchases.status, 'paid')));
@@ -215,29 +248,25 @@ export class BillingService {
     return remainingOf(await this.allowance(eventId, c), await this.usage(eventId));
   }
 
-  /** Refuses (402) adding `n` more cards past the allowance. */
-  async assertCanAddCards(eventId: string, n = 1): Promise<void> {
-    const left = await this.remaining(eventId);
-    if (left && left.cards < n) throw quotaExceeded('cards', left.cards, n);
-  }
-
-  /** Refuses (402) a send whose first-choice channels need more messages than are left. */
-  async assertCanSend(eventId: string, needs: { sms: number; whatsapp: number }): Promise<void> {
+  /** Refuses (402) generating `cards` new cards or spending `messages` credits past the allowance. */
+  async assertCanUse(eventId: string, needs: Partial<Allowance>): Promise<void> {
     const left = await this.remaining(eventId);
     if (!left) return;
-    if (needs.whatsapp > left.whatsapp)
-      throw quotaExceeded('whatsapp', left.whatsapp, needs.whatsapp);
-    if (needs.sms > left.sms) throw quotaExceeded('sms', left.sms, needs.sms);
+    if ((needs.cards ?? 0) > left.cards) throw quotaExceeded('cards', left.cards, needs.cards!);
+    if ((needs.messages ?? 0) > left.messages)
+      throw quotaExceeded('messages', left.messages, needs.messages!);
   }
 
   /** A counter for one run of sends, so a 500-guest send does not recount per message. */
-  async budget(eventId: string): Promise<MessageBudget> {
+  async budget(eventId: string): Promise<CreditBudget> {
     const left = await this.remaining(eventId);
     if (!left) return UNLIMITED;
-    const n = { sms: left.sms, whatsapp: left.whatsapp };
+    const n = { ...left };
     return {
-      take: (ch) => (n[ch] > 0 ? (n[ch]--, true) : false),
-      refund: (ch) => void n[ch]++,
+      takeCard: () => (n.cards > 0 ? (n.cards--, true) : false),
+      refundCard: () => void n.cards++,
+      takeMessage: () => (n.messages > 0 ? (n.messages--, true) : false),
+      refundMessage: () => void n.messages++,
     };
   }
 
@@ -254,7 +283,8 @@ export class BillingService {
       kind: p.kind,
       itemKey: p.itemKey,
       label: p.label,
-      adds: { cards: p.cards, sms: p.sms, whatsapp: p.whatsapp },
+      adds: { cards: p.cards, messages: p.messages },
+      unitPrice: p.unitPrice,
       amount: p.amount,
       currency: p.currency,
       status: p.status,
@@ -288,8 +318,13 @@ export class BillingService {
       allowance,
       used,
       remaining: remainingOf(allowance, used),
-      bundles: catalog.bundles.map(({ price, ...b }) => ({ ...b, amount: price[cur] })),
+      messagesPerCard: catalog.messagesPerCard,
+      cardTiers: sortedTiers(catalog.cardTiers).map((t) => ({
+        minCards: t.minCards,
+        price: t.price[cur],
+      })),
       packs: catalog.packs.map(({ price, ...p }) => ({ ...p, amount: price[cur] })),
+      cardsToGenerate: await this.cardsToGenerate(eventId),
       purchases: rows.map((r) => this.view(r)),
       mobilePayAvailable: !!paymentsFor(this.deps, event.country),
     };
@@ -301,7 +336,7 @@ export class BillingService {
   }
 
   /**
-   * The owner orders a bundle or pack. `mobile` sends a mobile-money prompt to `phone` and the purchase
+   * The owner orders cards (any number; the price per card follows the order size) or a credit pack. `mobile` sends a mobile-money prompt to `phone` and the purchase
    * turns paid when the gateway confirms; `manual` leaves it pending until staff confirm the money
    * arrived (bank transfer, cash at the office). Idempotent per key.
    */
@@ -309,7 +344,8 @@ export class BillingService {
     eventId: string,
     userId: string,
     input: {
-      itemKey: string;
+      cards?: number;
+      packKey?: string;
       method: 'mobile' | 'manual';
       phone?: string;
       mobileMethod?: (typeof MOBILE_METHODS)[number];
@@ -321,10 +357,12 @@ export class BillingService {
       throw new ApiError('validation', 'Idempotency-Key must be 8–128 characters');
     const [event] = await this.db.select().from(events).where(eq(events.id, eventId));
     if (!event) throw new ApiError('not_found', 'Event not found');
-    const q = quoteItem(await this.catalog(), input.itemKey, event.currency);
-    if (!q) throw new ApiError('validation', 'Unknown item', { field: 'itemKey' });
-    if (q.amount <= 0)
-      throw new ApiError('validation', 'This item has no price yet', { field: 'itemKey' });
+    const item =
+      input.cards !== undefined ? { cards: input.cards } : { packKey: input.packKey ?? '' };
+    const q = quote(await this.catalog(), item, event.currency);
+    const field = 'cards' in item ? 'cards' : 'packKey';
+    if (!q) throw new ApiError('validation', 'Unknown item or quantity', { field });
+    if (q.amount <= 0) throw new ApiError('validation', 'This item has no price yet', { field });
 
     const reference = this.referenceFor(eventId, idempotencyKey);
     const [existing] = await this.db
@@ -360,9 +398,10 @@ export class BillingService {
         id: newId(),
         eventId,
         kind: q.kind,
-        itemKey: q.key,
+        itemKey: q.itemKey,
         label: q.label,
         ...q.adds,
+        unitPrice: q.unitPrice,
         amount: q.amount,
         currency: event.currency,
         status: 'pending',
@@ -387,7 +426,7 @@ export class BillingService {
       action: 'billing.order',
       entity: 'purchase',
       entityId: row.id,
-      diff: { item: q.key, amount: q.amount, method: input.method },
+      diff: { item: q.itemKey ?? `cards:${q.adds.cards}`, amount: q.amount, method: input.method },
     });
 
     if (provider && phone) {
@@ -539,7 +578,7 @@ export class BillingService {
 
   /** A paid card bundle also marks the event `paid` for the staff dashboards (ADR 012). */
   private async afterPaid(p: Purchase, staffId: string | null) {
-    if (p.kind === 'bundle')
+    if (p.kind === 'cards')
       await this.db.update(events).set({ plan: 'paid' }).where(eq(events.id, p.eventId));
     await recordAudit(this.db, {
       eventId: p.eventId,
@@ -612,7 +651,7 @@ export class BillingService {
     const staff = await requireStaff(this.db, caller, 'plan');
     const why = input.note.trim();
     if (why.length < 3) throw new ApiError('validation', 'reason_required', { field: 'note' });
-    if (input.cards + input.sms + input.whatsapp <= 0)
+    if (input.cards + input.messages <= 0)
       throw new ApiError('validation', 'Grant at least one card or message');
     const [event] = await this.db.select().from(events).where(eq(events.id, eventId));
     if (!event) throw new ApiError('not_found', 'Event not found');
@@ -624,8 +663,7 @@ export class BillingService {
         kind: 'grant',
         label: 'Zawadi ya kamati ya huduma',
         cards: input.cards,
-        sms: input.sms,
-        whatsapp: input.whatsapp,
+        messages: input.messages,
         amount: 0,
         currency: event.currency,
         status: 'paid',
@@ -646,8 +684,7 @@ export class BillingService {
         target: event.coupleNames,
         details: why,
         cards: input.cards,
-        sms: input.sms,
-        whatsapp: input.whatsapp,
+        messages: input.messages,
       },
     });
     return this.view(row!);

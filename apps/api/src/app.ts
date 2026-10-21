@@ -112,6 +112,7 @@ const guestBase = z.object({
   hasSmartphone: z.boolean().nullish(),
   language: z.enum(['sw', 'en']).optional(),
   inviteChannelPref: z.enum(['whatsapp', 'sms', 'print', 'mixed']).optional(),
+  printCard: z.boolean().optional(),
   notes: z.string().max(500).nullish(),
 });
 
@@ -594,6 +595,21 @@ export function createApp(deps: Deps) {
       }),
     );
   });
+  // Which guests get a printed card (ADR 042), many at once.
+  app.post('/v1/events/:id/guests/print-card', async (c) => {
+    const input = parse(
+      z.object({ guestIds: z.array(z.string().uuid()).min(1).max(2000), printCard: z.boolean() }),
+      await body(c),
+    );
+    return c.json(
+      await guestsSvc.setPrintCard(
+        c.req.param('id'),
+        c.get('userId'),
+        input.guestIds,
+        input.printCard,
+      ),
+    );
+  });
   app.post('/v1/events/:id/guests', async (c) =>
     c.json(
       await guestsSvc.create(c.req.param('id'), c.get('userId'), parse(guestBase, await body(c))),
@@ -662,6 +678,8 @@ export function createApp(deps: Deps) {
       z.object({
         format: z.enum(['a6', 'a5', 'a4x4', 'test']),
         guestIds: z.array(z.string().uuid()).min(1).max(1000).optional(),
+        /** Bulk: every guest chosen for a printed card (ADR 042). */
+        marked: z.boolean().optional(),
       }),
       await body(c),
     );
@@ -781,7 +799,8 @@ export function createApp(deps: Deps) {
   app.post('/v1/events/:id/billing/orders', async (c) => {
     const input = parse(
       z.object({
-        itemKey: z.string().min(1).max(24),
+        cards: z.number().int().min(1).max(10_000).optional(),
+        packKey: z.string().min(1).max(24).optional(),
         method: z.enum(['mobile', 'manual']),
         phone: z.string().min(1).max(30).optional(),
         mobileMethod: z.enum(MOBILE_METHODS).optional(),
@@ -859,7 +878,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/ops/events/:id/grants', async (c) => {
     const n = z.number().int().min(0).max(100_000);
     const input = parse(
-      z.object({ cards: n, sms: n, whatsapp: n, note: z.string().max(500) }),
+      z.object({ cards: n, messages: n, note: z.string().max(500) }),
       await body(c),
     );
     return c.json(await billingSvc.opsGrant(staff(c), idParam(c), input), 201);

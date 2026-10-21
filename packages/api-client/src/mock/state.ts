@@ -53,6 +53,9 @@ export interface GuestRecord {
   token: string;
   language: 'sw' | 'en';
   inviteChannelPref: 'whatsapp' | 'sms' | 'print' | 'mixed';
+  /** Older saved states have neither: read as "no phone" and "already sent" (ADR 042). */
+  printCard?: boolean;
+  cardGeneratedAt?: string | null;
   notes: string;
   status: InvitationStatus;
   timeline: Partial<Record<InvitationStatus, string>>;

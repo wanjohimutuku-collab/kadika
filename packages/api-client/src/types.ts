@@ -158,6 +158,10 @@ export interface Guest {
   tokenVersion: number;
   language: Language;
   inviteChannelPref: ChannelPref;
+  /** The host chose a printed card for this guest (ADR 042). */
+  printCard: boolean;
+  /** The card was generated (sent or printed), so it is paid for; resending or reprinting is free. */
+  cardGenerated: boolean;
   notes: string;
   status: InvitationStatus;
   /** Highest status reached before a terminal answer; used for timelines. */
@@ -424,6 +428,7 @@ export type GuestFilter =
   | 'no_reply'
   | 'declined'
   | 'no_smartphone'
+  | 'print'
   | 'failed'
   | 'checked_in';
 

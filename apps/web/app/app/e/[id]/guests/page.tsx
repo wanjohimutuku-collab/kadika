@@ -21,6 +21,7 @@ import {
   FileUp,
   Pencil,
   Printer,
+  CheckSquare,
   RefreshCw,
   Search,
   Send,
@@ -248,6 +249,23 @@ function GuestsInner({ id }: { id: string }) {
     onSuccess: (blob, ids) => {
       downloadBlob(blob, `kadi-${ids.length}.pdf`);
       toast({ tone: 'success', title: t('printQueued', { count: ids.length }) });
+      void invalidate(); // the cards are generated now (ADR 042)
+    },
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
+  });
+
+  // ADR 042: choose who gets a printed card; generating them happens on Kadi (or "Chapisha" here).
+  const markPrint = useMutation({
+    mutationFn: ({ ids, on }: { ids: string[]; on: boolean }) =>
+      getRepository().setPrintCard(id, ids, on),
+    onSuccess: (r, v) => {
+      toast({
+        tone: 'success',
+        title: t(v.on ? 'printMarked' : 'printUnmarked', { count: r.updated }),
+      });
+      setSelection({});
+      setSelectMode(false);
+      void invalidate();
     },
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
   });
@@ -798,6 +816,24 @@ function GuestsInner({ id }: { id: string }) {
               loading={print.isPending}
             >
               {t('bulkPrint')}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<CheckSquare className="size-4" aria-hidden="true" />}
+              onClick={() => markPrint.mutate({ ids: selectedIds, on: true })}
+              loading={markPrint.isPending && markPrint.variables?.on === true}
+              data-testid="bulk-mark-print"
+            >
+              {t('bulkMarkPrint')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => markPrint.mutate({ ids: selectedIds, on: false })}
+              loading={markPrint.isPending && markPrint.variables?.on === false}
+            >
+              {t('bulkUnmarkPrint')}
             </Button>
             <Button
               size="sm"

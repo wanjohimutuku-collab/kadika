@@ -37,6 +37,12 @@ test('owner creates an event, imports 50 guests with errors, sends, retries fail
   await page.getByTestId('wizard-next').click();
   await shot(page, 'wizard-review');
   await page.getByTestId('wizard-create').click();
+  // ADR 042: the new card is put together in front of the host, then cards are offered.
+  await expect(page.getByTestId('welcome-steps')).toBeVisible();
+  await expect(page.getByTestId('welcome-offer')).toBeVisible();
+  await expect(page.getByTestId('welcome-total')).toContainText('TZS 220,000'); // 100 × 2,200
+  await shot(page, 'welcome-offer');
+  await page.getByTestId('welcome-skip').click();
   await expect(page.getByTestId('overview')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Neema & Daudi' })).toBeVisible();
   const eventUrl = page.url();

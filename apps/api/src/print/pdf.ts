@@ -1,4 +1,13 @@
-import { PDFDocument, StandardFonts, cmyk, type PDFFont, type PDFPage } from 'pdf-lib';
+import {
+  PDFDocument,
+  StandardFonts,
+  cmyk,
+  degrees,
+  type CMYK,
+  type PDFFont,
+  type PDFPage,
+} from 'pdf-lib';
+import { resolvePalette, type Palette } from '@harusi/ui-tokens/palette';
 import QRCodeCore from 'qrcode/lib/core/qrcode.js';
 import {
   BLEED_MM,
@@ -25,12 +34,56 @@ export interface CardData {
 }
 
 const mm = (v: number) => v * PT_PER_MM;
-// CMYK-safe: a rich black for text, pure K for the QR, a muted green and gold for ornament.
+// CMYK-safe: a rich black for text, pure K for the QR. The card's own colours come from its theme.
 const INK = cmyk(0, 0, 0, 0.9);
 const QR_BLACK = cmyk(0, 0, 0, 1);
-const GREEN = cmyk(0.85, 0.2, 0.7, 0.45);
-const GOLD = cmyk(0.1, 0.35, 0.8, 0.15);
 const WHITE = cmyk(0, 0, 0, 0);
+
+/** `#RRGGBB` → CMYK for the press (plain conversion; the printer's profile does the rest). */
+export function hexToCmyk(hex: string): CMYK {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255) as [
+    number,
+    number,
+    number,
+  ];
+  const k = 1 - Math.max(r, g, b);
+  if (k >= 1) return cmyk(0, 0, 0, 1);
+  const c = (1 - r - k) / (1 - k);
+  const m = (1 - g - k) / (1 - k);
+  const y = (1 - b - k) / (1 - k);
+  const round = (v: number) => Math.round(v * 1000) / 1000;
+  return cmyk(round(c), round(m), round(y), round(k));
+}
+
+/** The colours a printed card is drawn in: the same theme and palette as the guest's digital card. */
+export interface PrintTheme {
+  primary: CMYK;
+  accent: CMYK;
+  pattern: CMYK;
+  ink: CMYK;
+  surface: CMYK;
+  border: CMYK;
+}
+
+/** From an event's `brand_theme` (`{ themeId, palette }`), as the digital card resolves it (ADR 042). */
+export function printThemeFrom(brandTheme: Record<string, unknown> | null | undefined): PrintTheme {
+  const t = brandTheme ?? {};
+  const p: Palette = resolvePalette(
+    typeof t.themeId === 'string' ? t.themeId : null,
+    (t.palette as Record<string, string> | undefined) ?? null,
+  );
+  return {
+    primary: hexToCmyk(p.primary),
+    accent: hexToCmyk(p.accent),
+    pattern: hexToCmyk(p.pattern),
+    ink: hexToCmyk(p.ink),
+    surface: hexToCmyk(p.surface),
+    border: hexToCmyk(p.border),
+  };
+}
+
+const DEFAULT_THEME = printThemeFrom(null);
 
 /** Standard PDF fonts only cover WinAnsi; anything else becomes `?` instead of failing the batch. */
 function safe(text: string): string {
@@ -103,24 +156,61 @@ function drawCard(
   oy: number,
   w: number,
   h: number,
+  theme: PrintTheme = DEFAULT_THEME,
 ) {
   const cx = mm(ox + w / 2);
   const sw = c.language === 'sw';
-  // top ornament
+  // The card's paper colour, ornament and names follow its theme, like the digital card. The QR
+  // block below is always pure black on white, whatever the theme (§6.4).
+  page.drawRectangle({ x: mm(ox), y: mm(oy), width: mm(w), height: mm(h), color: theme.surface });
+  // top ornament: a band in the accent with a row of small diamonds in the pattern tint
+  const bandY = oy + h - SAFE_MM - 1;
   page.drawRectangle({
     x: mm(ox + SAFE_MM),
-    y: mm(oy + h - SAFE_MM - 1),
+    y: mm(bandY),
     width: mm(w - 2 * SAFE_MM),
     height: mm(0.6),
-    color: GOLD,
+    color: theme.accent,
   });
-  centered(page, f.serifBold, c.coupleNames, 26, cx, mm(oy + h - 28), GREEN);
-  centered(page, f.sans, sw ? 'Wanawaalika' : 'You are invited,', 11, cx, mm(oy + h - 40));
-  centered(page, f.serifBold, c.guestName, 18, cx, mm(oy + h - 48));
-  centered(page, f.sansBold, c.dateText, 13, cx, mm(oy + h - 60));
-  if (c.venue) centered(page, f.sans, c.venue, 12, cx, mm(oy + h - 67));
+  for (let x = ox + SAFE_MM + 3; x < ox + w - SAFE_MM - 2; x += 6)
+    page.drawSquare({
+      x: mm(x),
+      y: mm(bandY - 2.2),
+      size: mm(1.2),
+      rotate: degrees(45),
+      color: theme.pattern,
+    });
+  // centre diamond under the band
+  page.drawSquare({
+    x: cx - mm(1.1),
+    y: mm(oy + h - 19),
+    size: mm(2.2),
+    rotate: degrees(45),
+    color: theme.accent,
+  });
+  centered(page, f.serifBold, c.coupleNames, 26, cx, mm(oy + h - 28), theme.primary);
+  centered(
+    page,
+    f.sans,
+    sw ? 'Wanawaalika' : 'You are invited,',
+    11,
+    cx,
+    mm(oy + h - 40),
+    theme.ink,
+  );
+  centered(page, f.serifBold, c.guestName, 18, cx, mm(oy + h - 48), theme.ink);
+  centered(page, f.sansBold, c.dateText, 13, cx, mm(oy + h - 60), theme.ink);
+  if (c.venue) centered(page, f.sans, c.venue, 12, cx, mm(oy + h - 67), theme.ink);
   if (c.dressCode)
-    centered(page, f.sans, `${sw ? 'Mavazi' : 'Dress'}: ${c.dressCode}`, 11, cx, mm(oy + h - 74));
+    centered(
+      page,
+      f.sans,
+      `${sw ? 'Mavazi' : 'Dress'}: ${c.dressCode}`,
+      11,
+      cx,
+      mm(oy + h - 74),
+      theme.ink,
+    );
   if (c.committeePhone)
     centered(
       page,
@@ -129,7 +219,16 @@ function drawCard(
       10,
       cx,
       mm(oy + h - 81),
+      theme.ink,
     );
+  // a thin rule above the QR band, in the theme's border colour
+  page.drawRectangle({
+    x: mm(ox + SAFE_MM),
+    y: mm(oy + SAFE_MM + cardQrPlan(c.qrToken).blockMm + 3),
+    width: mm(w - 2 * SAFE_MM),
+    height: mm(0.25),
+    color: theme.border,
+  });
   // bottom band: QR (left) and short code (right)
   const plan = cardQrPlan(c.qrToken);
   const qx = ox + SAFE_MM;
@@ -142,7 +241,7 @@ function drawCard(
     y: mm(qy + plan.blockMm / 2 + 10),
     size: 9,
     font: f.sans,
-    color: INK,
+    color: theme.ink,
   });
   let size = 22; // ≥ MIN_CODE_PT even for the longest code
   while (f.sansBold.widthOfTextAtSize(c.shortCode, size) > room && size > MIN_CODE_PT) size -= 1;
@@ -191,6 +290,7 @@ function cropMarks(page: PDFPage, w: number, h: number, offset: number) {
 export async function buildCardsPdf(
   format: Exclude<PrintFormat, 'test'>,
   cards: CardData[],
+  theme: PrintTheme = DEFAULT_THEME,
 ): Promise<Uint8Array> {
   if (cards.length === 0) throw new Error('No cards to print');
   const { doc, f } = await newDoc();
@@ -202,7 +302,7 @@ export async function buildCardsPdf(
       for (let k = 0; k < 4 && i + k < cards.length; k++) {
         const ox = (k % 2) * w;
         const oy = PAGE_MM.a4.h - h - Math.floor(k / 2) * h;
-        drawCard(page, f, cards[i + k]!, ox, oy, w, h);
+        drawCard(page, f, cards[i + k]!, ox, oy, w, h, theme);
         page.drawRectangle({
           x: mm(ox),
           y: mm(oy),
@@ -217,7 +317,7 @@ export async function buildCardsPdf(
     const { w, h } = PAGE_MM[format];
     for (const c of cards) {
       const page = doc.addPage([mm(w + 2 * BLEED_MM), mm(h + 2 * BLEED_MM)]);
-      drawCard(page, f, c, BLEED_MM, BLEED_MM, w, h);
+      drawCard(page, f, c, BLEED_MM, BLEED_MM, w, h, theme);
       cropMarks(page, w, h, BLEED_MM);
     }
   }

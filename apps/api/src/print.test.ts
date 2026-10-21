@@ -142,3 +142,71 @@ describe('print PDFs', () => {
     expect((await pdf(ev.id, gate.accessToken, { format: 'a6' })).status).toBe(403);
   });
 });
+
+describe('printed cards follow the digital card theme (ADR 042)', () => {
+  /** Every colour-fill operator (`c m y k k`) in the PDF's page streams. */
+  async function fills(bytes: Uint8Array): Promise<Set<string>> {
+    const { inflateSync } = await import('node:zlib');
+    const raw = Buffer.from(bytes);
+    const out = new Set<string>();
+    let at = 0;
+    for (;;) {
+      const start = raw.indexOf('stream', at);
+      if (start < 0) break;
+      const dataStart = raw[start + 6] === 0x0d ? start + 8 : start + 7;
+      const end = raw.indexOf('endstream', dataStart);
+      if (end < 0) break;
+      let text: string;
+      try {
+        text = inflateSync(raw.subarray(dataStart, end)).toString('latin1');
+      } catch {
+        text = raw.subarray(dataStart, end).toString('latin1');
+      }
+      for (const m of text.matchAll(/([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+) k/g))
+        out.add(
+          m
+            .slice(1, 5)
+            .map((v) => Number(v).toFixed(2))
+            .join(' '),
+        );
+      at = end + 9;
+    }
+    return out;
+  }
+  const key = (c: { cyan: number; magenta: number; yellow: number; key: number }) =>
+    [c.cyan, c.magenta, c.yellow, c.key].map((v) => v.toFixed(2)).join(' ');
+
+  it('uses the theme and custom palette colours, and keeps the QR pure black', async () => {
+    const { buildCardsPdf, hexToCmyk, printThemeFrom } = await import('./print/pdf');
+    const navy = printThemeFrom({ themeId: 'navy-silver' });
+    expect(key(navy.primary)).toBe(key(hexToCmyk('#1F3A5F')));
+    const custom = printThemeFrom({ themeId: 'navy-silver', palette: { primary: '#5A1E3C' } });
+    expect(key(custom.primary)).toBe(key(hexToCmyk('#5A1E3C')));
+
+    const card = {
+      coupleNames: 'Asha & Juma',
+      guestName: 'Bibi Pendo',
+      shortCode: 'KH-4821',
+      qrToken: signQrToken(
+        {
+          eventId: '0192f1a0-7c3e-7a11-9b2c-5e8d4a6f0001',
+          guestId: '0192f1a0-7c3e-7a11-9b2c-5e8d4a6f0099',
+          partySize: 2,
+          version: 1,
+        },
+        '03'.repeat(32),
+      ),
+      dateText: 'Jumamosi 5 Desemba 2026',
+      venue: 'Ukumbi wa Mwanga',
+      dressCode: '',
+      committeePhone: '',
+      language: 'sw' as const,
+    };
+    const used = await fills(await buildCardsPdf('a6', [card], navy));
+    expect(used).toContain(key(navy.primary)); // the names
+    expect(used).toContain(key(navy.accent)); // the ornament
+    expect(used).toContain('0.00 0.00 0.00 1.00'); // the QR modules
+    const plain = await fills(await buildCardsPdf('a6', [card], printThemeFrom(null)));
+    expect(plain).not.toContain(key(navy.primary));
+  });
+});

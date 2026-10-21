@@ -2142,5 +2142,32 @@
     "includesReminders": "{n} SMS or WhatsApp reminders with every card",
     "example": "Example: {n} cards = {total}",
     "creditPack": "{n} reminders"
+  },
+  "welcome": {
+    "eyebrow": "Your event is created",
+    "buildingTitle": "Preparing your card…",
+    "readyTitle": "Your card is ready!",
+    "progressLabel": "Card preparation",
+    "progress": "Step {done} of {total}",
+    "steps": {
+      "design": "Applying the design and colours you chose",
+      "names": "Setting the names, date and venue",
+      "qr": "Preparing every guest's QR and card number",
+      "ready": "Ready to send and print"
+    },
+    "stepDone": "done",
+    "stepPending": "waiting",
+    "offerTitle": "How many guests will you invite?",
+    "offerIntro": "Buy cards for your guest list. The more you buy at once, the lower the price per card.",
+    "quickLabel": "Quick pick",
+    "guests": "{n} guests",
+    "howMany": "Number of cards",
+    "point": {
+      "generated": "A card counts only the first time it is sent or printed.",
+      "reminders": "Each card comes with {per} SMS or WhatsApp reminders.",
+      "contributions": "Guest contributions go straight to you; we take no cut."
+    },
+    "buy": "Buy {n} cards · {total}",
+    "skip": "Start with {n} free cards"
   }
 }

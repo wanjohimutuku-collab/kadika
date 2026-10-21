@@ -33,7 +33,7 @@ async function setup(country: 'TZ' | 'KE') {
   const g = (
     await api(ctx, 'POST', `/v1/events/${ev.id}/guests`, {
       token: t,
-      body: { displayName: 'Wanjiru Kamau', phone },
+      body: { displayName: 'Wanjiru Kamau', phone, cardKind: 'contribution' },
     })
   ).body!;
   return { t, ev, g: g as { id: string; cardToken: string } };

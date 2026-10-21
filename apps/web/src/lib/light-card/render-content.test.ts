@@ -180,6 +180,23 @@ describe('customised invitation card', () => {
   });
 });
 
+describe('invitation card', () => {
+  it('never asks for a contribution, even with a pledge and contributions on', () => {
+    const html = renderCard(
+      view(
+        { invitation: { show: { pledge: true } } },
+        { pledge: { amount: 50_000, paid: 10_000, balance: 40_000, status: 'partial' } },
+      ),
+      opts,
+    );
+    expect(html).toContain('data-card-kind="invitation"');
+    expect(html).not.toContain('data-testid="pledge-summary"');
+    expect(html).not.toContain('data-testid="pay-link"');
+    expect(html).not.toContain('data-testid="pay-to"');
+    expect(html).not.toContain('TZS 40,000');
+  });
+});
+
 describe('contribution card', () => {
   const contribution = (c: CardContent = {}, over: Partial<CardView> = {}) =>
     view(c, over, 'contribution');

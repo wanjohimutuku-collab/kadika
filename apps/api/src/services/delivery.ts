@@ -480,6 +480,8 @@ export class DeliveryService {
       const s = await pledgeSummaryOf(this.deps, guest.id);
       if (
         !guest.phoneE164 ||
+        // The reminder links to the guest's card, and only a contribution card shows the balance.
+        guest.cardKind !== 'contribution' ||
         guest.remindersOptOut ||
         recent.has(guest.id) ||
         !s ||

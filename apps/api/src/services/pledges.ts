@@ -372,6 +372,10 @@ export class PledgeService {
         reason: 'collected_by_host',
       });
     const { guest, event } = await this.guestByToken(token);
+    if (guest.cardKind !== 'contribution')
+      throw new ApiError('forbidden', 'An invitation card does not take contributions', {
+        reason: 'not_a_contribution_card',
+      });
     const provider = paymentsFor(this.deps, event.country);
     if (!provider)
       throw new ApiError('forbidden', 'Payments are not configured', {

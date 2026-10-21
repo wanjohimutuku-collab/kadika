@@ -129,6 +129,8 @@ export const cardContentSchema = z
         rsvpNoLabel: ltext(40),
         closing: ltext(600),
         footerNote: ltext(300),
+        // `pledge` is kept so saved content still validates, but an invitation never shows a contribution
+        // request any more: contributions have their own card (ADR 043).
         show: showFlags(['map', 'dressCode', 'calendar', 'qr', 'rsvp', 'pledge'] as const),
       })
       .strict()

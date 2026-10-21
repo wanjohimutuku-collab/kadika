@@ -102,6 +102,8 @@ export class CardService {
     pledge: PledgeSummary | null = null,
     collected: number | null = null,
   ): CardView {
+    // Only a contribution card speaks about money; an invitation shows no pledge at all.
+    if (row.guest.cardKind !== 'contribution') pledge = null;
     const { guest, invitation, event } = row;
     const now = this.deps.now().getTime();
     const start = event.dateStart.getTime();

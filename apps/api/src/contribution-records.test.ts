@@ -120,4 +120,23 @@ describe('contribution records (ADR 043)', () => {
     const summary = (await api(ctx, 'GET', `/v1/events/${evId}/pledges`, { token: t })).body!;
     expect(summary.guests[0]).toMatchObject({ amount: 7_000, note: 'zamani' });
   });
+
+  it('an invitation card carries no pledge and takes no payment; a contribution card does', async () => {
+    const { t, g } = await setup();
+    await api(ctx, 'POST', `/v1/guests/${g.id}/pledges`, { token: t, body: { amount: 30_000 } });
+    const invitation = (await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!;
+    expect(invitation.cardKind).toBe('invitation');
+    expect(invitation.pledge).toBeNull();
+    const pay = await ctx.app.request(`/v1/c/${g.cardToken}/pay`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'idempotency-key': 'invite-pay-1' },
+      body: JSON.stringify({ amount: 5_000, phone: '0712 345 678', method: 'mpesa' }),
+    });
+    expect(pay.status).toBe(403);
+
+    await api(ctx, 'PATCH', `/v1/guests/${g.id}`, { token: t, body: { cardKind: 'contribution' } });
+    const contribution = (await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!;
+    expect(contribution.cardKind).toBe('contribution');
+    expect(contribution.pledge).toMatchObject({ amount: 30_000, balance: 30_000 });
+  });
 });

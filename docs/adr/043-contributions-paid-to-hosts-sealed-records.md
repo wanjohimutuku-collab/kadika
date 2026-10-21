@@ -31,6 +31,12 @@ collected_by_host`, unless `GUEST_PAYMENTS_ENABLED=1` (off by default, kept only
    finds billing orders instead of contribution payments, and pilot metrics report payment counts but no
    amounts. Audit log entries for pledges and payments no longer include amounts.
 
+5. **Invitations never ask for money.** A wedding, send-off or engagement invitation shows no
+   contribution section, pledge or payment details, whatever its settings; the card API returns no pledge
+   for it. Contributions have their own card (`cardKind: contribution`), which the host can make for any kind
+   of event. Pledge reminders go only to contribution-card guests, since their link opens the card that
+   shows the balance, and paying from a card is accepted only on a contribution card.
+
 ## Consequences
 
 - This is **encryption at rest on the server**, not end-to-end: the API holds the key, so it protects

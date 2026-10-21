@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
-import { messageLog, newId, scanLog } from '@harusi/db';
+import { eq, inArray } from 'drizzle-orm';
+import { guests, messageLog, newId, scanLog } from '@harusi/db';
 import {
   api,
   createTestContext,
@@ -65,6 +65,9 @@ beforeAll(async () => {
     failureReason: 'AbsentSubscriber',
   });
   // Two mobile-money payments: one confirmed 30 s after the prompt, one still pending.
+  // Paying is for contribution cards (an invitation never asks for money); switched in place so the
+  // delivery numbers above stay as they are.
+  await ctx.db.update(guests).set({ cardKind: 'contribution' }).where(inArray(guests.id, guestIds));
   const pay = async (token: string, key: string) => {
     ctx.clock.now += 61_000;
     await ctx.app.request(`/v1/c/${token}/pay`, {

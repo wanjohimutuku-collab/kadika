@@ -389,11 +389,8 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
       ? `<a class="btn primary block mt" href="${payHref}" data-testid="pay-link">${esc(t.pay)}</a>`
       : payDirect;
 
-  // The invitation card can carry a contribution section; the contribution card is built around it.
-  const pledge =
-    !isContribution && event.pledgesEnabled && shown(inv.show, 'pledge') && !view.eventPassed
-      ? `<section class="no-print"><h2>${esc(t.pledgeTitle)}</h2>${pledgeSummary}${payButton}</section>`
-      : '';
+  // An invitation (wedding, send-off, engagement…) never asks for money: contributions have their own
+  // card, which the host can make for any kind of event.
 
   const target = event.contributionTarget ?? 0;
   const collected = view.contributionCollected ?? null;
@@ -490,7 +487,6 @@ ${venueSection}
 ${programme}
 ${rsvpSection}
 ${confirmed ? '' : qrSection}
-${pledge}
 ${contributionSection}
 ${closingSection}
 <footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a><a href="/programu" data-testid="card-app-link">${esc(t.appLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>

@@ -395,7 +395,7 @@ describe('payment gateway settings (ADR 036)', () => {
     const g = (
       await api(ctx, 'POST', `/v1/events/${ev.id}/guests`, {
         token: owner.accessToken,
-        body: { displayName: 'Asha Mwinyi', phone: '0713345678' },
+        body: { displayName: 'Asha Mwinyi', phone: '0713345678', cardKind: 'contribution' },
       })
     ).body!;
 

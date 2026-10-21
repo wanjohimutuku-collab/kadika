@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { scryptAsync } from '@noble/hashes/scrypt';
-import { and, asc, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import {
   eventMembers,
   events,
@@ -137,29 +137,45 @@ export class GateService {
     if (!link || link.revokedAt || link.expiresAt <= this.deps.now())
       throw new ApiError('not_found', 'This gate link is not valid');
     const now = this.deps.now();
-    if (link.lockedUntil && link.lockedUntil > now)
-      throw new ApiError('locked', 'Too many wrong PINs. Try again later.', {
-        until: link.lockedUntil.toISOString(),
+    const locked = (until: Date) =>
+      new ApiError('locked', 'Too many wrong PINs. Try again later.', {
+        until: until.toISOString(),
       });
+    if (link.lockedUntil && link.lockedUntil > now) throw locked(link.lockedUntil);
+    // Every guess takes one attempt in a single statement BEFORE the PIN is checked, so a burst of
+    // parallel guesses cannot all read the same count and slip past the lockout.
+    const [slot] = await this.deps.db
+      .update(gateLinks)
+      .set({ failedAttempts: sql`${gateLinks.failedAttempts} + 1` })
+      .where(
+        and(
+          eq(gateLinks.id, link.id),
+          or(isNull(gateLinks.lockedUntil), lte(gateLinks.lockedUntil, now)),
+          lt(gateLinks.failedAttempts, MAX_PIN_ATTEMPTS),
+        ),
+      )
+      .returning({ attempts: gateLinks.failedAttempts });
+    const lockNow = async () => {
+      const until = new Date(now.getTime() + LOCK_MS);
+      await this.deps.db
+        .update(gateLinks)
+        .set({ failedAttempts: 0, lockedUntil: until })
+        .where(eq(gateLinks.id, link.id));
+      return until;
+    };
+    if (!slot) throw locked(await lockNow());
     const [saltHex, hashHex] = link.pinHash.split(':') as [string, string];
     const got = await hashPin(input.pin, Uint8Array.from(Buffer.from(saltHex, 'hex')));
     const a = Buffer.from(got.split(':')[1]!);
     const b = Buffer.from(hashHex);
     if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      const attempts = link.failedAttempts + 1;
-      const lock = attempts >= MAX_PIN_ATTEMPTS;
-      await this.deps.db
-        .update(gateLinks)
-        .set({
-          failedAttempts: lock ? 0 : attempts,
-          lockedUntil: lock ? new Date(now.getTime() + LOCK_MS) : null,
-        })
-        .where(eq(gateLinks.id, link.id));
+      const lock = slot.attempts >= MAX_PIN_ATTEMPTS;
+      if (lock) await lockNow();
       throw new ApiError(
         lock ? 'locked' : 'unauthorized',
         lock ? 'Too many wrong PINs. Try again later.' : 'Wrong PIN',
         {
-          attemptsLeft: lock ? 0 : MAX_PIN_ATTEMPTS - attempts,
+          attemptsLeft: lock ? 0 : MAX_PIN_ATTEMPTS - slot.attempts,
         },
       );
     }
@@ -318,7 +334,13 @@ export class GateService {
           if (guestId) touched.add(guestId);
         }
       }
-      for (const guestId of touched) await this.reorder(tx as Deps['db'], eventId, guestId);
+      // Two devices syncing the same guest at once would each see only their own uncommitted claim and
+      // both keep "admitted". A per-guest transaction lock makes the second wait and see the first.
+      // Sorted, so two batches lock in the same order and cannot deadlock.
+      for (const guestId of [...touched].sort()) {
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${guestId}, 0))`);
+        await this.reorder(tx as Deps['db'], eventId, guestId);
+      }
     });
     const results = await this.deps.db
       .select({

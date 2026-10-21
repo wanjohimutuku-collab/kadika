@@ -42,7 +42,7 @@ import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
 import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
-import { RateLimiter } from './rate-limit';
+import { clientIp, RateLimiter } from './rate-limit';
 import { BillingService } from './services/billing';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
@@ -203,7 +203,23 @@ export function createApp(deps: Deps) {
     deps.rateStore,
   );
   const cardWrites = new RateLimiter(deps.now, 20, 60_000, 'card-write', deps.rateStore);
-  const client = (c: Context) => c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  const client = (c: Context) => clientIp((h) => c.req.header(h), deps.config.clientIpHeader);
+  // Each login code is a paid SMS: cap them per IP across numbers, and in total (SMS pumping, §9).
+  const otpByIp = new RateLimiter(
+    deps.now,
+    deps.config.otpIpHourlyLimit,
+    3_600_000,
+    'otp-ip',
+    deps.rateStore,
+  );
+  const otpTotal = new RateLimiter(
+    deps.now,
+    deps.config.otpGlobalHourlyLimit,
+    3_600_000,
+    'otp-all',
+    deps.rateStore,
+  );
+  let otpAlertAt = 0; // one alert per 10 minutes, not one per refused request
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
     const h = c.req.header('authorization');
@@ -267,6 +283,17 @@ export function createApp(deps: Deps) {
   // ---- auth
   app.post('/v1/auth/otp/request', async (c) => {
     const { phone: p } = parse(z.object({ phone }), await body(c));
+    await otpByIp.check(`ip:${client(c)}`);
+    try {
+      await otpTotal.check('all');
+    } catch (e) {
+      // Past the hourly total something is pumping SMS: refuse, and tell staff (spend alert).
+      if (deps.now().getTime() - otpAlertAt > 600_000) {
+        otpAlertAt = deps.now().getTime();
+        deps.reportError?.(new Error('OTP hourly limit reached: login codes are being refused'));
+      }
+      throw e;
+    }
     return c.json(await auth.requestOtp(p));
   });
   app.post('/v1/auth/otp/verify', async (c) => {

@@ -5,6 +5,7 @@ import { DeliveryService, type SendInput } from './services/delivery';
 import { EventService } from './services/events';
 import { PledgeService } from './services/pledges';
 import { BillingService } from './services/billing';
+import { checkMessageVolume } from './spend-alert';
 
 const QUEUE = 'harusi-delivery';
 const TICK_EVERY_MS = 15 * 60_000;
@@ -29,7 +30,8 @@ export async function runTick(
   const payments = pledges ? await pledges.reconcilePending() : null;
   // Billing orders paid by mobile money are settled the same way (ADR 042).
   const orders = billing ? await billing.reconcilePending() : null;
-  return { fallback, reminders, reports, payments, orders };
+  const volume = await checkMessageVolume(deps);
+  return { fallback, reminders, reports, payments, orders, volume };
 }
 
 /**
@@ -62,11 +64,17 @@ export function startWorker(deps: Deps, redisUrl: string) {
     },
     { connection, concurrency: 2 },
   );
-  worker.on('failed', (job, err) =>
+  // A failed job (the tick, or a queued send) is an error someone must see, not only a log line.
+  worker.on('failed', (job, err) => {
     console.error(
       JSON.stringify({ level: 'error', msg: 'job failed', job: job?.name, err: err.message }),
-    ),
-  );
+    );
+    deps.reportError?.(err);
+  });
+  worker.on('error', (err) => {
+    console.error(JSON.stringify({ level: 'error', msg: 'worker error', err: err.message }));
+    deps.reportError?.(err);
+  });
   return {
     enqueueSend: async (data: SendJobData) => {
       const job = await queue.add('send', data, {

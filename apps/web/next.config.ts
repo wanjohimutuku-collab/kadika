@@ -9,6 +9,9 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // HTTPS only from here on (§9). No includeSubDomains: other names under the domain (mail, Coolify)
+  // are not ours to pin from this app. Browsers ignore it on plain-http local development.
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
 ];
 
 /** Belt and braces with robots.txt and meta tags: these surfaces must never be indexed. */

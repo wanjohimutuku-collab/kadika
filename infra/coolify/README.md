@@ -1,12 +1,16 @@
 # Build, push and deploy
 
-> **Deploys no longer use GitHub Actions** ([ADR 037](../../docs/adr/037-local-deploys.md)). The workflow was
-> removed after the account's Actions budget ran out and every run failed before starting. `./scripts/deploy.sh`
-> does the same steps from your machine; see "Deploying without GitHub Actions" below. Older text on this page
-> that mentions the workflow or a green run describes what the script now does.
+> **Releases deploy from GitHub Actions again** (`.github/workflows/build-push.yml`): push a `v*` tag on a commit
+> that is green on `main`. The images build while the run checks CI, become `:production` only once CI has
+> passed, and the run waits until the site reports the new commit (about 7 minutes from tag to live).
+> `./scripts/deploy.sh` ([ADR 037](../../docs/adr/037-local-deploys.md)) is the fallback when Actions cannot run,
+> for example when the account's Actions budget is used up; see "Deploying without GitHub Actions" below.
+>
+> The API's public addresses come from the Coolify variables `PUBLIC_WEB_URL` and `PUBLIC_API_URL`
+> (`docker-compose.coolify.yml`). Coolify's own `SERVICE_URL_*` stay empty on this stack.
 
-How a commit becomes a running server: `scripts/deploy.sh` builds the API and web images, pushes them to GitHub
-Container Registry (GHCR), then moves a deploy branch to that commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
+How a commit becomes a running server: the release workflow (or `scripts/deploy.sh`) builds the API and web
+images, pushes them to GitHub Container Registry (GHCR), then moves a deploy branch to that commit. Each Coolify stack tracks its deploy branch with **Auto Deploy** on, so Coolify's own GitHub push webhook
 redeploys it, and only once the new images exist ([ADR 034](../../docs/adr/034-deploy-branch-webhook.md)). The run
 then waits until the live API and web app report the new commit, so a green run means the deploy is live
 ([ADR 035](../../docs/adr/035-confirm-deploys-went-live.md)).

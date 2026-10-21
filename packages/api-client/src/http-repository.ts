@@ -340,6 +340,8 @@ export function createHttpRepository(
   const tokens = opts.tokens ?? memoryTokenStore();
   const newKey = opts.newKey ?? (() => crypto.randomUUID());
   let refreshing: Promise<boolean> | null = null;
+  /** Staff sign-in: the challenge between the SMS code and the authenticator code (memory only). */
+  let staffChallenge: string | null = null;
 
   const fail = (
     status: number,
@@ -436,6 +438,47 @@ export function createHttpRepository(
     async verifyOtp(phone, code) {
       const r = await raw('POST', '/v1/auth/otp/verify', { phone, code }, {}, false);
       if (r.status >= 400) return fail(r.status, r.json as never);
+      const second = r.json!.secondFactor as { challenge: string; enrolled: boolean } | undefined;
+      if (second) {
+        // Staff (ADR 040): no session until the authenticator code is given.
+        tokens.set(null);
+        staffChallenge = second.challenge;
+        return {
+          ...sessionOf(r.json!.user as ApiUser),
+          needsSecondFactor: true,
+          secondFactorEnrolled: second.enrolled,
+        };
+      }
+      staffChallenge = null;
+      tokens.set({
+        accessToken: r.json!.accessToken as string,
+        refreshToken: r.json!.refreshToken as string,
+      });
+      return sessionOf(r.json!.user as ApiUser);
+    },
+    async startStaffEnrolment() {
+      if (!staffChallenge) throw new RepositoryError('unauthorized', 'Sign in again');
+      const r = await raw(
+        'POST',
+        '/v1/auth/staff/totp/enrol',
+        { challenge: staffChallenge },
+        {},
+        false,
+      );
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      return { secret: r.json!.secret as string, otpauthUrl: r.json!.otpauthUrl as string };
+    },
+    async verifyStaffSecondFactor(code) {
+      if (!staffChallenge) throw new RepositoryError('unauthorized', 'Sign in again');
+      const r = await raw(
+        'POST',
+        '/v1/auth/staff/totp/verify',
+        { challenge: staffChallenge, code },
+        {},
+        false,
+      );
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      staffChallenge = null;
       tokens.set({
         accessToken: r.json!.accessToken as string,
         refreshToken: r.json!.refreshToken as string,
@@ -455,6 +498,7 @@ export function createHttpRepository(
     async signOut() {
       const t = tokens.get();
       tokens.set(null);
+      staffChallenge = null;
       if (t)
         await raw('POST', '/v1/auth/logout', { refreshToken: t.refreshToken }, {}, false).catch(
           () => undefined,

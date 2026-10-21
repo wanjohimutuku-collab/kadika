@@ -16,7 +16,7 @@ import { maskPhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
-import { requireStaff } from './staff-guard';
+import { requireStaff, type StaffCaller } from './staff-guard';
 
 type Db = Deps['db'];
 
@@ -124,8 +124,8 @@ export class OpsService {
     }));
   }
 
-  async listOrganizers(userId: string) {
-    await requireStaff(this.db, userId);
+  async listOrganizers(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     return (await this.organizerRows()).sort((a, b) =>
       (b.lastLoginAt ?? '').localeCompare(a.lastLoginAt ?? ''),
     );
@@ -199,13 +199,13 @@ export class OpsService {
     });
   }
 
-  async listEvents(userId: string) {
-    await requireStaff(this.db, userId);
+  async listEvents(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     return this.eventRows();
   }
 
-  async overview(userId: string) {
-    await requireStaff(this.db, userId);
+  async overview(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     const since = this.since();
     const [cust] = await this.db
       .select({
@@ -300,8 +300,8 @@ export class OpsService {
     };
   }
 
-  async usage(userId: string) {
-    await requireStaff(this.db, userId);
+  async usage(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     const since = this.since();
     const window = and(
       gte(messageLog.createdAt, since),
@@ -411,8 +411,8 @@ export class OpsService {
     };
   }
 
-  async listPayments(userId: string) {
-    await requireStaff(this.db, userId);
+  async listPayments(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     const rows = await this.paymentQuery()
       .orderBy(desc(sql`coalesce(${payments.paidAt}, ${payments.createdAt})`))
       .limit(200);
@@ -420,8 +420,8 @@ export class OpsService {
   }
 
   /** Support search by name, phone digits, card code or payment reference. Every search is logged. */
-  async lookup(userId: string, query: string) {
-    const staff = await requireStaff(this.db, userId, 'lookup');
+  async lookup(caller: StaffCaller, query: string) {
+    const staff = await requireStaff(this.db, caller, 'lookup');
     const q = query.trim().toLowerCase();
     if (q.length < 3) return { organizers: [], guests: [], payments: [] };
     const digits = q.replace(/\D/g, '').replace(/^0/, '');
@@ -489,11 +489,11 @@ export class OpsService {
 
   /** The full number, once, for a written reason (≥ 5 characters) that goes to the audit log. */
   async revealPhone(
-    userId: string,
+    caller: StaffCaller,
     target: { kind: 'guest' | 'organizer'; id: string },
     reason: string,
   ) {
-    const staff = await requireStaff(this.db, userId, 'reveal');
+    const staff = await requireStaff(this.db, caller, 'reveal');
     const why = reason.trim();
     if (why.length < 5) throw new ApiError('validation', 'reason_required', { field: 'reason' });
     let label: string;
@@ -529,12 +529,12 @@ export class OpsService {
 
   /** Suspends or reactivates a customer. Staff accounts cannot be suspended from here. */
   async setUserStatus(
-    userId: string,
+    caller: StaffCaller,
     targetId: string,
     status: 'active' | 'suspended',
     reason: string,
   ) {
-    const staff = await requireStaff(this.db, userId, 'suspend');
+    const staff = await requireStaff(this.db, caller, 'suspend');
     const why = reason.trim();
     const [u] = await this.db
       .select()
@@ -570,8 +570,8 @@ export class OpsService {
   }
 
   /** Billing is manual (ADR 012): staff mark a wedding as paid or free. */
-  async setEventPlan(userId: string, eventId: string, plan: 'free' | 'paid') {
-    const staff = await requireStaff(this.db, userId, 'plan');
+  async setEventPlan(caller: StaffCaller, eventId: string, plan: 'free' | 'paid') {
+    const staff = await requireStaff(this.db, caller, 'plan');
     const [e] = await this.db.select().from(events).where(eq(events.id, eventId));
     if (!e) throw new ApiError('not_found', 'Event not found');
     if (e.plan !== plan) {
@@ -586,8 +586,8 @@ export class OpsService {
 
   // ---------------------------------------------------------------- staff audit log
 
-  async listAudit(userId: string) {
-    await requireStaff(this.db, userId);
+  async listAudit(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     const rows = await this.db
       .select({ a: auditLog, name: users.name, phone: users.phoneE164 })
       .from(auditLog)
@@ -656,8 +656,8 @@ export class OpsService {
     return { requestedAt: row!.createdAt.toISOString() };
   }
 
-  async listRequests(userId: string) {
-    await requireStaff(this.db, userId);
+  async listRequests(caller: StaffCaller) {
+    await requireStaff(this.db, caller);
     const rows = await this.db
       .select({ r: dataRequests, resolver: users.name })
       .from(dataRequests)
@@ -672,8 +672,8 @@ export class OpsService {
    * team places removed, pending invitations to that phone dropped) and archives the weddings it
    * owns; guests' cards keep working, as with a suspension (ADR 012, 039).
    */
-  async resolveRequest(userId: string, id: string, status: 'done' | 'rejected', note: string) {
-    const staff = await requireStaff(this.db, userId, 'requests');
+  async resolveRequest(caller: StaffCaller, id: string, status: 'done' | 'rejected', note: string) {
+    const staff = await requireStaff(this.db, caller, 'requests');
     const [r] = await this.db.select().from(dataRequests).where(eq(dataRequests.id, id));
     if (!r) throw new ApiError('not_found', 'Request not found');
     if (r.status !== 'open') throw new ApiError('conflict', 'already_resolved');

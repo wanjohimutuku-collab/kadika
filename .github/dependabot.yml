@@ -1,0 +1,26 @@
+# Weekly update PRs, grouped to keep the PR count (and the CI minutes they spend) low.
+# The base image digests in infra/docker and docker-compose.coolify.yml are kept current here.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ['*'] }
+  - package-ecosystem: docker
+    directory: /infra/docker
+    schedule: { interval: weekly }
+    groups:
+      base-images: { patterns: ['*'] }
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      compose-images: { patterns: ['*'] }
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

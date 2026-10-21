@@ -20,7 +20,7 @@ import { contrastRatio, normalizeHex, themeContrastIssues, lightColors } from '@
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
-import { requireSettingsAdmin } from './staff-guard';
+import { requireSettingsAdmin, type StaffCaller } from './staff-guard';
 
 const ROW_ID = 'default';
 const DARK_TEXT = lightColors.ink;
@@ -164,29 +164,29 @@ export class BrandingService {
     }
   }
 
-  async view(userId: string): Promise<BrandingView> {
-    await requireSettingsAdmin(this.deps.db, userId);
+  async view(caller: StaffCaller): Promise<BrandingView> {
+    await requireSettingsAdmin(this.deps.db, caller);
     const r = await this.row();
     return { ...this.toPublic(r), updatedBy: r?.by ?? null, source: r ? 'database' : 'default' };
   }
 
-  async save(userId: string, input: BrandingInput): Promise<BrandingView> {
-    await requireSettingsAdmin(this.deps.db, userId);
+  async save(caller: StaffCaller, input: BrandingInput): Promise<BrandingView> {
+    await requireSettingsAdmin(this.deps.db, caller);
     const next = validateBrandingInput(input);
     const prev = await this.row();
     const now = this.deps.now();
     await this.deps.db
       .insert(brandSettings)
-      .values({ id: ROW_ID, ...next, updatedBy: userId, updatedAt: now })
+      .values({ id: ROW_ID, ...next, updatedBy: caller.userId, updatedAt: now })
       .onConflictDoUpdate({
         target: brandSettings.id,
-        set: { ...next, updatedBy: userId, updatedAt: now },
+        set: { ...next, updatedBy: caller.userId, updatedAt: now },
       });
     this.cache = null;
     const before = this.toPublic(prev);
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.branding.update',
       entity: 'brand_settings',
       entityId: ROW_ID,
@@ -196,15 +196,15 @@ export class BrandingService {
         ),
       },
     });
-    return this.view(userId);
+    return this.view(caller);
   }
 
   /**
    * Stores a new logo. `data` is the SVG source, or base64 for PNG/JPEG/WebP. An SVG must pass
    * `validateSvg`; a raster must match its declared type by magic bytes. Both are capped at 200 KB.
    */
-  async setLogo(userId: string, input: { mime: string; data: string }): Promise<BrandingView> {
-    await requireSettingsAdmin(this.deps.db, userId);
+  async setLogo(caller: StaffCaller, input: { mime: string; data: string }): Promise<BrandingView> {
+    await requireSettingsAdmin(this.deps.db, caller);
     if (!(LOGO_MIMES as readonly string[]).includes(input.mime))
       throw new ApiError('validation', 'The logo must be SVG, PNG, JPEG or WebP', {
         field: 'mime',
@@ -246,7 +246,7 @@ export class BrandingService {
         logoMime: mime,
         logoData: stored,
         logoVersion: version,
-        updatedBy: userId,
+        updatedBy: caller.userId,
         updatedAt: now,
       })
       .onConflictDoUpdate({
@@ -255,24 +255,24 @@ export class BrandingService {
           logoMime: mime,
           logoData: stored,
           logoVersion: version,
-          updatedBy: userId,
+          updatedBy: caller.userId,
           updatedAt: now,
         },
       });
     this.cache = null;
     await recordAudit(this.deps.db, {
       eventId: null,
-      actorId: userId,
+      actorId: caller.userId,
       action: 'ops.branding.logo',
       entity: 'brand_settings',
       entityId: ROW_ID,
       diff: { mime, bytes: Buffer.byteLength(stored), version },
     });
-    return this.view(userId);
+    return this.view(caller);
   }
 
-  async removeLogo(userId: string): Promise<BrandingView> {
-    await requireSettingsAdmin(this.deps.db, userId);
+  async removeLogo(caller: StaffCaller): Promise<BrandingView> {
+    await requireSettingsAdmin(this.deps.db, caller);
     const prev = await this.row();
     if (prev) {
       await this.deps.db
@@ -281,20 +281,20 @@ export class BrandingService {
           logoMime: null,
           logoData: null,
           logoVersion: prev.s.logoVersion + 1,
-          updatedBy: userId,
+          updatedBy: caller.userId,
           updatedAt: this.deps.now(),
         })
         .where(eq(brandSettings.id, ROW_ID));
       this.cache = null;
       await recordAudit(this.deps.db, {
         eventId: null,
-        actorId: userId,
+        actorId: caller.userId,
         action: 'ops.branding.logo_removed',
         entity: 'brand_settings',
         entityId: ROW_ID,
       });
     }
-    return this.view(userId);
+    return this.view(caller);
   }
 
   /** The logo file for the public route, or null when none is set. */

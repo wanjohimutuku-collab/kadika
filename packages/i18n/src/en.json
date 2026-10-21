@@ -364,7 +364,15 @@
     "secondFactorBody": "To protect customer data, staff need a second code from their authenticator app.",
     "secondFactorLabel": "Authenticator code",
     "secondFactorMock": "Demo build: use the code 654321.",
-    "wrongStaffCode": "The code is not correct. Try again."
+    "wrongStaffCode": "The code is not correct. Try again.",
+    "enrolTitle": "Set up your authenticator app",
+    "enrolBody": "Staff accounts need an authenticator app (for example Google Authenticator or Microsoft Authenticator). Scan this code with the app, then enter the 6-digit code it shows.",
+    "enrolQrAlt": "QR code for your authenticator app",
+    "enrolSecretLabel": "Cannot scan? Enter this key in the app:",
+    "enrolLoading": "Preparing your authenticator code…",
+    "staffLocked": "Too many wrong codes. For your security, wait until {time} and try again.",
+    "staffWrongCode": "The code is not correct. {attempts, plural, one {# attempt left} other {# attempts left}}.",
+    "staffExpired": "This sign-in has expired. Sign in again with a new SMS code."
   },
   "landing": {
     "metaTitle": "Digital Invitation Cards Tanzania | {brand}",

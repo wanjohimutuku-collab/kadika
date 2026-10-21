@@ -10,6 +10,7 @@ import { ALLOWED_COUNTRIES, KENYA_ENABLED, parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
+import { QrBlock } from '@/components/ui/qr-block';
 import { OtpField, PhoneField, Select, TextField } from '@/components/ui/form';
 import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
@@ -135,6 +136,10 @@ export function LoginOtp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [needsName, setNeedsName] = useState(false);
   const [secondFactor, setSecondFactor] = useState(false);
+  /** Staff without an authenticator yet (ADR 040): the secret to scan, once it has loaded. */
+  const [enrolment, setEnrolment] = useState<
+    { status: 'none' } | { status: 'loading' } | { status: 'ready'; secret: string; url: string }
+  >({ status: 'none' });
   const [name, setName] = useState('');
 
   useEffect(() => {
@@ -161,6 +166,16 @@ export function LoginOtp() {
         setSecondFactor(true);
         setCode('');
         setBusy(false);
+        if (session.secondFactorEnrolled === false) {
+          setEnrolment({ status: 'loading' });
+          try {
+            const e = await getRepository().startStaffEnrolment();
+            setEnrolment({ status: 'ready', secret: e.secret, url: e.otpauthUrl });
+          } catch {
+            setEnrolment({ status: 'none' });
+            setError(ts('errorBody'));
+          }
+        }
         return;
       }
       if (!session.user.name) {
@@ -202,9 +217,24 @@ export function LoginOtp() {
     try {
       await getRepository().verifyStaffSecondFactor(value);
       router.replace(params.get('next') ? safeNext(params.get('next')) : '/ops');
-    } catch {
+    } catch (err) {
       setCode('');
-      setError(t('wrongStaffCode'));
+      if (isRepositoryError(err) && err.code === 'locked') {
+        setLocked(true);
+        setError(
+          t('staffLocked', {
+            time: formatClock(String(err.details?.until ?? new Date().toISOString())),
+          }),
+        );
+      } else if (isRepositoryError(err) && err.code === 'unauthorized') {
+        setError(t('staffExpired'));
+      } else if (isRepositoryError(err) && typeof err.details?.attemptsLeft === 'number') {
+        setError(t('staffWrongCode', { attempts: err.details.attemptsLeft }));
+      } else if (isRepositoryError(err) && err.code === 'offline') {
+        setError(ts('offlineBanner'));
+      } else {
+        setError(t('wrongStaffCode'));
+      }
       setBusy(false);
     }
   };
@@ -212,8 +242,30 @@ export function LoginOtp() {
   if (secondFactor) {
     return (
       <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10" data-testid="second-factor">
-        <h1 className="text-3xl font-semibold">{t('secondFactorTitle')}</h1>
-        <p>{t('secondFactorBody')}</p>
+        {enrolment.status === 'none' ? (
+          <>
+            <h1 className="text-3xl font-semibold">{t('secondFactorTitle')}</h1>
+            <p>{t('secondFactorBody')}</p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-3xl font-semibold">{t('enrolTitle')}</h1>
+            <p>{t('enrolBody')}</p>
+            {enrolment.status === 'loading' ? (
+              <p className="text-muted" role="status">
+                {t('enrolLoading')}
+              </p>
+            ) : (
+              <div className="flex flex-col items-center gap-3" data-testid="totp-enrol">
+                <QrBlock payload={enrolment.url} alt={t('enrolQrAlt')} size={220} />
+                <p className="text-sm text-muted">{t('enrolSecretLabel')}</p>
+                <code className="break-all rounded-input border border-border bg-surface px-3 py-2 text-center font-mono text-base tracking-wider">
+                  {enrolment.secret.replace(/(.{4})/g, '$1 ').trim()}
+                </code>
+              </div>
+            )}
+          </>
+        )}
         {USE_MOCKS ? <Banner tone="info">{t('secondFactorMock')}</Banner> : null}
         <form
           noValidate
@@ -230,9 +282,15 @@ export function LoginOtp() {
             label={t('secondFactorLabel')}
             cellLabel={(i) => t('otpCell', { n: i + 1 })}
             error={error ?? undefined}
-            disabled={busy}
+            disabled={busy || locked || enrolment.status === 'loading'}
           />
-          <Button type="submit" size="lg" block loading={busy} disabled={code.length !== 6}>
+          <Button
+            type="submit"
+            size="lg"
+            block
+            loading={busy}
+            disabled={code.length !== 6 || locked}
+          >
             {t('verify')}
           </Button>
         </form>

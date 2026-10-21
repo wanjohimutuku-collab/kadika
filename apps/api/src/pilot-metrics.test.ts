@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { messageLog, newId, scanLog, users } from '@harusi/db';
-import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
+import { messageLog, newId, scanLog } from '@harusi/db';
+import {
+  api,
+  createTestContext,
+  loginAs,
+  loginAsStaff,
+  type TestContext,
+} from './testing/test-app';
 
 let ctx: TestContext;
 let staff: string;
@@ -11,8 +17,7 @@ const cardTokens: string[] = [];
 beforeAll(async () => {
   ctx = await createTestContext({ env: { KENYA_ENABLED: '1' } });
   const owner = await loginAs(ctx, '0711600001');
-  const admin = await loginAs(ctx, '0711600002');
-  await ctx.db.update(users).set({ roleGlobal: 'admin' }).where(eq(users.id, admin.user.id));
+  const admin = await loginAsStaff(ctx, '0711600002', 'support');
   staff = admin.accessToken;
   const t = owner.accessToken;
   const ev = (

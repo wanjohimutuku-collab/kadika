@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { auditLog, messagingSettings, users } from '@harusi/db';
-import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
+import { auditLog, messagingSettings } from '@harusi/db';
+import {
+  api,
+  createTestContext,
+  loginAs,
+  loginAsStaff,
+  type TestContext,
+} from './testing/test-app';
 import { MessagingSettingsService } from './services/messaging-settings';
 
 let ctx: TestContext;
@@ -11,17 +17,9 @@ let customer: string;
 
 beforeAll(async () => {
   ctx = await createTestContext({ env: { KENYA_ENABLED: '1' } });
-  const a = await loginAs(ctx, '0711700001');
-  const s = await loginAs(ctx, '0711700002');
+  const a = await loginAsStaff(ctx, '0711700001', 'admin');
+  const s = await loginAsStaff(ctx, '0711700002', 'support');
   const c = await loginAs(ctx, '0711700003');
-  await ctx.db
-    .update(users)
-    .set({ roleGlobal: 'admin', staffRole: 'admin' })
-    .where(eq(users.id, a.user.id));
-  await ctx.db
-    .update(users)
-    .set({ roleGlobal: 'admin', staffRole: 'support' })
-    .where(eq(users.id, s.user.id));
   admin = a.accessToken;
   support = s.accessToken;
   customer = c.accessToken;

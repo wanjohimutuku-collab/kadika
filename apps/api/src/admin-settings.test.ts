@@ -1,15 +1,14 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import {
-  auditLog,
-  brandSettings,
-  messagingSettings,
-  paymentSettings,
-  payments,
-  users,
-} from '@harusi/db';
+import { auditLog, brandSettings, messagingSettings, paymentSettings, payments } from '@harusi/db';
 import { signSnippeWebhook } from '@harusi/payments';
-import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
+import {
+  api,
+  createTestContext,
+  loginAs,
+  loginAsStaff,
+  type TestContext,
+} from './testing/test-app';
 import { PaymentSettingsService, paymentSettingsProblem } from './services/payment-settings';
 
 let ctx: TestContext;
@@ -26,17 +25,9 @@ const PNG_B64 =
 
 beforeAll(async () => {
   ctx = await createTestContext({ env: { API_PUBLIC_URL: API_URL } });
-  const a = await loginAs(ctx, '0711800001');
-  const s = await loginAs(ctx, '0711800002');
+  const a = await loginAsStaff(ctx, '0711800001', 'admin');
+  const s = await loginAsStaff(ctx, '0711800002', 'support');
   const c = await loginAs(ctx, '0711800003');
-  await ctx.db
-    .update(users)
-    .set({ roleGlobal: 'admin', staffRole: 'admin' })
-    .where(eq(users.id, a.user.id));
-  await ctx.db
-    .update(users)
-    .set({ roleGlobal: 'admin', staffRole: 'support' })
-    .where(eq(users.id, s.user.id));
   admin = a.accessToken;
   support = s.accessToken;
   customer = c.accessToken;
@@ -549,11 +540,7 @@ describe('moving SMS and WhatsApp from the environment into settings (ADR 036)',
         WHATSAPP_PROVIDER: 'cloud',
       },
     });
-    const a = await loginAs(env, '0711800020');
-    await env.db
-      .update(users)
-      .set({ roleGlobal: 'admin', staffRole: 'admin' })
-      .where(eq(users.id, a.user.id));
+    const a = await loginAsStaff(env, '0711800020', 'admin');
     tok = a.accessToken;
   });
   afterAll(() => env.close());
@@ -591,16 +578,8 @@ describe('moving SMS and WhatsApp from the environment into settings (ADR 036)',
 
   it('skips routes whose environment settings are fake, and is admin only', async () => {
     const plain = await createTestContext();
-    const a = await loginAs(plain, '0711800030');
-    const s = await loginAs(plain, '0711800031');
-    await plain.db
-      .update(users)
-      .set({ roleGlobal: 'admin', staffRole: 'admin' })
-      .where(eq(users.id, a.user.id));
-    await plain.db
-      .update(users)
-      .set({ roleGlobal: 'admin', staffRole: 'billing' })
-      .where(eq(users.id, s.user.id));
+    const a = await loginAsStaff(plain, '0711800030', 'admin');
+    const s = await loginAsStaff(plain, '0711800031', 'billing');
     expect(
       (await api(plain, 'POST', '/v1/ops/messaging/import-env', { token: a.accessToken })).body!
         .imported,

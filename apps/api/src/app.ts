@@ -305,6 +305,7 @@ export function createApp(deps: Deps) {
     c.req.path.startsWith('/v1/payments/webhook/') ||
     c.req.path === '/v1/gate/join' ||
     c.req.path === '/v1/branding' ||
+    c.req.path === '/v1/pricing' ||
     c.req.path === '/v1/branding/logo' ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
@@ -943,6 +944,12 @@ export function createApp(deps: Deps) {
   app.post('/v1/ops/payment-settings/:route/test', async (c) =>
     c.json(await paymentSettingsSvc.test(staff(c), paymentRouteParam(c))),
   );
+
+  // ---- prices for cards and messages (ADR 042): public, for the /bei page
+  app.get('/v1/pricing', async (c) => {
+    c.header('cache-control', 'public, max-age=60');
+    return c.json(await billingSvc.publicCatalog());
+  });
 
   // ---- business branding (ADR 036): public to read, admin staff only to change
   app.get('/v1/branding', async (c) => {

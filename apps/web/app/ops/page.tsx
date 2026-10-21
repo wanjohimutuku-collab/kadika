@@ -9,6 +9,7 @@ import {
   CalendarHeart,
   CheckCircle2,
   MessageSquare,
+  Wallet,
   ShieldCheck,
   Users,
 } from 'lucide-react';
@@ -19,7 +20,7 @@ import { BarChart } from '@/components/ui/data';
 import { Banner, Card, KpiTile, Skeleton } from '@/components/ui/display';
 import { getRepository } from '@/lib/repo';
 import { qk } from '@/lib/queries';
-import { formatDateShort, formatNumber, formatTzs } from '@/lib/format';
+import { formatDateShort, formatMoney, formatNumber, formatTzs } from '@/lib/format';
 
 export default function OpsOverviewPage() {
   const t = useTranslations('ops');
@@ -47,6 +48,13 @@ export default function OpsOverviewPage() {
             href: string;
             tone: 'warning' | 'danger';
           }[] = [];
+          if (o.pendingOrders)
+            attention.push({
+              key: 'orders',
+              text: t('overview.attentionOrders', { count: o.pendingOrders }),
+              href: '/ops/billing',
+              tone: 'warning',
+            });
           if (o.openDataRequests)
             attention.push({
               key: 'req',
@@ -110,6 +118,19 @@ export default function OpsOverviewPage() {
                   sub={`${o.messages30d.failed} / ${o.messages30d.total}`}
                 />
                 <KpiTile label={t('overview.smsCost')} value={formatTzs(o.smsCost30d)} />
+                <KpiTile
+                  label={t('overview.revenue')}
+                  value={
+                    o.revenue30d.length
+                      ? o.revenue30d.map((r) => formatMoney(r.amount, r.currency)).join(' · ')
+                      : formatTzs(0)
+                  }
+                  sub={t('overview.revenueOrders', {
+                    count: o.revenue30d.reduce((n, r) => n + r.orders, 0),
+                  })}
+                  tone="success"
+                  icon={<Wallet className="size-4" />}
+                />
               </div>
 
               <Card title={t('overview.attention')} titleId="att-h">

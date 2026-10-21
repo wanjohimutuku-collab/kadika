@@ -266,6 +266,7 @@ export class OpsService {
       .select({ n: count() })
       .from(dataRequests)
       .where(eq(dataRequests.status, 'open'));
+    const revenue = await new BillingService(this.deps, new EventService(this.deps)).revenue(since);
     const total = msg?.total ?? 0;
     return {
       organizers: cust?.total ?? 0,
@@ -282,6 +283,9 @@ export class OpsService {
       smsCost30d: msg?.cost ?? 0,
       failureRate30d: total ? (msg?.failed ?? 0) / total : 0,
       paidPlans: paidPlans?.n ?? 0,
+      // What customers paid us for cards and messages (ADR 042), not guests' contributions (ADR 043).
+      revenue30d: revenue.paid,
+      pendingOrders: revenue.pendingManual,
       messagesByDay: perDay.map((r) => ({ day: r.day, sent: r.sent, failed: r.failed })),
       openDataRequests: open?.n ?? 0,
     };

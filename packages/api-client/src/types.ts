@@ -522,6 +522,10 @@ export interface OpsOverview {
   smsCost30d: number;
   failureRate30d: number;
   paidPlans: number;
+  /** Paid card bundles and message packs in the last 30 days, per currency (ADR 042). Grants excluded. */
+  revenue30d: { currency: 'TZS' | 'KES'; amount: number; orders: number }[];
+  /** Bank or cash orders waiting for staff to confirm the money. */
+  pendingOrders: number;
   messagesByDay: { day: ISODate; sent: number; failed: number }[];
   openDataRequests: number;
 }

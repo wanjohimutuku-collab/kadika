@@ -245,3 +245,22 @@ describe('enforced allowances', () => {
     expect(list.body!.some((p: { kind: string }) => p.kind === 'grant')).toBe(true);
   });
 });
+
+describe('selling cards (ADR 042)', () => {
+  it('publishes the prices without signing in', async () => {
+    const r = await api(ctx, 'GET', '/v1/pricing');
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ enforced: true, bundles: [{ key: 'b5', cards: 5 }] });
+  });
+
+  it('shows staff what customers paid, without grants, and the orders waiting for them', async () => {
+    const s = await setup();
+    await s.order('sms10', 'order-key-revenue-pending');
+    const o = (await api(ctx, 'GET', '/v1/ops/overview', { token: support })).body!;
+    // Earlier in this file: an SMS pack confirmed by staff (2,000) and a bundle paid by phone (10,000).
+    // (the legacy-name compatibility layer adds `amountTzs` beside `amount`, so match a subset)
+    expect(o.revenue30d).toHaveLength(1);
+    expect(o.revenue30d[0]).toMatchObject({ currency: 'TZS', amount: 12_000, orders: 2 });
+    expect(o.pendingOrders).toBeGreaterThanOrEqual(1);
+  });
+});

@@ -2481,6 +2481,25 @@ export class MockRepository implements Repository {
           ? msgs.filter((m) => m.status === 'failed').length / msgs.length
           : 0,
         paidPlans: evs.filter((e) => e.plan === 'paid').length,
+        revenue30d: (['TZS', 'KES'] as const)
+          .map((currency) => {
+            const paid = (this.state.purchases ?? []).filter(
+              (p) =>
+                p.status === 'paid' &&
+                p.kind !== 'grant' &&
+                p.currency === currency &&
+                Date.parse(p.paidAt ?? p.createdAt) >= since,
+            );
+            return {
+              currency,
+              amount: paid.reduce((n, p) => n + p.amount, 0),
+              orders: paid.length,
+            };
+          })
+          .filter((r) => r.orders > 0),
+        pendingOrders: (this.state.purchases ?? []).filter(
+          (p) => p.status === 'pending' && p.method === 'manual',
+        ).length,
         messagesByDay: [...byDay.entries()]
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([day, v]) => ({ day, ...v })),

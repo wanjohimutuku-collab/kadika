@@ -1299,7 +1299,10 @@
       "attentionRequests": "{count, plural, one {# data request is waiting} other {# data requests are waiting}}",
       "attentionFailures": "Message failure rate is {pct}%",
       "attentionSuspended": "{count, plural, one {# customer is suspended} other {# customers are suspended}}",
-      "allClear": "Nothing needs attention right now."
+      "allClear": "Nothing needs attention right now.",
+      "revenue": "Revenue (30 days)",
+      "revenueOrders": "{count, plural, one {# paid order} other {# paid orders}}",
+      "attentionOrders": "{count, plural, one {# bank or cash order waiting for confirmation} other {# bank or cash orders waiting for confirmation}}"
     },
     "organizers": {
       "title": "Customers",
@@ -2098,5 +2101,32 @@
       "whatsapp": "Not enough WhatsApp messages for this send ({remaining} left, {needed} needed).",
       "action": "Buy more"
     }
+  },
+  "pricing": {
+    "metaTitle": "Digital wedding card prices | {brand}",
+    "metaDescription": "Pay for the number of cards you need. Every bundle includes SMS and WhatsApp messages to send them, RSVP, a gate QR and printable cards. {brand}.",
+    "title": "Pay for the cards you need",
+    "intro": "Pick a bundle by the size of your guest list. Every card has RSVP, a QR for the gate and a printable copy, and each bundle comes with SMS and WhatsApp messages to send them.",
+    "pilotFree": "The service is free during the pilot. These are the prices that will apply once charging starts; we will announce it first.",
+    "bundlesTitle": "Card bundles",
+    "bundlesIntro": "One card per guest or family on your list. Buy another bundle any time your list grows.",
+    "cards": "{n} cards",
+    "perCard": "About {price} per card",
+    "includesSms": "{n} SMS included",
+    "includesWhatsapp": "{n} WhatsApp messages included",
+    "feature": {
+      "qr": "A QR and short code per guest",
+      "rsvp": "RSVP with party size",
+      "gate": "Gate check-in that works offline",
+      "print": "Printable cards (PDF)"
+    },
+    "freeNote": "Every event starts with {cards} cards, {sms} SMS and {whatsapp} WhatsApp messages free so you can try it.",
+    "packsTitle": "Add SMS or WhatsApp",
+    "packsIntro": "Used up the bundle’s messages (for reminders, say)? Top up without buying more cards.",
+    "smsPack": "{n} SMS",
+    "whatsappPack": "{n} WhatsApp messages",
+    "contributionsTitle": "We take no cut of contributions",
+    "contributionsBody": "Guests send contributions straight to the hosts. You pay only for cards and messages; contribution records are encrypted and visible to your team alone.",
+    "cta": "Start free"
   }
 }

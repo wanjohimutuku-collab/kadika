@@ -1303,7 +1303,10 @@
       "attentionRequests": "{count, plural, one {Ombi # la data linasubiri} other {Maombi # ya data yanasubiri}}",
       "attentionFailures": "Kiwango cha kushindwa kwa jumbe ni {pct}%",
       "attentionSuspended": "{count, plural, one {Mteja # amesimamishwa} other {Wateja # wamesimamishwa}}",
-      "allClear": "Hakuna jambo linalohitaji hatua sasa."
+      "allClear": "Hakuna jambo linalohitaji hatua sasa.",
+      "revenue": "Mapato (siku 30)",
+      "revenueOrders": "{count, plural, one {Oda # imelipwa} other {Oda # zimelipwa}}",
+      "attentionOrders": "{count, plural, one {Oda # ya benki au taslimu inasubiri uthibitisho} other {Oda # za benki au taslimu zinasubiri uthibitisho}}"
     },
     "organizers": {
       "title": "Wateja",
@@ -2102,5 +2105,32 @@
       "whatsapp": "WhatsApp hazitoshi kwa utumaji huu ({remaining} zimebaki, zinahitajika {needed}).",
       "action": "Nunua zaidi"
     }
+  },
+  "pricing": {
+    "metaTitle": "Bei za kadi za harusi za kidijitali | {brand}",
+    "metaDescription": "Lipa kwa idadi ya kadi unazohitaji. Kila kifurushi kina SMS na WhatsApp za kuzituma, RSVP, QR ya lango na kadi za kuchapisha. {brand}.",
+    "title": "Lipa kwa kadi unazohitaji",
+    "intro": "Chagua kifurushi kwa idadi ya wageni wako. Kila kadi ina RSVP, QR ya kuingia langoni na nakala ya kuchapisha, na kifurushi kinakuja na SMS na WhatsApp za kuzituma.",
+    "pilotFree": "Wakati wa majaribio huduma ni bure. Hizi ndizo bei zitakazotumika malipo yatakapoanza; tutatangaza kabla.",
+    "bundlesTitle": "Vifurushi vya kadi",
+    "bundlesIntro": "Kadi moja kwa kila mgeni au familia kwenye orodha yako. Unaweza kununua kifurushi kingine wakati wowote orodha ikikua.",
+    "cards": "Kadi {n}",
+    "perCard": "Takriban {price} kwa kadi",
+    "includesSms": "SMS {n} pamoja",
+    "includesWhatsapp": "Ujumbe wa WhatsApp {n} pamoja",
+    "feature": {
+      "qr": "QR ya kila mgeni na namba fupi",
+      "rsvp": "RSVP na idadi ya watu",
+      "gate": "Lango linalofanya kazi bila mtandao",
+      "print": "Kadi za kuchapisha (PDF)"
+    },
+    "freeNote": "Kila tukio linaanza na kadi {cards}, SMS {sms} na WhatsApp {whatsapp} bure ili ujaribu.",
+    "packsTitle": "Ongeza SMS au WhatsApp",
+    "packsIntro": "Ukimaliza ujumbe wa kifurushi (kwa mfano kwa vikumbusho), ongeza bila kununua kadi zaidi.",
+    "smsPack": "SMS {n}",
+    "whatsappPack": "Ujumbe wa WhatsApp {n}",
+    "contributionsTitle": "Hatuchukui asilimia ya michango",
+    "contributionsBody": "Wageni hutuma michango moja kwa moja kwa wenyeji. Unalipa kadi na ujumbe tu; kumbukumbu za michango zimefichwa na zinaonekana kwa timu yako pekee.",
+    "cta": "Anza bure"
   }
 }

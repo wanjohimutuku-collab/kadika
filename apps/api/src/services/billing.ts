@@ -91,6 +91,35 @@ export class BillingService {
     return parsed.success ? parsed.data : DEFAULT_PRICING;
   }
 
+  /** The prices, public (the /bei page). Nothing in the catalogue is secret. */
+  async publicCatalog(): Promise<PricingCatalog> {
+    return this.catalog();
+  }
+
+  /** What customers paid us in the last `days`, per currency, and orders waiting for staff. */
+  async revenue(since: Date) {
+    const paid = await this.db
+      .select({
+        currency: eventPurchases.currency,
+        amount: sql<number>`coalesce(sum(${eventPurchases.amount}), 0)::int`,
+        orders: sql<number>`count(*)::int`,
+      })
+      .from(eventPurchases)
+      .where(
+        and(
+          eq(eventPurchases.status, 'paid'),
+          ne(eventPurchases.kind, 'grant'),
+          sql`${eventPurchases.paidAt} >= ${since}`,
+        ),
+      )
+      .groupBy(eventPurchases.currency);
+    const [pending] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(eventPurchases)
+      .where(and(eq(eventPurchases.status, 'pending'), eq(eventPurchases.method, 'manual')));
+    return { paid, pendingManual: pending?.n ?? 0 };
+  }
+
   async opsCatalog(caller: StaffCaller) {
     await requireStaff(this.db, caller, 'read');
     return this.catalogView();

@@ -9,6 +9,8 @@ import { displaySerif } from '@/lib/fonts';
 
 const CONSOLE_NAMESPACES = [
   'common',
+  'billing',
+  'welcome',
   'nav',
   'validation',
   'states',

@@ -36,6 +36,7 @@ import { eventScopedKeys, qk, useSession } from '@/lib/queries';
 import { formatDateTimeShort, formatPhone, formatMoney } from '@/lib/format';
 import { useCurrency } from '@/lib/country';
 import { downloadBlob } from '@/lib/download';
+import { useQuotaToast } from '@/components/console/quota';
 
 const STAGES: InvitationStatus[] = [
   'created',
@@ -100,6 +101,7 @@ export default function GuestDetailPage({
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const toast = useToast();
+  const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
   const session = useSession();
   const guest = useQuery({ queryKey: qk.guest(gid), queryFn: () => getRepository().getGuest(gid) });
@@ -149,7 +151,7 @@ export default function GuestDetailPage({
       toast({ tone: 'success', title: t('resent') });
       setTimeout(() => void refresh(), 2500);
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
   });
   const reissue = useMutation({
     mutationFn: () => getRepository().reissueGuest(gid),

@@ -51,6 +51,7 @@ import { daysUntil } from '@/lib/dates';
 import { SELECTED_GUESTS_KEY } from '@/lib/download';
 import { APP_DOMAIN } from '@/lib/env';
 import { cn } from '@/lib/cn';
+import { useQuotaToast } from '@/components/console/quota';
 
 type AudienceKind = 'unsent' | 'group' | 'selected' | 'all';
 type Channel = 'auto' | MessageChannel;
@@ -72,6 +73,7 @@ function SendInner({ id }: { id: string }) {
   const locale = useLocale() as Locale;
   const params = useSearchParams();
   const toast = useToast();
+  const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
   const net = useNetworkStatus();
   const event = useEvent(id);
@@ -182,6 +184,7 @@ function SendInner({ id }: { id: string }) {
       requestAnimationFrame(() => progressRef.current?.focus());
     },
     onError: (e) =>
+      quota(e) ||
       toast({
         tone: 'error',
         title: (e as { code?: string }).code === 'offline' ? t('offline') : ts('errorTitle'),

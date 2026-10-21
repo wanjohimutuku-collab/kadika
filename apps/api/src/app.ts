@@ -44,6 +44,7 @@ import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
 import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
+import { BillingService } from './services/billing';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
@@ -112,6 +113,7 @@ const guestBase = z.object({
   hasSmartphone: z.boolean().nullish(),
   language: z.enum(['sw', 'en']).optional(),
   inviteChannelPref: z.enum(['whatsapp', 'sms', 'print', 'mixed']).optional(),
+  printCard: z.boolean().optional(),
   notes: z.string().max(500).nullish(),
 });
 
@@ -182,12 +184,13 @@ export function createApp(deps: Deps) {
   const pledgeSvc = new PledgeService(deps, eventsSvc);
   const pilotSvc = new PilotMetricsService(deps);
   const opsSvc = new OpsService(deps);
+  const billingSvc = new BillingService(deps, eventsSvc);
   const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
-  const consoleSvc = new ConsoleService(deps, eventsSvc, gateSvc, pledgeSvc);
+  const consoleSvc = new ConsoleService(deps, eventsSvc, pledgeSvc);
   // A test message costs a real SMS or WhatsApp send.
   const testMessages = new RateLimiter(deps.now, 5, 60_000, 'test-message', deps.rateStore);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
@@ -241,11 +244,6 @@ export function createApp(deps: Deps) {
   };
   /** Staff routes check the role and the second factor themselves (staff-guard.ts, ADR 040). */
   const staff = (c: Context<Env>): StaffCaller => ({ userId: c.get('userId'), mfa: c.get('mfa') });
-  /** The console's own gate routes are for signed-in team members, not gate-link tokens. */
-  const userOnly = (c: Context<Env>): string => {
-    if (c.get('gate')) throw new ApiError('forbidden', 'Not available to gate agents');
-    return c.get('userId');
-  };
   const actorOf = (c: Context<Env>): GateActor => {
     const claims = c.get('gate');
     return claims ? { kind: 'gate', claims } : { kind: 'user', userId: c.get('userId') };
@@ -312,6 +310,7 @@ export function createApp(deps: Deps) {
     c.req.path.startsWith('/v1/payments/webhook/') ||
     c.req.path === '/v1/gate/join' ||
     c.req.path === '/v1/branding' ||
+    c.req.path === '/v1/pricing' ||
     c.req.path === '/v1/branding/logo' ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
@@ -508,6 +507,31 @@ export function createApp(deps: Deps) {
     c.header('etag', etag);
     return c.json(bundle);
   });
+  // The web console's gate monitor (§17.8): a signed-in owner or committee member, never a gate token.
+  const consoleUser = (c: Context<Env>) => {
+    if (c.get('gate')) throw new ApiError('forbidden', 'Gate agents use the gate app');
+    return c.get('userId');
+  };
+  app.get('/v1/events/:id/gate/overview', async (c) =>
+    c.json(await gateSvc.overview(c.req.param('id'), consoleUser(c))),
+  );
+  app.get('/v1/events/:id/gate/scans', async (c) =>
+    c.json(await gateSvc.scans(c.req.param('id'), consoleUser(c))),
+  );
+  app.post('/v1/events/:id/gate/manual-checkin', async (c) => {
+    const input = parse(
+      z.object({
+        guestId: z.string().uuid(),
+        partySize: z.number().int().min(1).max(99),
+        reason: z.string().max(300).nullish(),
+      }),
+      await body(c),
+    );
+    return c.json(
+      await gateSvc.manualCheckIn(c.req.param('id'), consoleUser(c), input.guestId, input),
+      201,
+    );
+  });
   app.get('/v1/events/:id/gate/admitted', async (c) =>
     c.json(await gateSvc.admitted(c.req.param('id'), actorOf(c))),
   );
@@ -600,6 +624,21 @@ export function createApp(deps: Deps) {
       }),
     );
   });
+  // Which guests get a printed card (ADR 042), many at once.
+  app.post('/v1/events/:id/guests/print-card', async (c) => {
+    const input = parse(
+      z.object({ guestIds: z.array(z.string().uuid()).min(1).max(2000), printCard: z.boolean() }),
+      await body(c),
+    );
+    return c.json(
+      await guestsSvc.setPrintCard(
+        c.req.param('id'),
+        c.get('userId'),
+        input.guestIds,
+        input.printCard,
+      ),
+    );
+  });
   app.post('/v1/events/:id/guests', async (c) =>
     c.json(
       await guestsSvc.create(c.req.param('id'), c.get('userId'), parse(guestBase, await body(c))),
@@ -668,6 +707,8 @@ export function createApp(deps: Deps) {
       z.object({
         format: z.enum(['a6', 'a5', 'a4x4', 'test']),
         guestIds: z.array(z.string().uuid()).min(1).max(1000).optional(),
+        /** Bulk: every guest chosen for a printed card (ADR 042). */
+        marked: z.boolean().optional(),
       }),
       await body(c),
     );
@@ -774,8 +815,48 @@ export function createApp(deps: Deps) {
     const raw = await c.req.text();
     const headers: Record<string, string> = {};
     c.req.raw.headers.forEach((v, k) => (headers[k.toLowerCase()] = v));
-    return c.json(await pledgeSvc.webhook(c.req.param('provider'), raw, headers));
+    return c.json(
+      await pledgeSvc.webhook(c.req.param('provider'), raw, headers, (p, ev) =>
+        billingSvc.applyOutcome(p, ev),
+      ),
+    );
   });
+  // ---- what the host pays for: card bundles and SMS / WhatsApp packs (ADR 042)
+  app.get('/v1/events/:id/billing', async (c) =>
+    c.json(await billingSvc.eventBilling(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/billing/orders', async (c) => {
+    const input = parse(
+      z.object({
+        cards: z.number().int().min(1).max(10_000).optional(),
+        packKey: z.string().min(1).max(24).optional(),
+        method: z.enum(['mobile', 'manual']),
+        phone: z.string().min(1).max(30).optional(),
+        mobileMethod: z.enum(MOBILE_METHODS).optional(),
+      }),
+      await body(c),
+    );
+    const key = c.req.header('idempotency-key') ?? '';
+    return c.json(await billingSvc.order(c.req.param('id'), c.get('userId'), input, key), 201);
+  });
+  app.get('/v1/events/:id/billing/orders/:pid', async (c) =>
+    c.json(
+      await billingSvc.status(
+        c.req.param('id'),
+        c.get('userId'),
+        parse(z.string().uuid(), c.req.param('pid')),
+      ),
+    ),
+  );
+  app.post('/v1/events/:id/billing/orders/:pid/cancel', async (c) =>
+    c.json(
+      await billingSvc.cancel(
+        c.req.param('id'),
+        c.get('userId'),
+        parse(z.string().uuid(), c.req.param('pid')),
+      ),
+    ),
+  );
   // PDPA requests (ADR 012): a customer files them from Akaunti, staff resolve them in /ops/requests.
   app.post('/v1/me/data-requests', async (c) => {
     const { kind } = parse(z.object({ kind: z.enum(['export', 'deletion']) }), await body(c));
@@ -805,7 +886,32 @@ export function createApp(deps: Deps) {
     return c.json(await opsSvc.setEventPlan(staff(c), idParam(c), plan));
   });
   app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(staff(c))));
-  app.get('/v1/ops/payments', async (c) => c.json(await opsSvc.listPayments(staff(c))));
+  app.get('/v1/ops/pricing', async (c) => c.json(await billingSvc.opsCatalog(staff(c))));
+  app.put('/v1/ops/pricing', async (c) =>
+    c.json(await billingSvc.saveCatalog(staff(c), await body(c))),
+  );
+  app.get('/v1/ops/purchases', async (c) => {
+    const status = parse(
+      z.enum(['pending', 'paid', 'failed', 'cancelled']).optional(),
+      c.req.query('status') || undefined,
+    );
+    return c.json(await billingSvc.opsListPurchases(staff(c), { status }));
+  });
+  app.post('/v1/ops/purchases/:id/paid', async (c) => {
+    const { note } = parse(z.object({ note: z.string().max(500) }), await body(c));
+    return c.json(await billingSvc.opsMarkPaid(staff(c), idParam(c), note));
+  });
+  app.get('/v1/ops/events/:id/billing', async (c) =>
+    c.json(await billingSvc.opsEventBilling(staff(c), idParam(c))),
+  );
+  app.post('/v1/ops/events/:id/grants', async (c) => {
+    const n = z.number().int().min(0).max(100_000);
+    const input = parse(
+      z.object({ cards: n, messages: n, note: z.string().max(500) }),
+      await body(c),
+    );
+    return c.json(await billingSvc.opsGrant(staff(c), idParam(c), input), 201);
+  });
   app.get('/v1/ops/lookup', async (c) => {
     const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());
     return c.json(await opsSvc.lookup(staff(c), q));
@@ -886,6 +992,12 @@ export function createApp(deps: Deps) {
   app.post('/v1/ops/payment-settings/:route/test', async (c) =>
     c.json(await paymentSettingsSvc.test(staff(c), paymentRouteParam(c))),
   );
+
+  // ---- prices for cards and messages (ADR 042): public, for the /bei page
+  app.get('/v1/pricing', async (c) => {
+    c.header('cache-control', 'public, max-age=60');
+    return c.json(await billingSvc.publicCatalog());
+  });
 
   // ---- business branding (ADR 036): public to read, admin staff only to change
   app.get('/v1/branding', async (c) => {
@@ -969,23 +1081,6 @@ export function createApp(deps: Deps) {
       ),
     }),
   );
-  app.get('/v1/events/:id/gate/overview', async (c) =>
-    c.json(await consoleSvc.gateOverview(c.req.param('id'), userOnly(c))),
-  );
-  app.get('/v1/events/:id/gate/scans', async (c) =>
-    c.json({ items: await consoleSvc.scans(c.req.param('id'), userOnly(c)) }),
-  );
-  app.post('/v1/events/:id/gate/manual-check-in', async (c) => {
-    const input = parse(
-      z.object({
-        guestId: z.string().uuid(),
-        partySize: z.number().int().min(1).max(50),
-        reason: z.string().trim().max(200).nullish(),
-      }),
-      await body(c),
-    );
-    return c.json(await consoleSvc.manualCheckIn(c.req.param('id'), userOnly(c), input), 201);
-  });
   app.get('/v1/events/:id/report', async (c) =>
     c.json(await consoleSvc.report(c.req.param('id'), c.get('userId'))),
   );

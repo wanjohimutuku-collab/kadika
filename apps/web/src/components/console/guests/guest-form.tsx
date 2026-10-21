@@ -21,6 +21,7 @@ import { eventScopedKeys, qk } from '@/lib/queries';
 import { useFieldError } from '@/lib/use-field-error';
 import { formatPhone } from '@/lib/format';
 import { CardKindPicker } from './card-kind-picker';
+import { useQuotaToast } from '@/components/console/quota';
 
 export function guestToInput(g: Guest): GuestInput {
   return {
@@ -30,6 +31,7 @@ export function guestToInput(g: Guest): GuestInput {
     partySizeAllowed: g.partySizeAllowed,
     cardKind: g.cardKind,
     inviteChannelPref: g.inviteChannelPref,
+    printCard: g.printCard,
     hasSmartphone: g.hasSmartphone,
     language: g.language,
     notes: g.notes,
@@ -43,6 +45,7 @@ const EMPTY: GuestInput = {
   partySizeAllowed: 1,
   cardKind: 'invitation',
   inviteChannelPref: 'whatsapp',
+  printCard: false,
   hasSmartphone: true,
   language: 'en',
   notes: '',
@@ -70,6 +73,7 @@ export function GuestForm({
   const tl = useTranslations('common.languageName');
   const fieldError = useFieldError();
   const toast = useToast();
+  const quota = useQuotaToast(eventId);
   const queryClient = useQueryClient();
   const listId = useId();
   const groups = useQuery({
@@ -117,7 +121,7 @@ export function GuestForm({
       if (ctx?.prev) queryClient.setQueryData(qk.guests(eventId), ctx.prev);
       if (isRepositoryError(err) && err.code === 'conflict')
         setError('phone', { message: 'duplicate' });
-      else toast({ tone: 'error', title: ts('rolledBack') });
+      else if (!quota(err)) toast({ tone: 'error', title: ts('rolledBack') });
     },
     onSuccess: async (g, _input) => {
       toast({ tone: 'success', title: t('saved', { name: g.displayName }) });
@@ -231,6 +235,18 @@ export function GuestForm({
               field.onChange(!e.target.checked);
               setValue('inviteChannelPref', e.target.checked ? 'sms' : 'whatsapp');
             }}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="printCard"
+        render={({ field }) => (
+          <Checkbox
+            label={t('printCard')}
+            description={t('printCardHelp')}
+            checked={!!field.value}
+            onChange={(e) => field.onChange(e.target.checked)}
           />
         )}
       />

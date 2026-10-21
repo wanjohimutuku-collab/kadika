@@ -75,7 +75,7 @@ describe('staff panel reads (ADR 012)', () => {
     '/v1/ops/organizers',
     '/v1/ops/events',
     '/v1/ops/usage',
-    '/v1/ops/payments',
+    '/v1/ops/purchases',
     '/v1/ops/audit',
     '/v1/ops/data-requests',
   ];
@@ -104,7 +104,6 @@ describe('staff panel reads (ADR 012)', () => {
       guests: 2,
       messages30d: { sms: 2, failed: 1, total: 2 },
       failureRate30d: 0.5,
-      contributions30d: { count: 1, amount: 50_000 },
       paidPlans: 0,
       openDataRequests: 0,
     });
@@ -139,7 +138,6 @@ describe('staff panel reads (ADR 012)', () => {
         sent: 1,
         failedMessages: 1,
         confirmed: 0,
-        collected: 50_000,
       }),
     ]);
   });
@@ -166,20 +164,13 @@ describe('staff panel reads (ADR 012)', () => {
     expect(r.body!.failureReasons[0].count).toBe(1);
   });
 
-  it('lists payments with the wedding and a masked phone', async () => {
-    const r = await api(ctx, 'GET', '/v1/ops/payments', { token: billing });
-    expect(r.body).toEqual([
-      expect.objectContaining({
-        guestId,
-        guestName: 'Mzee Hamisi',
-        amount: 50_000,
-        status: 'success',
-        reference: expect.stringMatching(/:CASH-OPS-1$/),
-        eventId,
-        coupleNames: 'Asha & Juma',
-        recordedBy: 'Asha Mteja',
-      }),
-    ]);
+  it("never shows guests' contributions to staff (ADR 043)", async () => {
+    expect((await api(ctx, 'GET', '/v1/ops/payments', { token: billing })).status).toBe(404);
+    for (const path of ['/v1/ops/overview', '/v1/ops/events', '/v1/ops/lookup?q=hamisi']) {
+      const r = await api(ctx, 'GET', path, { token: admin });
+      expect(JSON.stringify(r.body)).not.toContain('50000');
+      expect(JSON.stringify(r.body)).not.toContain('CASH-OPS-1');
+    }
   });
 });
 
@@ -208,7 +199,7 @@ describe('support lookup and phone reveal', () => {
         shortCode,
       }),
     ]);
-    expect(byName.body!.payments).toHaveLength(1); // guest name matches the payment too
+    expect(byName.body!.orders).toEqual([]); // contribution payments are not searchable (ADR 043)
     const byPhone = await api(ctx, 'GET', '/v1/ops/lookup?q=0754321678', { token: support });
     expect(byPhone.body!.guests.map((g: { guestId: string }) => g.guestId)).toEqual([guestId]);
     expect(JSON.stringify(byPhone.body)).not.toContain('754321678');
@@ -217,7 +208,7 @@ describe('support lookup and phone reveal', () => {
     });
     expect(byCode.body!.guests).toHaveLength(1);
     const byRef = await api(ctx, 'GET', '/v1/ops/lookup?q=cash-ops-1', { token: admin });
-    expect(byRef.body!.payments[0].reference).toMatch(/:CASH-OPS-1$/);
+    expect(byRef.body!.orders).toEqual([]);
     const byOrganizer = await api(ctx, 'GET', '/v1/ops/lookup?q=asha', { token: support });
     expect(byOrganizer.body!.organizers).toEqual([
       expect.objectContaining({ id: owner.user.id, phoneE164: '+255•••••004' }),
@@ -235,7 +226,7 @@ describe('support lookup and phone reveal', () => {
   it('returns nothing (and logs nothing) for searches under three characters', async () => {
     const before = (await opsAudit('lookup')).length;
     const r = await api(ctx, 'GET', '/v1/ops/lookup?q=ab', { token: support });
-    expect(r.body).toEqual({ organizers: [], guests: [], payments: [] });
+    expect(r.body).toEqual({ organizers: [], guests: [], orders: [] });
     expect((await opsAudit('lookup')).length).toBe(before);
   });
 
@@ -485,7 +476,7 @@ describe('HttpRepository ops methods', () => {
     const [ev] = await r.opsListEvents();
     expect((await r.opsSetEventPlan(ev!.id, 'free')).plan).toBe('free');
     expect((await r.opsUsage()).byChannel).toHaveLength(2);
-    expect((await r.opsListPayments())[0]!.reference).toMatch(/:CASH-OPS-1$/);
+    expect(Array.isArray(await r.opsListPurchases())).toBe(true);
     const hits = await r.opsLookup('Hamisi');
     expect(hits.guests).toHaveLength(1);
     expect(

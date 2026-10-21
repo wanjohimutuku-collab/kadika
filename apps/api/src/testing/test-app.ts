@@ -84,6 +84,8 @@ export async function createTestContext(
       WEBHOOK_SECRET: 'hook-secret-for-tests',
       PAYMENT_WEBHOOK_SECRET: 'pay-secret-for-tests',
       LOG_REQUESTS: '0',
+      // The pay-from-card tests predate ADR 043; a test passes '0' to see the default (off).
+      GUEST_PAYMENTS_ENABLED: '1',
       ...opts.env,
       WHATSAPP_TOKEN: 'cloud-token',
       WHATSAPP_PHONE_ID: '1234567890',

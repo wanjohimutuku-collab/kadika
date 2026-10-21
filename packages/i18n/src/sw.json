@@ -245,7 +245,10 @@
     "contribMeta": "Mchango wa {kindOf} {couple}",
     "contribMetaDescription": "Changia kwa simu. {sender}.",
     "contribClosed": "Michango haipokelewi kwa sasa kupitia kadi hii.",
-    "appLink": "Programu ya Android"
+    "appLink": "Programu ya Android",
+    "payToTitle": "Tuma mchango wako kwa:",
+    "payToNone": "Wasiliana na kamati kujua namba ya kutuma mchango.",
+    "payToDirect": "Mchango unaenda moja kwa moja kwa wenyeji. Kamati itaandika malipo yako. Usitume PIN yako kwa mtu yeyote."
   },
   "pay": {
     "title": "Lipa mchango",
@@ -335,7 +338,8 @@
     "gateNoConsole": "Walinda lango hutumia programu ya simu ya {brand}. Dashibodi hii ni kwa wenye harusi na kamati.",
     "gateNoConsoleTitle": "Huna ruhusa ya dashibodi",
     "opsLink": "Dashibodi ya wafanyakazi",
-    "content": "Maandishi ya kadi"
+    "content": "Maandishi ya kadi",
+    "billing": "Kifurushi"
   },
   "auth": {
     "title": "Ingia kwenye {brand}",
@@ -639,7 +643,8 @@
       "declined": "Wamekataa",
       "no_smartphone": "Hawana smartphone",
       "failed": "Ujumbe umeshindwa",
-      "checked_in": "Wamefika"
+      "checked_in": "Wamefika",
+      "print": "Kadi za kuchapisha"
     },
     "filtersLabel": "Chuja wageni",
     "group": "Kikundi",
@@ -713,7 +718,12 @@
     "bulkCardKind": "Badilisha aina ya kadi",
     "cardKindTitle": "Badilisha aina ya kadi ya {count, plural, one {mgeni #} other {wageni #}}",
     "cardKindBody": "Kiungo walichonacho kinabaki kile kile lakini kitaonyesha kadi mpya. Aliyetumiwa kadi tayari ataonekana kama hajatumiwa tena, ili umtumie mpya. Waliojibu tayari wanabaki na majibu yao.",
-    "cardKindUpdated": "Aina ya kadi imebadilishwa kwa {count, plural, one {mgeni #} other {wageni #}}"
+    "cardKindUpdated": "Aina ya kadi imebadilishwa kwa {count, plural, one {mgeni #} other {wageni #}}",
+    "bulkMarkPrint": "Weka kwa kuchapisha",
+    "bulkUnmarkPrint": "Ondoa kwenye kuchapisha",
+    "printMarked": "{count, plural, one {Mgeni # atapata kadi ya kuchapisha} other {Wageni # watapata kadi ya kuchapisha}}",
+    "printUnmarked": "{count, plural, one {Mgeni # ameondolewa kwenye kuchapisha} other {Wageni # wameondolewa kwenye kuchapisha}}",
+    "printBadge": "Kadi ya kuchapisha"
   },
   "guestForm": {
     "cardKind": "Aina ya kadi",
@@ -741,7 +751,9 @@
       "invitation": "Kadi ya mwaliko (jibu na QR)",
       "contribution": "Kadi ya mchango (inaomba mchango tu)"
     },
-    "cardKindHelp": "Kadi ya mchango haina vitufe vya kujibu wala QR, na mtu huyo haingizwi langoni."
+    "cardKindHelp": "Kadi ya mchango haina vitufe vya kujibu wala QR, na mtu huyo haingizwi langoni.",
+    "printCard": "Kadi ya kuchapisha",
+    "printCardHelp": "Mgeni huyu atapata kadi iliyochapishwa. Unaitengeneza kwenye Kadi; inahesabiwa mara moja tu."
   },
   "import": {
     "title": "Ingiza orodha ya wageni",
@@ -1009,7 +1021,13 @@
       "border": "Mistari",
       "pattern": "Mpaka wa mapambo",
       "success": "Kijani cha uthibitisho"
-    }
+    },
+    "generateTitle": "Tengeneza kadi za kuchapisha",
+    "generateIntro": "{count, plural, =0 {Hakuna mgeni aliyechaguliwa kwa kadi ya kuchapisha. Chagua kwenye Wageni (chagua wengi → Weka kwa kuchapisha).} one {Mgeni # amechaguliwa kwa kadi ya kuchapisha.} other {Wageni # wamechaguliwa kwa kadi ya kuchapisha.}}",
+    "generateNew": "{count, plural, =0 {Zote zimeshatengenezwa: kuchapisha tena ni bure.} one {Kadi # mpya itatengenezwa (inatumia kadi 1 ya salio).} other {Kadi # mpya zitatengenezwa (zinatumia kadi # za salio).}}",
+    "generateAll": "Tengeneza zote (PDF)",
+    "generateCollate": "Tengeneza 4 kwa A4",
+    "chooseGuests": "Chagua wageni"
   },
   "pledges": {
     "title": "Michango",
@@ -1221,7 +1239,14 @@
     "deleteWord": "FUTA",
     "deleted": "Tukio limefutwa",
     "pledgesEnabled": "Ruhusu michango kwenye kadi",
-    "fallbackHours": "Subiri saa ngapi kabla ya SMS"
+    "fallbackHours": "Subiri saa ngapi kabla ya SMS",
+    "payToTitle": "Mahali pa kutuma michango",
+    "payToHint": "Wageni hulipa moja kwa moja kwenye namba zako. Hatupokei wala kushika pesa za michango; kamati inarekodi malipo, na kumbukumbu hizo zimefichwa (encrypted) na zinaonekana kwa timu ya tukio tu.",
+    "payToLabel": "Njia (mf. M-Pesa, Lipa Namba, Benki)",
+    "payToAccount": "Namba au akaunti",
+    "payToName": "Jina linaloonekana",
+    "payToAdd": "Ongeza njia",
+    "payToRemove": "Ondoa"
   },
   "account": {
     "title": "Akaunti",
@@ -1269,7 +1294,8 @@
       "audit": "Kumbukumbu za wafanyakazi",
       "pilot": "Majaribio",
       "messaging": "SMS na WhatsApp",
-      "settings": "Mipangilio"
+      "settings": "Mipangilio",
+      "billing": "Malipo ya vifurushi"
     },
     "overview": {
       "organizers": "Wateja",
@@ -1291,7 +1317,10 @@
       "attentionRequests": "{count, plural, one {Ombi # la data linasubiri} other {Maombi # ya data yanasubiri}}",
       "attentionFailures": "Kiwango cha kushindwa kwa jumbe ni {pct}%",
       "attentionSuspended": "{count, plural, one {Mteja # amesimamishwa} other {Wateja # wamesimamishwa}}",
-      "allClear": "Hakuna jambo linalohitaji hatua sasa."
+      "allClear": "Hakuna jambo linalohitaji hatua sasa.",
+      "revenue": "Mapato (siku 30)",
+      "revenueOrders": "{count, plural, one {Oda # imelipwa} other {Oda # zimelipwa}}",
+      "attentionOrders": "{count, plural, one {Oda # ya benki au taslimu inasubiri uthibitisho} other {Oda # za benki au taslimu zinasubiri uthibitisho}}"
     },
     "organizers": {
       "title": "Wateja",
@@ -1443,7 +1472,10 @@
         "lookup": "Alitafuta",
         "messaging": "Alibadilisha SMS/WhatsApp",
         "payments": "Alibadilisha mipangilio ya malipo",
-        "branding": "Alibadilisha chapa"
+        "branding": "Alibadilisha chapa",
+        "pricing": "Alibadilisha bei",
+        "grant": "Alitoa salio",
+        "purchase_paid": "Alithibitisha malipo ya oda"
       },
       "empty": "Hakuna kumbukumbu."
     },
@@ -1722,6 +1754,57 @@
         "copied": "Imenakiliwa",
         "missing": "Seva haina anwani yake ya umma (API_PUBLIC_URL), kwa hivyo Snippe haina pa kutuma matokeo."
       }
+    },
+    "pricing": {
+      "tab": "Bei",
+      "title": "Bei ya kadi na ujumbe",
+      "intro": "Kadi zinauzwa kwa bei ya kila kadi kulingana na idadi ya oda; kila kadi ina vikumbusho. Vifurushi vya vikumbusho huongeza zaidi. Bei kwa TZS na KES.",
+      "enforced": "Tekeleza malipo",
+      "enforcedHint": "Ikiwa imezimwa, matumizi yanahesabiwa tu. Ikiwashwa, kadi au ujumbe zaidi ya salio vinakataliwa.",
+      "free": "Bure kwa kila tukio",
+      "packs": "Vifurushi vya vikumbusho",
+      "key": "Kitambulisho",
+      "cards": "Kadi",
+      "messages": "Vikumbusho",
+      "priceTzs": "Bei (TZS)",
+      "priceKes": "Bei (KES)",
+      "addPack": "Ongeza kifurushi cha vikumbusho",
+      "remove": "Ondoa",
+      "save": "Hifadhi bei",
+      "saved": "Bei zimehifadhiwa",
+      "source": {
+        "default": "Bei za mwanzo (hazijahifadhiwa)",
+        "database": "Imehifadhiwa na {name}, {when}"
+      },
+      "readOnly": "Wafanyakazi wa malipo na wasimamizi tu wanaweza kubadili bei.",
+      "tiers": "Bei kwa kila kadi",
+      "minCards": "Kuanzia kadi",
+      "messagesPerCard": "Vikumbusho kwa kila kadi",
+      "addTier": "Ongeza ngazi ya bei"
+    },
+    "purchases": {
+      "title": "Oda za vifurushi",
+      "empty": "Hakuna oda.",
+      "markPaid": "Thibitisha malipo",
+      "markPaidTitle": "Thibitisha malipo ya {item}",
+      "note": "Kumbukumbu ya malipo (mf. namba ya benki)",
+      "confirm": "Thibitisha",
+      "grant": "Toa zawadi ya salio",
+      "grantTitle": "Toa salio kwa {name}",
+      "grantNote": "Sababu",
+      "granted": "Salio limeongezwa",
+      "allowance": "Salio: kadi {cards} · vikumbusho {messages}",
+      "col": {
+        "date": "Tarehe",
+        "order": "Oda",
+        "amount": "Kiasi",
+        "method": "Njia",
+        "status": "Hali",
+        "action": "Kitendo"
+      },
+      "grantButton": "Toa salio",
+      "cards": "Kadi",
+      "messages": "Vikumbusho"
     }
   },
   "mobile": {
@@ -1977,5 +2060,118 @@
     "guestCta": "Fungua kadi yangu",
     "trust": "Hatutakuomba nenosiri, PIN wala malipo ili kupakua. Tumia viungo vilivyo kwenye ukurasa huu tu.",
     "faqLink": "Maswali yanayoulizwa mara kwa mara"
+  },
+  "billing": {
+    "title": "Kifurushi na salio",
+    "subtitle": "Kadi unazoweza kutengeneza na vikumbusho vya SMS au WhatsApp",
+    "allowanceTitle": "Ulichonacho",
+    "resource": {
+      "cards": "Kadi",
+      "messages": "Vikumbusho"
+    },
+    "usedOf": "{used} kati ya {all}",
+    "left": "zimebaki {n}",
+    "usedUp": "Zimekwisha: {what}. Nunua zaidi ili kuendelea.",
+    "freeNote": "Kila tukio linaanza na kadi {cards} na vikumbusho {messages} bure.",
+    "cards": "Kadi {n}",
+    "packsTitle": "Ongeza vikumbusho",
+    "packsIntro": "Vikumbusho vikiisha, ongeza bila kununua kadi. Kila kimoja ni SMS au WhatsApp moja.",
+    "buy": "Nunua",
+    "buyTitle": "Nunua: {item}",
+    "methodLabel": "Njia ya kulipa",
+    "methodMobile": "Lipa kwa simu",
+    "methodManual": "Benki au taslimu",
+    "phone": "Namba ya simu itakayolipa",
+    "network": "Mtandao",
+    "mobileHint": "Utapokea ombi la malipo kwenye simu yako. Weka PIN yako kwenye simu tu, si hapa.",
+    "manualHint": "Tutakupa namba ya kumbukumbu. Ukishalipa, timu yetu itathibitisha na salio litaongezwa.",
+    "payNow": "Lipa {amount}",
+    "orderManual": "Weka oda",
+    "waitingTitle": "Thibitisha kwenye simu yako",
+    "waitingBody": "Fungua ombi la malipo kwenye simu na uweke PIN yako.",
+    "paidToast": "Malipo yamepokelewa. Salio limeongezwa.",
+    "manualToast": "Oda imewekwa. Itaongezwa ukishalipa na tukathibitisha.",
+    "failedToast": "Malipo hayakufanikiwa. Jaribu tena.",
+    "slowToast": "Bado tunasubiri jibu la malipo. Tutaongeza salio likifika.",
+    "history": "Oda zako",
+    "historyEmpty": "Bado hujanunua chochote.",
+    "grant": "Zawadi",
+    "reference": "Kumbukumbu {ref}",
+    "cancel": "Ghairi",
+    "status": {
+      "pending": "Inasubiri",
+      "paid": "Imelipwa",
+      "failed": "Imeshindwa",
+      "cancelled": "Imeghairiwa"
+    },
+    "quota": {
+      "cards": "Kadi zimekwisha ({remaining} zimebaki, zinahitajika {needed}). Nunua kadi ili kuendelea.",
+      "messages": "Vikumbusho havitoshi ({remaining} vimebaki, vinahitajika {needed}).",
+      "action": "Nunua zaidi"
+    },
+    "generatedNote": "Kadi inatengenezwa mara ya kwanza inapotumwa au kuchapishwa; kuituma au kuichapisha tena ni bure. Kila kadi ina vikumbusho {per} vya SMS au WhatsApp.",
+    "buyCardsTitle": "Nunua kadi",
+    "buyCardsIntro": "Bei kwa kila kadi inashuka kadri unavyonunua nyingi. Kila kadi inakuja na vikumbusho {per} vya SMS au WhatsApp.",
+    "needCards": "Wageni {n} bado hawajatengenezewa kadi; unahitaji kadi {need} zaidi.",
+    "tierRange": "Kadi {from}–{to}",
+    "tierFrom": "Kadi {from} au zaidi",
+    "perCard": "{price} kwa kadi",
+    "howMany": "Idadi ya kadi",
+    "orderDetail": "Kadi {n} × {price}, pamoja na vikumbusho {credits}",
+    "creditPack": "Vikumbusho {n}"
+  },
+  "pricing": {
+    "metaTitle": "Bei za kadi za harusi za kidijitali | {brand}",
+    "metaDescription": "Lipa kwa kila kadi unayotengeneza: TZS 2,400 kwa kadi chini ya 100, nafuu zaidi ukinunua nyingi. Kila kadi ina vikumbusho 4 vya SMS au WhatsApp. {brand}.",
+    "title": "Lipa kwa kadi unazohitaji",
+    "intro": "Unalipa kwa kila kadi unayotengeneza, kwa wageni unaowatumia au kuwachapishia. Kila kadi ina RSVP, QR ya kuingia langoni na nakala ya kuchapisha, pamoja na vikumbusho vya SMS au WhatsApp.",
+    "pilotFree": "Wakati wa majaribio huduma ni bure. Hizi ndizo bei zitakazotumika malipo yatakapoanza; tutatangaza kabla.",
+    "perCard": "kwa kadi",
+    "feature": {
+      "qr": "QR ya kila mgeni na namba fupi",
+      "rsvp": "RSVP na idadi ya watu",
+      "gate": "Lango linalofanya kazi bila mtandao",
+      "print": "Kadi za kuchapisha (PDF)"
+    },
+    "freeNote": "Kila tukio linaanza na kadi {cards} na vikumbusho {messages} bure ili ujaribu.",
+    "packsTitle": "Ongeza vikumbusho",
+    "packsIntro": "Vikumbusho vikiisha, ongeza bila kununua kadi zaidi.",
+    "contributionsTitle": "Hatuchukui asilimia ya michango",
+    "contributionsBody": "Wageni hutuma michango moja kwa moja kwa wenyeji. Unalipa kadi na ujumbe tu; kumbukumbu za michango zimefichwa na zinaonekana kwa timu yako pekee.",
+    "cta": "Anza bure",
+    "tiersTitle": "Bei kwa kila kadi",
+    "tiersIntro": "Kadri unavyonunua kadi nyingi kwa mara moja, ndivyo bei kwa kadi inavyoshuka. Kadi inahesabiwa mara ya kwanza inapotumwa au kuchapishwa tu.",
+    "tierRange": "Kadi {from}–{to}",
+    "tierFrom": "Kadi {from} au zaidi",
+    "includesReminders": "Vikumbusho {n} vya SMS au WhatsApp kwa kila kadi",
+    "example": "Mfano: kadi {n} = {total}",
+    "creditPack": "Vikumbusho {n}"
+  },
+  "welcome": {
+    "eyebrow": "Tukio lako limeundwa",
+    "buildingTitle": "Tunaandaa kadi yako…",
+    "readyTitle": "Kadi yako iko tayari!",
+    "progressLabel": "Maandalizi ya kadi",
+    "progress": "Hatua {done} kati ya {total}",
+    "steps": {
+      "design": "Tunaweka muundo na rangi ulizochagua",
+      "names": "Tunaandika majina, tarehe na ukumbi",
+      "qr": "Tunaandaa QR na namba ya kila mgeni",
+      "ready": "Kadi iko tayari kutumwa na kuchapishwa"
+    },
+    "stepDone": "imekamilika",
+    "stepPending": "inasubiri",
+    "offerTitle": "Utaalika wageni wangapi?",
+    "offerIntro": "Nunua kadi kwa idadi ya wageni wako. Kadri unavyonunua nyingi, ndivyo bei kwa kadi inavyoshuka.",
+    "quickLabel": "Chagua idadi haraka",
+    "guests": "Wageni {n}",
+    "howMany": "Idadi ya kadi",
+    "point": {
+      "generated": "Kadi inahesabiwa mara ya kwanza tu inapotumwa au kuchapishwa.",
+      "reminders": "Kila kadi ina vikumbusho {per} vya SMS au WhatsApp.",
+      "contributions": "Michango ya wageni inakuja kwako moja kwa moja; hatuchukui asilimia."
+    },
+    "buy": "Nunua kadi {n} · {total}",
+    "skip": "Anza na kadi {n} za bure"
   }
 }

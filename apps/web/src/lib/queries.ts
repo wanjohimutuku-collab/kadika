@@ -25,6 +25,7 @@ export const qk = {
   report: (id: string) => ['report', id] as const,
   job: (jobId: string) => ['job', jobId] as const,
   scheduled: (id: string) => ['scheduled-sends', id] as const,
+  billing: (id: string) => ['billing', id] as const,
   ops: (name: string) => ['ops', name] as const,
 } satisfies Record<string, QueryKey | ((...a: never[]) => QueryKey)>;
 
@@ -40,6 +41,7 @@ export function eventScopedKeys(id: string): QueryKey[] {
     qk.gate(id),
     qk.scans(id),
     qk.report(id),
+    qk.billing(id),
   ];
 }
 

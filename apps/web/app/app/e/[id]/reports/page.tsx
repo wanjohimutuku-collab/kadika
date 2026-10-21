@@ -17,6 +17,7 @@ import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { qk, useEvent, useSession, useEventCurrency } from '@/lib/queries';
 import { formatDateShort, formatMoney, formatMoneyCompact } from '@/lib/format';
 import { downloadBlob } from '@/lib/download';
+import { useQuotaToast } from '@/components/console/quota';
 
 export default function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -27,6 +28,7 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
   const ts = useTranslations('states');
   const locale = useLocale() as Locale;
   const toast = useToast();
+  const quota = useQuotaToast(id);
   const session = useSession();
   const event = useEvent(id);
   const cur = useEventCurrency(id);
@@ -67,7 +69,7 @@ export default function ReportsPage({ params }: { params: Promise<{ id: string }
       setConfirm(false);
       toast({ tone: 'success', title: t('thankYouSent') });
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
   });
 
   return (

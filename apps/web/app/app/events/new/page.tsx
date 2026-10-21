@@ -162,7 +162,8 @@ export default function NewEventPage() {
       localStorage.removeItem(DRAFT_KEY);
       await queryClient.invalidateQueries({ queryKey: qk.events });
       toast({ tone: 'success', title: t('created') });
-      router.push(`/app/e/${ev.id}`);
+      // ADR 042: show the host their card being put together, then offer cards to buy.
+      router.push(`/app/e/${ev.id}/karibu`);
     },
     onError: () => toast({ tone: 'error', title: tc('retry') }),
   });

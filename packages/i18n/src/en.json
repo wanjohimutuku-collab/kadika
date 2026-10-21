@@ -241,7 +241,10 @@
     "contribMeta": "Contribution for the {kindOf} {couple}",
     "contribMetaDescription": "Contribute by phone. {sender}.",
     "contribClosed": "Contributions are not being taken through this card right now.",
-    "appLink": "Android app"
+    "appLink": "Android app",
+    "payToTitle": "Send your contribution to:",
+    "payToNone": "Ask the committee where to send your contribution.",
+    "payToDirect": "Your contribution goes straight to the hosts, and the committee records it. Never share your PIN with anyone."
   },
   "pay": {
     "title": "Pay contribution",
@@ -331,7 +334,8 @@
     "gateNoConsole": "Gate agents use the {brand} phone app. This dashboard is for owners and committee members.",
     "gateNoConsoleTitle": "No dashboard access",
     "opsLink": "Staff dashboard",
-    "content": "Card text"
+    "content": "Card text",
+    "billing": "Plan"
   },
   "auth": {
     "title": "Sign in to {brand}",
@@ -635,7 +639,8 @@
       "declined": "Declined",
       "no_smartphone": "No smartphone",
       "failed": "Message failed",
-      "checked_in": "Arrived"
+      "checked_in": "Arrived",
+      "print": "Printed cards"
     },
     "filtersLabel": "Filter guests",
     "group": "Group",
@@ -709,7 +714,12 @@
     "bulkCardKind": "Change card type",
     "cardKindTitle": "Change the card type for {count, plural, one {# guest} other {# guests}}",
     "cardKindBody": "The link they already have stays the same but shows the new card. Anyone whose card was already sent is listed as not sent again, so you can send them the new one. People who already replied keep their reply.",
-    "cardKindUpdated": "Card type changed for {count, plural, one {# guest} other {# guests}}"
+    "cardKindUpdated": "Card type changed for {count, plural, one {# guest} other {# guests}}",
+    "bulkMarkPrint": "Choose for print",
+    "bulkUnmarkPrint": "Remove from print",
+    "printMarked": "{count, plural, one {# guest will get a printed card} other {# guests will get a printed card}}",
+    "printUnmarked": "{count, plural, one {# guest removed from printing} other {# guests removed from printing}}",
+    "printBadge": "Printed card"
   },
   "guestForm": {
     "cardKind": "Card type",
@@ -737,7 +747,9 @@
       "invitation": "Invitation card (reply and QR)",
       "contribution": "Contribution card (asks for a contribution only)"
     },
-    "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate."
+    "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate.",
+    "printCard": "Printed card",
+    "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once."
   },
   "import": {
     "title": "Import guest list",
@@ -1005,7 +1017,13 @@
       "border": "Lines",
       "pattern": "Decorative border",
       "success": "Confirmation green"
-    }
+    },
+    "generateTitle": "Generate printed cards",
+    "generateIntro": "{count, plural, =0 {No guest is chosen for a printed card yet. Choose them in Guests (select several → Choose for print).} one {# guest is chosen for a printed card.} other {# guests are chosen for a printed card.}}",
+    "generateNew": "{count, plural, =0 {All are generated already: reprinting is free.} one {# new card will be generated (uses 1 card of credit).} other {# new cards will be generated (uses # cards of credit).}}",
+    "generateAll": "Generate all (PDF)",
+    "generateCollate": "Generate 4 per A4",
+    "chooseGuests": "Choose guests"
   },
   "pledges": {
     "title": "Contributions",
@@ -1217,7 +1235,14 @@
     "deleteWord": "FUTA",
     "deleted": "Event deleted",
     "pledgesEnabled": "Allow contributions on cards",
-    "fallbackHours": "Hours to wait before SMS"
+    "fallbackHours": "Hours to wait before SMS",
+    "payToTitle": "Where guests send contributions",
+    "payToHint": "Guests pay straight to your own numbers. We never receive or hold contribution money; the committee records payments, and those records are encrypted and visible only to the event team.",
+    "payToLabel": "Method (e.g. M-Pesa, Lipa Namba, bank)",
+    "payToAccount": "Number or account",
+    "payToName": "Name shown",
+    "payToAdd": "Add a method",
+    "payToRemove": "Remove"
   },
   "account": {
     "title": "Account",
@@ -1265,7 +1290,8 @@
       "audit": "Staff audit log",
       "pilot": "Pilot",
       "messaging": "SMS & WhatsApp",
-      "settings": "Settings"
+      "settings": "Settings",
+      "billing": "Billing"
     },
     "overview": {
       "organizers": "Customers",
@@ -1287,7 +1313,10 @@
       "attentionRequests": "{count, plural, one {# data request is waiting} other {# data requests are waiting}}",
       "attentionFailures": "Message failure rate is {pct}%",
       "attentionSuspended": "{count, plural, one {# customer is suspended} other {# customers are suspended}}",
-      "allClear": "Nothing needs attention right now."
+      "allClear": "Nothing needs attention right now.",
+      "revenue": "Revenue (30 days)",
+      "revenueOrders": "{count, plural, one {# paid order} other {# paid orders}}",
+      "attentionOrders": "{count, plural, one {# bank or cash order waiting for confirmation} other {# bank or cash orders waiting for confirmation}}"
     },
     "organizers": {
       "title": "Customers",
@@ -1439,7 +1468,10 @@
         "lookup": "Searched",
         "messaging": "Changed SMS/WhatsApp",
         "payments": "Changed payment settings",
-        "branding": "Changed branding"
+        "branding": "Changed branding",
+        "pricing": "Changed prices",
+        "grant": "Granted credit",
+        "purchase_paid": "Confirmed an order payment"
       },
       "empty": "No entries."
     },
@@ -1718,6 +1750,57 @@
         "copied": "Copied",
         "missing": "The server has no public address of its own (API_PUBLIC_URL), so Snippe has nowhere to send results."
       }
+    },
+    "pricing": {
+      "tab": "Pricing",
+      "title": "Card and message prices",
+      "intro": "Cards are sold at a price per card that depends on the order size; every card comes with reminders. Reminder packs add more. Prices in TZS and KES.",
+      "enforced": "Enforce payment",
+      "enforcedHint": "Off: usage is only counted. On: cards or messages past the allowance are refused.",
+      "free": "Free for every event",
+      "packs": "Reminder packs",
+      "key": "Key",
+      "cards": "Cards",
+      "messages": "Reminders",
+      "priceTzs": "Price (TZS)",
+      "priceKes": "Price (KES)",
+      "addPack": "Add a reminder pack",
+      "remove": "Remove",
+      "save": "Save prices",
+      "saved": "Prices saved",
+      "source": {
+        "default": "Starting prices (not saved yet)",
+        "database": "Saved by {name}, {when}"
+      },
+      "readOnly": "Only billing and admin staff can change prices.",
+      "tiers": "Price per card",
+      "minCards": "From cards",
+      "messagesPerCard": "Reminders per card",
+      "addTier": "Add a price tier"
+    },
+    "purchases": {
+      "title": "Bundle orders",
+      "empty": "No orders.",
+      "markPaid": "Confirm payment",
+      "markPaidTitle": "Confirm payment for {item}",
+      "note": "Payment reference (e.g. bank number)",
+      "confirm": "Confirm",
+      "grant": "Grant credit",
+      "grantTitle": "Grant credit to {name}",
+      "grantNote": "Reason",
+      "granted": "Credit added",
+      "allowance": "Credit: {cards} cards · {messages} reminders",
+      "col": {
+        "date": "Date",
+        "order": "Order",
+        "amount": "Amount",
+        "method": "Method",
+        "status": "Status",
+        "action": "Action"
+      },
+      "grantButton": "Grant credit",
+      "cards": "Cards",
+      "messages": "Reminders"
     }
   },
   "mobile": {
@@ -1973,5 +2056,118 @@
     "guestCta": "Open my card",
     "trust": "We never ask for a password, PIN or payment to download. Only use the links on this page.",
     "faqLink": "Frequently asked questions"
+  },
+  "billing": {
+    "title": "Plan and credit",
+    "subtitle": "Cards you can generate and SMS or WhatsApp reminders",
+    "allowanceTitle": "What you have",
+    "resource": {
+      "cards": "Cards",
+      "messages": "Reminders"
+    },
+    "usedOf": "{used} of {all}",
+    "left": "{n} left",
+    "usedUp": "Used up: {what}. Buy more to continue.",
+    "freeNote": "Every event starts with {cards} cards and {messages} reminders free.",
+    "cards": "{n} cards",
+    "packsTitle": "Add reminders",
+    "packsIntro": "Out of reminders? Top up without buying cards. Each one is one SMS or one WhatsApp message.",
+    "buy": "Buy",
+    "buyTitle": "Buy: {item}",
+    "methodLabel": "How to pay",
+    "methodMobile": "Pay by phone",
+    "methodManual": "Bank or cash",
+    "phone": "Phone number that pays",
+    "network": "Network",
+    "mobileHint": "You will get a payment request on your phone. Enter your PIN on the phone only, never here.",
+    "manualHint": "We give you a reference number. Once you have paid, our team confirms it and the credit is added.",
+    "payNow": "Pay {amount}",
+    "orderManual": "Place order",
+    "waitingTitle": "Confirm on your phone",
+    "waitingBody": "Open the payment request on your phone and enter your PIN.",
+    "paidToast": "Payment received. Credit added.",
+    "manualToast": "Order placed. It is added once you pay and we confirm.",
+    "failedToast": "The payment did not go through. Try again.",
+    "slowToast": "Still waiting for the payment result. We add the credit as soon as it arrives.",
+    "history": "Your orders",
+    "historyEmpty": "Nothing bought yet.",
+    "grant": "Gift",
+    "reference": "Reference {ref}",
+    "cancel": "Cancel",
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "quota": {
+      "cards": "No cards left ({remaining} left, {needed} needed). Buy cards to continue.",
+      "messages": "Not enough reminders ({remaining} left, {needed} needed).",
+      "action": "Buy more"
+    },
+    "generatedNote": "A card is generated the first time it is sent or printed; sending or printing it again is free. Each card comes with {per} SMS or WhatsApp reminders.",
+    "buyCardsTitle": "Buy cards",
+    "buyCardsIntro": "The price per card drops the more you buy at once. Each card comes with {per} SMS or WhatsApp reminders.",
+    "needCards": "{n} guests have no card generated yet; you need {need} more cards.",
+    "tierRange": "{from}–{to} cards",
+    "tierFrom": "{from} cards or more",
+    "perCard": "{price} per card",
+    "howMany": "Number of cards",
+    "orderDetail": "{n} cards × {price}, with {credits} reminders",
+    "creditPack": "{n} reminders"
+  },
+  "pricing": {
+    "metaTitle": "Digital wedding card prices | {brand}",
+    "metaDescription": "Pay for each card you generate: TZS 2,400 per card under 100, less when you buy more. Each card includes 4 SMS or WhatsApp reminders. {brand}.",
+    "title": "Pay for the cards you need",
+    "intro": "You pay for each card you generate, for the guests you send to or print for. Every card has RSVP, a QR for the gate and a printable copy, plus SMS or WhatsApp reminders.",
+    "pilotFree": "The service is free during the pilot. These are the prices that will apply once charging starts; we will announce it first.",
+    "perCard": "per card",
+    "feature": {
+      "qr": "A QR and short code per guest",
+      "rsvp": "RSVP with party size",
+      "gate": "Gate check-in that works offline",
+      "print": "Printable cards (PDF)"
+    },
+    "freeNote": "Every event starts with {cards} cards and {messages} reminders free so you can try it.",
+    "packsTitle": "Add reminders",
+    "packsIntro": "Out of reminders? Top up without buying more cards.",
+    "contributionsTitle": "We take no cut of contributions",
+    "contributionsBody": "Guests send contributions straight to the hosts. You pay only for cards and messages; contribution records are encrypted and visible to your team alone.",
+    "cta": "Start free",
+    "tiersTitle": "Price per card",
+    "tiersIntro": "The more cards you buy at once, the lower the price per card. A card counts only the first time it is sent or printed.",
+    "tierRange": "{from}–{to} cards",
+    "tierFrom": "{from} cards or more",
+    "includesReminders": "{n} SMS or WhatsApp reminders with every card",
+    "example": "Example: {n} cards = {total}",
+    "creditPack": "{n} reminders"
+  },
+  "welcome": {
+    "eyebrow": "Your event is created",
+    "buildingTitle": "Preparing your card…",
+    "readyTitle": "Your card is ready!",
+    "progressLabel": "Card preparation",
+    "progress": "Step {done} of {total}",
+    "steps": {
+      "design": "Applying the design and colours you chose",
+      "names": "Setting the names, date and venue",
+      "qr": "Preparing every guest's QR and card number",
+      "ready": "Ready to send and print"
+    },
+    "stepDone": "done",
+    "stepPending": "waiting",
+    "offerTitle": "How many guests will you invite?",
+    "offerIntro": "Buy cards for your guest list. The more you buy at once, the lower the price per card.",
+    "quickLabel": "Quick pick",
+    "guests": "{n} guests",
+    "howMany": "Number of cards",
+    "point": {
+      "generated": "A card counts only the first time it is sent or printed.",
+      "reminders": "Each card comes with {per} SMS or WhatsApp reminders.",
+      "contributions": "Guest contributions go straight to you; we take no cut."
+    },
+    "buy": "Buy {n} cards · {total}",
+    "skip": "Start with {n} free cards"
   }
 }

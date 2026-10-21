@@ -129,6 +129,8 @@ export const cardContentSchema = z
         rsvpNoLabel: ltext(40),
         closing: ltext(600),
         footerNote: ltext(300),
+        // `pledge` is kept so saved content still validates, but an invitation never shows a contribution
+        // request any more: contributions have their own card (ADR 043).
         show: showFlags(['map', 'dressCode', 'calendar', 'qr', 'rsvp', 'pledge'] as const),
       })
       .strict()
@@ -141,6 +143,25 @@ export const cardContentSchema = z
         message: ltext(1200),
         /** Extra words about paying (for example "after paying, keep the confirmation message"). */
         payNote: ltext(400),
+        /**
+         * Where guests send their contribution: the hosts' own mobile-money numbers, till or bank
+         * account. Guests pay the hosts directly; nothing passes through us (ADR 043).
+         */
+        payTo: z
+          .array(
+            z
+              .object({
+                /** e.g. "M-Pesa", "Lipa Namba", "CRDB". */
+                label: text(40),
+                /** The number, till or account to pay to. */
+                account: text(40),
+                /** Whose name the payment shows, so guests can check before they confirm. */
+                name: text(80).optional(),
+              })
+              .strict(),
+          )
+          .max(4)
+          .optional(),
         thanks: ltext(400),
         closing: ltext(600),
         /** Quick amounts offered on the pay page, whole currency units. */

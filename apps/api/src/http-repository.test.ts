@@ -81,11 +81,18 @@ describe('HttpRepository against the real API', () => {
       groupLabel: 'Marafiki',
       partySizeAllowed: 2,
       inviteChannelPref: 'whatsapp',
+      printCard: true,
       hasSmartphone: true,
       language: 'sw',
       notes: '',
     });
-    expect(g).toMatchObject({ phoneE164: '+255712345678', partySizeAllowed: 2, status: 'created' });
+    expect(g).toMatchObject({
+      phoneE164: '+255712345678',
+      partySizeAllowed: 2,
+      status: 'created',
+      printCard: true, // the form's "Printed card" choice reaches the API (ADR 042)
+      cardGenerated: false,
+    });
     await expect(
       r.createGuest(ev.id, {
         displayName: 'Mwingine',
@@ -218,13 +225,47 @@ describe('HttpRepository against the real API', () => {
     expect((await guestView.getCard('nope')).state).toBe('invalid');
   });
 
+  it('runs the console Gate page: overview, scan log and a manual check-in (§17.8)', async () => {
+    const r = repo();
+    await login(r, '0712 100 109');
+    const ev = await r.createEvent({
+      title: 'Harusi ya Gate',
+      partnerA: 'Neema',
+      partnerB: 'Daudi',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Mlimani City Hall',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 0,
+    });
+    const g = await r.createGuest(ev.id, {
+      displayName: 'Bibi Pendo',
+      phone: '0712 100 199',
+      partySizeAllowed: 2,
+      inviteChannelPref: 'sms',
+      hasSmartphone: true,
+      language: 'sw',
+      notes: '',
+    });
+    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 0, expectedGuests: 0 });
+    expect(await r.listScans(ev.id)).toEqual([]);
+    const entry = await r.manualCheckIn(ev.id, g.id, { partySize: 2, reason: 'Mlango wa nyuma' });
+    expect(entry).toMatchObject({ guestName: 'Bibi Pendo', result: 'manual_ok', partyAdmitted: 2 });
+    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 1, admittedPeople: 2 });
+    expect((await r.listScans(ev.id)).map((s) => s.result)).toEqual(['manual_ok']);
+  });
+
   it('keeps raw card links and short-code lookups out of the real API (by design)', async () => {
     const r = repo();
     await expect(r.getGuestCardLink('x')).rejects.toMatchObject({ code: 'not_implemented' });
     await expect(r.resolveShortCode('KH-4821')).rejects.toMatchObject({ code: 'not_implemented' });
   });
 
-  it('runs the console screens through the repository: gate, activity, report, guest history', async () => {
+  it('runs the console screens through the repository: activity, report, guest history', async () => {
     const r = repo();
     await login(r, '0712 100 210');
     const ev = await r.createEvent({
@@ -251,10 +292,7 @@ describe('HttpRepository against the real API', () => {
       notes: '',
     });
 
-    const scan = await r.manualCheckIn(ev.id, g.id, { partySize: 2, reason: 'Kadi imepotea' });
-    expect(scan).toMatchObject({ guestId: g.id, result: 'manual_ok', partyAdmitted: 2 });
-    expect(await r.listScans(ev.id)).toHaveLength(1);
-    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 1, admittedPeople: 2 });
+    await r.manualCheckIn(ev.id, g.id, { partySize: 2, reason: 'Kadi imepotea' });
     expect((await r.listActivity(ev.id, 5)).map((a) => a.kind)).toEqual(['checked_in']);
 
     const report = await r.getReport(ev.id);
@@ -508,6 +546,7 @@ describe('HttpRepository against the real API', () => {
     const g = await r.createGuest(ev.id, {
       displayName: 'Bibi Pendo',
       phone: '0712 100 121',
+      cardKind: 'contribution',
       partySizeAllowed: 2,
       inviteChannelPref: 'sms',
       hasSmartphone: false,

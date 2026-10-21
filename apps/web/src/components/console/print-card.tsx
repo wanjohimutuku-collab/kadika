@@ -64,20 +64,25 @@ export function PrintCard({
         className="relative flex flex-col bg-surface px-[8mm] pt-[6mm] pb-[6mm] text-center text-ink"
         data-testid="print-card"
       >
-        <OrnamentBand id={`print-band-${format}`} className="block" />
-        <OrnamentDiamond className="mx-auto mt-[3mm]" />
-        <p className="mt-[2mm] text-[9pt] tracking-[0.25em] uppercase">
-          {tc('weddingOf', {
-            kind: eventKindLabel(data.eventKind, locale),
-            kindOf: eventKindOf(data.eventKind, locale),
-          })}
-        </p>
-        <p
-          className="font-display text-[26pt] leading-tight font-semibold"
-          style={{ color: 'var(--hp-primary)' }}
+        {/* Same template as the digital card (ADR 044): a header in the theme's primary with the names
+            in its text colour, then the ornament band. The PDF draws exactly this. */}
+        <div
+          className="-mx-[8mm] -mt-[6mm] flex h-[36mm] flex-col items-center justify-center px-[8mm]"
+          style={{ background: 'var(--hp-primary)', color: 'var(--hp-on-primary)' }}
+          data-testid="print-card-header"
         >
-          {hostNames(data.partnerA, data.partnerB)}
-        </p>
+          <OrnamentDiamond className="mx-auto" />
+          <p className="mt-[1mm] text-[9pt] tracking-[0.25em] uppercase opacity-90">
+            {tc('weddingOf', {
+              kind: eventKindLabel(data.eventKind, locale),
+              kindOf: eventKindOf(data.eventKind, locale),
+            })}
+          </p>
+          <p className="font-display text-[26pt] leading-tight font-semibold">
+            {hostNames(data.partnerA, data.partnerB)}
+          </p>
+        </div>
+        <OrnamentBand id={`print-band-${format}`} className="-mx-[8mm] block" />
         {data.greeting ? <p className="mt-[2mm] text-[9pt] leading-snug">{data.greeting}</p> : null}
         <p className="mt-[1.5mm] text-[10pt] font-semibold">
           {t('invitesLine', { guest: data.guestName ?? t('sampleGuest') })}

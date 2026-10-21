@@ -1,13 +1,11 @@
-import { and, desc, eq, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
   auditLog,
+  eventPurchases,
   events,
-  gateDevices,
   guests,
   invitations,
   messageLog,
-  newId,
-  payments,
   scanLog,
   users,
 } from '@harusi/db';
@@ -15,14 +13,9 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
 import type { EventService, MemberRole } from './events';
-import type { GateService } from './gate';
 import type { PledgeService } from './pledges';
 
-/** The organiser console's "web" gate: manual check-ins from the browser get this device id. */
-export const CONSOLE_DEVICE = 'console-web';
-
 const ADMIT = ['ok', 'manual_ok'] as const;
-const INVALID = ['invalid_sig', 'wrong_event', 'not_found'] as const;
 /** How far along an invitation is, for "reached at least this step" counts. */
 const RANK: Record<string, number> = {
   created: 0,
@@ -72,14 +65,14 @@ function messageKind(kind: string): 'invite' | 'reminder' | 'thank_you' | 'test'
 
 /**
  * Read models and small actions behind the organiser console (§7.7, §17.4) that the mobile app and
- * guest card do not need: recent activity, the gate monitor, the report, a guest's history, and
- * deleting a wedding. Money never reaches a gate agent (§2).
+ * guest card do not need: recent activity, the report, a guest's history, and deleting a wedding.
+ * Contribution amounts are sealed at rest (ADR 043), so they are read through the pledge service,
+ * which opens them for the event's own team only; nothing about money reaches a gate agent (§2).
  */
 export class ConsoleService {
   constructor(
     private deps: Deps,
     private eventsSvc: EventService,
-    private gateSvc: GateService,
     private pledgeSvc: PledgeService,
   ) {}
 
@@ -109,6 +102,13 @@ export class ConsoleService {
     if (!g) throw new ApiError('not_found', 'Guest not found');
     await this.manager(g.eventId, userId);
     return g;
+  }
+
+  /** Recorded contributions with their amounts opened (ADR 043); owner and committee only. */
+  private async paidContributions(eventId: string, userId: string) {
+    return (await this.pledgeSvc.listPayments(eventId, userId)).items.filter(
+      (p) => p.status === 'success',
+    );
   }
 
   // ---- overview
@@ -215,212 +215,18 @@ export class ConsoleService {
       });
 
     // money stays out of what a gate agent can read (§2)
-    if (role !== 'gate') {
-      const paid = await db
-        .select({
-          id: payments.id,
-          at: sql<Date>`coalesce(${payments.paidAt}, ${payments.createdAt})`,
-          amount: payments.amount,
-          guestId: guests.id,
-          name: guests.displayName,
-        })
-        .from(payments)
-        .innerJoin(guests, eq(guests.id, payments.guestId))
-        .where(and(eq(guests.eventId, eventId), eq(payments.status, 'success')))
-        .orderBy(desc(sql`coalesce(${payments.paidAt}, ${payments.createdAt})`))
-        .limit(n);
-      for (const p of paid)
+    if (role !== 'gate')
+      for (const p of (await this.paidContributions(eventId, userId)).slice(0, n))
         items.push({
           id: `p-${p.id}`,
-          at: new Date(p.at).toISOString(),
+          at: p.paidAt,
           kind: 'payment',
           amount: p.amount,
           guestId: p.guestId,
-          guestName: p.name,
+          guestName: p.guestName,
         });
-    }
 
     return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, n);
-  }
-
-  // ---- gate monitor (§7.6)
-
-  private scanRows(eventId: string, extra?: SQL) {
-    return this.deps.db
-      .select({
-        s: scanLog,
-        guestName: guests.displayName,
-        deviceName: gateDevices.name,
-        scannedBy: users.name,
-      })
-      .from(scanLog)
-      .leftJoin(guests, eq(guests.id, scanLog.guestId))
-      .leftJoin(
-        gateDevices,
-        and(eq(gateDevices.eventId, scanLog.eventId), eq(gateDevices.deviceId, scanLog.deviceId)),
-      )
-      .leftJoin(users, eq(users.id, scanLog.scannedBy))
-      .where(extra ? and(eq(scanLog.eventId, eventId), extra) : eq(scanLog.eventId, eventId));
-  }
-
-  private scanEntry(r: Awaited<ReturnType<ConsoleService['scanRows']>>[number]) {
-    const web = r.s.deviceId === CONSOLE_DEVICE;
-    const device = r.deviceName?.trim() || (web ? 'Browser' : `Device …${r.s.deviceId.slice(-4)}`);
-    return {
-      id: r.s.id,
-      eventId: r.s.eventId,
-      guestId: r.s.guestId,
-      guestName: r.guestName ?? null,
-      result: r.s.result,
-      partyAdmitted: r.s.partyAdmitted,
-      gateName: web ? 'Console' : device,
-      deviceName: device,
-      scannedBy: r.scannedBy?.trim() || (r.s.scannedBy ? 'Team' : 'Gate agent'),
-      scannedAt: r.s.scannedAt.toISOString(),
-      reason: r.s.reason,
-    };
-  }
-
-  async scans(eventId: string, userId: string) {
-    await this.eventsSvc.role(eventId, userId);
-    const rows = await this.scanRows(eventId).orderBy(desc(scanLog.scannedAt)).limit(500);
-    return rows.map((r) => this.scanEntry(r));
-  }
-
-  async gateOverview(eventId: string, userId: string) {
-    await this.eventsSvc.role(eventId, userId);
-    const event = await this.event(eventId);
-    const db = this.deps.db;
-    const scans = (await this.scanRows(eventId)).map((r) => this.scanEntry(r));
-    const admitted = new Map<string, number>();
-    const arrivals = new Map<string, number>();
-    const perGate = new Map<
-      string,
-      { gateName: string; ok: number; duplicate: number; invalid: number; manual: number }
-    >();
-    for (const s of scans) {
-      const row = perGate.get(s.gateName) ?? {
-        gateName: s.gateName,
-        ok: 0,
-        duplicate: 0,
-        invalid: 0,
-        manual: 0,
-      };
-      if (s.result === 'ok') row.ok++;
-      else if (s.result === 'duplicate') row.duplicate++;
-      else if (s.result === 'manual_ok' || s.result === 'manual_denied') row.manual++;
-      else row.invalid++;
-      perGate.set(s.gateName, row);
-      if ((s.result === 'ok' || s.result === 'manual_ok') && s.guestId) {
-        admitted.set(s.guestId, (admitted.get(s.guestId) ?? 0) + s.partyAdmitted);
-        const h = hourIn(new Date(s.scannedAt), event.timezone);
-        arrivals.set(h, (arrivals.get(h) ?? 0) + s.partyAdmitted);
-      }
-    }
-    const expected = await db
-      .select({ party: invitations.rsvpPartySize })
-      .from(invitations)
-      .innerJoin(guests, eq(guests.id, invitations.guestId))
-      .where(
-        and(
-          eq(guests.eventId, eventId),
-          isNull(guests.deletedAt),
-          inArray(invitations.status, ['confirmed', 'checked_in']),
-        ),
-      );
-    const reissued = await db
-      .select({
-        guestId: guests.id,
-        guestName: guests.displayName,
-        shortCode: guests.shortCode,
-        tokenVersion: guests.tokenVersion,
-        updatedAt: guests.updatedAt,
-      })
-      .from(guests)
-      .where(
-        and(eq(guests.eventId, eventId), isNull(guests.deletedAt), sql`${guests.tokenVersion} > 1`),
-      );
-    const reissuedAt = new Map(
-      (
-        await db
-          .select({ entityId: auditLog.entityId, at: sql<Date>`max(${auditLog.createdAt})` })
-          .from(auditLog)
-          .where(and(eq(auditLog.eventId, eventId), eq(auditLog.action, 'guest.reissue')))
-          .groupBy(auditLog.entityId)
-      ).map((r) => [r.entityId, new Date(r.at)]),
-    );
-    return {
-      admittedGuests: admitted.size,
-      admittedPeople: [...admitted.values()].reduce((a, b) => a + b, 0),
-      expectedGuests: expected.length,
-      expectedPeople: expected.reduce((n, r) => n + (r.party ?? 1), 0),
-      duplicates: scans.filter((s) => s.result === 'duplicate').length,
-      invalid: scans.filter((s) => (INVALID as readonly string[]).includes(s.result)).length,
-      manual: scans.filter((s) => s.result === 'manual_ok').length,
-      arrivalsByHour: [...arrivals.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([hour, count]) => ({ hour, count })),
-      perGate: [...perGate.values()],
-      revoked: reissued.map((g) => ({
-        guestId: g.guestId,
-        guestName: g.guestName,
-        shortCode: g.shortCode,
-        tokenVersion: g.tokenVersion,
-        revokedAt: (reissuedAt.get(g.guestId) ?? g.updatedAt).toISOString(),
-      })),
-    };
-  }
-
-  /**
-   * Admits a guest from the console (§6.2 fallback 4, owner/committee only). Stored as a scan from
-   * the console "device" through the gate's own sync, so the earliest-admission rule still decides:
-   * a guest who is already in comes back as `duplicate`.
-   */
-  async manualCheckIn(
-    eventId: string,
-    userId: string,
-    input: { guestId: string; partySize: number; reason?: string | null },
-  ) {
-    await this.manager(eventId, userId);
-    const [g] = await this.deps.db
-      .select()
-      .from(guests)
-      .where(
-        and(eq(guests.id, input.guestId), eq(guests.eventId, eventId), isNull(guests.deletedAt)),
-      );
-    if (!g) throw new ApiError('not_found', 'Guest not found');
-    const party = Math.max(1, Math.min(input.partySize, g.partySizeAllowed));
-    const clientId = `console-${newId()}`;
-    const reason = input.reason?.trim() || null;
-    await this.gateSvc.sync(
-      eventId,
-      { kind: 'user', userId },
-      {
-        deviceId: CONSOLE_DEVICE,
-        scans: [
-          {
-            clientId,
-            guestId: g.id,
-            result: 'manual_ok',
-            partyAdmitted: party,
-            scannedAt: this.deps.now(),
-            offline: false,
-            reason,
-          },
-        ],
-      },
-    );
-    const [row] = await this.scanRows(eventId, eq(scanLog.clientId, clientId));
-    if (!row) throw new ApiError('internal', 'Check-in was not stored');
-    await recordAudit(this.deps.db, {
-      eventId,
-      actorId: userId,
-      action: 'gate.manual_check_in',
-      entity: 'guest',
-      entityId: g.id,
-      diff: { partySize: party, result: row.s.result, ...(reason ? { reason } : {}) },
-    });
-    return this.scanEntry(row);
   }
 
   // ---- report (§7.7)
@@ -462,15 +268,8 @@ export class ConsoleService {
       arrivals.set(h, (arrivals.get(h) ?? 0) + s.party);
     }
     const weeks = new Map<string, number>();
-    for (const p of await db
-      .select({
-        at: sql<Date>`coalesce(${payments.paidAt}, ${payments.createdAt})`,
-        amount: payments.amount,
-      })
-      .from(payments)
-      .innerJoin(guests, eq(guests.id, payments.guestId))
-      .where(and(eq(guests.eventId, eventId), eq(payments.status, 'success')))) {
-      const w = weekOf(new Date(p.at));
+    for (const p of await this.paidContributions(eventId, userId)) {
+      const w = weekOf(new Date(p.paidAt));
       weeks.set(w, (weeks.get(w) ?? 0) + p.amount);
     }
     const { totals, guests: rows } = await this.pledgeSvc.summary(eventId, userId);
@@ -621,9 +420,10 @@ export class ConsoleService {
   // ---- the wedding itself
 
   /**
-   * Deletes a wedding for good (owner only): guests, cards, messages, scans and its audit trail go
-   * with it. Refused while it holds successful payments, so money records are never lost by
-   * accident; archive it instead.
+   * Deletes a wedding for good (owner only), as the "type FUTA" confirmation says: guests, cards,
+   * messages, scans and the host's own contribution records go with it. Refused while it holds paid
+   * purchases (ADR 042), which are our billing records and would otherwise be deleted with it;
+   * archive it instead.
    */
   async deleteEvent(eventId: string, userId: string) {
     const role = await this.eventsSvc.role(eventId, userId);
@@ -631,12 +431,11 @@ export class ConsoleService {
     const event = await this.event(eventId);
     const [paid] = await this.deps.db
       .select({ n: sql<number>`count(*)::int` })
-      .from(payments)
-      .innerJoin(guests, eq(guests.id, payments.guestId))
-      .where(and(eq(guests.eventId, eventId), eq(payments.status, 'success')));
+      .from(eventPurchases)
+      .where(and(eq(eventPurchases.eventId, eventId), eq(eventPurchases.status, 'paid')));
     if ((paid?.n ?? 0) > 0)
-      throw new ApiError('conflict', 'This event has payments; archive it instead', {
-        reason: 'has_payments',
+      throw new ApiError('conflict', 'This event has paid purchases; archive it instead', {
+        reason: 'has_purchases',
       });
     await this.deps.db.delete(events).where(eq(events.id, eventId));
     await recordAudit(this.deps.db, {

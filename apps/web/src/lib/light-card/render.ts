@@ -370,15 +370,27 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
       ? `<p data-testid="pledge-summary">${esc(fmt(t.pledgeSummary!, { pledged: formatMoney(view.pledge.amount, cur), paid: formatMoney(view.pledge.paid, cur), balance: formatMoney(view.pledge.balance, cur) }))}</p>`
       : `<p class="muted">${esc(t.pledgeNone)}</p>`;
   const paidInFull = !!view.pledge && view.pledge.amount > 0 && view.pledge.balance === 0;
+  // Guests pay the hosts directly (ADR 043): the card lists where to send it, unless paying through
+  // us was switched back on.
+  const payTo = (con.payTo ?? []).filter((a) => a.account.trim());
+  const payDirect = `<div class="panel mt" data-testid="pay-to"><p><b>${esc(t.payToTitle)}</b></p>${
+    payTo.length
+      ? `<ul class="stack" style="list-style:none;padding:0;margin:8px 0 0">${payTo
+          .map(
+            (a) =>
+              `<li><b>${esc(a.label)}</b>: <span style="font-variant-numeric:tabular-nums">${esc(a.account)}</span>${a.name ? ` <span class="muted">(${esc(a.name)})</span>` : ''}</li>`,
+          )
+          .join('')}</ul>`
+      : `<p class="muted mt">${esc(t.payToNone)}</p>`
+  }<p class="muted mt" style="font-size:14px">${esc(t.payToDirect)}</p></div>`;
   const payButton = paidInFull
     ? `<p class="mt"><b>✔ ${esc(t.pledgePaidInFull)}</b></p>`
-    : `<a class="btn primary block mt" href="${payHref}" data-testid="pay-link">${esc(t.pay)}</a>`;
+    : event.onlinePay
+      ? `<a class="btn primary block mt" href="${payHref}" data-testid="pay-link">${esc(t.pay)}</a>`
+      : payDirect;
 
-  // The invitation card can carry a contribution section; the contribution card is built around it.
-  const pledge =
-    !isContribution && event.pledgesEnabled && shown(inv.show, 'pledge') && !view.eventPassed
-      ? `<section class="no-print"><h2>${esc(t.pledgeTitle)}</h2>${pledgeSummary}${payButton}</section>`
-      : '';
+  // An invitation (wedding, send-off, engagement…) never asks for money: contributions have their own
+  // card, which the host can make for any kind of event.
 
   const target = event.contributionTarget ?? 0;
   const collected = view.contributionCollected ?? null;
@@ -392,7 +404,7 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
                 : ''
             }${con.deadline ? `<p class="muted mt" style="font-size:14px">${esc(fmt(t.contribDeadline!, { date: formatDateShort(`${con.deadline}T12:00:00Z`, locale) }))}</p>` : ''}${pledgeSummary.replace('<p ', '<p class="mt" ')}${
               suggested.length && !paidInFull
-                ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>`).join('')}</div>`
+                ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => (event.onlinePay ? `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>` : `<span class="btn" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</span>`)).join('')}</div>`
                 : ''
             }${payButton}${L(con.payNote) ? paras(L(con.payNote)!, ' class="muted mt"') : ''}`
           : `<div class="banner warning mt">${esc(t.contribClosed)}</div>`
@@ -475,7 +487,6 @@ ${venueSection}
 ${programme}
 ${rsvpSection}
 ${confirmed ? '' : qrSection}
-${pledge}
 ${contributionSection}
 ${closingSection}
 <footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a><a href="/programu" data-testid="card-app-link">${esc(t.appLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>

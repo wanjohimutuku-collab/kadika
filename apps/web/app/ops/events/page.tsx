@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { OpsEvent } from '@harusi/api-client';
@@ -8,6 +9,8 @@ import { QueryState } from '@/components/console/query-state';
 import { DataTable, OpsPage, Td, Th, useStaffCan } from '@/components/ops/ops-ui';
 import { Button } from '@/components/ui/button';
 import { Banner, Skeleton, StatusPill } from '@/components/ui/display';
+import { TextField } from '@/components/ui/form';
+import { BottomSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { OPS_ALL, qk } from '@/lib/queries';
@@ -34,8 +37,64 @@ export default function OpsEventsPage() {
     },
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
   });
+  const tg = useTranslations('ops.purchases');
+  const tc = useTranslations('common');
+  const [granting, setGranting] = useState<OpsEvent | null>(null);
+  const [credit, setCredit] = useState({ cards: '0', messages: '0', note: '' });
+  const n = (v: string) => Math.max(0, Math.floor(Number(v) || 0));
+  const grant = useMutation({
+    mutationFn: () =>
+      getRepository().opsGrantCredit(granting!.id, {
+        cards: n(credit.cards),
+        messages: n(credit.messages),
+        note: credit.note.trim(),
+      }),
+    onSuccess: async () => {
+      toast({ tone: 'success', title: tg('granted') });
+      setGranting(null);
+      setCredit({ cards: '0', messages: '0', note: '' });
+      await queryClient.invalidateQueries({ queryKey: OPS_ALL });
+    },
+    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+  });
   return (
     <OpsPage title={t('title')}>
+      <BottomSheet
+        open={!!granting}
+        onOpenChange={(o) => !o && setGranting(null)}
+        closeLabel={tc('close')}
+        title={granting ? tg('grantTitle', { name: granting.coupleNames }) : ''}
+        footer={
+          <Button
+            className="w-full"
+            disabled={credit.note.trim().length < 3 || n(credit.cards) + n(credit.messages) === 0}
+            loading={grant.isPending}
+            onClick={() => grant.mutate()}
+          >
+            {tg('grantButton')}
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {(['cards', 'messages'] as const).map((k) => (
+            <TextField
+              key={k}
+              label={tg(k)}
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={credit[k]}
+              onChange={(e) => setCredit((c) => ({ ...c, [k]: e.target.value }))}
+            />
+          ))}
+        </div>
+        <TextField
+          wrapperClassName="mt-3"
+          label={tg('grantNote')}
+          value={credit.note}
+          onChange={(e) => setCredit((c) => ({ ...c, note: e.target.value }))}
+        />
+      </BottomSheet>
       <Banner tone="info" className="mb-4">
         {t('billingNote')}
       </Banner>
@@ -54,7 +113,6 @@ export default function OpsEventsPage() {
                 <Th right>{t('col.guests')}</Th>
                 <Th right>{t('col.sent')}</Th>
                 <Th right>{t('col.failed')}</Th>
-                <Th right>{t('col.collected')}</Th>
                 <Th right>{t('col.smsCost')}</Th>
                 <Th>{''}</Th>
               </tr>
@@ -88,7 +146,6 @@ export default function OpsEventsPage() {
                 <Td right>{e.guests}</Td>
                 <Td right>{e.sent}</Td>
                 <Td right>{e.failedMessages}</Td>
-                <Td right>{formatTzs(e.collected)}</Td>
                 <Td right>{formatTzs(e.smsCost)}</Td>
                 <Td>
                   {canPlan ? (
@@ -101,6 +158,11 @@ export default function OpsEventsPage() {
                       loading={setPlan.isPending && setPlan.variables?.e.id === e.id}
                     >
                       {e.plan === 'paid' ? t('markFree') : t('markPaid')}
+                    </Button>
+                  ) : null}
+                  {canPlan ? (
+                    <Button size="sm" variant="ghost" onClick={() => setGranting(e)}>
+                      {tg('grant')}
                     </Button>
                   ) : null}
                 </Td>

@@ -9,7 +9,6 @@ import {
   ArrowLeft,
   BarChart3,
   CalendarHeart,
-  CreditCard,
   FileClock,
   LifeBuoy,
   ShieldAlert,
@@ -17,6 +16,7 @@ import {
   Users,
   Gauge,
   Settings,
+  Wallet,
 } from 'lucide-react';
 import { useSession } from '@/lib/queries';
 import { useStaffCan } from '@/components/ops/ops-ui';
@@ -35,7 +35,8 @@ const ITEMS = [
   { key: 'events', href: '/ops/events', icon: CalendarHeart },
   { key: 'usage', href: '/ops/usage', icon: Activity },
   { key: 'pilot', href: '/ops/pilot', icon: Gauge },
-  { key: 'payments', href: '/ops/payments', icon: CreditCard },
+  /** Card bundles and message packs hosts buy, and their prices (ADR 042). */
+  { key: 'billing', href: '/ops/billing', icon: Wallet },
   { key: 'support', href: '/ops/support', icon: LifeBuoy },
   { key: 'requests', href: '/ops/requests', icon: ShieldCheck },
   { key: 'audit', href: '/ops/audit', icon: FileClock },

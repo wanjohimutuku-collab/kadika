@@ -11,6 +11,7 @@ import { SiteNav } from '@/components/public/site-nav';
 import { getPage, pagePath, pagesIn, pagesOf, textOf } from '@/content';
 import type { PageGroup } from '@/content/types';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
+import { PRICING_PATH } from '@/lib/server-pricing';
 
 const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
   { group: 'product', sw: 'Huduma', en: 'Services' },
@@ -32,6 +33,7 @@ const NAV_LABELS = {
 } as const;
 const KENYA_LABEL = { sw: 'Kenya', en: 'Kenya' } as const;
 const APP_LABEL = { sw: 'Programu', en: 'App' } as const;
+const PRICING_LABEL = { sw: 'Bei', en: 'Pricing' } as const;
 const APP_FOOTER_LABEL = { sw: 'Pakua programu ya Android', en: 'Get the Android app' } as const;
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
@@ -69,6 +71,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
               const p = getPage(l.slug);
               return p ? [{ href: localeUrl(pagePath(p), locale), label: l[locale] }] : [];
             }),
+            { href: localeUrl(PRICING_PATH, locale), label: PRICING_LABEL[locale] },
             { href: localeUrl(APP_DOWNLOAD_PATH, locale), label: APP_LABEL[locale] },
           ]}
           cardLink={{ href: '/k', label: tl('openCard') }}

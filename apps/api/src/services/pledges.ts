@@ -11,6 +11,7 @@ import type { PaymentProvider, PaymentWebhookEvent } from '@harusi/payments';
 import { allPaymentProviders, paymentsFor } from '../payment-routing';
 import { eventCountry, type EventService } from './events';
 import { recordAudit } from './audit';
+import { ContributionRecords } from './contribution-records';
 
 export type PledgeStatus = 'pledged' | 'partial' | 'paid' | 'waived';
 export const MANUAL_METHODS = ['cash', 'bank', 'mpesa', 'mixx', 'airtel', 'halopesa'] as const;
@@ -41,15 +42,13 @@ export interface PledgeSummary {
 
 /** Pledge, paid and balance for one guest. A waived pledge owes nothing. */
 export async function pledgeSummaryOf(
-  db: Deps['db'],
+  deps: Pick<Deps, 'db' | 'config'>,
   guestId: string,
 ): Promise<PledgeSummary | null> {
-  const [p] = await db.select().from(pledges).where(eq(pledges.guestId, guestId));
-  const [paidRow] = await db
-    .select({ n: sql<number>`coalesce(sum(${payments.amount}), 0)::int` })
-    .from(payments)
-    .where(and(eq(payments.guestId, guestId), eq(payments.status, 'success')));
-  const paid = paidRow?.n ?? 0;
+  const records = ContributionRecords.of(deps);
+  const [sealed] = await deps.db.select().from(pledges).where(eq(pledges.guestId, guestId));
+  const p = sealed ? await records.openPledge(sealed) : undefined;
+  const paid = (await records.paidByGuest(deps.db, [guestId])).get(guestId) ?? 0;
   if (!p && paid === 0) return null;
   const amount = p?.amount ?? 0;
   const waived = p?.status === 'waived';
@@ -77,6 +76,10 @@ export class PledgeService {
     private deps: Deps,
     private eventsSvc: EventService,
   ) {}
+
+  private get records() {
+    return ContributionRecords.of(this.deps);
+  }
 
   private async canManage(eventId: string, userId: string) {
     const role = await this.eventsSvc.role(eventId, userId);
@@ -112,13 +115,14 @@ export class PledgeService {
 
   /** Re-derives the pledge status from payments and links earlier payments to a new pledge. */
   async recompute(guestId: string): Promise<void> {
-    const [p] = await this.deps.db.select().from(pledges).where(eq(pledges.guestId, guestId));
-    if (!p) return;
+    const [sealed] = await this.deps.db.select().from(pledges).where(eq(pledges.guestId, guestId));
+    if (!sealed) return;
+    const p = await this.records.openPledge(sealed);
     await this.deps.db
       .update(payments)
       .set({ pledgeId: p.id })
       .where(and(eq(payments.guestId, guestId), isNull(payments.pledgeId)));
-    const s = await pledgeSummaryOf(this.deps.db, guestId);
+    const s = await pledgeSummaryOf(this.deps, guestId);
     const status = pledgeStatus(p.amount, s?.paid ?? 0, p.status === 'waived');
     if (status !== p.status)
       await this.deps.db.update(pledges).set({ status }).where(eq(pledges.id, p.id));
@@ -137,42 +141,42 @@ export class PledgeService {
       throw new ApiError('validation', 'Amount must be a whole number', {
         field: 'amount',
       });
-    const [existing] = await this.deps.db
-      .select()
-      .from(pledges)
-      .where(eq(pledges.guestId, guestId));
+    const [sealed] = await this.deps.db.select().from(pledges).where(eq(pledges.guestId, guestId));
+    const existing = sealed ? await this.records.openPledge(sealed) : undefined;
     const status: PledgeStatus = input.waived ? 'waived' : 'pledged';
     if (existing)
       await this.deps.db
         .update(pledges)
         .set({
-          amount: input.amount,
-          note: input.note ?? existing.note,
+          ...(await this.records.pledgeFields(
+            existing.id,
+            input.amount,
+            input.note ?? existing.note,
+          )),
           status,
           createdBy: userId,
         })
         .where(eq(pledges.id, existing.id));
-    else
+    else {
+      const id = newId();
       await this.deps.db.insert(pledges).values({
-        id: newId(),
+        id,
         guestId,
-        amount: input.amount,
-        note: input.note ?? null,
+        ...(await this.records.pledgeFields(id, input.amount, input.note ?? null)),
         status,
         createdBy: userId,
       });
+    }
     await this.recompute(guestId);
     await this.audit(
       userId,
       existing ? 'pledge.update' : 'pledge.create',
       guestId,
-      {
-        amount: input.amount,
-        waived: !!input.waived,
-      },
+      // No amount here: the audit log is not sealed, and contribution amounts are the host's (ADR 043).
+      { waived: !!input.waived },
       g.eventId,
     );
-    return pledgeSummaryOf(this.deps.db, guestId);
+    return pledgeSummaryOf(this.deps, guestId);
   }
 
   /** Every guest with their pledge, paid and balance, plus the event totals for the dashboard. */
@@ -194,18 +198,12 @@ export class PledgeService {
       .from(guests)
       .where(and(eq(guests.eventId, eventId), isNull(guests.deletedAt)));
     const ids = gs.map((g) => g.id);
-    const ps = ids.length
+    const sealed = ids.length
       ? await this.deps.db.select().from(pledges).where(inArray(pledges.guestId, ids))
       : [];
-    const paid = ids.length
-      ? await this.deps.db
-          .select({ guestId: payments.guestId, n: sql<number>`sum(${payments.amount})::int` })
-          .from(payments)
-          .where(and(inArray(payments.guestId, ids), eq(payments.status, 'success')))
-          .groupBy(payments.guestId)
-      : [];
+    const ps = await Promise.all(sealed.map((p) => this.records.openPledge(p)));
     const pledgeBy = new Map(ps.map((p) => [p.guestId, p]));
-    const paidBy = new Map(paid.map((r) => [r.guestId, r.n]));
+    const paidBy = await this.records.paidByGuest(this.deps.db, ids);
     const rows = gs.map((g) => {
       const p = pledgeBy.get(g.id);
       const paid = paidBy.get(g.id) ?? 0;
@@ -271,18 +269,18 @@ export class PledgeService {
       .select()
       .from(pledges)
       .where(eq(pledges.guestId, input.guestId));
+    const paymentId = newId();
     const inserted = await this.deps.db
       .insert(payments)
       .values({
-        id: newId(),
+        id: paymentId,
         pledgeId: pledge?.id ?? null,
         guestId: input.guestId,
         provider: 'manual',
         providerRef,
-        amount: input.amount,
+        ...(await this.records.paymentFields(paymentId, input.amount, input.note ?? null, null)),
         status: 'success',
         method: input.method,
-        note: input.note ?? null,
         recordedBy: userId,
         paidAt: this.deps.now(),
       })
@@ -297,11 +295,7 @@ export class PledgeService {
       userId,
       'payment.manual',
       inserted[0]!.id,
-      {
-        guestId: input.guestId,
-        amount: input.amount,
-        method: input.method,
-      },
+      { guestId: input.guestId, method: input.method },
       g.eventId,
     );
     return this.paymentView(inserted[0]!.id);
@@ -317,7 +311,8 @@ export class PledgeService {
     return this.view(r!);
   }
 
-  private view(r: { p: typeof payments.$inferSelect; guestName: string; by: string | null }) {
+  private async view(r: { p: typeof payments.$inferSelect; guestName: string; by: string | null }) {
+    r = { ...r, p: await this.records.openPayment(r.p) };
     return {
       id: r.p.id,
       guestId: r.p.guestId,
@@ -343,7 +338,7 @@ export class PledgeService {
       .where(eq(guests.eventId, eventId))
       .orderBy(desc(payments.createdAt))
       .limit(2000);
-    return { items: rows.map((r) => this.view(r)) };
+    return { items: await Promise.all(rows.map((r) => this.view(r))) };
   }
 
   // ---- pay from the card (public: the card token is the credential)
@@ -370,7 +365,17 @@ export class PledgeService {
     input: { amount: number; phone: string; method: (typeof MOBILE_METHODS)[number] },
     idempotencyKey: string,
   ) {
+    // Guests pay the host directly; we only keep the committee's records (ADR 043). Collecting through
+    // our gateway stays off unless GUEST_PAYMENTS_ENABLED is set (kept for payments already in flight).
+    if (!this.deps.config.guestPaymentsEnabled)
+      throw new ApiError('forbidden', 'Contributions are paid to the hosts directly', {
+        reason: 'collected_by_host',
+      });
     const { guest, event } = await this.guestByToken(token);
+    if (guest.cardKind !== 'contribution')
+      throw new ApiError('forbidden', 'An invitation card does not take contributions', {
+        reason: 'not_a_contribution_card',
+      });
     const provider = paymentsFor(this.deps, event.country);
     if (!provider)
       throw new ApiError('forbidden', 'Payments are not configured', {
@@ -408,17 +413,17 @@ export class PledgeService {
     const reference = this.referenceFor(guest.id, idempotencyKey);
     const expiresAt = new Date(this.deps.now().getTime() + PAY_TIMEOUT_MS);
     const [pledge] = await this.deps.db.select().from(pledges).where(eq(pledges.guestId, guest.id));
+    const paymentId = newId();
     const inserted = await this.deps.db
       .insert(payments)
       .values({
-        id: newId(),
+        id: paymentId,
         pledgeId: pledge?.id ?? null,
         guestId: guest.id,
         provider: provider.name,
         providerRef: reference,
-        amount: input.amount,
+        ...(await this.records.paymentFields(paymentId, input.amount, null, phone.e164)),
         status: 'pending',
-        phoneE164: phone.e164,
         method: input.method,
         expiresAt,
       })
@@ -426,10 +431,11 @@ export class PledgeService {
       .returning({ id: payments.id });
     if (inserted.length === 0) {
       // the same request again: hand back the existing attempt without asking the phone twice
-      const [p] = await this.deps.db
+      const [sealedRow] = await this.deps.db
         .select()
         .from(payments)
         .where(eq(payments.providerRef, reference));
+      const p = sealedRow ? await this.records.openPayment(sealedRow) : undefined;
       return {
         reference,
         amount: p!.amount,
@@ -471,14 +477,16 @@ export class PledgeService {
 
   /** What the card's "waiting for your phone" screen polls. */
   async paymentStatus(reference: string) {
-    const [p] = await this.deps.db
+    const [sealedRow] = await this.deps.db
       .select()
       .from(payments)
       .where(eq(payments.providerRef, reference));
-    if (!p || p.provider === 'manual') throw new ApiError('not_found', 'Unknown payment');
+    if (!sealedRow || sealedRow.provider === 'manual')
+      throw new ApiError('not_found', 'Unknown payment');
+    const p = await this.records.openPayment(sealedRow);
     const expired =
       p.status === 'pending' && p.expiresAt !== null && p.expiresAt <= this.deps.now();
-    const summary = p.status === 'success' ? await pledgeSummaryOf(this.deps.db, p.guestId) : null;
+    const summary = p.status === 'success' ? await pledgeSummaryOf(this.deps, p.guestId) : null;
     const raw = (p.raw ?? {}) as { failureReason?: string; duplicateWebhooks?: number };
     return {
       reference,
@@ -498,6 +506,11 @@ export class PledgeService {
     providerName: string,
     rawBody: string,
     headers: Record<string, string | undefined>,
+    /** Another owner of references on the same gateway (billing orders, ADR 042), asked first. */
+    other?: (
+      provider: PaymentProvider,
+      ev: PaymentWebhookEvent,
+    ) => Promise<{ ok: boolean; known: boolean; applied: boolean; duplicate: boolean }>,
   ) {
     const provider = allPaymentProviders(this.deps).find((p) => p.name === providerName);
     if (!provider) throw new ApiError('not_found', 'Unknown provider');
@@ -511,6 +524,10 @@ export class PledgeService {
     }
     const ev = provider.parseWebhook(body);
     if (!ev) throw new ApiError('validation', 'Unrecognised webhook');
+    if (other) {
+      const r = await other(provider, ev);
+      if (r.known) return r;
+    }
     return this.applyOutcome(provider, ev, 'payment.webhook');
   }
 
@@ -532,7 +549,7 @@ export class PledgeService {
       .where(eq(payments.providerRef, ev.reference));
     if (!row || row.p.provider !== provider.name)
       return { ok: true, known: false, applied: false, duplicate: false };
-    const p = row.p;
+    const p = await this.records.openPayment(row.p);
     // Never credit money in another currency than the event's (ADR 027).
     if (ev.currency && ev.currency.toUpperCase() !== row.currency) {
       await this.audit(
@@ -563,7 +580,12 @@ export class PledgeService {
         status: ev.status,
         paidAt: ev.status === 'success' ? (ev.paidAt ?? this.deps.now()) : null,
         // money truth is what the provider says it took, not what the guest typed
-        amount: ev.status === 'success' && ev.amount !== undefined ? ev.amount : p.amount,
+        ...(await this.records.paymentFields(
+          p.id,
+          ev.status === 'success' && ev.amount !== undefined ? ev.amount : p.amount,
+          p.note,
+          p.phoneE164,
+        )),
         raw: {
           ...(ev.status === 'success' ? rawKept : raw),
           ...(ev.providerRef ? { providerRef: ev.providerRef } : {}),
@@ -589,9 +611,8 @@ export class PledgeService {
         p.id,
         {
           reference: ev.reference,
-          amount: ev.amount ?? p.amount,
           ...(late ? { late: true } : {}),
-          ...(mismatch ? { requested: p.amount } : {}),
+          ...(mismatch ? { amountMismatch: true } : {}),
         },
         row.eventId,
       );

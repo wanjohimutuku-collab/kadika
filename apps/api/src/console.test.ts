@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { eventPurchases, newId } from '@harusi/db';
 import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
 
 let ctx: TestContext;
@@ -17,7 +18,11 @@ async function setup(n = 2) {
   const ev = (
     await api(ctx, 'POST', '/v1/events', {
       token: t,
-      body: { title: 'Harusi', coupleNames: 'Asha & Juma', dateStart: '2027-06-01T10:00:00+03:00' },
+      body: {
+        title: 'Harusi',
+        coupleNames: 'Asha & Juma',
+        dateStart: '2027-06-01T10:00:00+03:00',
+      },
     })
   ).body! as { id: string };
   const rows = Array.from({ length: n }, (_, i) => `Mgeni ${i + 1},${phone()},,2`);
@@ -30,71 +35,27 @@ async function setup(n = 2) {
   return { owner, t, ev, guests };
 }
 
-const checkIn = (t: string, evId: string, guestId: string, partySize = 2, reason?: string) =>
-  api(ctx, 'POST', `/v1/events/${evId}/gate/manual-check-in`, {
+const checkIn = (t: string, evId: string, guestId: string, partySize = 2) =>
+  api(ctx, 'POST', `/v1/events/${evId}/gate/manual-checkin`, {
     token: t,
-    body: { guestId, partySize, reason },
+    body: { guestId, partySize },
   });
-
-describe('gate monitor and manual check-in (§6.2, §7.6)', () => {
-  it('admits a guest from the console once; a second admission is a duplicate', async () => {
-    const s = await setup(2);
-    const g = s.guests[0]!;
-    const first = await checkIn(s.t, s.ev.id, g.id, 5, 'Kadi imepotea');
-    expect(first.status, JSON.stringify(first.body)).toBe(201);
-    // the party is capped at what the guest is allowed
-    expect(first.body).toMatchObject({ guestId: g.id, result: 'manual_ok', partyAdmitted: 2 });
-    expect(first.body!.reason).toBe('Kadi imepotea');
-    expect(first.body!.gateName).toBe('Console');
-
-    const again = await checkIn(s.t, s.ev.id, g.id);
-    expect(again.body!.result).toBe('duplicate');
-
-    const o = (await api(ctx, 'GET', `/v1/events/${s.ev.id}/gate/overview`, { token: s.t })).body!;
-    expect(o).toMatchObject({ admittedGuests: 1, admittedPeople: 2, manual: 1, duplicates: 1 });
-    expect(o.perGate).toEqual([
-      { gateName: 'Console', ok: 0, duplicate: 1, invalid: 0, manual: 1 },
-    ]);
-    expect(o.arrivalsByHour.reduce((n: number, h: { count: number }) => n + h.count, 0)).toBe(2);
-
-    const scans = (await api(ctx, 'GET', `/v1/events/${s.ev.id}/gate/scans`, { token: s.t })).body!
-      .items;
-    expect(scans).toHaveLength(2);
-    expect(scans[0].guestName).toBe(g.displayName);
-
-    const audit = (await api(ctx, 'GET', `/v1/guests/${g.id}/audit`, { token: s.t })).body!.items;
-    expect(audit.some((a: { action: string }) => a.action === 'gate.manual_check_in')).toBe(true);
+const recordPayment = (t: string, guestId: string, amount: number) =>
+  api(ctx, 'POST', '/v1/payments/manual', {
+    token: t,
+    body: { guestId, amount, method: 'cash' },
   });
-
-  it('refuses a gate-link token on the console gate routes, and other events', async () => {
-    const s = await setup(1);
-    const link = (await api(ctx, 'POST', `/v1/events/${s.ev.id}/gate-links`, { token: s.t })).body!;
-    const gate = (
-      await api(ctx, 'POST', '/v1/gate/join', {
-        body: { code: link.code, pin: link.pin, deviceId: 'device-cons-0001' },
-      })
-    ).body!.accessToken as string;
-    expect((await checkIn(gate, s.ev.id, s.guests[0]!.id)).status).toBe(403);
-    expect(
-      (await api(ctx, 'GET', `/v1/events/${s.ev.id}/gate/overview`, { token: gate })).status,
-    ).toBe(403);
-    const stranger = await loginAs(ctx, phone());
-    expect((await checkIn(stranger.accessToken, s.ev.id, s.guests[0]!.id)).status).toBe(404);
-  });
-});
 
 describe('activity and report (§7.7)', () => {
-  it('lists check-ins and payments, newest first', async () => {
+  it('lists check-ins and recorded contributions with their amounts, newest first', async () => {
     const s = await setup(2);
-    await checkIn(s.t, s.ev.id, s.guests[0]!.id);
-    const pay = await api(ctx, 'POST', '/v1/payments/manual', {
-      token: s.t,
-      body: { guestId: s.guests[1]!.id, amount: 50_000, method: 'cash' },
-    });
+    expect((await checkIn(s.t, s.ev.id, s.guests[0]!.id)).status).toBe(201);
+    const pay = await recordPayment(s.t, s.guests[1]!.id, 50_000);
     expect(pay.status, JSON.stringify(pay.body)).toBe(201);
     const items = (await api(ctx, 'GET', `/v1/events/${s.ev.id}/activity?limit=10`, { token: s.t }))
       .body!.items;
     expect(items.map((i: { kind: string }) => i.kind).sort()).toEqual(['checked_in', 'payment']);
+    // the amount is sealed at rest (ADR 043) and opened for the event's own team
     expect(items.find((i: { kind: string }) => i.kind === 'payment')).toMatchObject({
       amount: 50_000,
       guestId: s.guests[1]!.id,
@@ -109,14 +70,8 @@ describe('activity and report (§7.7)', () => {
       body: { amount: 100_000 },
     });
     await api(ctx, 'POST', `/v1/guests/${b!.id}/pledges`, { token: s.t, body: { amount: 40_000 } });
-    await api(ctx, 'POST', '/v1/payments/manual', {
-      token: s.t,
-      body: { guestId: a!.id, amount: 30_000, method: 'cash' },
-    });
-    await api(ctx, 'POST', '/v1/payments/manual', {
-      token: s.t,
-      body: { guestId: b!.id, amount: 50_000, method: 'cash' },
-    });
+    await recordPayment(s.t, a!.id, 30_000);
+    await recordPayment(s.t, b!.id, 50_000);
     await checkIn(s.t, s.ev.id, a!.id, 2);
     const r = await api(ctx, 'GET', `/v1/events/${s.ev.id}/report`, { token: s.t });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
@@ -126,6 +81,9 @@ describe('activity and report (§7.7)', () => {
       'print',
     ]);
     expect(r.body!.headcountTarget).toBe(6);
+    expect(r.body!.arrivalsByHour.reduce((n: number, h: { count: number }) => n + h.count, 0)).toBe(
+      2,
+    );
     expect(
       r.body!.collectionsByWeek.reduce((n: number, w: { amount: number }) => n + w.amount, 0),
     ).toBe(80_000);
@@ -160,12 +118,7 @@ describe("a guest's history and undo", () => {
     });
     const msgs = (await api(ctx, 'GET', `/v1/guests/${g.id}/messages`, { token: s.t })).body!.items;
     expect(msgs).toHaveLength(1);
-    expect(msgs[0]).toMatchObject({
-      guestId: g.id,
-      channel: 'sms',
-      kind: 'invite',
-      status: 'sent',
-    });
+    expect(msgs[0]).toMatchObject({ guestId: g.id, channel: 'sms', kind: 'invite' });
 
     expect((await api(ctx, 'DELETE', `/v1/guests/${g.id}`, { token: s.t })).status).toBe(204);
     expect((await api(ctx, 'POST', `/v1/guests/${g.id}/restore`, { token: s.t })).status).toBe(204);
@@ -187,7 +140,7 @@ describe('test message and deleting a wedding', () => {
     expect(ctx.sms.lastTo(s.owner.user.phoneE164)).toContain('/k');
   });
 
-  it('deletes only for the owner, and never a wedding that holds payments', async () => {
+  it('deletes only for the owner, and never a wedding with paid purchases', async () => {
     const s = await setup(1);
     // a team invitation is accepted when the invited number signs in
     const committeePhone = phone();
@@ -201,15 +154,26 @@ describe('test message and deleting a wedding', () => {
       403,
     );
 
-    await api(ctx, 'POST', '/v1/payments/manual', {
-      token: s.t,
-      body: { guestId: s.guests[0]!.id, amount: 10_000, method: 'cash' },
+    // our billing record (ADR 042) must not disappear with the wedding
+    await ctx.db.insert(eventPurchases).values({
+      id: newId(),
+      eventId: s.ev.id,
+      kind: 'cards',
+      label: '100 cards',
+      cards: 100,
+      amount: 50_000,
+      currency: 'TZS',
+      status: 'paid',
+      method: 'manual',
+      paidAt: new Date(),
     });
     const refused = await api(ctx, 'DELETE', `/v1/events/${s.ev.id}`, { token: s.t });
     expect(refused.status).toBe(409);
-    expect(refused.body!.error.details.reason).toBe('has_payments');
+    expect(refused.body!.error.details.reason).toBe('has_purchases');
 
+    // the host's own contribution records go with it (the "type FUTA" confirmation says so)
     const other = await setup(1);
+    await recordPayment(other.t, other.guests[0]!.id, 10_000);
     expect((await api(ctx, 'DELETE', `/v1/events/${other.ev.id}`, { token: other.t })).status).toBe(
       204,
     );

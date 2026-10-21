@@ -27,9 +27,13 @@ import type { Repository } from './repository';
 import { applyGuestQuery } from './domain/guest-filter';
 import { buildSampleSms, estimateSmsCostFor } from './domain/sms';
 import type {
+  Activity,
+  AuditEntry,
   CardView,
   DataRequest,
+  EventReport,
   GateOverview,
+  MessageLogEntry,
   ScanEntry,
   Guest,
   GuestQuery,
@@ -911,6 +915,44 @@ export function createHttpRepository(
         deleted++;
       }
       return { deleted };
+    },
+    async restoreGuests(guestIds) {
+      return call<{ restored: number }>('POST', '/v1/guests/restore', { guestIds });
+    },
+    async setGuestsGroup(guestIds, group) {
+      return call<{ updated: number }>('POST', '/v1/guests/group', { guestIds, group });
+    },
+    async addGuestNote(guestId, note) {
+      return call<AuditEntry>('POST', `/v1/guests/${encodeURIComponent(guestId)}/notes`, { note });
+    },
+    async listGuestMessages(guestId) {
+      return call<MessageLogEntry[]>('GET', `/v1/guests/${encodeURIComponent(guestId)}/messages`);
+    },
+    async listGuestAudit(guestId) {
+      return call<AuditEntry[]>('GET', `/v1/guests/${encodeURIComponent(guestId)}/history`);
+    },
+    async deleteEvent(eventId) {
+      await call('DELETE', `/v1/events/${encodeURIComponent(eventId)}`);
+    },
+    async listActivity(eventId, limit = 20) {
+      return call<Activity[]>(
+        'GET',
+        `/v1/events/${encodeURIComponent(eventId)}/activity?limit=${limit}`,
+      );
+    },
+    async sendTestMessage(eventId, channel) {
+      return call<{ to: string }>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/messages/test`,
+        { channel },
+      );
+    },
+    async getReport(eventId) {
+      const r = await call<Omit<EventReport, 'stats'> & { stats: ApiStats }>(
+        'GET',
+        `/v1/events/${encodeURIComponent(eventId)}/report`,
+      );
+      return { ...r, stats: mapStats(r.stats) };
     },
     async reissueGuest(id) {
       const r = await call<{ guest: ApiGuest }>('POST', `/v1/guests/${id}/reissue`, undefined, {

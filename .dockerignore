@@ -8,3 +8,7 @@
 .env
 .env.*
 !.env.example
+# Local deploy settings (registry token) and caches never belong in an image build context.
+.deploy.env
+.docker-cache
+.claude

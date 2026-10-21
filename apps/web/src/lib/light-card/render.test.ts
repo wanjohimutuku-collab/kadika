@@ -117,6 +117,14 @@ describe('light guest card', () => {
     expect(JSON.parse(json).s.venue).toBe(evil);
   });
 
+  it('never links a map URL that is not http(s), such as a stored javascript: URL', () => {
+    const map = (venueMapUrl: string) =>
+      renderCard(view({ event: { ...view().event!, venueMapUrl } }), opts);
+    expect(map('javascript:alert(document.domain)')).not.toContain('javascript:');
+    expect(map('javascript:alert(1)')).toContain('https://www.openstreetmap.org/search?query=');
+    expect(map('https://maps.app.goo.gl/abc')).toContain('href="https://maps.app.goo.gl/abc"');
+  });
+
   it('drops cover gradients that are not a plain gradient', () => {
     const bad = renderCard(
       view({ event: { ...view().event!, coverGradient: 'red;background:url(//evil)' } }),

@@ -106,6 +106,22 @@ describe('events, members and signing keys', () => {
     expect(list.body?.items).toHaveLength(1);
   });
 
+  it('refuses a map link that is not http(s), so a card cannot carry a javascript: link', async () => {
+    const owner = await loginAs(ctx, '0711000009');
+    for (const venueMapUrl of ['javascript:alert(1)', 'data:text/html,hi']) {
+      const r = await api(ctx, 'POST', '/v1/events', {
+        token: owner.accessToken,
+        body: { ...eventBody(), venueMapUrl },
+      });
+      expect(r.status).toBe(400);
+    }
+    const ok = await api(ctx, 'POST', '/v1/events', {
+      token: owner.accessToken,
+      body: { ...eventBody(), venueMapUrl: 'https://maps.app.goo.gl/abc' },
+    });
+    expect(ok.status).toBe(201);
+  });
+
   it('stores a free-text event kind and allows a single-host event', async () => {
     const owner = await loginAs(ctx, '0711000099');
     const created = await api(ctx, 'POST', '/v1/events', {

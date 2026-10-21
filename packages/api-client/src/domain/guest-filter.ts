@@ -8,12 +8,13 @@ export const GUEST_FILTERS: GuestFilter[] = [
   'no_reply',
   'declined',
   'no_smartphone',
+  'print',
   'failed',
   'checked_in',
 ];
 
 export function matchesFilter(
-  g: Pick<Guest, 'status' | 'hasSmartphone' | 'lastMessageFailed'>,
+  g: Pick<Guest, 'status' | 'hasSmartphone' | 'lastMessageFailed'> & { printCard?: boolean },
   f: GuestFilter,
 ): boolean {
   switch (f) {
@@ -27,6 +28,8 @@ export function matchesFilter(
       return g.status === 'declined';
     case 'no_smartphone':
       return !g.hasSmartphone;
+    case 'print':
+      return !!g.printCard;
     case 'failed':
       return g.lastMessageFailed;
     case 'checked_in':

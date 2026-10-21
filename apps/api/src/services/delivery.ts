@@ -12,6 +12,8 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import type { EventService } from './events';
+import { BillingService, type CreditBudget } from './billing';
+import { CARD_DELIVERY_KINDS } from '@harusi/schemas/billing';
 
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
@@ -90,6 +92,11 @@ export class DeliveryService {
     private deps: Deps,
     private eventsSvc: EventService,
   ) {}
+
+  private billingSvc?: BillingService;
+  private get billing(): BillingService {
+    return (this.billingSvc ??= new BillingService(this.deps, this.eventsSvc));
+  }
 
   private async assertCanSend(eventId: string, userId: string) {
     const role = await this.eventsSvc.role(eventId, userId);
@@ -227,18 +234,31 @@ export class DeliveryService {
     channels: MessageChannel[],
     daysLeft?: number,
     built?: { text: string; template: MessageTemplate },
+    budget?: CreditBudget,
   ): Promise<{ ok: true; channel: MessageChannel } | { ok: false; error: string }> {
     // Rollback lever: nothing new goes out for Kenya; the invitation stays `created` for a later resend.
     if (event.country !== 'TZ' && this.deps.config.kenyaSendingPaused)
       return { ok: false, error: 'sending paused' };
     const { text, template } = built ?? (await this.text(guest, inv, event, daysLeft));
+    const credit = budget ?? (await this.billing.budget(event.id));
+    // ADR 042: sending a guest's card the first time generates it (one card); everything else that is
+    // not the card itself (reminders, pledge reminders) spends one reminder credit per message.
+    const delivers = (CARD_DELIVERY_KINDS as readonly string[]).includes(kind);
+    const generates = delivers && !guest.cardGeneratedAt;
+    if (generates && !credit.takeCard()) return { ok: false, error: 'quota_exceeded' };
     let lastError = 'no provider configured';
     for (const ch of channels) {
       const p = this.provider(ch, guest.phoneE164!, event.country);
       if (!p) continue;
+      if (!delivers && !credit.takeMessage()) {
+        lastError = 'quota_exceeded';
+        break;
+      }
       const r = await this.attempt(p, guest.phoneE164!, text, template);
       await this.log(guest.id, ch, p.name, r, kind);
+      if (!r.ok && !delivers) credit.refundMessage(); // a failed message is not charged
       if (r.ok) {
+        if (generates) await this.billing.markGenerated([guest.id]);
         await this.deps.db
           .update(invitations)
           .set({
@@ -254,6 +274,7 @@ export class DeliveryService {
       }
       lastError = r.error;
     }
+    if (generates) credit.refundCard(); // nothing reached the guest: the card is not charged
     return { ok: false, error: lastError };
   }
 
@@ -456,9 +477,11 @@ export class DeliveryService {
     const hosts = hostNames(a, b);
     const out = { sent: 0, failed: 0, skipped: 0 };
     for (const { guest, inv } of rows) {
-      const s = await pledgeSummaryOf(this.deps.db, guest.id);
+      const s = await pledgeSummaryOf(this.deps, guest.id);
       if (
         !guest.phoneE164 ||
+        // The reminder links to the guest's card, and only a contribution card shows the balance.
+        guest.cardKind !== 'contribution' ||
         guest.remindersOptOut ||
         recent.has(guest.id) ||
         !s ||
@@ -493,7 +516,31 @@ export class DeliveryService {
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {
     await this.assertCanSend(eventId, userId);
+    // Refuse up front (402) when the event cannot generate every card, or pay for every reminder, that
+    // this send would need (ADR 042).
+    await this.billing.assertCanUse(eventId, await this.needs(eventId, input));
     return this.run(eventId, input);
+  }
+
+  /** Cards a send would generate and reminder credits it would spend, by the same rules as `run`. */
+  private async needs(eventId: string, input: SendInput) {
+    const { kind, picked } = await this.pick(eventId, input);
+    const reminded =
+      kind === 'reminder'
+        ? await this.recentlyReminded(
+            picked.map((p) => p.guest.id),
+            this.deps.now(),
+          )
+        : new Set<string>();
+    let cards = 0;
+    let messages = 0;
+    for (const { guest } of picked) {
+      if (this.channelsFor(guest, input.channel ?? 'auto').length === 0) continue;
+      if (kind === 'reminder') {
+        if (!guest.remindersOptOut && !reminded.has(guest.id)) messages++;
+      } else if (!guest.cardGeneratedAt) cards++;
+    }
+    return { cards, messages };
   }
 
   /** The guests an audience matches, with the event; nothing is sent. */
@@ -637,6 +684,7 @@ export class DeliveryService {
       byChannel: { whatsapp: 0, sms: 0 },
       failures: [],
     };
+    const budget = await this.billing.budget(eventId);
     for (const { guest, inv } of picked) {
       const channels = this.channelsFor(guest, input.channel ?? 'auto');
       // A guest who asked to stop reminders is never reminded, even when picked by hand.
@@ -647,7 +695,7 @@ export class DeliveryService {
         summary.skipped++;
         continue;
       }
-      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft);
+      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft, undefined, budget);
       if (r.ok) {
         summary.sent++;
         summary.byChannel[r.channel === 'whatsapp' ? 'whatsapp' : 'sms']++;

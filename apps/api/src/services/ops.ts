@@ -8,7 +8,7 @@ import {
   guests,
   invitations,
   messageLog,
-  payments,
+  eventPurchases,
   refreshTokens,
   users,
 } from '@harusi/db';
@@ -16,6 +16,8 @@ import { maskPhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
+import { BillingService } from './billing';
+import { EventService } from './events';
 import { requireStaff, type StaffCaller } from './staff-guard';
 
 type Db = Deps['db'];
@@ -35,7 +37,10 @@ type OpsAction =
   | 'lookup'
   | 'messaging'
   | 'payments'
-  | 'branding';
+  | 'branding'
+  | 'pricing'
+  | 'grant'
+  | 'purchase_paid';
 
 const masked = (p: string | null) => (p ? maskPhone(p) : null);
 /** `%`, `_` and `\` are LIKE wildcards; a support search must match them literally. */
@@ -170,15 +175,6 @@ export class OpsService {
         ),
       )
       .groupBy(guests.eventId);
-    const paid = await this.db
-      .select({
-        id: guests.eventId,
-        amount: sql<number>`coalesce(sum(${payments.amount}), 0)`.mapWith(Number),
-      })
-      .from(payments)
-      .innerJoin(guests, eq(guests.id, payments.guestId))
-      .where(and(inArray(guests.eventId, ids), eq(payments.status, 'success')))
-      .groupBy(guests.eventId);
     return list.map(({ e, ownerName }) => {
       const m = ms.find((r) => r.id === e.id);
       return {
@@ -193,7 +189,6 @@ export class OpsService {
         sent: m?.sent ?? 0,
         failedMessages: m?.failed ?? 0,
         confirmed: conf.find((r) => r.id === e.id)?.n ?? 0,
-        collected: paid.find((r) => r.id === e.id)?.amount ?? 0,
         smsCost: m?.cost ?? 0,
       };
     });
@@ -267,17 +262,11 @@ export class OpsService {
       .where(gte(messageLog.createdAt, since))
       .groupBy(d)
       .orderBy(d);
-    const [contrib] = await this.db
-      .select({
-        n: count(),
-        amount: sql<number>`coalesce(sum(${payments.amount}), 0)`.mapWith(Number),
-      })
-      .from(payments)
-      .where(and(eq(payments.status, 'success'), gte(payments.paidAt, since)));
     const [open] = await this.db
       .select({ n: count() })
       .from(dataRequests)
       .where(eq(dataRequests.status, 'open'));
+    const revenue = await new BillingService(this.deps, new EventService(this.deps)).revenue(since);
     const total = msg?.total ?? 0;
     return {
       organizers: cust?.total ?? 0,
@@ -293,8 +282,10 @@ export class OpsService {
       },
       smsCost30d: msg?.cost ?? 0,
       failureRate30d: total ? (msg?.failed ?? 0) / total : 0,
-      contributions30d: { count: contrib?.n ?? 0, amount: contrib?.amount ?? 0 },
       paidPlans: paidPlans?.n ?? 0,
+      // What customers paid us for cards and messages (ADR 042), not guests' contributions (ADR 043).
+      revenue30d: revenue.paid,
+      pendingOrders: revenue.pendingManual,
       messagesByDay: perDay.map((r) => ({ day: r.day, sent: r.sent, failed: r.failed })),
       openDataRequests: open?.n ?? 0,
     };
@@ -374,56 +365,14 @@ export class OpsService {
     };
   }
 
-  // ---------------------------------------------------------------- payments and support lookup
+  // ---------------------------------------------------------------- support lookup
+  // Guests' contribution records are the host's (ADR 043): staff search finds billing orders, not them.
 
-  private paymentQuery() {
-    const recorder = sql<
-      string | null
-    >`(select ${users.name} from ${users} where ${users.id} = ${payments.recordedBy})`;
-    return this.db
-      .select({
-        p: payments,
-        guestName: guests.displayName,
-        eventId: events.id,
-        coupleNames: events.coupleNames,
-        recordedBy: recorder,
-      })
-      .from(payments)
-      .innerJoin(guests, eq(guests.id, payments.guestId))
-      .innerJoin(events, eq(events.id, guests.eventId));
-  }
-
-  private paymentRow(r: Awaited<ReturnType<OpsService['paymentQuery']>>[number]) {
-    return {
-      id: r.p.id,
-      guestId: r.p.guestId,
-      guestName: r.guestName,
-      amount: r.p.amount,
-      method: r.p.method,
-      status: r.p.status,
-      reference: r.p.providerRef,
-      phoneE164: masked(r.p.phoneE164),
-      paidAt: (r.p.paidAt ?? r.p.createdAt).toISOString(),
-      note: r.p.note ?? '',
-      recordedBy: r.recordedBy ?? null,
-      eventId: r.eventId,
-      coupleNames: r.coupleNames,
-    };
-  }
-
-  async listPayments(caller: StaffCaller) {
-    await requireStaff(this.db, caller);
-    const rows = await this.paymentQuery()
-      .orderBy(desc(sql`coalesce(${payments.paidAt}, ${payments.createdAt})`))
-      .limit(200);
-    return rows.map((r) => this.paymentRow(r));
-  }
-
-  /** Support search by name, phone digits, card code or payment reference. Every search is logged. */
+  /** Support search by name, phone digits, card code or order reference. Every search is logged. */
   async lookup(caller: StaffCaller, query: string) {
     const staff = await requireStaff(this.db, caller, 'lookup');
     const q = query.trim().toLowerCase();
-    if (q.length < 3) return { organizers: [], guests: [], payments: [] };
+    if (q.length < 3) return { organizers: [], guests: [], orders: [] };
     const digits = q.replace(/\D/g, '').replace(/^0/, '');
     const code = q.toUpperCase().replace(/[^A-Z0-9]/g, '');
     const name = `%${likeEscape(q)}%`;
@@ -453,17 +402,16 @@ export class OpsService {
         ),
       )
       .limit(25);
-    const payRows = await this.paymentQuery()
-      .where(
-        or(
-          // manual entries are stored as `manual:<eventId>:<reference>`
-          sql`lower(${payments.providerRef}) = ${q}`,
-          like(sql`lower(${payments.providerRef})`, `manual:%:${likeEscape(q)}`),
-          ilike(guests.displayName, name),
-        ),
-      )
-      .orderBy(desc(payments.createdAt))
+    const orderIds = await this.db
+      .select({ id: eventPurchases.id })
+      .from(eventPurchases)
+      .innerJoin(events, eq(events.id, eventPurchases.eventId))
+      .where(or(sql`lower(${eventPurchases.providerRef}) = ${q}`, ilike(events.coupleNames, name)))
+      .orderBy(desc(eventPurchases.createdAt))
       .limit(25);
+    const orders = (
+      await new BillingService(this.deps, new EventService(this.deps)).opsListPurchases(caller)
+    ).filter((o) => orderIds.some((r) => r.id === o.id));
     await this.log(
       staff.id,
       'lookup',
@@ -483,7 +431,7 @@ export class OpsService {
         shortCode: r.g.shortCode,
         status: r.status ?? 'created',
       })),
-      payments: payRows.map((r) => this.paymentRow(r)),
+      orders,
     };
   }
 

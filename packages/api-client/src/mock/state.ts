@@ -1,3 +1,4 @@
+import type { PricingCatalog, PurchaseView } from '@harusi/schemas/billing';
 import type { BrandingInput } from '@harusi/schemas/branding';
 import {
   generateShortCode,
@@ -52,6 +53,9 @@ export interface GuestRecord {
   token: string;
   language: 'sw' | 'en';
   inviteChannelPref: 'whatsapp' | 'sms' | 'print' | 'mixed';
+  /** Older saved states have neither: read as "no phone" and "already sent" (ADR 042). */
+  printCard?: boolean;
+  cardGeneratedAt?: string | null;
   notes: string;
   status: InvitationStatus;
   timeline: Partial<Record<InvitationStatus, string>>;
@@ -143,6 +147,10 @@ export interface MockState {
   };
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
+  /** Prices saved in /ops (ADR 042); undefined uses `DEFAULT_PRICING`. */
+  pricing?: { catalog: PricingCatalog; updatedAt: string; updatedBy: string };
+  /** Card bundles, message packs and staff grants per event (ADR 042). */
+  purchases?: (PurchaseView & { eventId: string; phone: string | null })[];
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */

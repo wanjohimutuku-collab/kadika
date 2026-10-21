@@ -9,6 +9,8 @@ export type RepositoryErrorCode =
   | 'forbidden'
   | 'conflict'
   | 'locked'
+  /** HTTP 402: the event's card or message allowance is used up (ADR 042); details say which. */
+  | 'payment_required'
   | 'server'
   | 'not_implemented';
 

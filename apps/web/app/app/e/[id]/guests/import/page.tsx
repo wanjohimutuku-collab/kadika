@@ -43,6 +43,7 @@ import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { eventScopedKeys, qk } from '@/lib/queries';
 import { downloadBlob } from '@/lib/download';
 import { cn } from '@/lib/cn';
+import { useQuotaToast } from '@/components/console/quota';
 
 type Source = 'paste' | 'csv' | 'contacts';
 type Step = 'source' | 'preview' | 'confirm' | 'done';
@@ -56,6 +57,7 @@ function ImportInner({ id }: { id: string }) {
   const tg = useTranslations('guestDetail');
   const ts = useTranslations('states');
   const toast = useToast();
+  const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
   const existing = useQuery({
     queryKey: qk.guests(id),
@@ -143,7 +145,7 @@ function ImportInner({ id }: { id: string }) {
         eventScopedKeys(id).map((k) => queryClient.invalidateQueries({ queryKey: k })),
       );
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
   });
 
   const listRef = useRef<HTMLDivElement>(null);

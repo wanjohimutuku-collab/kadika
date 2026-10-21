@@ -1,6 +1,7 @@
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { auditLog, guests, messageLog, newId, payments, pledges, scanLog, users } from '@harusi/db';
 import type { Deps } from '../context';
+import { ContributionRecords } from './contribution-records';
 import { ApiError } from '../errors';
 import type { EventService } from './events';
 
@@ -95,8 +96,14 @@ export class PrivacyService {
 
   async exportGuest(guestId: string, userId: string) {
     const g = await this.owned(guestId, userId);
-    const [pledge] = await this.deps.db.select().from(pledges).where(eq(pledges.guestId, guestId));
-    const pays = await this.deps.db.select().from(payments).where(eq(payments.guestId, guestId));
+    const records = ContributionRecords.of(this.deps);
+    const [sealed] = await this.deps.db.select().from(pledges).where(eq(pledges.guestId, guestId));
+    const pledge = sealed ? await records.openPledge(sealed) : undefined;
+    const pays = await Promise.all(
+      (await this.deps.db.select().from(payments).where(eq(payments.guestId, guestId))).map((p) =>
+        records.openPayment(p),
+      ),
+    );
     const msgs = await this.deps.db
       .select()
       .from(messageLog)
@@ -158,9 +165,12 @@ export class PrivacyService {
         .where(eq(guests.id, guestId));
       await tx
         .update(payments)
-        .set({ phoneE164: null, note: null })
+        .set({ phoneE164: null, note: null, phoneEnc: null, noteEnc: null })
         .where(eq(payments.guestId, guestId));
-      await tx.update(pledges).set({ note: null }).where(eq(pledges.guestId, guestId));
+      await tx
+        .update(pledges)
+        .set({ note: null, noteEnc: null })
+        .where(eq(pledges.guestId, guestId));
       await recordAudit(tx as Db, {
         eventId: g.eventId,
         actorId: userId,

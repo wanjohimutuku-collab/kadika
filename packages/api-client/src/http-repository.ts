@@ -1,6 +1,13 @@
 import type { MessagingRoute, MessagingSettingsView } from '@harusi/schemas/messaging-settings';
 import type { PaymentSettingsView } from '@harusi/schemas/payment-settings';
 import type { BrandingView, PublicBranding } from '@harusi/schemas/branding';
+import type {
+  EventBillingView,
+  OpsEventBilling,
+  OpsPurchase,
+  PricingView,
+  PurchaseView,
+} from '@harusi/schemas/billing';
 import { sanitizeOverrides } from '@harusi/ui-tokens/palette';
 import {
   defaultSender,
@@ -33,7 +40,6 @@ import type {
   OpsLookupResult,
   OpsOrganizer,
   OpsOverview,
-  OpsPayment,
   OpsUsage,
   Payment,
   PaymentStart,
@@ -134,6 +140,8 @@ interface ApiGuest {
   language: 'sw' | 'en';
   inviteChannelPref: Guest['inviteChannelPref'];
   notes: string | null;
+  printCard?: boolean;
+  cardGeneratedAt?: string | null;
   status?: Guest['status'];
   channelLast?: Guest['channelLast'];
   pledge?: Guest['pledge'];
@@ -274,6 +282,7 @@ function mapCard(token: string, c: ApiCard): CardView {
             defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
           committeePhone: e.committeePhone ?? '',
           pledgesEnabled: e.pledgesEnabled ?? false,
+          onlinePay: e.onlinePay ?? false,
           cardContent: e.cardContent ?? {},
           contributionTarget: e.contributionTarget ?? 0,
           greeting: e.greeting ?? '',
@@ -307,6 +316,8 @@ function mapGuest(g: ApiGuest): Guest {
     tokenVersion: g.tokenVersion,
     language: g.language,
     inviteChannelPref: g.inviteChannelPref,
+    printCard: g.printCard ?? false,
+    cardGenerated: !!g.cardGeneratedAt,
     notes: g.notes ?? '',
     status: g.status ?? 'created',
     timeline: { created: g.createdAt },
@@ -546,8 +557,68 @@ export function createHttpRepository(
     async opsUsage() {
       return call<OpsUsage>('GET', '/v1/ops/usage');
     },
-    async opsListPayments() {
-      return call<OpsPayment[]>('GET', '/v1/ops/payments');
+    async getBilling(eventId) {
+      return call<EventBillingView>('GET', `/v1/events/${encodeURIComponent(eventId)}/billing`);
+    },
+    async orderBilling(eventId, input, idempotencyKey) {
+      return call<PurchaseView>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/billing/orders`,
+        {
+          ...(input.cards !== undefined ? { cards: input.cards } : { packKey: input.packKey }),
+          method: input.method,
+          ...(input.phoneE164 ? { phone: input.phoneE164 } : {}),
+          ...(input.mobileMethod ? { mobileMethod: input.mobileMethod } : {}),
+        },
+        { 'idempotency-key': idempotencyKey },
+      );
+    },
+    async getPurchase(eventId, purchaseId) {
+      return call<PurchaseView>(
+        'GET',
+        `/v1/events/${encodeURIComponent(eventId)}/billing/orders/${encodeURIComponent(purchaseId)}`,
+      );
+    },
+    async cancelPurchase(eventId, purchaseId) {
+      return call<PurchaseView>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/billing/orders/${encodeURIComponent(purchaseId)}/cancel`,
+      );
+    },
+    async setPrintCard(eventId, guestIds, printCard) {
+      return call<{ updated: number }>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/guests/print-card`,
+        { guestIds, printCard },
+      );
+    },
+    async opsPricing() {
+      return call<PricingView>('GET', '/v1/ops/pricing');
+    },
+    async opsSavePricing(catalog) {
+      return call<PricingView>('PUT', '/v1/ops/pricing', catalog);
+    },
+    async opsListPurchases(status) {
+      return call<OpsPurchase[]>('GET', `/v1/ops/purchases${status ? `?status=${status}` : ''}`);
+    },
+    async opsMarkPurchasePaid(purchaseId, note) {
+      return call<PurchaseView>(
+        'POST',
+        `/v1/ops/purchases/${encodeURIComponent(purchaseId)}/paid`,
+        {
+          note,
+        },
+      );
+    },
+    async opsEventBilling(eventId) {
+      return call<OpsEventBilling>('GET', `/v1/ops/events/${encodeURIComponent(eventId)}/billing`);
+    },
+    async opsGrantCredit(eventId, input) {
+      return call<PurchaseView>(
+        'POST',
+        `/v1/ops/events/${encodeURIComponent(eventId)}/grants`,
+        input,
+      );
     },
     async opsLookup(query) {
       return call<OpsLookupResult>(
@@ -686,6 +757,7 @@ export function createHttpRepository(
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
       if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
       if (patch.greeting !== undefined) body.greeting = patch.greeting || null;
+      if (patch.cardContent !== undefined) body.cardContent = patch.cardContent;
       if (
         patch.themeId !== undefined ||
         patch.coverGradient !== undefined ||
@@ -1158,7 +1230,7 @@ export function createHttpRepository(
           'content-type': 'application/json',
           ...(tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
         },
-        body: JSON.stringify({ format, guestIds: opts.guestIds }),
+        body: JSON.stringify({ format, guestIds: opts.guestIds, marked: opts.marked }),
       });
     let res: Response;
     try {

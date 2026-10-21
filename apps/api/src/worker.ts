@@ -4,6 +4,7 @@ import type { Deps } from './context';
 import { DeliveryService, type SendInput } from './services/delivery';
 import { EventService } from './services/events';
 import { PledgeService } from './services/pledges';
+import { BillingService } from './services/billing';
 
 const QUEUE = 'harusi-delivery';
 const TICK_EVERY_MS = 15 * 60_000;
@@ -15,13 +16,20 @@ export interface SendJobData {
 }
 
 /** The scheduled work: WhatsApp→SMS fallback, T-14/7/1 reminders, SMS delivery reports. */
-export async function runTick(deps: Deps, delivery: DeliveryService, pledges?: PledgeService) {
+export async function runTick(
+  deps: Deps,
+  delivery: DeliveryService,
+  pledges?: PledgeService,
+  billing?: BillingService,
+) {
   const fallback = await delivery.fallbackUndelivered(deps.config.whatsappFallbackHours);
   const reminders = await delivery.sendReminders();
   const reports = await delivery.pollSmsReports();
   // Provider payments still open past their prompt window are settled by asking the provider (ADR 027).
   const payments = pledges ? await pledges.reconcilePending() : null;
-  return { fallback, reminders, reports, payments };
+  // Billing orders paid by mobile money are settled the same way (ADR 042).
+  const orders = billing ? await billing.reconcilePending() : null;
+  return { fallback, reminders, reports, payments, orders };
 }
 
 /**
@@ -35,6 +43,7 @@ export function startWorker(deps: Deps, redisUrl: string) {
   const events = new EventService(deps);
   const delivery = new DeliveryService(deps, events);
   const pledges = new PledgeService(deps, events);
+  const billing = new BillingService(deps, events);
   const queue = new Queue(QUEUE, { connection });
   void queue.add(
     'tick',
@@ -44,7 +53,7 @@ export function startWorker(deps: Deps, redisUrl: string) {
   const worker = new Worker(
     QUEUE,
     async (job) => {
-      if (job.name === 'tick') return runTick(deps, delivery, pledges);
+      if (job.name === 'tick') return runTick(deps, delivery, pledges, billing);
       if (job.name === 'send') {
         const d = job.data as SendJobData;
         return delivery.send(d.eventId, d.userId, d.input);

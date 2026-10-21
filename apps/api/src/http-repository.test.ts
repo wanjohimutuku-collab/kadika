@@ -459,6 +459,7 @@ describe('HttpRepository against the real API', () => {
     const g = await r.createGuest(ev.id, {
       displayName: 'Bibi Pendo',
       phone: '0712 100 121',
+      cardKind: 'contribution',
       partySizeAllowed: 2,
       inviteChannelPref: 'sms',
       hasSmartphone: false,

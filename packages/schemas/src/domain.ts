@@ -111,6 +111,8 @@ export const guestInputSchema = z.object({
   /** `contribution`: the guest only receives a contribution card (ADR 029). */
   cardKind: cardKindSchema.optional(),
   inviteChannelPref: channelPrefSchema,
+  /** Gets a printed card (ADR 042). Left out: yes for a guest without a phone. */
+  printCard: z.boolean().optional(),
   hasSmartphone: z.boolean(),
   language: languageSchema,
   notes: z.string().max(500).optional().default(''),

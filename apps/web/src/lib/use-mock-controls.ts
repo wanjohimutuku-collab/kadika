@@ -9,6 +9,7 @@ const fallback: MockControlsState = {
   network: 'online',
   failureRate: 0,
   payOutcome: 'success',
+  guestPayments: false,
   pending: [],
   lastSyncAt: null,
 };

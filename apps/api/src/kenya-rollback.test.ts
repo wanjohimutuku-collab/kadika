@@ -73,6 +73,12 @@ describe('rollback levers (docs/ops/kenya-pilot-runbook.md)', () => {
   });
 
   it('pauses new Kenyan payment prompts but still settles one already started', async () => {
+    // Paying is for contribution cards (an invitation never asks for money).
+    for (const g of [g1, g2])
+      await api(ctx, 'PATCH', `/v1/guests/${g.id}`, {
+        token: t,
+        body: { cardKind: 'contribution' },
+      });
     const started = await startPay(g1.cardToken);
     expect(started.status).toBe(201);
     const ref = ctx.paymentsKe.started.at(-1)!.reference;

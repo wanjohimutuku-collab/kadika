@@ -38,6 +38,7 @@ interface FormState {
   pledgesEnabled: boolean;
   whatsappFallbackHours: number;
   contributionTarget: number;
+  payTo: { label: string; account: string; name: string }[];
 }
 
 function toForm(e: WeddingEvent): FormState {
@@ -57,6 +58,11 @@ function toForm(e: WeddingEvent): FormState {
     pledgesEnabled: e.pledgesEnabled,
     whatsappFallbackHours: e.whatsappFallbackHours,
     contributionTarget: e.contributionTarget,
+    payTo: (e.cardContent?.contribution?.payTo ?? []).map((a) => ({
+      label: a.label,
+      account: a.account,
+      name: a.name ?? '',
+    })),
   };
 }
 
@@ -134,6 +140,7 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
       errs.venueMapUrl = tv('url.invalid');
     setErrors(errs);
     if (Object.keys(errs).length || !phone.ok) return;
+    const content = event.data?.cardContent ?? {};
     save.mutate({
       eventKind: form.eventKind.trim(),
       partnerA: form.partnerA.trim(),
@@ -150,6 +157,19 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
       pledgesEnabled: form.pledgesEnabled,
       whatsappFallbackHours: form.whatsappFallbackHours,
       contributionTarget: form.contributionTarget,
+      cardContent: {
+        ...content,
+        contribution: {
+          ...content.contribution,
+          payTo: form.payTo
+            .filter((a) => a.account.trim())
+            .map((a) => ({
+              label: a.label.trim(),
+              account: a.account.trim(),
+              ...(a.name.trim() ? { name: a.name.trim() } : {}),
+            })),
+        },
+      },
     });
   };
 
@@ -280,6 +300,62 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
                     onCheckedChange={(v) => set('pledgesEnabled', v)}
                     label={t('pledgesEnabled')}
                   />
+                </div>
+              </Card>
+              <Card title={t('payToTitle')} titleId="payto-h">
+                <p className="mb-3 text-sm text-muted">{t('payToHint')}</p>
+                <div className="flex flex-col gap-3" data-testid="pay-to-editor">
+                  {form.payTo.map((a, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-1 items-end gap-3 rounded-card border border-border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                    >
+                      {(['label', 'account', 'name'] as const).map((k) => (
+                        <TextField
+                          key={k}
+                          label={t(
+                            k === 'label'
+                              ? 'payToLabel'
+                              : k === 'account'
+                                ? 'payToAccount'
+                                : 'payToName',
+                          )}
+                          value={a[k]}
+                          maxLength={k === 'name' ? 80 : 40}
+                          onChange={(ev) =>
+                            set(
+                              'payTo',
+                              form.payTo.map((x, j) =>
+                                j === i ? { ...x, [k]: ev.target.value } : x,
+                              ),
+                            )
+                          }
+                        />
+                      ))}
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          set(
+                            'payTo',
+                            form.payTo.filter((_, j) => j !== i),
+                          )
+                        }
+                      >
+                        {t('payToRemove')}
+                      </Button>
+                    </div>
+                  ))}
+                  {form.payTo.length < 4 ? (
+                    <Button
+                      variant="secondary"
+                      className="self-start"
+                      onClick={() =>
+                        set('payTo', [...form.payTo, { label: 'M-Pesa', account: '', name: '' }])
+                      }
+                    >
+                      {t('payToAdd')}
+                    </Button>
+                  ) : null}
                 </div>
               </Card>
               <Card title={t('trust')} titleId="tr-h">

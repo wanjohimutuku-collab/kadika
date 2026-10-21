@@ -26,6 +26,7 @@ import {
   Settings,
   Users,
   UsersRound,
+  Wallet,
 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
 import { cn } from '@/lib/cn';
@@ -41,7 +42,16 @@ import { formatRelative } from '@/lib/format';
 import type { Locale } from '@harusi/i18n';
 
 type NavKey =
-  'overview' | 'guests' | 'send' | 'gate' | 'pledges' | 'cards' | 'team' | 'reports' | 'settings';
+  | 'overview'
+  | 'guests'
+  | 'send'
+  | 'gate'
+  | 'pledges'
+  | 'cards'
+  | 'team'
+  | 'reports'
+  | 'billing'
+  | 'settings';
 
 interface NavItem {
   key: NavKey;
@@ -82,6 +92,13 @@ export function navItems(eventId: string): { primary: NavItem[]; secondary: NavI
         key: 'reports',
         href: `${base}/reports`,
         icon: <BarChart3 className={i} aria-hidden="true" />,
+      },
+      // ADR 042: the owner buys card bundles and message packs here.
+      {
+        key: 'billing',
+        href: `${base}/billing`,
+        icon: <Wallet className={i} aria-hidden="true" />,
+        ownerOnly: true,
       },
       {
         key: 'settings',

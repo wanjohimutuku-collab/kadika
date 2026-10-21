@@ -9,6 +9,8 @@ export interface MockControlsState {
   /** 0, 0.1 or 0.3 — share of repository calls that fail with `server`. */
   failureRate: number;
   payOutcome: PayOutcome;
+  /** Guests pay through us from the card. Off like the API's default: guests pay the hosts (ADR 043). */
+  guestPayments: boolean;
   /** Pending offline writes (labels for the sync sheet). */
   pending: { id: string; label: string; at: string }[];
   lastSyncAt: string | null;
@@ -21,6 +23,7 @@ const defaults: MockControlsState = {
   network: 'online',
   failureRate: 0,
   payOutcome: 'success',
+  guestPayments: false,
   pending: [],
   lastSyncAt: null,
 };

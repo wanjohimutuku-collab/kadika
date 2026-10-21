@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | 'conflict'
   | 'rate_limited'
   | 'locked'
+  | 'payment_required'
   | 'unavailable'
   | 'internal';
 
@@ -17,6 +18,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   conflict: 409,
   rate_limited: 429,
   locked: 423,
+  payment_required: 402,
   unavailable: 503,
   internal: 500,
 };

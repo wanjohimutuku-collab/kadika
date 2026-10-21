@@ -21,7 +21,7 @@ import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { OPS_ALL } from '@/lib/queries';
-import { formatPhone, formatTzs } from '@/lib/format';
+import { formatMoney, formatPhone } from '@/lib/format';
 import { maskPhone } from '@harusi/schemas/phone';
 
 type RevealTarget = { kind: 'guest' | 'organizer'; id: string; name: string };
@@ -29,7 +29,8 @@ type RevealTarget = { kind: 'guest' | 'organizer'; id: string; name: string };
 export default function SupportPage() {
   const t = useTranslations('ops.support');
   const to = useTranslations('ops.organizers');
-  const tpay = useTranslations('ops.payments');
+  const tord = useTranslations('ops.purchases');
+  const tb = useTranslations('billing');
   const tc = useTranslations('common');
   const ts = useTranslations('states');
   const tst = useTranslations('status');
@@ -67,7 +68,7 @@ export default function SupportPage() {
   });
 
   const none =
-    result && !result.organizers.length && !result.guests.length && !result.payments.length;
+    result && !result.organizers.length && !result.guests.length && !result.orders.length;
   return (
     <OpsPage title={t('title')} subtitle={t('intro')}>
       {!canLookup ? <NoPermission text={tops('noPermission')} /> : null}
@@ -162,28 +163,29 @@ export default function SupportPage() {
               </ul>
             </Card>
           ) : null}
-          {result.payments.length ? (
-            <Card title={t('payments')} titleId="sp-h">
+          {result.orders.length ? (
+            <Card title={tord('title')} titleId="sp-h">
               <DataTable
-                label={t('payments')}
+                label={tord('title')}
                 minWidth={560}
                 head={
                   <tr>
-                    <Th>{tpay('col.reference')}</Th>
-                    <Th>{tpay('col.guest')}</Th>
-                    <Th right>{tpay('col.amount')}</Th>
+                    <Th>{tord('col.order')}</Th>
+                    <Th>{tord('col.status')}</Th>
+                    <Th right>{tord('col.amount')}</Th>
                   </tr>
                 }
               >
-                {result.payments.map((p) => (
+                {result.orders.map((p) => (
                   <tr key={p.id} className="border-t border-border">
                     <Td>
-                      <span className="font-mono text-sm">{p.reference}</span>
+                      <span className="font-mono text-sm">{p.reference ?? '—'}</span>
+                      <span className="block text-sm text-muted">
+                        {p.label} · {p.eventName}
+                      </span>
                     </Td>
-                    <Td>
-                      {p.guestName} · {p.coupleNames}
-                    </Td>
-                    <Td right>{formatTzs(p.amount)}</Td>
+                    <Td>{tb(`status.${p.status}`)}</Td>
+                    <Td right>{formatMoney(p.amount, p.currency)}</Td>
                   </tr>
                 ))}
               </DataTable>

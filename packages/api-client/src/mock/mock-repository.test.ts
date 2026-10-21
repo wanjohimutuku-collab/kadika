@@ -246,7 +246,7 @@ describe('MockRepository', () => {
 
   it('applies a duplicate payment webhook once', async () => {
     const token = repo.sampleToken('confirmed');
-    repo.controls.set({ payOutcome: 'duplicate_webhook' });
+    repo.controls.set({ payOutcome: 'duplicate_webhook', guestPayments: true });
     const start = await repo.startPayment(
       token,
       { amount: 5000, phoneE164: '+255712345678', method: 'mpesa' },
@@ -266,7 +266,7 @@ describe('MockRepository', () => {
 
   it('times out and declines payments as configured', async () => {
     const token = repo.sampleToken('confirmed');
-    repo.controls.set({ payOutcome: 'declined' });
+    repo.controls.set({ payOutcome: 'declined', guestPayments: true });
     const a = await repo.startPayment(
       token,
       { amount: 5000, phoneE164: '+255712345678', method: 'airtel' },
@@ -284,6 +284,14 @@ describe('MockRepository', () => {
     expect((await repo.getPaymentStatus(b.reference)).status).toBe('pending');
     clock += 31_000;
     expect((await repo.getPaymentStatus(b.reference)).status).toBe('expired');
+  });
+
+  it('refuses pay-from-card by default: guests pay the hosts directly (ADR 043)', async () => {
+    const token = repo.sampleToken('confirmed');
+    expect((await repo.getCard(token)).event?.onlinePay).toBe(false);
+    await expect(
+      repo.startPayment(token, { amount: 5000, phoneE164: '+255712345678', method: 'mpesa' }, 'p0'),
+    ).rejects.toMatchObject({ code: 'forbidden', message: 'collected_by_host' });
   });
 
   it('manual check-in admits once, then reports duplicate', async () => {

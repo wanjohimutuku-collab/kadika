@@ -21,6 +21,7 @@ import {
   FileUp,
   Pencil,
   Printer,
+  CheckSquare,
   RefreshCw,
   Search,
   Send,
@@ -57,6 +58,7 @@ import { formatPhone, formatMoney } from '@/lib/format';
 import { useCurrency } from '@/lib/country';
 import { downloadBlob, SELECTED_GUESTS_KEY as SELECTED_KEY } from '@/lib/download';
 import { cn } from '@/lib/cn';
+import { useQuotaToast } from '@/components/console/quota';
 
 type SortBy = NonNullable<GuestQuery['sort']>['by'];
 interface SavedFilter {
@@ -86,6 +88,7 @@ function GuestsInner({ id }: { id: string }) {
   const router = useRouter();
   const params = useSearchParams();
   const toast = useToast();
+  const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
   const guests = useQuery({
     queryKey: qk.guests(id),
@@ -181,7 +184,7 @@ function GuestsInner({ id }: { id: string }) {
       toast({ tone: 'success', title: `${t('resend')} · ${job.total}` });
       setTimeout(() => void invalidate(), 4000);
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
   });
 
   const del = useMutation({
@@ -246,6 +249,23 @@ function GuestsInner({ id }: { id: string }) {
     onSuccess: (blob, ids) => {
       downloadBlob(blob, `kadi-${ids.length}.pdf`);
       toast({ tone: 'success', title: t('printQueued', { count: ids.length }) });
+      void invalidate(); // the cards are generated now (ADR 042)
+    },
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
+  });
+
+  // ADR 042: choose who gets a printed card; generating them happens on Kadi (or "Chapisha" here).
+  const markPrint = useMutation({
+    mutationFn: ({ ids, on }: { ids: string[]; on: boolean }) =>
+      getRepository().setPrintCard(id, ids, on),
+    onSuccess: (r, v) => {
+      toast({
+        tone: 'success',
+        title: t(v.on ? 'printMarked' : 'printUnmarked', { count: r.updated }),
+      });
+      setSelection({});
+      setSelectMode(false);
+      void invalidate();
     },
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
   });
@@ -796,6 +816,24 @@ function GuestsInner({ id }: { id: string }) {
               loading={print.isPending}
             >
               {t('bulkPrint')}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<CheckSquare className="size-4" aria-hidden="true" />}
+              onClick={() => markPrint.mutate({ ids: selectedIds, on: true })}
+              loading={markPrint.isPending && markPrint.variables?.on === true}
+              data-testid="bulk-mark-print"
+            >
+              {t('bulkMarkPrint')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => markPrint.mutate({ ids: selectedIds, on: false })}
+              loading={markPrint.isPending && markPrint.variables?.on === false}
+            >
+              {t('bulkUnmarkPrint')}
             </Button>
             <Button
               size="sm"

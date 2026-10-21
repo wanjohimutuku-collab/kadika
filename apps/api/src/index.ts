@@ -20,9 +20,26 @@ import {
   MessagingSettingsService,
 } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
+import { ContributionRecords } from './services/contribution-records';
 
 const config = loadConfig();
 const { db } = createDb(config.databaseUrl);
+// Contribution records written before ADR 043 are sealed in the background; reads cope either way.
+void ContributionRecords.of({ config })
+  .sealLegacy(db)
+  .then(
+    (n) =>
+      n && console.log(JSON.stringify({ level: 'info', msg: 'sealed contribution records', n })),
+  )
+  .catch((e: Error) =>
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        msg: 'sealing contribution records failed',
+        err: e.message,
+      }),
+    ),
+  );
 
 // Messaging providers (ADR 017, 018, 026, 031): built from the environment here, then replaced by
 // whatever staff saved in /ops once the database is read (below). Incomplete env settings stop startup.

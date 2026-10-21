@@ -15,6 +15,11 @@ export interface Config {
    * messages, or no new Kenyan payment prompts. Callbacks and reconciliation keep running. */
   kenyaSendingPaused: boolean;
   kenyaPaymentsPaused: boolean;
+  /**
+   * Guests paying contributions through our gateway (ADR 043). Off: hosts are paid directly and the
+   * committee records it. Webhooks and reconciliation still settle payments already in flight.
+   */
+  guestPaymentsEnabled: boolean;
   /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
   shortBaseUrls: Partial<Record<Country, string>>;
   /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
@@ -96,6 +101,8 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',
     kenyaPaymentsPaused: env.KENYA_PAYMENTS_PAUSED === '1' || env.KENYA_PAYMENTS_PAUSED === 'true',
+    guestPaymentsEnabled:
+      env.GUEST_PAYMENTS_ENABLED === '1' || env.GUEST_PAYMENTS_ENABLED === 'true',
     shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
     paymentProviderKe: env.PAYMENT_PROVIDER_KE ?? 'fake',
     paymentKe:

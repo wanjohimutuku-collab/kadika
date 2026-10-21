@@ -2,7 +2,8 @@
 
 import { use, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Check, FileDown, Grid2x2, ImagePlus, Ruler } from 'lucide-react';
 import {
   contrastRatio,
@@ -27,6 +28,7 @@ import { TextField, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { qk, useEvent } from '@/lib/queries';
+import { useQuotaToast } from '@/components/console/quota';
 import { minPrintSizeMm, printQrIssues, qrMatrix } from '@/lib/qr';
 import { downloadBlob } from '@/lib/download';
 import { cn } from '@/lib/cn';
@@ -88,14 +90,28 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
     },
     onError: () => toast({ tone: 'error', title: ts('rolledBack') }),
   });
+  const quota = useQuotaToast(id);
+  const guests = useQuery({
+    queryKey: qk.guests(id),
+    queryFn: () => getRepository().listGuests(id),
+  });
+  const marked = (guests.data ?? []).filter((g) => g.printCard && g.cardKind === 'invitation');
+  const fresh = marked.filter((g) => !g.cardGenerated).length;
+  // ADR 042: the PDF holds every guest chosen for a printed card; new cards are generated (charged) once.
   const pdf = useMutation({
     mutationFn: (layout: 'single' | 'a4-4up' | 'test-sheet') =>
-      getRepository().requestCardsPdf(id, { format, layout }),
-    onSuccess: (blob, layout) => {
+      getRepository().requestCardsPdf(id, {
+        format,
+        layout,
+        ...(layout === 'test-sheet' ? {} : { marked: true }),
+      }),
+    onSuccess: async (blob, layout) => {
       downloadBlob(blob, `kadi-${layout}-${format}.pdf`);
       toast({ tone: 'success', title: t('pdfReady') });
+      await queryClient.invalidateQueries({ queryKey: qk.guests(id) });
+      await queryClient.invalidateQueries({ queryKey: qk.billing(id) });
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: (e) => quota(e) || toast({ tone: 'error', title: ts('errorTitle') }),
   });
 
   return (
@@ -290,15 +306,31 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                         title={t('qrTooSmall', { min: minMm })}
                       />
                     ) : null}
+                    <div className="flex flex-col gap-1" data-testid="print-generate">
+                      <p className="font-semibold">{t('generateTitle')}</p>
+                      <p className="text-sm text-muted">
+                        {t('generateIntro', { count: marked.length })}
+                      </p>
+                      {marked.length ? (
+                        <p className="text-sm text-muted">{t('generateNew', { count: fresh })}</p>
+                      ) : (
+                        <Link
+                          href={`/app/e/${id}/guests`}
+                          className="text-sm font-semibold text-primary underline"
+                        >
+                          {t('chooseGuests')}
+                        </Link>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
                         icon={<FileDown className="size-4" aria-hidden="true" />}
-                        disabled={issues.length > 0}
+                        disabled={issues.length > 0 || marked.length === 0}
                         onClick={() => pdf.mutate('single')}
                         loading={pdf.isPending && pdf.variables === 'single'}
                         data-testid="download-pdf"
                       >
-                        {t('downloadPdf')}
+                        {t('generateAll')}
                       </Button>
                       <Button
                         variant="secondary"
@@ -311,11 +343,11 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                       <Button
                         variant="secondary"
                         icon={<Grid2x2 className="size-4" aria-hidden="true" />}
-                        disabled={issues.length > 0}
+                        disabled={issues.length > 0 || marked.length === 0}
                         onClick={() => pdf.mutate('a4-4up')}
                         loading={pdf.isPending && pdf.variables === 'a4-4up'}
                       >
-                        {t('collate')}
+                        {t('generateCollate')}
                       </Button>
                     </div>
                     <p className="text-sm text-muted">{t('testSheetHelp')}</p>

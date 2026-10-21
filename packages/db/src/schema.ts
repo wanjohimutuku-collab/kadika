@@ -125,6 +125,11 @@ export const events = pgTable('events', {
   /** Whether guests may pledge and pay from their card (§7.3). */
   pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
   plan: eventPlanEnum('plan').notNull().default('free'),
+  /**
+   * Set when the owner deletes the event. Its members, cards and gate stop working at once; the rows
+   * stay for billing records and PDPA requests and can be restored by staff.
+   */
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   ...timestamps,
 });
 

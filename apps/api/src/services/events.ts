@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { CardContent } from '@harusi/schemas/card-content';
 import { allowedCountries, currencyOf, timezoneOf, type Country } from '@harusi/schemas/country';
-import { eventMembers, events, newId, signingKeys } from '@harusi/db';
+import { eventMembers, events, gateLinks, newId, scheduledSends, signingKeys } from '@harusi/db';
 import { generateEventKeyPair } from '@harusi/crypto';
 import {
   paletteContrastIssues,
@@ -10,6 +10,7 @@ import {
 } from '@harusi/ui-tokens/palette';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
+import { recordAudit } from './audit';
 import { encryptSecret } from '../crypto-at-rest';
 
 export type MemberRole = 'owner' | 'committee' | 'gate';
@@ -119,7 +120,7 @@ export class EventService {
       .select({ event: events, role: eventMembers.role })
       .from(eventMembers)
       .innerJoin(events, eq(events.id, eventMembers.eventId))
-      .where(eq(eventMembers.userId, userId));
+      .where(and(eq(eventMembers.userId, userId), isNull(events.deletedAt)));
     return rows.map((r) => ({ ...r.event, myRole: r.role }));
   }
 
@@ -128,7 +129,14 @@ export class EventService {
     const [m] = await this.deps.db
       .select({ role: eventMembers.role })
       .from(eventMembers)
-      .where(and(eq(eventMembers.eventId, eventId), eq(eventMembers.userId, userId)));
+      .innerJoin(events, eq(events.id, eventMembers.eventId))
+      .where(
+        and(
+          eq(eventMembers.eventId, eventId),
+          eq(eventMembers.userId, userId),
+          isNull(events.deletedAt),
+        ),
+      );
     if (!m) throw new ApiError('not_found', 'Event not found');
     return m.role;
   }
@@ -170,6 +178,38 @@ export class EventService {
       .returning();
     if (!updated) throw new ApiError('not_found');
     return updated;
+  }
+
+  /**
+   * Deletes an event for its owner (Mipangilio → Futa harusi). A soft delete: from now on it is "not
+   * found" to every member, its cards read as invalid, gate links and queued sends stop, and no
+   * reminder goes out. The rows stay for billing and PDPA requests.
+   */
+  async remove(eventId: string, userId: string) {
+    const role = await this.role(eventId, userId);
+    if (role !== 'owner') throw new ApiError('forbidden', 'Only the owner can delete the event');
+    const now = this.deps.now();
+    await this.deps.db.transaction(async (tx) => {
+      await tx
+        .update(events)
+        .set({ deletedAt: now, status: 'archived' })
+        .where(eq(events.id, eventId));
+      await tx
+        .update(gateLinks)
+        .set({ revokedAt: now })
+        .where(and(eq(gateLinks.eventId, eventId), isNull(gateLinks.revokedAt)));
+      await tx
+        .update(scheduledSends)
+        .set({ status: 'cancelled', finishedAt: now })
+        .where(and(eq(scheduledSends.eventId, eventId), eq(scheduledSends.status, 'scheduled')));
+    });
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'event.delete',
+      entity: 'event',
+      entityId: eventId,
+    });
   }
 
   /** Public key for gate devices and the guest card. The private key never leaves the server. */

@@ -43,6 +43,7 @@ import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
 import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { RateLimiter } from './rate-limit';
+import { ReportService } from './services/reports';
 import { BillingService } from './services/billing';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
@@ -189,6 +190,7 @@ export function createApp(deps: Deps) {
   const brandingSvc = new BrandingService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
+  const reportSvc = new ReportService(deps, eventsSvc, deliverySvc, pledgeSvc, gateSvc);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
   const payReads = new RateLimiter(deps.now, 120, 60_000, 'pay-read', deps.rateStore);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000, 'gate-join', deps.rateStore);
@@ -203,6 +205,8 @@ export function createApp(deps: Deps) {
     deps.rateStore,
   );
   const cardWrites = new RateLimiter(deps.now, 20, 60_000, 'card-write', deps.rateStore);
+  // a test message goes to the caller's own phone and costs us a send: a few per ten minutes
+  const testSends = new RateLimiter(deps.now, 5, 600_000, 'test-send', deps.rateStore);
   const client = (c: Context) => c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
@@ -475,6 +479,28 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await eventsSvc.update(c.req.param('id'), c.get('userId'), patch));
+  });
+  app.delete('/v1/events/:id', async (c) => {
+    await eventsSvc.remove(c.req.param('id'), c.get('userId'));
+    return c.body(null, 204);
+  });
+  // ---- the console's activity feed, reports and test message (§7.7, §17.8)
+  app.get('/v1/events/:id/activity', async (c) =>
+    c.json(
+      await reportSvc.activity(
+        c.req.param('id'),
+        c.get('userId'),
+        Number(c.req.query('limit')) || undefined,
+      ),
+    ),
+  );
+  app.get('/v1/events/:id/report', async (c) =>
+    c.json(await reportSvc.report(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/messages/test', async (c) => {
+    const { channel } = parse(z.object({ channel: z.enum(['whatsapp', 'sms']) }), await body(c));
+    await testSends.check(`u:${c.get('userId')}`);
+    return c.json(await deliverySvc.sendTest(c.req.param('id'), c.get('userId'), channel));
   });
   // ---- gate (§7.6): join with link + PIN, offline bundle, scan sync
   app.post('/v1/gate/join', async (c) => {
@@ -1044,6 +1070,26 @@ export function createApp(deps: Deps) {
     return c.json(await brandingSvc.setLogo(staff(c), input));
   });
   app.delete('/v1/ops/branding/logo', async (c) => c.json(await brandingSvc.removeLogo(staff(c))));
+  // ---- many guests at once (undo a delete, move to a group) and one guest's history
+  const guestIds = z.array(z.string().uuid()).min(1).max(2000);
+  app.post('/v1/guests/restore', async (c) => {
+    const input = parse(z.object({ guestIds }), await body(c));
+    return c.json(await guestsSvc.restore(input.guestIds, c.get('userId')));
+  });
+  app.post('/v1/guests/group', async (c) => {
+    const input = parse(z.object({ guestIds, group: z.string().max(60) }), await body(c));
+    return c.json(await guestsSvc.setGroup(input.guestIds, input.group, c.get('userId')));
+  });
+  app.post('/v1/guests/:id/notes', async (c) => {
+    const input = parse(z.object({ note: z.string().trim().min(1).max(500) }), await body(c));
+    return c.json(await guestsSvc.addNote(c.req.param('id'), c.get('userId'), input.note), 201);
+  });
+  app.get('/v1/guests/:id/history', async (c) =>
+    c.json(await guestsSvc.history(c.req.param('id'), c.get('userId'))),
+  );
+  app.get('/v1/guests/:id/messages', async (c) =>
+    c.json(await guestsSvc.messages(c.req.param('id'), c.get('userId'))),
+  );
   app.get('/v1/guests/:id', async (c) =>
     c.json(await guestsSvc.detail(c.req.param('id'), c.get('userId'))),
   );

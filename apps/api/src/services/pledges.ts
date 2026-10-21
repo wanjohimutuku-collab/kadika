@@ -349,7 +349,13 @@ export class PledgeService {
       .from(invitations)
       .innerJoin(guests, eq(guests.id, invitations.guestId))
       .innerJoin(events, eq(events.id, guests.eventId))
-      .where(and(eq(invitations.tokenHash, hashGuestToken(token)), isNull(guests.deletedAt)));
+      .where(
+        and(
+          eq(invitations.tokenHash, hashGuestToken(token)),
+          isNull(guests.deletedAt),
+          isNull(events.deletedAt),
+        ),
+      );
     if (!row) throw new ApiError('not_found', 'Invalid link');
     return row;
   }

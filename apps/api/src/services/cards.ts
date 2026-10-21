@@ -92,7 +92,9 @@ export class CardService {
       .from(invitations)
       .innerJoin(guests, eq(guests.id, invitations.guestId))
       .innerJoin(events, eq(events.id, guests.eventId))
-      .where(and(eq(invitations.tokenHash, hash), isNull(guests.deletedAt)));
+      .where(
+        and(eq(invitations.tokenHash, hash), isNull(guests.deletedAt), isNull(events.deletedAt)),
+      );
     return { hash, row };
   }
 

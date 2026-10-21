@@ -871,6 +871,7 @@ export function createHttpRepository(
           hasSmartphone: input.hasSmartphone,
           language: input.language,
           inviteChannelPref: input.inviteChannelPref,
+          printCard: input.printCard,
           notes: input.notes,
         },
         { 'idempotency-key': newKey() },

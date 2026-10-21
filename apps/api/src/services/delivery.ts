@@ -1,5 +1,13 @@
 import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
-import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
+import {
+  events,
+  guests,
+  invitations,
+  messageLog,
+  newId,
+  retiredCardTokens,
+  users,
+} from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { formatMoney, hostNames, toZoned, type CardKind } from '@harusi/schemas';
 import { pledgeSummaryOf } from './pledges';
@@ -13,6 +21,8 @@ import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import type { EventService } from './events';
 import { BillingService, type CreditBudget } from './billing';
+import { BrandingService } from './branding';
+import { recordAudit } from './audit';
 import { CARD_DELIVERY_KINDS } from '@harusi/schemas/billing';
 
 const MAX_ATTEMPTS = 3;
@@ -705,6 +715,37 @@ export class DeliveryService {
       }
     }
     return summary;
+  }
+
+  /**
+   * "Tuma ujumbe wa majaribio": one message to the caller's own phone, so the host sees how cards
+   * arrive before sending to guests. Free, nothing goes to a guest, and the number is never shown
+   * in full or logged (§12).
+   */
+  async sendTest(eventId: string, userId: string, channel: MessageChannel) {
+    await this.assertCanSend(eventId, userId);
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    const [me] = await this.deps.db.select().from(users).where(eq(users.id, userId));
+    if (!event || !me) throw new ApiError('not_found', 'Event not found');
+    const to = me.phoneE164;
+    const p = this.provider(channel, to, event.country);
+    if (!p) throw new ApiError('validation', 'This channel is not available', { field: 'channel' });
+    const brand = await new BrandingService(this.deps).businessName();
+    const r = await this.attempt(
+      p,
+      to,
+      `${brand}: ujumbe wa majaribio kwa ${event.title}. Wageni wako watapokea kadi zao hivi.`,
+    );
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'send.test',
+      entity: 'event',
+      entityId: eventId,
+      diff: { channel, provider: p.name, ok: r.ok },
+    });
+    if (!r.ok) throw new ApiError('unavailable', 'The test message could not be sent');
+    return { to: `…${to.slice(-3)} (${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'})` };
   }
 
   /** Funnel counts by invitation status (§7.7). */

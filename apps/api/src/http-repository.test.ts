@@ -261,8 +261,80 @@ describe('HttpRepository against the real API', () => {
 
   it('rejects not-yet-built features with not_implemented', async () => {
     const r = repo();
-    await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });
-    await expect(r.listActivity('x')).rejects.toMatchObject({ code: 'not_implemented' });
+    // the console's "show card" link is mock-only: the API never hands out raw card tokens
+    await expect(r.getGuestCardLink('x')).rejects.toMatchObject({ code: 'not_implemented' });
+  });
+
+  it('runs the rest of the console: activity, report, guest history, groups, undo and delete', async () => {
+    const r = repo();
+    await login(r, '0712 100 111');
+    const ev = await r.createEvent({
+      title: 'Harusi ya Dashibodi',
+      partnerA: 'Rehema',
+      partnerB: 'Musa',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 0,
+    });
+    const guest = (name: string, phone: string) =>
+      r.createGuest(ev.id, {
+        displayName: name,
+        phone,
+        partySizeAllowed: 2,
+        inviteChannelPref: 'sms',
+        hasSmartphone: true,
+        language: 'sw',
+        notes: '',
+      });
+    const a = await guest('Bibi Pendo', '0712 100 201');
+    const b = await guest('Babu Salim', '0712 100 202');
+
+    // Overview and Reports
+    expect(await r.listActivity(ev.id, 12)).toEqual([]);
+    await r.manualCheckIn(ev.id, a.id, { partySize: 2 });
+    const act = await r.listActivity(ev.id, 12);
+    expect(act).toHaveLength(1);
+    expect(act[0]).toMatchObject({ kind: 'checked_in', guestName: 'Bibi Pendo', count: 2 });
+    const rep = await r.getReport(ev.id);
+    expect(rep.stats.invited).toBe(2);
+    expect(rep.headcountTarget).toBe(4);
+    expect(rep.channels.map((c) => c.channel)).toEqual(['whatsapp', 'sms', 'print']);
+    expect(rep.arrivalsByHour.reduce((n, h) => n + h.count, 0)).toBe(2);
+    expect(rep.pledgeReconciliation).toMatchObject({ pledged: 0, collected: 0, outstanding: 0 });
+
+    // Guest detail: note, history, messages
+    const note = await r.addGuestNote(a.id, '  Anakuja na mjukuu  ');
+    expect(note).toMatchObject({ action: 'note', details: 'Anakuja na mjukuu' });
+    const history = await r.listGuestAudit(a.id);
+    expect(history.map((h) => h.action)).toEqual(['note', 'manual_check_in']);
+    expect(history[0]!.actorName).not.toBe('');
+    expect(await r.listGuestMessages(a.id)).toEqual([]);
+
+    // Guests: move to a group, delete, undo
+    expect(await r.setGuestsGroup([a.id, b.id], ' Familia ')).toEqual({ updated: 2 });
+    expect((await r.getGuest(b.id)).groupLabel).toBe('Familia');
+    await r.deleteGuests([b.id]);
+    expect(await r.restoreGuests([b.id])).toEqual({ restored: 1 });
+    expect((await r.listGuests(ev.id)).map((g) => g.displayName).sort()).toEqual([
+      'Babu Salim',
+      'Bibi Pendo',
+    ]);
+    expect((await r.listGuestAudit(b.id)).map((h) => h.action)).toEqual([
+      'restore',
+      'delete',
+      'group',
+    ]);
+
+    // Settings: delete the event; it is gone for its owner
+    await r.deleteEvent(ev.id);
+    expect((await r.listEvents()).map((e) => e.id)).not.toContain(ev.id);
+    await expect(r.getEvent(ev.id)).rejects.toMatchObject({ code: 'not_found' });
   });
 
   it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {

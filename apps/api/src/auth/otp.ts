@@ -3,6 +3,7 @@ import { toHex } from '@harusi/crypto';
 import { countryOfE164 } from '@harusi/schemas/country';
 import { ApiError } from '../errors';
 import { smsFor } from '../sms-routing';
+import { BrandingService } from '../services/branding';
 import type { Deps } from '../context';
 
 const RESEND_MS = 30_000;
@@ -25,8 +26,11 @@ interface OtpState {
  */
 export class OtpService {
   private state = new Map<string, OtpState>();
+  private branding: BrandingService;
 
-  constructor(private deps: Pick<Deps, 'sms' | 'now' | 'random'>) {}
+  constructor(private deps: Deps) {
+    this.branding = new BrandingService(deps);
+  }
 
   private rec(phone: string): OtpState {
     let r = this.state.get(phone);
@@ -72,11 +76,12 @@ export class OtpService {
     r.expiresAt = now + CODE_TTL_MS;
     r.attempts = 0;
     r.requests.push(now);
+    const brand = await this.branding.businessName();
     await route.send(
       phone,
       country === 'KE'
-        ? `Your Harusi Pass verification code is ${code}. Do not share it with anyone.`
-        : `Namba yako ya uthibitisho ya Harusi Pass ni ${code}. Usimpe mtu yeyote.`,
+        ? `Your ${brand} verification code is ${code}. Do not share it with anyone.`
+        : `Namba yako ya uthibitisho ya ${brand} ni ${code}. Usimpe mtu yeyote.`,
     );
     return { resendAfterSeconds: RESEND_MS / 1000 };
   }

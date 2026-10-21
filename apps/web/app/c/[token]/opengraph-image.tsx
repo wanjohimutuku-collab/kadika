@@ -4,10 +4,11 @@ import { previewCardOnServer } from '@/lib/server-card';
 import { eventKindOf, hostNames } from '@harusi/schemas';
 import { formatDate } from '@/lib/format';
 import { LOGO_SVG, svgDataUri } from '@/lib/brand-assets';
+import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'Harusi Pass';
+export const alt = DEFAULT_BRANDING.businessName;
 
 /** WhatsApp/SMS link preview (§7.2). Shows names, date and venue — never the QR or guest data. */
 export default async function OgImage({ params }: { params: Promise<{ token: string }> }) {
@@ -33,7 +34,7 @@ export default async function OgImage({ params }: { params: Promise<{ token: str
         {eventKindOf(ev?.eventKind, 'en')}
       </div>
       <div style={{ fontSize: 110, fontWeight: 700, marginTop: 10 }}>
-        {ev ? hostNames(ev.partnerA, ev.partnerB) : 'Harusi Pass'}
+        {ev ? hostNames(ev.partnerA, ev.partnerB) : DEFAULT_BRANDING.businessName}
       </div>
       {ev ? (
         <div

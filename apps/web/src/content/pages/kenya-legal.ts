@@ -19,12 +19,12 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     related: ['data-requests', 'terms', 'tz:cookies', 'is-a-digital-wedding-invitation-safe'],
     en: {
       nav: 'Privacy policy (Kenya)',
-      title: 'Privacy Policy for Kenya | Harusi Pass',
+      title: 'Privacy Policy for Kenya | Kadi Sasa',
       description:
-        'How Harusi Pass handles personal data for events in Kenya under the Data Protection Act, 2019: what we collect, who decides, sharing, retention, your rights and the ODPC.',
+        'How Kadi Sasa handles personal data for events in Kenya under the Data Protection Act, 2019: what we collect, who decides, sharing, retention, your rights and the ODPC.',
       h1: 'Privacy policy for Kenya',
       answer:
-        'Harusi Pass collects the minimum needed to send invitations, receive replies and contributions, and admit guests. We do not sell data or use advertising. You can ask for a copy, a correction or deletion, and you can complain to the Office of the Data Protection Commissioner (ODPC). Kenya is not yet open for use.',
+        'Kadi Sasa collects the minimum needed to send invitations, receive replies and contributions, and admit guests. We do not sell data or use advertising. You can ask for a copy, a correction or deletion, and you can complain to the Office of the Data Protection Commissioner (ODPC). Kenya is not yet open for use.',
       sections: [
         {
           id: 'who',
@@ -32,7 +32,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'For guest information, the host of the event decides who is invited and why, so the host is the data controller and Harusi Pass processes it on the host’s behalf as a data processor. For the accounts of hosts and committee members, Harusi Pass is the controller. Company registration details and address will be added here before launch.',
+              text: 'For guest information, the host of the event decides who is invited and why, so the host is the data controller and Kadi Sasa processes it on the host’s behalf as a data processor. For the accounts of hosts and committee members, Kadi Sasa is the controller. Company registration details and address will be added here before launch.',
             },
             {
               t: 'note',
@@ -97,7 +97,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'To deliver cards and confirm payments we use SMS and WhatsApp messaging providers, a mobile-money payment provider (for M-Pesa and Airtel Money), and servers that store data. They receive only what the job needs and may not use it for anything else. Payments are collected by the payment provider; Harusi Pass does not hold the money and never sees or stores a PIN.',
+              text: 'To deliver cards and confirm payments we use SMS and WhatsApp messaging providers, a mobile-money payment provider (for M-Pesa and Airtel Money), and servers that store data. They receive only what the job needs and may not use it for anything else. Payments are collected by the payment provider; Kadi Sasa does not hold the money and never sees or stores a PIN.',
             },
             {
               t: 'note',
@@ -168,7 +168,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Privacy questions: faragha@harusipass.co.tz. Cookies and device storage work as described on the cookies page.',
+              text: 'Privacy questions: faragha@kadisasa.com. Cookies and device storage work as described on the cookies page.',
             },
           ],
         },
@@ -176,12 +176,12 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Sera ya faragha (Kenya)',
-      title: 'Sera ya Faragha kwa Kenya | Harusi Pass',
+      title: 'Sera ya Faragha kwa Kenya | Kadi Sasa',
       description:
-        'Jinsi Harusi Pass inavyoshughulikia data binafsi kwa matukio ya Kenya chini ya Sheria ya Ulinzi wa Data ya 2019: tunachokusanya, nani anaamua, kushiriki, muda na haki zako.',
+        'Jinsi Kadi Sasa inavyoshughulikia data binafsi kwa matukio ya Kenya chini ya Sheria ya Ulinzi wa Data ya 2019: tunachokusanya, nani anaamua, kushiriki, muda na haki zako.',
       h1: 'Sera ya faragha kwa Kenya',
       answer:
-        'Harusi Pass inakusanya kiwango cha chini kinachohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni. Hatuuzi data wala hatutumii matangazo. Unaweza kuomba nakala, marekebisho au kufutwa, na unaweza kulalamika kwa Ofisi ya Kamishna wa Ulinzi wa Data (ODPC). Kenya bado haijafunguliwa.',
+        'Kadi Sasa inakusanya kiwango cha chini kinachohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni. Hatuuzi data wala hatutumii matangazo. Unaweza kuomba nakala, marekebisho au kufutwa, na unaweza kulalamika kwa Ofisi ya Kamishna wa Ulinzi wa Data (ODPC). Kenya bado haijafunguliwa.',
       sections: [
         {
           id: 'who',
@@ -189,7 +189,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Kwa taarifa za wageni, mwenyeji wa tukio anaamua ni nani aalikwe na kwa nini, kwa hiyo ndiye mdhibiti wa data; Harusi Pass inazishughulikia kwa niaba yake kama mchakataji. Kwa akaunti za wenyeji na kamati, Harusi Pass ndiye mdhibiti. Maelezo ya usajili wa kampuni na anwani yatawekwa hapa kabla ya uzinduzi.',
+              text: 'Kwa taarifa za wageni, mwenyeji wa tukio anaamua ni nani aalikwe na kwa nini, kwa hiyo ndiye mdhibiti wa data; Kadi Sasa inazishughulikia kwa niaba yake kama mchakataji. Kwa akaunti za wenyeji na kamati, Kadi Sasa ndiye mdhibiti. Maelezo ya usajili wa kampuni na anwani yatawekwa hapa kabla ya uzinduzi.',
             },
             {
               t: 'note',
@@ -251,7 +251,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Ili kufikisha kadi na kuthibitisha malipo tunatumia watoa huduma wa SMS na WhatsApp, mtoa huduma wa malipo ya pesa za simu (kwa M-Pesa na Airtel Money), na seva za kuhifadhi data. Wanapokea tu kinachohitajika na hawaruhusiwi kukitumia kwa shughuli nyingine. Malipo yanakusanywa na mtoa huduma wa malipo; Harusi Pass haishiki pesa na haioni wala kuhifadhi PIN.',
+              text: 'Ili kufikisha kadi na kuthibitisha malipo tunatumia watoa huduma wa SMS na WhatsApp, mtoa huduma wa malipo ya pesa za simu (kwa M-Pesa na Airtel Money), na seva za kuhifadhi data. Wanapokea tu kinachohitajika na hawaruhusiwi kukitumia kwa shughuli nyingine. Malipo yanakusanywa na mtoa huduma wa malipo; Kadi Sasa haishiki pesa na haioni wala kuhifadhi PIN.',
             },
             {
               t: 'note',
@@ -322,7 +322,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Maswali ya faragha: faragha@harusipass.co.tz. Vidakuzi na hifadhi ya kifaa vinafanya kazi kama ilivyoelezwa kwenye ukurasa wa vidakuzi.',
+              text: 'Maswali ya faragha: faragha@kadisasa.com. Vidakuzi na hifadhi ya kifaa vinafanya kazi kama ilivyoelezwa kwenye ukurasa wa vidakuzi.',
             },
           ],
         },
@@ -340,12 +340,12 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     related: ['privacy', 'data-requests', 'tz:matumizi-yanayokubalika', 'tz:cookies'],
     en: {
       nav: 'Terms of use (Kenya)',
-      title: 'Terms of Use for Kenya | Harusi Pass',
+      title: 'Terms of Use for Kenya | Kadi Sasa',
       description:
-        'Terms for using Harusi Pass for events in Kenya: accounts, host duties, messages, voluntary mobile-money contributions, no custody of funds, liability and governing law.',
+        'Terms for using Kadi Sasa for events in Kenya: accounts, host duties, messages, voluntary mobile-money contributions, no custody of funds, liability and governing law.',
       h1: 'Terms of use for Kenya',
       answer:
-        'By using Harusi Pass you accept these terms and the privacy policy. The host is responsible for the guest list and messages. Contributions are voluntary and are paid through a mobile-money provider; Harusi Pass does not hold the money. The service for Kenya is not open yet and is provided as is.',
+        'By using Kadi Sasa you accept these terms and the privacy policy. The host is responsible for the guest list and messages. Contributions are voluntary and are paid through a mobile-money provider; Kadi Sasa does not hold the money. The service for Kenya is not open yet and is provided as is.',
       sections: [
         {
           id: 'accept',
@@ -353,7 +353,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'By signing in or using Harusi Pass you accept these terms and the privacy policy. If you do not, do not use the service. Guests who open a card do not need to accept the host’s terms, but the privacy policy covers them.',
+              text: 'By signing in or using Kadi Sasa you accept these terms and the privacy policy. If you do not, do not use the service. Guests who open a card do not need to accept the host’s terms, but the privacy policy covers them.',
             },
           ],
         },
@@ -399,7 +399,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Contributions are paid through an approved mobile-money provider using M-Pesa or Airtel Money, in Kenya shillings. Harusi Pass is not a bank or a mobile-money provider, does not hold or pay out funds, and never sees or stores a PIN. A contribution is between the guest and the host. The provider’s terms and fees apply. How committees receive funds, fees and refunds will be set out here before real payments begin.',
+              text: 'Contributions are paid through an approved mobile-money provider using M-Pesa or Airtel Money, in Kenya shillings. Kadi Sasa is not a bank or a mobile-money provider, does not hold or pay out funds, and never sees or stores a PIN. A contribution is between the guest and the host. The provider’s terms and fees apply. How committees receive funds, fees and refunds will be set out here before real payments begin.',
             },
             {
               t: 'note',
@@ -461,12 +461,12 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Masharti ya matumizi (Kenya)',
-      title: 'Masharti ya Matumizi kwa Kenya | Harusi Pass',
+      title: 'Masharti ya Matumizi kwa Kenya | Kadi Sasa',
       description:
-        'Masharti ya kutumia Harusi Pass kwa matukio ya Kenya: akaunti, wajibu wa mwenyeji, ujumbe, michango ya hiari kwa pesa za simu, kutoshika fedha, dhima na sheria inayotumika.',
+        'Masharti ya kutumia Kadi Sasa kwa matukio ya Kenya: akaunti, wajibu wa mwenyeji, ujumbe, michango ya hiari kwa pesa za simu, kutoshika fedha, dhima na sheria inayotumika.',
       h1: 'Masharti ya matumizi kwa Kenya',
       answer:
-        'Kwa kutumia Harusi Pass unakubali masharti haya na sera ya faragha. Mwenyeji anawajibika kwa orodha ya wageni na ujumbe. Michango ni ya hiari na inalipwa kupitia mtoa huduma wa pesa za simu; Harusi Pass haishiki pesa. Huduma kwa Kenya bado haijafunguliwa na inatolewa kama ilivyo.',
+        'Kwa kutumia Kadi Sasa unakubali masharti haya na sera ya faragha. Mwenyeji anawajibika kwa orodha ya wageni na ujumbe. Michango ni ya hiari na inalipwa kupitia mtoa huduma wa pesa za simu; Kadi Sasa haishiki pesa. Huduma kwa Kenya bado haijafunguliwa na inatolewa kama ilivyo.',
       sections: [
         {
           id: 'accept',
@@ -474,7 +474,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Ukiingia au kutumia Harusi Pass unakubali masharti haya na sera ya faragha. Kama hukubali, usitumie huduma. Wageni wanaofungua kadi hawahitaji kukubali masharti ya mwenyeji, lakini sera ya faragha inawahusu.',
+              text: 'Ukiingia au kutumia Kadi Sasa unakubali masharti haya na sera ya faragha. Kama hukubali, usitumie huduma. Wageni wanaofungua kadi hawahitaji kukubali masharti ya mwenyeji, lakini sera ya faragha inawahusu.',
             },
           ],
         },
@@ -520,7 +520,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Michango inalipwa kupitia mtoa huduma aliyeidhinishwa wa pesa za simu kwa M-Pesa au Airtel Money, kwa shilingi za Kenya. Harusi Pass si benki wala mtoa huduma wa pesa za simu, haishiki wala kulipa fedha, na haioni wala kuhifadhi PIN. Mchango upo kati ya mgeni na mwenyeji. Masharti na ada za mtoa huduma wa malipo zinatumika. Jinsi kamati zinavyopokea pesa, ada na marejesho vitaelezwa hapa kabla malipo halisi kuanza.',
+              text: 'Michango inalipwa kupitia mtoa huduma aliyeidhinishwa wa pesa za simu kwa M-Pesa au Airtel Money, kwa shilingi za Kenya. Kadi Sasa si benki wala mtoa huduma wa pesa za simu, haishiki wala kulipa fedha, na haioni wala kuhifadhi PIN. Mchango upo kati ya mgeni na mwenyeji. Masharti na ada za mtoa huduma wa malipo zinatumika. Jinsi kamati zinavyopokea pesa, ada na marejesho vitaelezwa hapa kabla malipo halisi kuanza.',
             },
             {
               t: 'note',
@@ -592,12 +592,12 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     related: ['privacy', 'terms', 'tz:cookies', ''],
     en: {
       nav: 'Data requests (Kenya)',
-      title: 'Data Requests for Kenya: Copy, Correction or Deletion | Harusi Pass',
+      title: 'Data Requests for Kenya: Copy, Correction or Deletion | Kadi Sasa',
       description:
-        'How to ask Harusi Pass for a copy of your information, to correct it or to delete it for events in Kenya, how we verify you, and how to complain to the ODPC.',
+        'How to ask Kadi Sasa for a copy of your information, to correct it or to delete it for events in Kenya, how we verify you, and how to complain to the ODPC.',
       h1: 'Data requests for Kenya: copy, correction and deletion',
       answer:
-        'A guest or host can ask for a copy of their information, ask for it to be corrected, or ask for it to be deleted. Email faragha@harusipass.co.tz or ask the event host. We check it is you, then respond. You can also complain to the Office of the Data Protection Commissioner.',
+        'A guest or host can ask for a copy of their information, ask for it to be corrected, or ask for it to be deleted. Email faragha@kadisasa.com or ask the event host. We check it is you, then respond. You can also complain to the Office of the Data Protection Commissioner.',
       sections: [
         {
           id: 'who',
@@ -606,7 +606,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ul',
               items: [
-                'A guest invited to any event through Harusi Pass.',
+                'A guest invited to any event through Kadi Sasa.',
                 'A host or committee member with an account.',
               ],
             },
@@ -619,7 +619,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ol',
               items: [
-                'Email faragha@harusipass.co.tz and say what you want: a copy, a correction or deletion.',
+                'Email faragha@kadisasa.com and say what you want: a copy, a correction or deletion.',
                 'Give your name, the phone number the invitation was sent to, and the event or host name.',
                 'We will ask for light verification, such as sending a code to that phone, to confirm it is you.',
                 'We respond and act within the time the law allows.',
@@ -674,12 +674,12 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Maombi ya data (Kenya)',
-      title: 'Maombi ya Data kwa Kenya: Nakala, Marekebisho au Kufuta | Harusi Pass',
+      title: 'Maombi ya Data kwa Kenya: Nakala, Marekebisho au Kufuta | Kadi Sasa',
       description:
-        'Jinsi ya kuomba Harusi Pass nakala ya taarifa zako, kuzisahihisha au kuzifuta kwa matukio ya Kenya, jinsi tunavyokuthibitisha, na jinsi ya kulalamika kwa ODPC.',
+        'Jinsi ya kuomba Kadi Sasa nakala ya taarifa zako, kuzisahihisha au kuzifuta kwa matukio ya Kenya, jinsi tunavyokuthibitisha, na jinsi ya kulalamika kwa ODPC.',
       h1: 'Maombi ya data kwa Kenya: nakala, marekebisho na kufuta',
       answer:
-        'Mgeni au mwenyeji anaweza kuomba nakala ya taarifa zake, kuzisahihisha au kuzifuta. Andika kwa faragha@harusipass.co.tz au mwombe mwenyeji wa tukio. Tunathibitisha kuwa ni wewe, kisha tunajibu. Unaweza pia kulalamika kwa Ofisi ya Kamishna wa Ulinzi wa Data.',
+        'Mgeni au mwenyeji anaweza kuomba nakala ya taarifa zake, kuzisahihisha au kuzifuta. Andika kwa faragha@kadisasa.com au mwombe mwenyeji wa tukio. Tunathibitisha kuwa ni wewe, kisha tunajibu. Unaweza pia kulalamika kwa Ofisi ya Kamishna wa Ulinzi wa Data.',
       sections: [
         {
           id: 'who',
@@ -688,7 +688,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ul',
               items: [
-                'Mgeni aliyealikwa kwenye tukio lolote kupitia Harusi Pass.',
+                'Mgeni aliyealikwa kwenye tukio lolote kupitia Kadi Sasa.',
                 'Mwenyeji au mwanakamati mwenye akaunti.',
               ],
             },
@@ -701,7 +701,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'ol',
               items: [
-                'Andika barua pepe kwa faragha@harusipass.co.tz na useme unachotaka: nakala, marekebisho au kufuta.',
+                'Andika barua pepe kwa faragha@kadisasa.com na useme unachotaka: nakala, marekebisho au kufuta.',
                 'Taja jina lako, namba ya simu iliyotumika kukualika, na jina la tukio au mwenyeji.',
                 'Tutakuuliza uthibitisho mdogo, kwa mfano kutuma namba kwenye simu hiyo, ili kuhakikisha ni wewe.',
                 'Tunajibu na kutekeleza ndani ya muda sheria inaporuhusu.',

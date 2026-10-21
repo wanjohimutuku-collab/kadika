@@ -24,6 +24,7 @@ import type { Deps } from '../context';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
+import { BrandingService } from './branding';
 import { requireSettingsAdmin, type StaffCaller } from './staff-guard';
 
 /** A route's provider and its fields (flat strings; secrets included). */
@@ -485,13 +486,14 @@ export class MessagingSettingsService {
       throw new ApiError('validation', 'The number does not belong to this route', {
         field: 'to',
       });
+    const brand = await new BrandingService(this.deps).businessName();
     let error: string | null = null;
     try {
       await provider.send(
         to,
         route === 'sms_ke'
-          ? 'Harusi Pass: test message. Your settings work.'
-          : 'Harusi Pass: ujumbe wa majaribio. Mipangilio yako inafanya kazi.',
+          ? `${brand}: test message. Your settings work.`
+          : `${brand}: ujumbe wa majaribio. Mipangilio yako inafanya kazi.`,
       );
     } catch (e) {
       error = (e as Error).message || 'failed';

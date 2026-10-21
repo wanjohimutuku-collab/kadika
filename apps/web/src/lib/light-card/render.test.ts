@@ -5,7 +5,7 @@ import { renderCard, renderProblem } from './render';
 const opts = {
   token: 'tok_abcdefghijklmnop',
   locale: 'sw' as const,
-  domain: 'harusipass.co.tz',
+  domain: 'kadisasa.com',
   mode: 'api' as const,
   apiUrl: 'http://localhost:3001',
 };

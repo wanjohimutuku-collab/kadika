@@ -143,7 +143,7 @@ export const CLIENT_SCRIPT = String.raw`
     var s = new Date(S.start), e = new Date(s.getTime() + 5 * 36e5);
     function z(d) { return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
     function esc(t) { return String(t).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n'); }
-    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Harusi Pass//Kadi//SW', 'BEGIN:VEVENT', 'UID:' + S.token.slice(0, 12) + '@' + S.domain, 'DTSTAMP:' + z(new Date()), 'DTSTART:' + z(s), 'DTEND:' + z(e),
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Kadi Sasa//Kadi//SW', 'BEGIN:VEVENT', 'UID:' + S.token.slice(0, 12) + '@' + S.domain, 'DTSTAMP:' + z(new Date()), 'DTSTART:' + z(s), 'DTEND:' + z(e),
       'SUMMARY:' + esc(fmt(T.calendarTitle, { couple: S.couple, kind: S.kind, kindOf: S.kindOf })), 'LOCATION:' + esc(S.venue), 'DESCRIPTION:' + esc((S.dress ? fmt(T.dressCode, { dressCode: S.dress }) + '\n' : '') + T.codeLabel + ': ' + S.shortCode + '\n' + location.href),
       'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(fmt(T.calendarTitle, { couple: S.couple, kind: S.kind, kindOf: S.kindOf })), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n') + '\r\n';
     var u = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })); save(u, 'harusi-' + S.shortCode + '.ics'); setTimeout(function () { URL.revokeObjectURL(u); }, 2000);

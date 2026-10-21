@@ -10,6 +10,7 @@ import { localeUrl } from '@/lib/seo';
 import { SiteNav } from '@/components/public/site-nav';
 import { getPage, pagePath, pagesIn, pagesOf, textOf } from '@/content';
 import type { PageGroup } from '@/content/types';
+import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 
 const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
   { group: 'product', sw: 'Huduma', en: 'Services' },
@@ -30,6 +31,8 @@ const NAV_LABELS = {
   en: { menu: 'Open menu', close: 'Close menu', main: 'Main navigation' },
 } as const;
 const KENYA_LABEL = { sw: 'Kenya', en: 'Kenya' } as const;
+const APP_LABEL = { sw: 'Programu', en: 'App' } as const;
+const APP_FOOTER_LABEL = { sw: 'Pakua programu ya Android', en: 'Get the Android app' } as const;
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = (await getLocale()) as Locale;
@@ -61,10 +64,13 @@ export default async function PublicLayout({ children }: { children: ReactNode }
               label: textOf(p, locale).nav,
             })),
           }))}
-          links={NAV_LINKS.flatMap((l) => {
-            const p = getPage(l.slug);
-            return p ? [{ href: localeUrl(pagePath(p), locale), label: l[locale] }] : [];
-          })}
+          links={[
+            ...NAV_LINKS.flatMap((l) => {
+              const p = getPage(l.slug);
+              return p ? [{ href: localeUrl(pagePath(p), locale), label: l[locale] }] : [];
+            }),
+            { href: localeUrl(APP_DOWNLOAD_PATH, locale), label: APP_LABEL[locale] },
+          ]}
           cardLink={{ href: '/k', label: tl('openCard') }}
           cta={{ href: '/login', label: tl('cta') }}
           labels={NAV_LABELS[locale]}
@@ -115,6 +121,13 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <Link href="/k" className="inline-flex min-h-10 items-center underline">
               {tl('openCard')}
+            </Link>
+            <Link
+              href={localeUrl(APP_DOWNLOAD_PATH, locale)}
+              className="inline-flex min-h-10 items-center underline"
+              data-testid="footer-app-download"
+            >
+              {APP_FOOTER_LABEL[locale]}
             </Link>
             <LanguageChip />
           </nav>

@@ -244,7 +244,8 @@
     "contribWhen": "Tukio: {date}, {venue}",
     "contribMeta": "Mchango wa {kindOf} {couple}",
     "contribMetaDescription": "Changia kwa simu. {sender}.",
-    "contribClosed": "Michango haipokelewi kwa sasa kupitia kadi hii."
+    "contribClosed": "Michango haipokelewi kwa sasa kupitia kadi hii.",
+    "appLink": "Programu ya Android"
   },
   "pay": {
     "title": "Lipa mchango",
@@ -331,13 +332,13 @@
     "roleOwner": "Mwenyeji",
     "roleCommittee": "Kamati",
     "ownerOnly": "Sehemu hii ni kwa mwenye harusi tu.",
-    "gateNoConsole": "Walinda lango hutumia programu ya simu ya Harusi Pass. Dashibodi hii ni kwa wenye harusi na kamati.",
+    "gateNoConsole": "Walinda lango hutumia programu ya simu ya {brand}. Dashibodi hii ni kwa wenye harusi na kamati.",
     "gateNoConsoleTitle": "Huna ruhusa ya dashibodi",
     "opsLink": "Dashibodi ya wafanyakazi",
     "content": "Maandishi ya kadi"
   },
   "auth": {
-    "title": "Ingia kwenye Harusi Pass",
+    "title": "Ingia kwenye {brand}",
     "subtitle": "Kwa wenye harusi na kamati. Tutakutumia namba ya uthibitisho kwa SMS.",
     "phone": "Namba ya simu",
     "phoneHint": "Mfano 0712 345 678",
@@ -361,8 +362,8 @@
     "continue": "Endelea",
     "trust": "Hatutakuomba nenosiri. Namba ya uthibitisho ni kwa ajili yako tu — usiitaje kwa mtu yeyote.",
     "mockPhoneHint": "Toleo la majaribio: ingia kwa 0712 000 001 kuona matukio ya mfano.",
-    "suspended": "Akaunti hii imesimamishwa. Wasiliana na Harusi Pass kwa msaada.",
-    "staffHint": "Wafanyakazi wa Harusi Pass: 0700 000 999 (msimamizi), 0700 000 998 (msaada) au 0700 000 997 (malipo); namba ya pili ni 654321.",
+    "suspended": "Akaunti hii imesimamishwa. Wasiliana na {brand} kwa msaada.",
+    "staffHint": "Wafanyakazi wa {brand}: 0700 000 999 (msimamizi), 0700 000 998 (msaada) au 0700 000 997 (malipo); namba ya pili ni 654321.",
     "secondFactorTitle": "Hatua ya pili ya usalama",
     "secondFactorBody": "Kwa usalama wa data za wateja, wafanyakazi wanahitaji namba ya pili kutoka kwenye programu ya uthibitisho.",
     "secondFactorLabel": "Namba ya programu ya uthibitisho",
@@ -378,7 +379,7 @@
     "staffExpired": "Muda wa kuingia umeisha. Ingia tena kwa namba mpya ya SMS."
   },
   "landing": {
-    "metaTitle": "Kadi za Mwaliko Mtandaoni Tanzania | Harusi Pass",
+    "metaTitle": "Kadi za Mwaliko Mtandaoni Tanzania | {brand}",
     "heroTitle": "Kadi moja ya harusi: inafika kwa kila mgeni, inajibu, inachangia, inaingia mlangoni.",
     "heroBody": "WhatsApp, SMS au karatasi — kila mgeni anapata kadi yake yenye QR na namba. Hata bila smartphone, hata bila mtandao.",
     "cta": "Anza",
@@ -452,8 +453,8 @@
     "footerTagline": "Imetengenezwa Tanzania kwa ajili ya harusi na sherehe za Kitanzania.",
     "openCard": "Fungua kadi yako",
     "metaDescription": "Tengeneza kadi za mwaliko za harusi, send-off, siku ya kuzaliwa na zaidi. Tuma kwa WhatsApp, SMS au karatasi. Fuatilia majibu na michango, na ingiza wageni langoni kwa QR bila mtandao.",
-    "definitionTitle": "Harusi Pass ni nini?",
-    "definition": "Harusi Pass ni huduma ya Kitanzania ya kadi za mwaliko za mtandaoni. Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi, ikiwa na QR na namba fupi. Kamati inaona nani amejibu, nani amechangia, na nani ameingia langoni, hata mtandao ukikatika.",
+    "definitionTitle": "{brand} ni nini?",
+    "definition": "{brand} ni huduma ya Kitanzania ya kadi za mwaliko za mtandaoni. Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi, ikiwa na QR na namba fupi. Kamati inaona nani amejibu, nani amechangia, na nani ameingia langoni, hata mtandao ukikatika.",
     "eventsTitle": "Kwa harusi, send-off, uchumba na zaidi",
     "events": {
       "wedding": {
@@ -1253,8 +1254,8 @@
     "destructive": "Kufuta"
   },
   "ops": {
-    "title": "Dashibodi ya Harusi Pass",
-    "staffOnly": "Sehemu hii ni kwa wafanyakazi wa Harusi Pass tu.",
+    "title": "Dashibodi ya wafanyakazi",
+    "staffOnly": "Sehemu hii ni kwa wafanyakazi wa {brand} tu.",
     "staffOnlyTitle": "Huna ruhusa",
     "backToConsole": "Rudi kwenye matukio yangu",
     "nav": {
@@ -1773,7 +1774,7 @@
       "tampered": "Saini batili",
       "wrong_event": "Si ya harusi hii",
       "revoked": "Imebadilishwa",
-      "malformed": "Si kadi ya Harusi Pass",
+      "malformed": "Si kadi ya {brand}",
       "not_found": "Namba haipo kwenye orodha"
     },
     "findByName": "Tafuta kwa jina",
@@ -1941,5 +1942,40 @@
       "link_required": "Ujumbe lazima uwe na {link}",
       "invalid": "Hii si sahihi"
     }
+  },
+  "appDownload": {
+    "metaTitle": "Pakua programu ya {brand} ya Android",
+    "metaDescription": "Programu ya {brand} kwa wenye sherehe, kamati na walinda lango: tuma kadi, fuatilia majibu na michango, na ingiza wageni kwa QR hata bila mtandao.",
+    "eyebrow": "Programu ya Android",
+    "title": "{brand} mfukoni mwako",
+    "intro": "Kwa wenye sherehe, kamati na walinda lango. Simamia wageni, tuma kadi na uendeshe lango kutoka kwenye simu yako.",
+    "play": "Pakua kwenye Google Play",
+    "apk": "Pakua APK moja kwa moja",
+    "apkHelp": "Kwa simu zisizo na Google Play. Simu itaomba ruhusa ya kusakinisha programu kutoka chanzo hiki. Pakua kutoka {host} tu.",
+    "requirements": "Android 8 au mpya zaidi · Inafanya kazi kwenye simu za kawaida",
+    "soonBadge": "Inakuja hivi karibuni",
+    "soonTitle": "Programu bado haijatoka",
+    "soonBody": "Tunaiandaa kwa Google Play. Kwa sasa unaweza kufanya kila kitu kwenye kivinjari: kuunda tukio, kutuma kadi na kufuatilia michango.",
+    "soonCta": "Tumia kwenye kivinjari",
+    "featuresTitle": "Unachoweza kufanya",
+    "features": {
+      "send": {
+        "title": "Tuma kadi",
+        "body": "Kwa WhatsApp, SMS au karatasi, na uone nani ameipokea."
+      },
+      "track": {
+        "title": "Fuatilia majibu na michango",
+        "body": "Idadi ya watakaohudhuria na ahadi zilizolipwa, kwa wakati."
+      },
+      "gate": {
+        "title": "Endesha lango bila mtandao",
+        "body": "Skani QR au tafuta jina; skani zinasawazishwa mtandao ukirudi."
+      }
+    },
+    "guestTitle": "Wewe ni mgeni?",
+    "guestBody": "Huhitaji programu. Kadi yako inafunguka kwenye kiungo ulichotumiwa, au weka namba ya kadi.",
+    "guestCta": "Fungua kadi yangu",
+    "trust": "Hatutakuomba nenosiri, PIN wala malipo ili kupakua. Tumia viungo vilivyo kwenye ukurasa huu tu.",
+    "faqLink": "Maswali yanayoulizwa mara kwa mara"
   }
 }

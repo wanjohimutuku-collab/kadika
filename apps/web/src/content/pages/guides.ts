@@ -16,7 +16,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Wageni wasio na smartphone',
-      title: 'Kadi ya Harusi kwa Wasio na Smartphone | Harusi Pass',
+      title: 'Kadi ya Harusi kwa Wasio na Smartphone | Kadi Sasa',
       description:
         'Jinsi ya kuwaalika wazazi na wageni wasio na smartphone: SMS yenye namba, kadi ya karatasi yenye QR, na kuingia langoni kwa namba au jina.',
       h1: 'Jinsi ya kuwaalika wageni wasio na smartphone',
@@ -95,7 +95,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Guests without smartphones',
-      title: 'Wedding Cards for Guests Without Smartphones | Harusi Pass',
+      title: 'Wedding Cards for Guests Without Smartphones | Kadi Sasa',
       description:
         'How to invite parents and guests who have no smartphone: an SMS with a number, a paper card with a QR, and entry at the gate by number or name.',
       h1: 'How to invite guests who do not have a smartphone',
@@ -186,7 +186,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
         'Jinsi ya kutambua kadi halali ya harusi ya mtandaoni: mtumaji anaonekana, hakuna nenosiri wala PIN, hakuna programu ya kupakua, na namba ya kamati ya kupiga.',
       h1: 'Je, kadi ya harusi ya mtandaoni ni salama? Jinsi ya kutambua ulaghai',
       answer:
-        'Kadi halali ya Harusi Pass inaonyesha jina la mtumaji na namba ya simu ya kamati, haikuombi nenosiri, PIN wala OTP, na haikutumi programu au kiambatisho. Ukiwa na shaka, mpigie kamati kwa namba iliyo kwenye kadi kabla ya kubonyeza chochote.',
+        'Kadi halali ya Kadi Sasa inaonyesha jina la mtumaji na namba ya simu ya kamati, haikuombi nenosiri, PIN wala OTP, na haikutumi programu au kiambatisho. Ukiwa na shaka, mpigie kamati kwa namba iliyo kwenye kadi kabla ya kubonyeza chochote.',
       sections: [
         {
           id: 'sababu',
@@ -200,14 +200,14 @@ export const GUIDE_PAGES: ContentPageDef[] = [
         },
         {
           id: 'ishara',
-          h2: 'Ishara za kadi halali ya Harusi Pass',
+          h2: 'Ishara za kadi halali ya Kadi Sasa',
           blocks: [
             {
               t: 'ul',
               items: [
                 'Juu ya kadi kuna mstari unaosema “Mwaliko huu umetumwa na [jina la kamati]”.',
                 'Namba ya simu ya kamati inaonekana, pamoja na kitufe cha kupiga.',
-                'Anwani ya tovuti ni ya Harusi Pass; kiungo ni cha kadi yako tu.',
+                'Anwani ya tovuti ni ya Kadi Sasa; kiungo ni cha kadi yako tu.',
                 'Kadi inaonyesha jina lako, si orodha ya wageni wengine.',
                 'Hakuna kinachoomba nenosiri, PIN ya simu, namba ya benki wala OTP.',
               ],
@@ -216,7 +216,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
         },
         {
           id: 'hatupaswi',
-          h2: 'Mambo ambayo Harusi Pass haifanyi kamwe',
+          h2: 'Mambo ambayo Kadi Sasa haifanyi kamwe',
           blocks: [
             {
               t: 'ul',
@@ -263,7 +263,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
         'How to recognise a genuine digital wedding invitation: the sender is shown, no password or PIN is asked, no app to install, and a committee number to call.',
       h1: 'Are digital wedding invitations safe? How to spot a scam',
       answer:
-        'A genuine Harusi Pass card shows the sender’s name and the committee’s phone number, never asks for a password, PIN or OTP, and never sends an app or attachment. If you are unsure, call the committee on the number on the card before tapping anything.',
+        'A genuine Kadi Sasa card shows the sender’s name and the committee’s phone number, never asks for a password, PIN or OTP, and never sends an app or attachment. If you are unsure, call the committee on the number on the card before tapping anything.',
       sections: [
         {
           id: 'why',
@@ -277,14 +277,14 @@ export const GUIDE_PAGES: ContentPageDef[] = [
         },
         {
           id: 'signs',
-          h2: 'Signs of a genuine Harusi Pass card',
+          h2: 'Signs of a genuine Kadi Sasa card',
           blocks: [
             {
               t: 'ul',
               items: [
                 'A line near the top says “This invitation was sent by [committee name]”.',
                 'The committee’s phone number is shown, with a call button.',
-                'The web address is Harusi Pass and the link is for your card only.',
+                'The web address is Kadi Sasa and the link is for your card only.',
                 'The card shows your name, not a list of other guests.',
                 'Nothing asks for a password, phone PIN, bank number or OTP.',
               ],
@@ -293,7 +293,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
         },
         {
           id: 'never',
-          h2: 'What Harusi Pass never does',
+          h2: 'What Kadi Sasa never does',
           blocks: [
             {
               t: 'ul',
@@ -643,7 +643,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
           a: 'Ndiyo. Kadi inaonyesha lugha ya mgeni, na mgeni anaweza kubadilisha kati ya Kiswahili na Kiingereza.',
         },
         {
-          q: 'Maneno yanawekwa wapi kwenye Harusi Pass?',
+          q: 'Maneno yanawekwa wapi kwenye Kadi Sasa?',
           a: 'Salamu yako inaonekana juu ya kadi, na maelezo mengine yanaingia kwenye sehemu ya tukio.',
         },
       ],
@@ -744,7 +744,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
           a: 'Yes. The card shows the guest’s language and they can switch between Swahili and English.',
         },
         {
-          q: 'Where does my wording go in Harusi Pass?',
+          q: 'Where does my wording go in Kadi Sasa?',
           a: 'Your greeting shows at the top of the card, and other details go in the event section.',
         },
       ],

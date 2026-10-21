@@ -1,4 +1,4 @@
-/* Harusi Pass guest-card service worker (§7.3): the card shell, its assets and the last card view
+/* Guest-card service worker (§7.3): the card shell, its assets and the last card view
  * stay available offline after the first open. Console routes are never cached. */
 const VERSION = 'v1';
 const PAGES = `hp-pages-${VERSION}`;

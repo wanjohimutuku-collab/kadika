@@ -52,7 +52,7 @@ export function buildIcs(i: IcsInput): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Harusi Pass//Kadi//SW',
+    'PRODID:-//Kadi Sasa//Kadi//SW',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',

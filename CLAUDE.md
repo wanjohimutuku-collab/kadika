@@ -530,7 +530,7 @@ app/
 
 Decided in ADR 005 (answers open decision 6): v1 ships a full responsive organizer console at `/app` — events, create wizard, Muhtasari, Wageni (table/list, import, detail, reissue), Tuma, Kadi (print preview with §6.4 enforcement), Michango, Lango (monitor + manual check-in; camera scanning stays in the Android app), Timu, Ripoti, Mipangilio, Akaunti. Same tokens and microcopy; left nav ≥ 768 px, five bottom tabs below plus a header "Zaidi" sheet (ADR 010). Gate agents have no console access. No feature may exist only in the web console that the mobile app needs.
 
-Guest-facing web routes: `/c/[token]` (+ `/pay`), `/s/[code]` (SMS short link), `/k` (enter card number). Public: `/`, `/privacy`, `/terms`, `/login`. Dev only: `/dev/states`. Plan, status and handoff: `docs/ui/PLAN.md`, `docs/ui/HANDOFF.md`; related ADRs 005–011.
+Guest-facing web routes: `/c/[token]` (+ `/pay`), `/s/[code]` (SMS short link), `/k` (enter card number). Public: `/`, `/privacy`, `/terms`, `/login`, `/programu` (Android app; ADR 040). Dev only: `/dev/states`. Plan, status and handoff: `docs/ui/PLAN.md`, `docs/ui/HANDOFF.md`; related ADRs 005–011.
 
 **Staff (ops) panel, `/ops`** (ADR 012): Harusi Pass employees only (`users.role_global = 'admin'`). Overview, customers (suspend/reactivate with reason), weddings (mark paid), usage and costs, payments, support lookup (phones masked; revealing one needs a reason and is audited), PDPA data requests, staff audit log, SMS and WhatsApp provider settings (admin staff only; encrypted, secrets masked, env variables as fallback; ADR 031). Staff have three levels (support / billing / admin) and sign in with a second factor. Every staff action touching customer data is audit-logged.
 

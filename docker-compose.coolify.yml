@@ -105,6 +105,9 @@ services:
     # not set here. NEXT_PUBLIC_API_URL there must equal this stack's api URL.
     environment:
       SERVICE_URL_WEB_3000:
+      # Read at request time by /programu (the Android app page); empty shows "coming soon".
+      ANDROID_PLAY_URL: ${ANDROID_PLAY_URL:-}
+      ANDROID_APK_URL: ${ANDROID_APK_URL:-}
     # Healthcheck (/api/health) comes from the image.
 
   postgres:

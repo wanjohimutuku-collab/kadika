@@ -178,7 +178,7 @@ export interface Repository {
   /** Short link `/s/:code` → card token. */
   resolveShortCode(code: string): Promise<{ token: string }>;
 
-  // Staff (ops) panel — Harusi Pass employees only (users.role_global = 'admin'). Every call that
+  // Staff (ops) panel — the business's own employees only (users.role_global = 'admin'). Every call that
   // exposes personal data is written to the staff audit log (PDPA, §9).
   opsOverview(): Promise<OpsOverview>;
   opsListOrganizers(): Promise<OpsOrganizer[]>;

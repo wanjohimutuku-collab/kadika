@@ -85,7 +85,7 @@ export const ARTICLE_PAGES: ContentPageDef[] = [
         },
         {
           q: 'Nitumie kadi lini?',
-          a: 'Wengi hutuma wiki sita hadi nane kabla ya harusi na kutuma kikumbusho karibu na tarehe. Harusi Pass inaweza kutuma vikumbusho kwa wasiojibu.',
+          a: 'Wengi hutuma wiki sita hadi nane kabla ya harusi na kutuma kikumbusho karibu na tarehe. Kadi Sasa inaweza kutuma vikumbusho kwa wasiojibu.',
         },
       ],
     },
@@ -159,7 +159,7 @@ export const ARTICLE_PAGES: ContentPageDef[] = [
         },
         {
           q: 'When should I send the cards?',
-          a: 'Many hosts send six to eight weeks ahead and a reminder near the date. Harusi Pass can send reminders to guests who have not replied.',
+          a: 'Many hosts send six to eight weeks ahead and a reminder near the date. Kadi Sasa can send reminders to guests who have not replied.',
         },
       ],
     },

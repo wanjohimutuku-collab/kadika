@@ -32,6 +32,10 @@ const config: NextConfig = {
     optimizePackageImports: ['lucide-react', 'radix-ui', 'date-fns'],
     inlineCss: true,
   },
+  async redirects() {
+    // English-friendly alias for the Android app page.
+    return [{ source: '/app-download', destination: '/programu', permanent: true }];
+  },
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },

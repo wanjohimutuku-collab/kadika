@@ -51,7 +51,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     void store.set(KEY, l);
   }, []);
   const value = useMemo<Ctx>(
-    () => ({ locale, setLocale, t: (key, values) => formatIcu(lookup(locale, key), values) }),
+    () => ({
+      locale,
+      setLocale,
+      // Strings that name the business use `{brand}`; the app ships with the default brand name.
+      t: (key, values) =>
+        formatIcu(lookup(locale, key), { brand: lookup(locale, 'common.appName'), ...values }),
+    }),
     [locale, setLocale],
   );
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -64,7 +70,11 @@ export function useCountryT(country: MessageCountry): T {
   const { locale } = useContext(I18nContext);
   return useMemo<T>(() => {
     const source = messagesFor(locale, country);
-    return (key, values) => formatIcu(lookup(locale, key, source), values);
+    return (key, values) =>
+      formatIcu(lookup(locale, key, source), {
+        brand: lookup(locale, 'common.appName'),
+        ...values,
+      });
   }, [locale, country]);
 }
 export const useLocale = () => {

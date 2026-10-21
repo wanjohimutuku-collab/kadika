@@ -6,6 +6,7 @@ const ROUTES = [
   '/',
   '/privacy',
   '/terms',
+  '/programu',
   '/k',
   `/c/${'TOKEN'}`,
   `/c/${'TOKEN'}/pay`,

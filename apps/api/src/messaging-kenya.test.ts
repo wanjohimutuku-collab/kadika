@@ -48,7 +48,7 @@ describe('SMS routing by the number’s country (ADR 026)', () => {
     await loginAs(ctx, '+254733000222');
     await loginAs(ctx, '0711500001');
     expect(ctx.smsKe.sent.map((m) => m.to)).toEqual(['+254733000222']);
-    expect(ctx.smsKe.sent[0]!.body).toMatch(/Your Harusi Pass verification code is \d{6}/);
+    expect(ctx.smsKe.sent[0]!.body).toMatch(/Your Kadi Sasa verification code is \d{6}/);
     expect(ctx.sms.sent.map((m) => m.to)).toEqual(['+255711500001']);
     expect(ctx.sms.sent[0]!.body).toMatch(/Namba yako ya uthibitisho/);
   });

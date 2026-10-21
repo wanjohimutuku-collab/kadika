@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useSession } from '@/lib/queries';
 import { useStaffCan } from '@/components/ops/ops-ui';
-import { BrandMark } from '@/components/brand/brand-provider';
+import { BrandMark, useBrand } from '@/components/brand/brand-provider';
 import { getRepository } from '@/lib/repo';
 import { Skeleton } from '@/components/ui/display';
 import { Button, buttonClasses } from '@/components/ui/button';
@@ -43,11 +43,12 @@ const ITEMS = [
   { key: 'settings', href: '/ops/settings', icon: Settings, permission: 'settings' },
 ] as const;
 
-/** Harusi Pass staff area. Customers (role_global = user) are refused; the data layer enforces it too. */
+/** Staff area for the business's own employees. Customers (role_global = user) are refused; the data layer enforces it too. */
 export function OpsShell({ children }: { children: ReactNode }) {
   const t = useTranslations('ops');
   const tc = useTranslations('common');
   const tn = useTranslations('nav');
+  const brand = useBrand().brand.businessName;
   const pathname = usePathname();
   const router = useRouter();
   const session = useSession();
@@ -77,7 +78,7 @@ export function OpsShell({ children }: { children: ReactNode }) {
       >
         <ShieldAlert className="size-12 text-warning" aria-hidden="true" />
         <h1 className="text-2xl font-semibold">{t('staffOnlyTitle')}</h1>
-        <p className="text-muted">{t('staffOnly')}</p>
+        <p className="text-muted">{t('staffOnly', { brand })}</p>
         <Link href="/app" className={buttonClasses('secondary')}>
           {t('backToConsole')}
         </Link>

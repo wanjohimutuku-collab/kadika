@@ -21,12 +21,12 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Kadi za mwaliko mtandaoni',
-      title: 'Kadi za Mwaliko Mtandaoni kwa Kila Sherehe | Harusi Pass',
+      title: 'Kadi za Mwaliko Mtandaoni kwa Kila Sherehe | Kadi Sasa',
       description:
         'Tengeneza kadi za mwaliko mtandaoni kwa harusi, siku ya kuzaliwa, mahafali na sherehe nyingine. Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi.',
       h1: 'Kadi za mwaliko mtandaoni kwa kila sherehe',
       answer:
-        'Kadi ya mwaliko mtandaoni ni mwaliko wa kidijitali unaofunguka kwenye simu kupitia kiungo. Kwenye Harusi Pass unaandika majina, tarehe na ukumbi, unaingiza wageni, kisha kila mmoja anapata kadi yake kwa WhatsApp, SMS au karatasi, na unaona nani amejibu.',
+        'Kadi ya mwaliko mtandaoni ni mwaliko wa kidijitali unaofunguka kwenye simu kupitia kiungo. Kwenye Kadi Sasa unaandika majina, tarehe na ukumbi, unaingiza wageni, kisha kila mmoja anapata kadi yake kwa WhatsApp, SMS au karatasi, na unaona nani amejibu.',
       sections: [
         {
           id: 'ni-nini',
@@ -103,12 +103,12 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Digital invitation cards',
-      title: 'Digital Invitation Cards for Every Occasion | Harusi Pass',
+      title: 'Digital Invitation Cards for Every Occasion | Kadi Sasa',
       description:
         'Create digital invitation cards for weddings, birthdays, graduations and other events. Every guest gets their own card by WhatsApp, SMS or paper.',
       h1: 'Digital invitation cards for every occasion',
       answer:
-        'A digital invitation card is an invitation that opens on a phone from a link. With Harusi Pass you enter the names, date and venue, add your guests, and each one gets their own card by WhatsApp, SMS or paper while you see who has replied.',
+        'A digital invitation card is an invitation that opens on a phone from a link. With Kadi Sasa you enter the names, date and venue, add your guests, and each one gets their own card by WhatsApp, SMS or paper while you see who has replied.',
       sections: [
         {
           id: 'what',
@@ -196,7 +196,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Kadi ya siku ya kuzaliwa',
-      title: 'Kadi ya Mwaliko wa Siku ya Kuzaliwa | Harusi Pass',
+      title: 'Kadi ya Mwaliko wa Siku ya Kuzaliwa | Kadi Sasa',
       description:
         'Tuma kadi ya mwaliko wa siku ya kuzaliwa mtandaoni kwa WhatsApp au SMS. Wageni wanaona tarehe, ukumbi na ramani, na wanakujibu moja kwa moja.',
       h1: 'Kadi ya mwaliko wa siku ya kuzaliwa mtandaoni',
@@ -248,7 +248,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Birthday invitations',
-      title: 'Digital Birthday Invitation Cards | Harusi Pass',
+      title: 'Digital Birthday Invitation Cards | Kadi Sasa',
       description:
         'Send a birthday invitation online by WhatsApp or SMS. Guests see the date, venue and map, and reply straight from the card.',
       h1: 'Digital birthday invitation cards',
@@ -312,7 +312,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     ],
     sw: {
       nav: 'Kadi ya kitchen party',
-      title: 'Kadi ya Kitchen Party na Bridal Shower | Harusi Pass',
+      title: 'Kadi ya Kitchen Party na Bridal Shower | Kadi Sasa',
       description:
         'Tuma kadi ya kitchen party au bridal shower kwa WhatsApp na SMS. Wageni wanajibu mtandaoni na unafuatilia michango ya kamati kwa kila mgeni.',
       h1: 'Kadi ya kitchen party na bridal shower',
@@ -359,7 +359,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Kitchen party invitations',
-      title: 'Kitchen Party and Bridal Shower Invitations | Harusi Pass',
+      title: 'Kitchen Party and Bridal Shower Invitations | Kadi Sasa',
       description:
         'Send kitchen party or bridal shower invitations by WhatsApp and SMS. Guests reply online and you can track committee contributions per guest.',
       h1: 'Kitchen party and bridal shower invitations',
@@ -413,7 +413,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     related: ['kadi-za-mwaliko-mtandaoni', 'kadi-ya-kuzaliwa', 'kutuma-kadi-za-mwaliko-whatsapp'],
     sw: {
       nav: 'Kadi ya mahafali',
-      title: 'Kadi ya Mwaliko wa Mahafali Mtandaoni | Harusi Pass',
+      title: 'Kadi ya Mwaliko wa Mahafali Mtandaoni | Kadi Sasa',
       description:
         'Alika familia na marafiki kwenye mahafali kwa kadi ya mtandaoni. Tuma kwa WhatsApp au SMS, pokea majibu, na waingize wageni kwa namba ya kadi.',
       h1: 'Kadi ya mwaliko wa mahafali',
@@ -459,7 +459,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Graduation invitations',
-      title: 'Graduation Invitation Cards Online | Harusi Pass',
+      title: 'Graduation Invitation Cards Online | Kadi Sasa',
       description:
         'Invite family and friends to a graduation with an online card. Send by WhatsApp or SMS, collect replies and admit guests with their card number.',
       h1: 'Graduation invitation cards',
@@ -512,7 +512,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     related: ['kadi-za-mwaliko-mtandaoni', 'lango-la-harusi-qr', 'kusimamia-majibu-ya-rsvp'],
     sw: {
       nav: 'Mialiko ya biashara',
-      title: 'Mialiko ya Kidijitali kwa Matukio ya Biashara | Harusi Pass',
+      title: 'Mialiko ya Kidijitali kwa Matukio ya Biashara | Kadi Sasa',
       description:
         'Tuma mialiko ya kidijitali kwa uzinduzi, mikutano na sherehe za kampuni. Kila mgeni ana kadi yake, majibu yanakusanywa, na lango linaskani QR.',
       h1: 'Mialiko ya kidijitali kwa matukio ya biashara',
@@ -540,7 +540,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass ilijengwa kwa sherehe za binafsi. Haiuzi tiketi wala haina mpangilio wa viti. Ikiwa unahitaji hivyo, wasiliana nasi kabla ya kuamua.',
+              text: 'Kadi Sasa ilijengwa kwa sherehe za binafsi. Haiuzi tiketi wala haina mpangilio wa viti. Ikiwa unahitaji hivyo, wasiliana nasi kabla ya kuamua.',
             },
           ],
         },
@@ -558,7 +558,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Business event invitations',
-      title: 'Digital Invitations for Business Events | Harusi Pass',
+      title: 'Digital Invitations for Business Events | Kadi Sasa',
       description:
         'Send digital invitations for launches, meetings and company celebrations. Every guest has their own card, replies are collected and the door scans QR codes.',
       h1: 'Digital invitations for business events',
@@ -586,7 +586,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass was built for private celebrations. It does not sell tickets or plan seating. If you need those, contact us before you decide.',
+              text: 'Kadi Sasa was built for private celebrations. It does not sell tickets or plan seating. If you need those, contact us before you decide.',
             },
           ],
         },

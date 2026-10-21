@@ -247,7 +247,7 @@ describe('AfricasTalkingProvider', () => {
     const p = new AfricasTalkingProvider({
       username: 'harusi',
       apiKey: 'k-secret',
-      senderId: 'HARUSIPASS',
+      senderId: 'KADISASA',
       fetchImpl: impl,
     });
     expect(await p.send('+254712345678', 'Karibu')).toEqual({
@@ -263,7 +263,7 @@ describe('AfricasTalkingProvider', () => {
       username: 'harusi',
       to: '+254712345678',
       message: 'Karibu',
-      from: 'HARUSIPASS',
+      from: 'KADISASA',
     });
   });
 

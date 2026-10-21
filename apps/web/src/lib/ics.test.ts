@@ -3,12 +3,12 @@ import { buildIcs } from './ics';
 
 describe('ICS', () => {
   const ics = buildIcs({
-    uid: 'guest-1@harusipass',
+    uid: 'guest-1@kadisasa',
     title: 'Harusi ya Asha & Juma',
     start: '2026-12-14T13:00:00Z',
     location: 'Ukumbi wa Mwanga, Kibaha',
     description: 'Mavazi: Kijani na dhahabu; Namba: KH-4826',
-    url: 'https://harusipass.co.tz/c/abc',
+    url: 'https://kadisasa.com/c/abc',
     now: new Date('2026-10-13T00:00:00Z'),
   });
   it('is a valid VEVENT in UTC with CRLF line endings', () => {

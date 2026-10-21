@@ -1,7 +1,7 @@
 {
   "sw": {
     "auth": {
-      "title": "Ingia kwenye Harusi Pass",
+      "title": "Ingia kwenye {brand}",
       "subtitle": "Kwa wenye harusi na kamati. Tutakutumia namba ya uthibitisho kwa SMS.",
       "phone": "Namba ya simu",
       "phoneHint": "Mfano 0712 345 678",
@@ -26,7 +26,7 @@
       "trust": "Hatutakuomba nenosiri. Namba ya uthibitisho ni kwa ajili yako tu — usiitaje kwa mtu yeyote."
     },
     "landing": {
-      "metaTitle": "Harusi Pass — Kadi za harusi zinazofanya kazi kwa kila mgeni",
+      "metaTitle": "Kadi za Mwaliko Mtandaoni Tanzania | {brand}",
       "heroTitle": "Kadi moja ya harusi: inafika kwa kila mgeni, inajibu, inachangia, inaingia mlangoni.",
       "heroBody": "WhatsApp, SMS au karatasi — kila mgeni anapata kadi yake yenye QR na namba. Hata bila smartphone, hata bila mtandao.",
       "cta": "Anza",
@@ -106,7 +106,7 @@
       "termsTitle": "Masharti ya matumizi",
       "updated": "Imesasishwa: {date}",
       "privacy": {
-        "intro": "Harusi Pass inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni mlangoni. Tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania (2022).",
+        "intro": "Kadi Sasa inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni mlangoni. Tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania (2022).",
         "collectTitle": "Tunachokusanya",
         "collect": "Jina la mgeni, namba ya simu (ikiwa ipo), jibu la mwaliko, idadi ya watu, ahadi na malipo, na kumbukumbu ya kuingia mlangoni.",
         "useTitle": "Tunavyotumia",
@@ -116,16 +116,16 @@
         "securityTitle": "Usalama",
         "security": "Viungo vya kadi ni vya kipekee na havitabiriki. Hatuombi nenosiri, PIN wala namba za siri kutoka kwa wageni.",
         "contactTitle": "Mawasiliano",
-        "contact": "Kwa maswali kuhusu faragha: faragha@harusipass.co.tz"
+        "contact": "Kwa maswali kuhusu faragha: faragha@kadisasa.com"
       },
       "terms": {
-        "intro": "Kwa kutumia Harusi Pass unakubali masharti haya ya rasimu.",
+        "intro": "Kwa kutumia Kadi Sasa unakubali masharti haya ya rasimu.",
         "accountTitle": "Akaunti",
         "account": "Wenye harusi na kamati wanaingia kwa namba ya simu na namba ya uthibitisho. Unawajibika kwa taarifa za wageni unazoingiza.",
         "messagesTitle": "Ujumbe",
         "messages": "Tuma mialiko kwa watu unaowafahamu tu. Usitumie huduma kutuma matangazo.",
         "paymentsTitle": "Malipo",
-        "payments": "Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Harusi Pass haihifadhi PIN za malipo.",
+        "payments": "Michango inalipwa kupitia watoa huduma wa malipo walioidhinishwa. Kadi Sasa haihifadhi PIN za malipo.",
         "liabilityTitle": "Mipaka ya dhima",
         "liability": "Huduma inatolewa kama ilivyo wakati wa majaribio."
       }
@@ -133,7 +133,7 @@
   },
   "en": {
     "auth": {
-      "title": "Sign in to Harusi Pass",
+      "title": "Sign in to {brand}",
       "subtitle": "For couples and committees. We will send you a confirmation code by SMS.",
       "phone": "Phone number",
       "phoneHint": "For example 0712 345 678",
@@ -158,7 +158,7 @@
       "trust": "We never ask for a password. The confirmation code is for you only — never share it."
     },
     "landing": {
-      "metaTitle": "Harusi Pass — Wedding cards that work for every guest",
+      "metaTitle": "Digital Invitation Cards Tanzania | {brand}",
       "heroTitle": "One wedding card that reaches every guest, collects replies and contributions, and opens the gate.",
       "heroBody": "WhatsApp, SMS or paper — every guest gets their own card with a QR and a number. Even without a smartphone, even without a network.",
       "cta": "Get started",
@@ -238,7 +238,7 @@
       "termsTitle": "Terms of use",
       "updated": "Updated: {date}",
       "privacy": {
-        "intro": "Harusi Pass collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We follow Tanzania's Personal Data Protection Act (2022).",
+        "intro": "Kadi Sasa collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We follow Tanzania's Personal Data Protection Act (2022).",
         "collectTitle": "What we collect",
         "collect": "Guest name, phone number (if any), RSVP, party size, pledges and payments, and the gate check-in record.",
         "useTitle": "How we use it",
@@ -248,16 +248,16 @@
         "securityTitle": "Security",
         "security": "Card links are unique and unguessable. We never ask guests for passwords, PINs or secret codes.",
         "contactTitle": "Contact",
-        "contact": "Privacy questions: faragha@harusipass.co.tz"
+        "contact": "Privacy questions: faragha@kadisasa.com"
       },
       "terms": {
-        "intro": "By using Harusi Pass you accept these draft terms.",
+        "intro": "By using Kadi Sasa you accept these draft terms.",
         "accountTitle": "Accounts",
         "account": "Couples and committee members sign in with a phone number and a confirmation code. You are responsible for the guest information you enter.",
         "messagesTitle": "Messages",
         "messages": "Only invite people you know. Do not use the service for advertising.",
         "paymentsTitle": "Payments",
-        "payments": "Contributions are paid through licensed payment providers. Harusi Pass never stores payment PINs.",
+        "payments": "Contributions are paid through licensed payment providers. Kadi Sasa never stores payment PINs.",
         "liabilityTitle": "Limitation of liability",
         "liability": "The service is provided as is during the pilot."
       }

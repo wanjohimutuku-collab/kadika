@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Locale } from '@harusi/i18n';
+import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { buttonClasses } from '@/components/ui/button';
 import { SeoLinks } from '@/components/public/seo-links';
 import { formatDate } from '@/lib/format';
@@ -127,7 +128,8 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
   const path = pagePath(page);
   const market = marketOf(page);
   const url = absoluteLocaleUrl(path, locale);
-  const org = { '@type': 'Organization', name: 'Harusi Pass', url: SITE_URL };
+  const name = DEFAULT_BRANDING.businessName;
+  const org = { '@type': 'Organization', name, url: SITE_URL };
   const graph: Record<string, unknown>[] = [
     {
       '@type': page.schema,
@@ -139,7 +141,7 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       inLanguage: `${locale}-${market.toUpperCase()}`,
       dateModified: page.updated,
       datePublished: page.updated,
-      isPartOf: { '@type': 'WebSite', name: 'Harusi Pass', url: SITE_URL },
+      isPartOf: { '@type': 'WebSite', name, url: SITE_URL },
       author: org,
       publisher: {
         ...org,

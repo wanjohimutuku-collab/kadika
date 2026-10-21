@@ -8,6 +8,7 @@ import { useSession } from '@/lib/queries';
 import { Skeleton } from '@/components/ui/display';
 import { getRepository } from '@/lib/repo';
 import { Button } from '@/components/ui/button';
+import { useBrand } from '@/components/brand/brand-provider';
 
 /** Console requires a session; the gate role is refused (gate agents use the Android app, §2). */
 export function AuthGuard({ children }: { children: ReactNode }) {
@@ -15,6 +16,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const brand = useBrand().brand.businessName;
   useEffect(() => {
     if (session.isSuccess && !session.data)
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
@@ -37,7 +39,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
       >
         <ShieldAlert className="size-12 text-warning" aria-hidden="true" />
         <h1 className="text-2xl font-semibold">{t('gateNoConsoleTitle')}</h1>
-        <p className="text-muted">{t('gateNoConsole')}</p>
+        <p className="text-muted">{t('gateNoConsole', { brand })}</p>
         <Button
           variant="secondary"
           onClick={async () => {

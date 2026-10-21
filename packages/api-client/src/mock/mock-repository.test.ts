@@ -652,6 +652,19 @@ describe('sending by card type (ADR 041)', () => {
   });
 
   it('puts a guest back in line when their card type changes, so the same person gets both cards', async () => {
+    // Sends fail ~3% of the time at random even with failureRate 0; this test needs the card delivered,
+    // so it runs on a seeded random source.
+    let seed = 42;
+    const storage = memoryStorage();
+    repo = new MockRepository({
+      storage,
+      controls: new MockControls(storage),
+      now: () => clock,
+      initialState: createSeedState({ now: NOW }),
+      random: () => (seed = (seed * 16807) % 2147483647) / 2147483647,
+    });
+    await repo.requestOtp('+255712000001');
+    await repo.verifyOtp('+255712000001', '123456');
     const { ev, made } = await contributionGuests();
     const job = await repo.sendInvitations(ev.id, {
       ...base,

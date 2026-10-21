@@ -170,7 +170,7 @@ export class MockRepository implements Repository {
     this.now = opts.now ?? Date.now;
     this.random = opts.random ?? Math.random;
     this.rng = new Rng(this.random);
-    this.baseUrl = opts.baseUrl ?? 'https://harusipass.example';
+    this.baseUrl = opts.baseUrl ?? 'https://kadisasa.example';
     this.state = opts.initialState ?? this.load() ?? createSeedState({ now: this.now() });
     this.applyCardOverlays();
   }
@@ -1520,7 +1520,7 @@ export class MockRepository implements Repository {
       return new Blob(
         [
           minimalPdf(
-            `Harusi Pass MOCK PDF - ${e.coupleNames} - ${opts.layout} ${opts.format} - ${count} cards`,
+            `Kadi Sasa MOCK PDF - ${e.coupleNames} - ${opts.layout} ${opts.format} - ${count} cards`,
           ),
         ],
         { type: 'application/pdf' },

@@ -24,12 +24,12 @@ export const KENYA_PAGES: ContentPageDef[] = [
     ],
     en: {
       nav: 'Kenya home',
-      title: 'Digital Wedding Invitations Kenya | Harusi Pass',
+      title: 'Digital Wedding Invitations Kenya | Kadi Sasa',
       description:
         'How digital wedding invitations with RSVP, QR gate check-in and contribution tracking work, plus free guides for Kenyan wedding committees. Kenya is being prepared.',
       h1: 'Digital wedding invitations for Kenyan weddings and committees',
       answer:
-        'Harusi Pass gives each guest their own invitation with RSVP, a QR and a short number, tracks pledges and admits guests at the gate even offline. It is live as a pilot in Tanzania; Kenya support is being planned. The free guides here work with any tool.',
+        'Kadi Sasa gives each guest their own invitation with RSVP, a QR and a short number, tracks pledges and admits guests at the gate even offline. It is live as a pilot in Tanzania; Kenya support is being planned. The free guides here work with any tool.',
       sections: [
         {
           id: 'how',
@@ -90,7 +90,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
       ],
       faq: [
         {
-          q: 'Can I use Harusi Pass in Kenya now?',
+          q: 'Can I use Kadi Sasa in Kenya now?',
           a: 'Not yet. Kenyan numbers, KES and M-Pesa are built and being tested, but the service for Kenya is not open. Tell us through the contact page if you want to join the first pilot.',
         },
         {
@@ -105,12 +105,12 @@ export const KENYA_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Kenya',
-      title: 'Kadi za Harusi za Mtandaoni Kenya | Harusi Pass',
+      title: 'Kadi za Harusi za Mtandaoni Kenya | Kadi Sasa',
       description:
         'Jinsi kadi za harusi za mtandaoni zenye majibu, QR langoni na ufuatiliaji wa michango zinavyofanya kazi, na miongozo ya bure kwa kamati za harusi Kenya.',
       h1: 'Kadi za harusi za mtandaoni kwa harusi na kamati za Kenya',
       answer:
-        'Harusi Pass inampa kila mgeni kadi yake yenye majibu, QR na namba fupi, inafuatilia ahadi na kuingiza wageni langoni hata bila mtandao. Iko kwenye majaribio nchini Tanzania; msaada wa Kenya unapangwa. Miongozo ya bure hapa inafaa kwa zana yoyote.',
+        'Kadi Sasa inampa kila mgeni kadi yake yenye majibu, QR na namba fupi, inafuatilia ahadi na kuingiza wageni langoni hata bila mtandao. Iko kwenye majaribio nchini Tanzania; msaada wa Kenya unapangwa. Miongozo ya bure hapa inafaa kwa zana yoyote.',
       sections: [
         {
           id: 'how',
@@ -171,7 +171,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
       ],
       faq: [
         {
-          q: 'Naweza kutumia Harusi Pass Kenya sasa?',
+          q: 'Naweza kutumia Kadi Sasa Kenya sasa?',
           a: 'Bado. Namba za Kenya, KES na M-Pesa zimejengwa na zinajaribiwa, lakini huduma kwa Kenya haijafunguliwa. Tuambie kupitia ukurasa wa mawasiliano ukitaka kuwa kwenye majaribio ya kwanza.',
         },
         {
@@ -311,11 +311,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           id: 'status',
-          h2: 'Where Harusi Pass fits',
+          h2: 'Where Kadi Sasa fits',
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass can hold the guest list, RSVPs, pledges and the gate in one place. Support for Kenya (Kenyan numbers, KES) is built and being tested but is not open yet; this guide works with any tool, including a shared spreadsheet.',
+              text: 'Kadi Sasa can hold the guest list, RSVPs, pledges and the gate in one place. Support for Kenya (Kenyan numbers, KES) is built and being tested but is not open yet; this guide works with any tool, including a shared spreadsheet.',
             },
           ],
         },
@@ -455,11 +455,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           id: 'status',
-          h2: 'Harusi Pass inafaa wapi',
+          h2: 'Kadi Sasa inafaa wapi',
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass inaweza kushika orodha ya wageni, majibu, ahadi na lango mahali pamoja. Msaada wa Kenya (namba za Kenya, KES) umejengwa na unajaribiwa lakini bado haujafunguliwa; mwongozo huu unafaa kwa zana yoyote, ikiwemo jedwali la pamoja.',
+              text: 'Kadi Sasa inaweza kushika orodha ya wageni, majibu, ahadi na lango mahali pamoja. Msaada wa Kenya (namba za Kenya, KES) umejengwa na unajaribiwa lakini bado haujafunguliwa; mwongozo huu unafaa kwa zana yoyote, ikiwemo jedwali la pamoja.',
             },
           ],
         },
@@ -594,11 +594,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           id: 'status',
-          h2: 'Where Harusi Pass fits',
+          h2: 'Where Kadi Sasa fits',
           blocks: [
             {
               t: 'note',
-              text: 'In Harusi Pass, pledges and payments sit on each guest’s invitation and the committee sees collected, pledged and balance in one view. M-Pesa and Airtel Money payments in KES are built and tested with simulators, but Kenya is not open and no live payment provider is connected yet, so for a Kenyan wedding today use the steps above with your own sheet or a platform you trust.',
+              text: 'In Kadi Sasa, pledges and payments sit on each guest’s invitation and the committee sees collected, pledged and balance in one view. M-Pesa and Airtel Money payments in KES are built and tested with simulators, but Kenya is not open and no live payment provider is connected yet, so for a Kenyan wedding today use the steps above with your own sheet or a platform you trust.',
             },
           ],
         },
@@ -719,11 +719,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           id: 'status',
-          h2: 'Harusi Pass inafaa wapi',
+          h2: 'Kadi Sasa inafaa wapi',
           blocks: [
             {
               t: 'note',
-              text: 'Kwenye Harusi Pass, ahadi na malipo viko kwenye mwaliko wa kila mgeni na kamati inaona kilichokusanywa, kilichoahidiwa na salio kwa mtazamo mmoja. Malipo ya M-Pesa na Airtel Money kwa KES yamejengwa na kujaribiwa kwa vifaa vya majaribio, lakini Kenya haijafunguliwa na hakuna mtoa huduma wa malipo aliyeunganishwa bado, kwa hiyo kwa harusi ya Kenya leo tumia hatua zilizo juu pamoja na jedwali lako au jukwaa unaloliamini.',
+              text: 'Kwenye Kadi Sasa, ahadi na malipo viko kwenye mwaliko wa kila mgeni na kamati inaona kilichokusanywa, kilichoahidiwa na salio kwa mtazamo mmoja. Malipo ya M-Pesa na Airtel Money kwa KES yamejengwa na kujaribiwa kwa vifaa vya majaribio, lakini Kenya haijafunguliwa na hakuna mtoa huduma wa malipo aliyeunganishwa bado, kwa hiyo kwa harusi ya Kenya leo tumia hatua zilizo juu pamoja na jedwali lako au jukwaa unaloliamini.',
             },
           ],
         },
@@ -994,11 +994,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           id: 'status',
-          h2: 'About Harusi Pass cards',
+          h2: 'About Kadi Sasa cards',
           blocks: [
             {
               t: 'note',
-              text: 'Harusi Pass cards show the sender and committee phone, ask for no password or PIN, and send no apps or attachments. The service for Kenya is built and being tested but is not open yet; if you receive a message claiming to be from Harusi Pass about a Kenyan event, verify it with the committee first.',
+              text: 'Kadi Sasa cards show the sender and committee phone, ask for no password or PIN, and send no apps or attachments. The service for Kenya is built and being tested but is not open yet; if you receive a message claiming to be from Kadi Sasa about a Kenyan event, verify it with the committee first.',
             },
           ],
         },
@@ -1067,11 +1067,11 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           id: 'status',
-          h2: 'Kuhusu kadi za Harusi Pass',
+          h2: 'Kuhusu kadi za Kadi Sasa',
           blocks: [
             {
               t: 'note',
-              text: 'Kadi za Harusi Pass zinaonyesha mtumaji na simu ya kamati, hazioombi nenosiri wala PIN, na hazitumi programu wala viambatisho. Huduma kwa Kenya imejengwa na inajaribiwa lakini bado haijafunguliwa; ukipokea ujumbe unaodai kuwa kutoka Harusi Pass kuhusu tukio la Kenya, uthibitishe na kamati kwanza.',
+              text: 'Kadi za Kadi Sasa zinaonyesha mtumaji na simu ya kamati, hazioombi nenosiri wala PIN, na hazitumi programu wala viambatisho. Huduma kwa Kenya imejengwa na inajaribiwa lakini bado haijafunguliwa; ukipokea ujumbe unaodai kuwa kutoka Kadi Sasa kuhusu tukio la Kenya, uthibitishe na kamati kwanza.',
             },
           ],
         },

@@ -180,6 +180,12 @@ describe('SnippePaymentProvider webhooks', () => {
     expect(p.verifyWebhook(body, signSnippeWebhook(body, KEY, nowSec - 299))).toBe(true);
   });
 
+  it('rejects a timestamp more than five minutes in the future, so it cannot be replayed later', () => {
+    const p = provider();
+    expect(p.verifyWebhook(body, signSnippeWebhook(body, KEY, nowSec + 3600))).toBe(false);
+    expect(p.verifyWebhook(body, signSnippeWebhook(body, KEY, nowSec + 30))).toBe(true);
+  });
+
   it('never verifies when no signing key is configured', () => {
     expect(
       provider({ webhookSigningKey: '' }).verifyWebhook(body, signSnippeWebhook(body, '', nowSec)),

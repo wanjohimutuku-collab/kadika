@@ -69,7 +69,14 @@ const eventBase = z.object({
   coupleNames: z.string().trim().min(2).max(120),
   dateStart: z.coerce.date(),
   venueName: z.string().trim().max(120).nullish(),
-  venueMapUrl: z.string().url().max(500).nullish(),
+  // http(s) only: `z.string().url()` alone accepts `javascript:` and `data:` URLs, and this one
+  // becomes a link on every guest card.
+  venueMapUrl: z
+    .string()
+    .url()
+    .max(500)
+    .refine((u) => /^https?:\/\//i.test(u), 'Map link must start with http:// or https://')
+    .nullish(),
   dressCode: z.string().trim().max(80).nullish(),
   committeePhone: z.string().trim().max(30).nullish(),
   senderName: z.string().trim().max(120).nullish(),

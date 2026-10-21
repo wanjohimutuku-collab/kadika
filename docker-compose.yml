@@ -1,7 +1,7 @@
 name: harusi
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_USER: harusi
       POSTGRES_PASSWORD: harusi
@@ -14,7 +14,7 @@ services:
       timeout: 3s
       retries: 10
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports: ['6379:6379']
     volumes: [redisdata:/data]
     healthcheck:

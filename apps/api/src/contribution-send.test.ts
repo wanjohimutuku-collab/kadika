@@ -75,7 +75,7 @@ const statuses = async (t: string, evId: string, cardKind: string) =>
       .items as { status: string }[]
   ).map((g) => g.status);
 
-describe('sending by card type (ADR 040)', () => {
+describe('sending by card type (ADR 041)', () => {
   it('sends contribution cards first, only to contribution guests, then invitations to the rest', async () => {
     const { t, evId } = await setup();
     const i1 = await add(t, evId, 'Mgeni Mmoja', 'invitation');
@@ -313,7 +313,7 @@ describe('sending by card type (ADR 040)', () => {
   });
 });
 
-describe('an engagement, a send-off and a wedding (ADR 024, 040)', () => {
+describe('an engagement, a send-off and a wedding (ADR 024, 041)', () => {
   const kinds = [
     // the little word agrees with the noun: "uchumba wa", but "harusi ya" and "send-off ya"
     { kind: 'Uchumba', sw: 'uchumba', of: 'wa', en: 'engagement' },

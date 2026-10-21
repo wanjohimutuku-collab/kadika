@@ -1,4 +1,4 @@
-# ADR 040: sending by card type, and wording that follows the reader's language
+# ADR 041: sending by card type, and wording that follows the reader's language
 
 Status: accepted. API, client, web console, mobile app and guest card are built.
 

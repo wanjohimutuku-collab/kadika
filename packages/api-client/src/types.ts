@@ -362,7 +362,7 @@ export interface SendRequest {
   scheduleAt: ISODate | null;
   kind: 'invite' | 'reminder' | 'thank_you';
   /**
-   * Which cards to send: invitation cards or contribution cards. Left out, both go, as before (ADR 040).
+   * Which cards to send: invitation cards or contribution cards. Left out, both go, as before (ADR 041).
    * A contribution card is a first message; its follow-up is a pledge reminder, not a `reminder`.
    */
   cardKind?: CardKind;

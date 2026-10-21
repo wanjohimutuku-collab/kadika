@@ -258,7 +258,7 @@ describe('contribution card', () => {
     expect(closed).not.toContain('data-testid="pay-link"');
   });
 
-  it('says "wa" after uchumba and "wedding of" in English, never "uchumba ya" (ADR 040)', () => {
+  it('says "wa" after uchumba and "wedding of" in English, never "uchumba ya" (ADR 041)', () => {
     const uchumba = { ...view().event!, eventKind: 'Uchumba' };
     const sw = renderCard(contribution({}, { event: uchumba }), opts);
     expect(visible(sw)).toContain('Tunakuomba uchangie katika uchumba wa Asha &amp; Juma');
@@ -304,7 +304,7 @@ describe('contribution card', () => {
       { ...opts, locale: 'en' },
     );
     expect(ke).toContain('href="/ke/privacy"');
-    // an English reader gets "wedding" for the stored "Harusi" (ADR 040)
+    // an English reader gets "wedding" for the stored "Harusi" (ADR 041)
     expect(ke).toContain('Contribution for the wedding');
     expect(ke).toContain('Contribution goal: KES 2,000,000');
   });

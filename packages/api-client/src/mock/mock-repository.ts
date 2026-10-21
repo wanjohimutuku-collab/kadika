@@ -916,7 +916,7 @@ export class MockRepository implements Repository {
         updatedAt: iso(this.now()),
       });
       if (g.cardKind !== cardWas && ['sent', 'delivered', 'opened'].includes(g.status)) {
-        // They now hold a card that has not gone out, so they are "not sent" again (ADR 040).
+        // They now hold a card that has not gone out, so they are "not sent" again (ADR 041).
         g.status = 'created';
         delete g.timeline.queued;
         delete g.timeline.sent;

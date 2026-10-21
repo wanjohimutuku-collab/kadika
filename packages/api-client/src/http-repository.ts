@@ -967,7 +967,7 @@ export function createHttpRepository(
     );
     scheduledEvent.delete(jobId);
   };
-  // What a send would do right now (ADR 040): the API applies its own audience rules, a sample text prices the SMS.
+  // What a send would do right now (ADR 041): the API applies its own audience rules, a sample text prices the SMS.
   impl.previewSend = async (eventId, req) => {
     if (req.kind === 'thank_you')
       throw new RepositoryError('not_implemented', 'Thank-you messages are not available yet');

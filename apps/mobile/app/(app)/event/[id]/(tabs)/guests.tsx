@@ -46,7 +46,7 @@ export default function Guests() {
   const c = useColors();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<GuestFilter>('all');
-  // which cards to list: everyone, or only invitation or contribution cards (ADR 040)
+  // which cards to list: everyone, or only invitation or contribution cards (ADR 041)
   const [cardKind, setCardKind] = useState<'all' | CardKind>(
     (CARD_KINDS as readonly string[]).includes(card ?? '') ? (card as CardKind) : 'all',
   );

@@ -27,7 +27,7 @@ const MISSED_AFTER_MS = 24 * 3_600_000;
 
 export interface ScheduleInput {
   kind: SendKind;
-  /** Which cards the send is for; left out, both kinds match (ADR 040). */
+  /** Which cards the send is for; left out, both kinds match (ADR 041). */
   cardKind?: CardKind;
   target: SendTarget;
   channel?: 'auto' | 'whatsapp' | 'sms';

@@ -91,7 +91,7 @@ const sendInputSchema = z.object({
   target: sendTargetSchema,
   channel: z.enum(['auto', 'whatsapp', 'sms']).optional(),
   kind: z.enum(['invite', 'reminder']).optional(),
-  /** Which cards: invitation or contribution; left out, both, as before (ADR 040). */
+  /** Which cards: invitation or contribution; left out, both, as before (ADR 041). */
   cardKind: cardKindSchema.optional(),
 });
 const guestBase = z.object({
@@ -596,7 +596,7 @@ export function createApp(deps: Deps) {
     }
     return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
   });
-  // What a send would do, with nothing sent: the same audience rules as the send itself (ADR 040).
+  // What a send would do, with nothing sent: the same audience rules as the send itself (ADR 041).
   app.post('/v1/events/:id/invitations/preview', async (c) =>
     c.json(
       await deliverySvc.preview(

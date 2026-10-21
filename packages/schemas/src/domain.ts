@@ -121,7 +121,7 @@ export type GuestInputParsed = z.output<typeof guestInputSchema>;
 /**
  * The kinds of event the app knows by name. What the organiser picks or types is stored as written; for a
  * known kind the word follows the language of whoever reads it, so an English guest's card says
- * "engagement" where a Swahili one says "uchumba". Anything else typed is shown as written (ADR 024, 040).
+ * "engagement" where a Swahili one says "uchumba". Anything else typed is shown as written (ADR 024, 041).
  */
 export const EVENT_KINDS = [
   { sw: 'Harusi', en: 'Wedding', aliases: ['harusi', 'wedding'] },

@@ -253,7 +253,7 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const L = (v?: { sw?: string; en?: string }) => pick(v, locale);
   const kindName = eventKindLabel(event.eventKind, locale);
   const kindLower = kindName.toLowerCase();
-  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 040)
+  // "harusi ya" / "uchumba wa" / "wedding of": the little word agrees with the kind (ADR 041)
   const kindOfName = eventKindOf(event.eventKind, locale);
   // Built-in wording per card category (uchumba, send-off); the organiser's own text always wins.
   const occasion = occasionOf(event.eventKind);

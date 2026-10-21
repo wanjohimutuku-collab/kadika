@@ -48,7 +48,7 @@ export function ContactsSheet({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onImported: () => void;
-  /** What the people picked become: invitation cards (the default) or contribution cards (ADR 040). */
+  /** What the people picked become: invitation cards (the default) or contribution cards (ADR 041). */
   cardKind?: CardKind;
 }) {
   const t = useTranslations('guests');

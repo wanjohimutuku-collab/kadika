@@ -8,7 +8,7 @@ import {
   eventKindSuggestions,
 } from './domain';
 
-describe('event kinds (ADR 024, 040)', () => {
+describe('event kinds (ADR 024, 041)', () => {
   it('names the known kinds in the language of whoever reads them', () => {
     expect(eventKindLabel('Harusi', 'en')).toBe('Wedding');
     expect(eventKindLabel('wedding', 'sw')).toBe('Harusi');
@@ -33,7 +33,7 @@ describe('event kinds (ADR 024, 040)', () => {
   });
 });
 
-describe('wording that follows the language (ADR 040)', () => {
+describe('wording that follows the language (ADR 041)', () => {
   it('starts a new event with a title in the language of the screen', () => {
     expect(defaultEventTitle('Uchumba', 'Asha & Juma', 'sw')).toBe('Uchumba wa Asha & Juma');
     expect(defaultEventTitle('Uchumba', 'Asha & Juma', 'en')).toBe('Engagement of Asha & Juma');
@@ -59,7 +59,7 @@ describe('wording that follows the language (ADR 040)', () => {
   });
 });
 
-describe('the "of" that agrees with the kind (ADR 040)', () => {
+describe('the "of" that agrees with the kind (ADR 041)', () => {
   it('says "wa" after uchumba and "ya" after the other Swahili kinds', () => {
     expect(eventKindOf('Uchumba', 'sw')).toBe('Uchumba wa');
     expect(eventKindOf('engagement', 'sw')).toBe('Uchumba wa');

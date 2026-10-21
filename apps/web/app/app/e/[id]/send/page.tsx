@@ -85,7 +85,7 @@ function SendInner({ id }: { id: string }) {
   const [audience, setAudience] = useState<AudienceKind>(
     params.get('audience') === 'selected' ? 'selected' : 'unsent',
   );
-  // which cards to send (ADR 040); a contribution card is only ever a first message
+  // which cards to send (ADR 041); a contribution card is only ever a first message
   const [cardKind, setCardKind] = useState<CardKind>(
     params.get('card') === 'contribution' ? 'contribution' : 'invitation',
   );

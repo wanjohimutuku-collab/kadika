@@ -31,7 +31,7 @@ export interface SendInput {
   kind?: SendKind;
   /**
    * Which cards to send: `invitation` (RSVP and QR) or `contribution` (asks for a contribution only).
-   * Left out, both kinds match, as before (ADR 040).
+   * Left out, both kinds match, as before (ADR 041).
    */
   cardKind?: CardKind;
 }
@@ -577,7 +577,7 @@ export class DeliveryService {
 
   /**
    * What a send would do right now, with nothing sent: who it reaches and how. It uses the same audience
-   * and skip rules as `run`, so the numbers match what the send then does (ADR 040).
+   * and skip rules as `run`, so the numbers match what the send then does (ADR 041).
    */
   async preview(eventId: string, userId: string, input: SendInput) {
     await this.assertCanSend(eventId, userId);

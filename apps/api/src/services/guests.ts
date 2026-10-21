@@ -285,7 +285,7 @@ export class GuestService {
       .returning();
     if (set.cardKind !== undefined && set.cardKind !== g.cardKind) {
       // The guest now holds a different card and it has not gone out, so they are "not sent" again. That
-      // is how a contribution card first and an invitation later reach the same person (ADR 040).
+      // is how a contribution card first and an invitation later reach the same person (ADR 041).
       // Someone who already answered keeps their answer.
       await this.deps.db
         .update(invitations)

@@ -54,6 +54,7 @@ import type {
   SendPreview,
   SendRequest,
   Session,
+  AuthConfig,
   WeddingEvent,
   DataRequest,
   OpsAuditEntry,
@@ -73,6 +74,13 @@ export interface Repository {
   // Auth — POST /v1/auth/otp/request, /verify, /refresh
   requestOtp(phoneE164: string): Promise<{ resendAfterSeconds: number }>;
   verifyOtp(phoneE164: string, code: string): Promise<Session>;
+  /** GET /v1/auth/config: our own SMS code or Firebase Phone Auth (ADR 048). */
+  getAuthConfig(): Promise<AuthConfig>;
+  /**
+   * POST /v1/auth/firebase: trades a Firebase ID token from a phone sign-in for our session. Same
+   * result as `verifyOtp`, including `needsSecondFactor` for staff.
+   */
+  signInWithFirebase(idToken: string): Promise<Session>;
   /**
    * Staff only (ADR 040): second step after the SMS code — POST /v1/auth/staff/totp/verify with the
    * authenticator code. The first good code also completes the authenticator setup.

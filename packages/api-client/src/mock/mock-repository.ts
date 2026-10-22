@@ -79,6 +79,7 @@ import type {
   SendPreview,
   SendRequest,
   Session,
+  AuthConfig,
   WeddingEvent,
   User,
   DataRequest,
@@ -588,6 +589,17 @@ export class MockRepository implements Repository {
       }
       return this.session()!;
     });
+  }
+
+  /** The mock always uses its own fixed code; Firebase is exercised against the API (ADR 048). */
+  getAuthConfig(): Promise<AuthConfig> {
+    return Promise.resolve({ otpProvider: 'sms' });
+  }
+
+  signInWithFirebase(_idToken: string): Promise<Session> {
+    return Promise.reject(
+      new RepositoryError('not_implemented', 'Firebase sign-in is not available in the mock'),
+    );
   }
 
   verifyStaffSecondFactor(code: string): Promise<Session> {

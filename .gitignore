@@ -29,3 +29,6 @@ apps/web/e2e/.auth
 
 # Staff-uploaded app files in local dev (ADR 047)
 apps/api/data/
+
+# Firebase config for Android builds (ADR 048): an EAS file variable, not committed
+apps/mobile/google-services.json

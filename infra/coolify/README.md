@@ -124,6 +124,28 @@ these can be done from the repository.
 - [ ] **Tune the guards** after the first busy week: `OTP_IP_HOURLY_LIMIT` (20), `OTP_GLOBAL_HOURLY_LIMIT` (500),
       `MESSAGE_DAILY_ALERT` (5,000).
 
+## Switching sign-in codes to Firebase (ADR 048)
+
+Optional. Until `AUTH_OTP_PROVIDER=firebase` is set, login codes go through the SMS route as before.
+
+1. **Firebase console:** create a project (or add Firebase to an existing Google Cloud project) and move it
+   to the **Blaze** plan (phone sign-in needs billing). Add a Cloud Billing budget alert.
+2. **Authentication → Sign-in method:** enable **Phone**. Under **Settings → SMS region policy** allow only
+   Tanzania (and Kenya if `KENYA_ENABLED`).
+3. **Authentication → Settings → Authorized domains:** add `kadisasa.com`, `app.kadisasa.com` and
+   `my.kadisasa.com` (plus the staging hosts).
+4. **Project settings → Your apps → Web app:** register one; copy `apiKey`, `authDomain`, `projectId`, `appId`.
+5. **Project settings → Your apps → Android app:** package `app.harusipass.mobile`, and add the release key's
+   SHA-256 `77:14:37:3C:EF:5B:E7:A8:FC:EE:53:D8:A2:BF:C5:8A:B7:B3:80:1C:5E:A4:87:F6:E7:81:5E:36:E6:05:F2:2F`
+   (and SHA-1 from the same keystore, `keytool -list -v`). Enable the Play Integrity API in the Google Cloud
+   project. Download `google-services.json` and store it as an EAS **file** environment variable named
+   `GOOGLE_SERVICES_JSON` (never commit it). Build a new APK and upload it in /ops (ADR 047).
+6. **Coolify (api service):** set `FIREBASE_PROJECT_ID`, `FIREBASE_WEB_API_KEY`, `FIREBASE_AUTH_DOMAIN`,
+   `FIREBASE_WEB_APP_ID`, redeploy, and test sign-in on staging with numbers on each network. Then set
+   `AUTH_OTP_PROVIDER=firebase` and redeploy. Apps older than the Firebase APK cannot sign in after this, so
+   switch only once organizers have updated.
+7. **Rollback:** `AUTH_OTP_PROVIDER=sms` and redeploy the api; nothing else changes.
+
 ## Production hostnames (kadisasa.com)
 
 One web image serves three surfaces, and the hostname decides which one a request reaches

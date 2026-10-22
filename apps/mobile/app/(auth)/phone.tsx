@@ -4,11 +4,13 @@ import { router } from 'expo-router';
 import { COUNTRIES, type Country } from '@harusi/schemas/country';
 import { getRepository } from '../../src/lib/repo';
 import { ALLOWED_COUNTRIES, KENYA_ENABLED, parsePhone } from '../../src/lib/country';
-import { useT } from '../../src/lib/i18n';
+import { FirebasePhoneError, loadAuthConfig, startPhoneSignIn } from '../../src/lib/firebase-phone';
+import { useLocale, useT } from '../../src/lib/i18n';
 import { Banner, Button, Chip, Field, Screen, Txt } from '../../src/ui/kit';
 
 export default function Phone() {
   const t = useT();
+  const { locale } = useLocale();
   const [raw, setRaw] = useState('');
   const [country, setCountry] = useState<Country>('TZ');
   const [error, setError] = useState<string | null>(null);
@@ -20,16 +22,29 @@ export default function Phone() {
     setError(null);
     setBusy(true);
     try {
-      await getRepository().requestOtp(p.e164);
-      router.push({ pathname: '/otp', params: { phone: p.e164 } });
+      // Firebase Phone Auth or our own SMS code, as the API says (ADR 048).
+      const firebase = (await loadAuthConfig()).otpProvider === 'firebase';
+      if (firebase) await startPhoneSignIn(p.e164, locale);
+      else await getRepository().requestOtp(p.e164);
+      router.push({
+        pathname: '/otp',
+        params: { phone: p.e164, ...(firebase ? { via: 'firebase' } : {}) },
+      });
     } catch (e) {
       const code = (e as { code?: string }).code;
+      const reason = e instanceof FirebasePhoneError ? e.reason : null;
       setError(
-        code === 'rate_limited'
-          ? t('auth.rateLimited', { seconds: 30 })
-          : code === 'offline'
-            ? t('states.offlineBanner')
-            : t('states.errorBody'),
+        reason === 'update_app'
+          ? t('auth.updateApp')
+          : reason === 'invalid_phone'
+            ? t('validation.phone.invalid_chars')
+            : reason === 'too_many'
+              ? t('auth.tooManyRequests')
+              : code === 'rate_limited'
+                ? t('auth.rateLimited', { seconds: 30 })
+                : code === 'offline'
+                  ? t('states.offlineBanner')
+                  : t('states.errorBody'),
       );
     } finally {
       setBusy(false);

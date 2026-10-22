@@ -1,13 +1,100 @@
-# Placeholder (Phase 4): EAS preview on PR label, production on tag.
+# Android app for /programu (ADR 045): each release tag builds a signed APK on EAS and attaches it to
+# the release and to the fixed `android-app` release, whose download URL never changes:
+#   https://github.com/wanjohimutuku-collab/kadika/releases/download/android-app/kadi-sasa.apk
+# Needs the EXPO_TOKEN repository secret; without it the job says so and passes, so releases never block.
 name: Mobile EAS
 on:
+  push:
+    tags: ['v*.*.*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach the APK to (e.g. v0.6.1)
+        required: true
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: mobile-eas
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  FIXED_TAG: android-app
 
 jobs:
-  placeholder:
+  apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
-      - run: echo "Not implemented in Phase 0. See CLAUDE.md section 11."
+      - name: Check for EXPO_TOKEN
+        id: token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::notice::EXPO_TOKEN is not set, so no APK was built. See infra/coolify/README.md (Android app)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
+        with:
+          ref: ${{ env.TAG }}
+      - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+        if: steps.token.outputs.ok == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.token.outputs.ok == 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install the mobile app's dependencies
+        if: steps.token.outputs.ok == 'true'
+        run: pnpm install --frozen-lockfile --filter @harusi/mobile...
+
+      - name: Stamp the version and link the EAS project
+        if: steps.token.outputs.ok == 'true'
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          VERSION="${TAG#v}"
+          node -e '
+            const fs = require("fs");
+            const app = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            app.expo.version = process.argv[1];
+            fs.writeFileSync("app.json", JSON.stringify(app, null, 2) + "\n");
+          ' "$VERSION"
+          # Links to the account's existing "harusi-pass" project, or creates it on the first run.
+          npx --yes eas-cli@16 init --non-interactive --force
+          # EAS archives the git tree, so commit the stamped config locally (never pushed).
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qam "ci: app $VERSION"
+
+      - name: Build the APK on EAS
+        if: steps.token.outputs.ok == 'true'
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx --yes eas-cli@16 build -p android --profile apk --non-interactive --wait --json > build.json
+          URL=$(node -e 'console.log(require("./build.json")[0].artifacts.buildUrl)')
+          curl -fsSL -o "$GITHUB_WORKSPACE/kadi-sasa.apk" "$URL"
+          ls -l "$GITHUB_WORKSPACE/kadi-sasa.apk"
+
+      - name: Attach the APK to the releases
+        if: steps.token.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          gh release upload "$TAG" kadi-sasa.apk --clobber
+          if ! gh release view "$FIXED_TAG" >/dev/null 2>&1; then
+            gh release create "$FIXED_TAG" --prerelease --target main --title "Kadi Sasa for Android" \
+              --notes "The latest Android app. The download link stays the same for every version."
+          fi
+          gh release upload "$FIXED_TAG" kadi-sasa.apk --clobber
+          gh release edit "$FIXED_TAG" --notes "The latest Android app ($TAG). The download link stays the same for every version."
+          echo "APK: https://github.com/${{ github.repository }}/releases/download/$FIXED_TAG/kadi-sasa.apk" >> "$GITHUB_STEP_SUMMARY"

@@ -31,6 +31,7 @@ import type {
 } from '@harusi/schemas';
 import type {
   Activity,
+  AndroidRelease,
   AuditEntry,
   CardView,
   EventReport,
@@ -282,4 +283,8 @@ export interface Repository {
   /** `data` is the SVG source, or base64 for PNG, JPEG and WebP. Refused (`validation`) if unsafe. */
   opsSetLogo(file: { mime: string; data: string }): Promise<BrandingView>;
   opsRemoveLogo(): Promise<BrandingView>;
+  /** The Android APK on /programu (ADR 047): null until admin staff upload one. */
+  opsAndroidRelease(): Promise<AndroidRelease | null>;
+  opsUploadAndroidApp(file: Blob, version: string): Promise<AndroidRelease>;
+  opsRemoveAndroidApp(): Promise<void>;
 }

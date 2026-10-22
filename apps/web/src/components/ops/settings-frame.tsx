@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { MessageSquare, Palette, WalletCards } from 'lucide-react';
+import { MessageSquare, Palette, Smartphone, WalletCards } from 'lucide-react';
 import { NoPermission, OpsPage, useStaffCan } from '@/components/ops/ops-ui';
 import { cn } from '@/lib/cn';
 
@@ -12,6 +12,7 @@ const TABS = [
   { key: 'branding', href: '/ops/settings/branding', icon: Palette },
   { key: 'messaging', href: '/ops/settings/messaging', icon: MessageSquare },
   { key: 'payments', href: '/ops/settings/payments', icon: WalletCards },
+  { key: 'app', href: '/ops/settings/app', icon: Smartphone },
 ] as const;
 
 /**

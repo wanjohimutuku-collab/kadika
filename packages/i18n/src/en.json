@@ -1615,7 +1615,8 @@
       "tabs": {
         "branding": "Branding",
         "messaging": "SMS and WhatsApp",
-        "payments": "Payments"
+        "payments": "Payments",
+        "app": "Android app"
       },
       "noPermission": "Only admin staff can open the settings."
     },
@@ -1801,6 +1802,26 @@
       "grantButton": "Grant credit",
       "cards": "Cards",
       "messages": "Reminders"
+    },
+    "appRelease": {
+      "title": "Android app",
+      "intro": "Upload the signed APK. It downloads from {domain}/programu/kadi-sasa.apk and the App page shows the download button straight away.",
+      "current": "Downloading now",
+      "none": "No app yet. The App page says \"Coming soon\".",
+      "version": "Version",
+      "versionHelp": "Like 0.6.0; it must match the version inside the APK.",
+      "file": "APK file",
+      "choose": "Choose the .apk file",
+      "upload": "Upload",
+      "uploaded": "App uploaded",
+      "size": "Size: {size} MB",
+      "checksum": "SHA-256",
+      "uploadedAt": "Uploaded {when}",
+      "open": "Open the download link",
+      "remove": "Remove the app",
+      "removed": "App removed",
+      "confirmTitle": "Remove the app?",
+      "confirmBody": "The download button leaves the App page until you upload again."
     }
   },
   "mobile": {
@@ -2031,6 +2052,7 @@
     "play": "Get it on Google Play",
     "apk": "Download the APK directly",
     "apkHelp": "For phones without Google Play. Your phone will ask permission to install apps from this source. Only download from {host}.",
+    "apkMeta": "Version {version} · {size} MB",
     "requirements": "Android 8 or newer · Works on everyday phones",
     "soonBadge": "Coming soon",
     "soonTitle": "The app is not out yet",

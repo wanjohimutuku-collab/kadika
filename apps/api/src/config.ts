@@ -9,6 +9,8 @@ export interface Config {
   /** Public URL of this API (`API_PUBLIC_URL`), where gateways post callbacks. Null until set. */
   apiPublicUrl: string | null;
   shortBaseUrl: string;
+  /** Where staff-uploaded app files (the Android APK, ADR 047) are kept: a persistent volume. */
+  appFilesDir?: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
   /** Rollback levers for Kenya without turning it off (docs/ops/kenya-pilot-runbook.md): no new Kenyan
@@ -110,6 +112,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
     apiPublicUrl: env.API_PUBLIC_URL ? env.API_PUBLIC_URL.replace(/\/$/, '') : null,
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
+    appFilesDir: env.APP_FILES_DIR ?? 'data/app-files',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',
     kenyaPaymentsPaused: env.KENYA_PAYMENTS_PAUSED === '1' || env.KENYA_PAYMENTS_PAUSED === 'true',

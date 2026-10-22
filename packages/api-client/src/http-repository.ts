@@ -28,6 +28,7 @@ import { applyGuestQuery } from './domain/guest-filter';
 import { buildSampleSms, estimateSmsCostFor } from './domain/sms';
 import type {
   Activity,
+  AndroidRelease,
   AuditEntry,
   CardView,
   DataRequest,
@@ -386,11 +387,12 @@ export function createHttpRepository(
       res = await doFetch(`${baseUrl}${path}`, {
         method,
         headers: {
-          'content-type': 'application/json',
+          // a Blob (the APK upload) goes as raw bytes; everything else is JSON
+          'content-type': body instanceof Blob ? 'application/octet-stream' : 'application/json',
           ...(auth && tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
           ...extra,
         },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : body instanceof Blob ? body : JSON.stringify(body),
       });
     } catch {
       throw new RepositoryError('offline', 'No network');
@@ -722,6 +724,19 @@ export function createHttpRepository(
     },
     async opsSetLogo(file) {
       return call<BrandingView>('PUT', '/v1/ops/branding/logo', file);
+    },
+    async opsAndroidRelease() {
+      return (await call<{ release: AndroidRelease | null }>('GET', '/v1/ops/app/android')).release;
+    },
+    async opsUploadAndroidApp(file, version) {
+      return call<AndroidRelease>(
+        'PUT',
+        `/v1/ops/app/android?version=${encodeURIComponent(version)}`,
+        file,
+      );
+    },
+    async opsRemoveAndroidApp() {
+      await call('DELETE', '/v1/ops/app/android');
     },
     async opsRemoveLogo() {
       return call<BrandingView>('DELETE', '/v1/ops/branding/logo');

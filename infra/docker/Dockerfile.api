@@ -35,6 +35,10 @@ COPY --from=build --chown=node:node /out/node_modules ./node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist ./dist
 COPY --from=build --chown=node:node /repo/packages/db/drizzle ./drizzle
 ENV MIGRATIONS_DIR=/app/drizzle
+# Staff-uploaded app files (the Android APK, ADR 047) live on a volume mounted here; a named volume
+# copies this folder's owner on first use, so the API (user node) can write to it.
+RUN mkdir -p /data/app-files && chown node:node /data/app-files
+ENV APP_FILES_DIR=/data/app-files
 # The commit this image was built from, reported by /health so a deploy can be confirmed (ADR 035).
 # Set last so it never invalidates the build layers above.
 ARG GIT_SHA=dev

@@ -496,6 +496,15 @@ export interface EventReport {
   headcountTarget: number;
 }
 
+/** The Android app staff uploaded for /programu (ADR 047). */
+export interface AndroidRelease {
+  version: string;
+  /** Bytes. */
+  size: number;
+  sha256: string;
+  uploadedAt: ISODate;
+}
+
 export interface GateOverview {
   admittedGuests: number;
   admittedPeople: number;

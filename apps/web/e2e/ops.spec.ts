@@ -255,3 +255,18 @@ test('settings are for admin staff: billing staff see no menu entry and a refusa
   await expect(page.getByText('Ni wasimamizi pekee wanaoweza kufungua mipangilio.')).toBeVisible();
   await expect(page.getByTestId('branding-form')).toHaveCount(0);
 });
+
+test('staff: upload the Android app for /programu (ADR 047)', async ({ page }) => {
+  await loginStaff(page);
+  await page.goto('/ops/settings/app');
+  await expect(page.getByRole('status').or(page.getByText('Hakuna programu bado'))).toBeVisible();
+  await page.getByTestId('app-release-file').setInputFiles({
+    name: 'kadi-sasa.apk',
+    mimeType: 'application/vnd.android.package-archive',
+    buffer: Buffer.alloc(1_200_000, 1),
+  });
+  await page.getByTestId('app-release-version').fill('0.6.0');
+  await page.getByTestId('app-release-upload').click();
+  await expect(page.getByTestId('app-release-current')).toContainText('0.6.0');
+  await shot(page, 'ops-app-release');
+});

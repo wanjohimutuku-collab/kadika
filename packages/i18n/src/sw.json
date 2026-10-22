@@ -1619,7 +1619,8 @@
       "tabs": {
         "branding": "Chapa",
         "messaging": "SMS na WhatsApp",
-        "payments": "Malipo"
+        "payments": "Malipo",
+        "app": "Programu ya Android"
       },
       "noPermission": "Ni wasimamizi pekee wanaoweza kufungua mipangilio."
     },
@@ -1805,6 +1806,26 @@
       "grantButton": "Toa salio",
       "cards": "Kadi",
       "messages": "Vikumbusho"
+    },
+    "appRelease": {
+      "title": "Programu ya Android",
+      "intro": "Pakia faili la APK lililosainiwa. Linapakuliwa kutoka {domain}/programu/kadi-sasa.apk na ukurasa wa Programu unaonyesha kitufe cha kupakua mara moja.",
+      "current": "Inayopakuliwa sasa",
+      "none": "Hakuna programu bado. Ukurasa wa Programu unaonyesha \"Inakuja hivi karibuni\".",
+      "version": "Toleo",
+      "versionHelp": "Kama 0.6.0; lazima liwe sawa na toleo la ndani ya APK.",
+      "file": "Faili la APK",
+      "choose": "Chagua faili la .apk",
+      "upload": "Pakia",
+      "uploaded": "Programu imepakiwa",
+      "size": "Ukubwa: MB {size}",
+      "checksum": "SHA-256",
+      "uploadedAt": "Imepakiwa {when}",
+      "open": "Fungua kiungo cha kupakua",
+      "remove": "Ondoa programu",
+      "removed": "Programu imeondolewa",
+      "confirmTitle": "Ondoa programu?",
+      "confirmBody": "Kitufe cha kupakua kitaondoka kwenye ukurasa wa Programu hadi upakie tena."
     }
   },
   "mobile": {
@@ -2035,6 +2056,7 @@
     "play": "Pakua kwenye Google Play",
     "apk": "Pakua APK moja kwa moja",
     "apkHelp": "Kwa simu zisizo na Google Play. Simu itaomba ruhusa ya kusakinisha programu kutoka chanzo hiki. Pakua kutoka {host} tu.",
+    "apkMeta": "Toleo {version} · MB {size}",
     "requirements": "Android 8 au mpya zaidi · Inafanya kazi kwenye simu za kawaida",
     "soonBadge": "Inakuja hivi karibuni",
     "soonTitle": "Programu bado haijatoka",

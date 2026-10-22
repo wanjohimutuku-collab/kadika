@@ -145,6 +145,8 @@ export interface MockState {
     updatedAt: string;
     updatedBy: string;
   };
+  /** The Android app uploaded in /ops (ADR 047); the mock keeps its details, not the file. */
+  androidRelease?: { version: string; size: number; sha256: string; uploadedAt: string };
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
   /** Prices saved in /ops (ADR 042); undefined uses `DEFAULT_PRICING`. */

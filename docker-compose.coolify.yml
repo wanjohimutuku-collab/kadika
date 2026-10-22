@@ -22,6 +22,8 @@ services:
     # Keep ONE api replica: the migrator takes no lock.
     command: ['sh', '-c', 'node dist/migrate.js && exec node dist/index.js']
     restart: unless-stopped
+    volumes:
+      - appfiles:/data/app-files
     # Also runs the BullMQ workers and renders the print PDFs, so it gets more memory than web.
     deploy:
       resources:
@@ -37,6 +39,8 @@ services:
       SERVICE_URL_API_3001:
       NODE_ENV: production
       API_PORT: 3001
+      # The Android APK staff upload in /ops (ADR 047), on the appfiles volume.
+      APP_FILES_DIR: /data/app-files
       DATABASE_URL: postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/harusi
       REDIS_URL: redis://default:${SERVICE_PASSWORD_REDIS}@redis:6379
       JWT_SECRET: ${SERVICE_PASSWORD_64_JWT}
@@ -233,6 +237,7 @@ services:
         done
 
 volumes:
+  appfiles:
   pgdata:
   redisdata:
   pgbackups:

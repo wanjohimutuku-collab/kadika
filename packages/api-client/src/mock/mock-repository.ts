@@ -55,6 +55,7 @@ function checkedPalette(themeId: string, raw: PaletteOverrides | undefined): Pal
 import type { Repository } from '../repository';
 import type {
   Activity,
+  AndroidRelease,
   AuditEntry,
   CardView,
   EventReport,
@@ -3260,6 +3261,42 @@ export class MockRepository implements Repository {
       };
       this.opsLog('branding', 'logo', file.mime);
       return this.brandingView();
+    });
+  }
+
+  opsAndroidRelease(): Promise<AndroidRelease | null> {
+    return this.run('read', 'ops-app', () => {
+      this.requireStaff('settings');
+      return this.state.androidRelease ?? null;
+    });
+  }
+
+  opsUploadAndroidApp(file: Blob, version: string): Promise<AndroidRelease> {
+    return this.run('write', 'ops-app', () => {
+      this.requireStaff('settings');
+      if (!/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(version.trim()))
+        throw new RepositoryError('validation', 'Version must look like 1.2.3', {
+          field: 'version',
+        });
+      if (file.size < 1_000_000 || file.size > 150_000_000)
+        throw new RepositoryError('validation', 'The file must be between 1 MB and 150 MB', {
+          field: 'file',
+        });
+      // the mock keeps only the details; the checksum is a stand-in
+      this.state.androidRelease = {
+        version: version.trim(),
+        size: file.size,
+        sha256: '0'.repeat(64),
+        uploadedAt: iso(this.now()),
+      };
+      return this.state.androidRelease;
+    });
+  }
+
+  opsRemoveAndroidApp(): Promise<void> {
+    return this.run('write', 'ops-app', () => {
+      this.requireStaff('settings');
+      this.state.androidRelease = undefined;
     });
   }
 

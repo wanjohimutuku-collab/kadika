@@ -38,6 +38,8 @@ import { requireStaff, type StaffCaller } from './services/staff-guard';
 import { MessagingSettingsService } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
 import { BrandingService } from './services/branding';
+import { AppReleaseService } from './services/app-release';
+import { Readable } from 'node:stream';
 import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
 import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
@@ -188,6 +190,7 @@ export function createApp(deps: Deps) {
   const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
+  const appReleaseSvc = new AppReleaseService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const reportSvc = new ReportService(deps, eventsSvc, deliverySvc, pledgeSvc, gateSvc);
@@ -338,6 +341,8 @@ export function createApp(deps: Deps) {
     c.req.path === '/v1/gate/join' ||
     c.req.path === '/v1/branding' ||
     c.req.path === '/v1/pricing' ||
+    c.req.path === '/v1/app/android' ||
+    c.req.path === '/v1/app/android.apk' ||
     c.req.path === '/v1/branding/logo' ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
@@ -1048,6 +1053,41 @@ export function createApp(deps: Deps) {
     return c.json(await billingSvc.publicCatalog());
   });
 
+  // ---- the Android app from our own domain (ADR 047): public to download, admin staff upload it
+  app.get('/v1/app/android', async (c) => {
+    c.header('cache-control', 'public, max-age=60');
+    const meta = await appReleaseSvc.current();
+    if (!meta) throw new ApiError('not_found', 'No app yet');
+    return c.json(meta);
+  });
+  app.get('/v1/app/android.apk', async (c) => {
+    const file = await appReleaseSvc.file();
+    if (!file) throw new ApiError('not_found', 'No app yet');
+    const etag = `"${file.meta.sha256}"`;
+    const headers: Record<string, string> = {
+      'content-type': 'application/vnd.android.package-archive',
+      'content-disposition': `attachment; filename="kadi-sasa-${file.meta.version}.apk"`,
+      etag,
+      'cache-control': 'public, max-age=300',
+      'x-content-type-options': 'nosniff',
+    };
+    if (c.req.header('if-none-match') === etag) return c.body(null, 304, headers);
+    headers['content-length'] = String(file.meta.size);
+    return c.body(Readable.toWeb(file.stream()) as ReadableStream, 200, headers);
+  });
+  app.get('/v1/ops/app/android', async (c) => {
+    await requireStaff(deps.db, staff(c));
+    return c.json({ release: await appReleaseSvc.current() });
+  });
+  app.put('/v1/ops/app/android', async (c) => {
+    const version = c.req.query('version') ?? '';
+    const bytes = new Uint8Array(await c.req.arrayBuffer());
+    return c.json(await appReleaseSvc.upload(staff(c), bytes, version));
+  });
+  app.delete('/v1/ops/app/android', async (c) => {
+    await appReleaseSvc.remove(staff(c));
+    return c.json({ release: null });
+  });
   // ---- business branding (ADR 036): public to read, admin staff only to change
   app.get('/v1/branding', async (c) => {
     c.header('cache-control', 'public, max-age=60');

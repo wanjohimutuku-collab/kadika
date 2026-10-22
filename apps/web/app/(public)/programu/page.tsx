@@ -19,7 +19,9 @@ import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
 import { absoluteLocaleUrl, localeUrl } from '@/lib/seo';
 import { getBrandingOnServer } from '@/lib/server-branding';
-import { APP_DOWNLOAD_PATH, appLinksFrom, hostOf } from '@/lib/app-download';
+import { APP_APK_PATH, APP_DOWNLOAD_PATH, appLinksFrom, hostOf } from '@/lib/app-download';
+import { getAndroidReleaseOnServer } from '@/lib/server-app-release';
+import { APP_DOMAIN } from '@/lib/env';
 
 const FEATURES = [
   { key: 'send', icon: Send },
@@ -53,7 +55,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AppDownloadPage() {
   await connection();
   const links = appLinksFrom(process.env);
-  const available = Boolean(links.play || links.apk);
+  // An APK staff uploaded in /ops downloads from our own domain (ADR 047); ANDROID_APK_URL is the fallback.
+  const release = await getAndroidReleaseOnServer();
+  const apk = release
+    ? { href: APP_APK_PATH, host: APP_DOMAIN }
+    : links.apk
+      ? { href: links.apk, host: hostOf(links.apk) }
+      : null;
+  const available = Boolean(links.play || apk);
   const t = await getTranslations('appDownload');
   const locale = (await getLocale()) as Locale;
   const brand = (await getBrandingOnServer()).businessName;
@@ -87,10 +96,10 @@ export default async function AppDownloadPage() {
                     {t('play')}
                   </a>
                 ) : null}
-                {links.apk ? (
+                {apk ? (
                   <>
                     <a
-                      href={links.apk}
+                      href={apk.href}
                       rel="noopener"
                       className={buttonClasses(
                         links.play ? 'ghost' : 'secondary',
@@ -105,9 +114,19 @@ export default async function AppDownloadPage() {
                       <Download className="size-5" aria-hidden="true" />
                       {t('apk')}
                     </a>
-                    <p className="text-sm opacity-90">
-                      {t('apkHelp', { host: hostOf(links.apk) })}
-                    </p>
+                    <p className="text-sm opacity-90">{t('apkHelp', { host: apk.host })}</p>
+                    {release ? (
+                      <p className="text-sm opacity-90" data-testid="app-download-apk-meta">
+                        {t('apkMeta', {
+                          version: release.version,
+                          size: (release.size / 1_000_000).toFixed(1),
+                        })}
+                        <br />
+                        <span className="font-mono text-xs break-all opacity-80">
+                          SHA-256: {release.sha256}
+                        </span>
+                      </p>
+                    ) : null}
                   </>
                 ) : null}
                 <p className="text-sm opacity-90">{t('requirements')}</p>

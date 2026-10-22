@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShieldCheck } from 'lucide-react';
@@ -16,8 +16,43 @@ import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
 import { useBrand } from '@/components/brand/brand-provider';
+import {
+  confirmPhoneCode,
+  FirebasePhoneError,
+  hasPendingCode,
+  loadAuthConfig,
+  startPhoneSignIn,
+  type PhoneSignInError,
+} from '@/lib/firebase-phone';
 
 const PHONE_KEY = 'harusi.login.phone';
+
+/** Sends the code through whichever provider the API names (ADR 048). */
+async function sendCode(phone: string, recaptcha: HTMLElement | null, locale: string) {
+  const cfg = await loadAuthConfig();
+  if (cfg.otpProvider === 'firebase') {
+    if (!recaptcha) throw new FirebasePhoneError('failed');
+    await startPhoneSignIn(phone, recaptcha, locale);
+    return;
+  }
+  await getRepository().requestOtp(phone);
+}
+
+function useFirebaseMessage() {
+  const t = useTranslations('auth');
+  const ts = useTranslations('states');
+  const tv = useTranslations('validation');
+  return (reason: PhoneSignInError) =>
+    reason === 'invalid_phone'
+      ? tv('phone.invalid_chars')
+      : reason === 'wrong_code'
+        ? t('wrongCodeRetry')
+        : reason === 'expired'
+          ? t('codeExpired')
+          : reason === 'too_many'
+            ? t('tooManyRequests')
+            : ts('errorBody');
+}
 
 function safeNext(next: string | null): string {
   return next && (next.startsWith('/app') || next.startsWith('/ops')) ? next : '/app';
@@ -35,6 +70,9 @@ export function LoginPhone() {
   const brand = useBrand().brand.businessName;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const locale = useLocale();
+  const recaptcha = useRef<HTMLDivElement>(null);
+  const firebaseMessage = useFirebaseMessage();
   return (
     <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
       <h1 className="text-3xl font-semibold">{t('title', { brand })}</h1>
@@ -57,9 +95,13 @@ export function LoginPhone() {
           setBusy(true);
           setError(null);
           try {
-            await getRepository().requestOtp(r.e164);
+            await sendCode(r.e164, recaptcha.current, locale);
           } catch (err) {
-            if (isRepositoryError(err) && err.code === 'rate_limited') {
+            if (err instanceof FirebasePhoneError) {
+              setError(firebaseMessage(err.reason));
+              setBusy(false);
+              return;
+            } else if (isRepositoryError(err) && err.code === 'rate_limited') {
               // A code was already sent recently: continue to the code screen.
             } else if (isRepositoryError(err) && err.code === 'locked') {
               setError(
@@ -111,6 +153,8 @@ export function LoginPhone() {
         <Button type="submit" size="lg" block loading={busy} data-testid="send-code">
           {t('sendCode')}
         </Button>
+        {/* Invisible reCAPTCHA for Firebase Phone Auth (ADR 048); empty otherwise. */}
+        <div ref={recaptcha} />
       </form>
       <p className="flex items-start gap-2 text-sm text-muted">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
@@ -141,11 +185,24 @@ export function LoginOtp() {
     { status: 'none' } | { status: 'loading' } | { status: 'ready'; secret: string; url: string }
   >({ status: 'none' });
   const [name, setName] = useState('');
+  const recaptcha = useRef<HTMLDivElement>(null);
+  const firebaseMessage = useFirebaseMessage();
+  /** Firebase sent the code (ADR 048): it checks it, then the API trades the ID token. */
+  const [firebase, setFirebase] = useState(false);
 
   useEffect(() => {
     const p = sessionStorage.getItem(PHONE_KEY);
-    if (!p) router.replace('/login');
-    else setPhone(p);
+    if (!p) {
+      router.replace('/login');
+      return;
+    }
+    setPhone(p);
+    void loadAuthConfig().then((cfg) => {
+      if (cfg.otpProvider !== 'firebase') return;
+      // The Firebase code lives in this tab only: after a reload the visitor asks for a new one.
+      if (!hasPendingCode(p)) router.replace('/login');
+      else setFirebase(true);
+    });
   }, [router]);
 
   useEffect(() => {
@@ -159,7 +216,9 @@ export function LoginOtp() {
     setBusy(true);
     setError(null);
     try {
-      const session = await getRepository().verifyOtp(phone, value);
+      const session = firebase
+        ? await getRepository().signInWithFirebase(await confirmPhoneCode(value))
+        : await getRepository().verifyOtp(phone, value);
       sessionStorage.removeItem(PHONE_KEY);
       if (session.needsSecondFactor) {
         // Staff accounts need a second factor before any data is available.
@@ -190,7 +249,9 @@ export function LoginOtp() {
       );
     } catch (err) {
       setCode('');
-      if (isRepositoryError(err) && err.code === 'locked') {
+      if (err instanceof FirebasePhoneError) {
+        setError(firebaseMessage(err.reason));
+      } else if (isRepositoryError(err) && err.code === 'locked') {
         setLocked(true);
         setError(
           t('locked', {
@@ -368,11 +429,12 @@ export function LoginOtp() {
           onClick={async () => {
             if (!phone) return;
             try {
-              await getRepository().requestOtp(phone);
+              await sendCode(phone, recaptcha.current, locale);
               setNotice(t('resent'));
               setResendIn(30);
             } catch (err) {
-              if (isRepositoryError(err) && err.code === 'rate_limited')
+              if (err instanceof FirebasePhoneError) setNotice(firebaseMessage(err.reason));
+              else if (isRepositoryError(err) && err.code === 'rate_limited')
                 setResendIn(Number(err.details?.retryAfterSeconds ?? 30));
               else setNotice(ts('errorBody'));
             }
@@ -388,6 +450,7 @@ export function LoginOtp() {
         <Button variant="ghost" onClick={() => router.push('/login')}>
           {t('changePhone')}
         </Button>
+        <div ref={recaptcha} />
       </div>
       <p className="flex items-start gap-2 text-sm text-muted" lang={locale}>
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />

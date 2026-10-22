@@ -53,6 +53,22 @@ export interface User {
   lastLoginAt?: ISODate | null;
 }
 
+/**
+ * Which sign-in flow to use (GET /v1/auth/config, ADR 048). `firebase`: the client gets the code from
+ * Firebase Phone Auth and trades the Firebase ID token for a session. The web values are public.
+ */
+export type AuthConfig =
+  | { otpProvider: 'sms' }
+  | {
+      otpProvider: 'firebase';
+      firebase: {
+        projectId: string;
+        apiKey: string | null;
+        authDomain: string | null;
+        appId: string | null;
+      };
+    };
+
 export interface Session {
   user: User;
   /** Staff accounts must pass a second factor before any data is available. */

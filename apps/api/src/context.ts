@@ -1,3 +1,4 @@
+import type { JWTVerifyGetKey } from 'jose';
 import type { Db } from '@harusi/db';
 import type { Country } from '@harusi/schemas/country';
 import type { DeliveryState } from '@harusi/messaging';
@@ -35,6 +36,8 @@ export interface Deps {
   messagingSettings?: MessagingSettingsService;
   /** Payment gateway settings edited in /ops (ADR 036); index.ts shares one with its refresh timer. */
   paymentSettings?: PaymentSettingsService;
+  /** Keys for Firebase ID tokens (ADR 048); Google's published keys when absent. Tests pass their own. */
+  firebaseKeys?: JWTVerifyGetKey;
   config: Config;
   now: () => Date;
   random: (n: number) => Uint8Array;

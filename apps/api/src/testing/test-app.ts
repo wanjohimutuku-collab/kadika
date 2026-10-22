@@ -86,6 +86,9 @@ export async function createTestContext(
       LOG_REQUESTS: '0',
       // The pay-from-card tests predate ADR 043; a test passes '0' to see the default (off).
       GUEST_PAYMENTS_ENABLED: '1',
+      // Every test logs in from the same address; the OTP abuse limits get their own tests.
+      OTP_IP_HOURLY_LIMIT: '100000',
+      OTP_GLOBAL_HOURLY_LIMIT: '100000',
       ...opts.env,
       WHATSAPP_TOKEN: 'cloud-token',
       WHATSAPP_PHONE_ID: '1234567890',

@@ -59,6 +59,14 @@ services:
       # Delivery webhooks send this in the x-webhook-secret header.
       WEBHOOK_SECRET: ${SERVICE_PASSWORD_WEBHOOK}
       SENTRY_DSN: ${SENTRY_DSN:-}
+      # Behind Cloudflare the real client IP is in cf-connecting-ip; rate limits key on it. Without the
+      # header (no Cloudflare in front) the API falls back to the last X-Forwarded-For hop.
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-cf-connecting-ip}
+      # Spend guards: login codes per IP per hour, login codes per hour in total, and the 24-hour
+      # SMS/WhatsApp count that raises an alert (docs/ops/production-readiness-audit.md).
+      OTP_IP_HOURLY_LIMIT: ${OTP_IP_HOURLY_LIMIT:-20}
+      OTP_GLOBAL_HOURLY_LIMIT: ${OTP_GLOBAL_HOURLY_LIMIT:-500}
+      MESSAGE_DAILY_ALERT: ${MESSAGE_DAILY_ALERT:-5000}
       # Providers: everything is `fake` until filled in (fake = nothing is really sent or charged).
       # With SMS fake, organizers never receive their login OTP.
       # SMS, WhatsApp and the payment gateway are set in /ops/settings (ADR 031, 036), encrypted in the
@@ -138,7 +146,20 @@ services:
         limits:
           cpus: '0.5'
           memory: 256M
-    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${SERVICE_PASSWORD_REDIS}']
+    # BullMQ needs noeviction: an evicting Redis silently drops queued jobs. The cap sits under the
+    # container limit, so a full Redis refuses writes (visible errors) instead of being OOM-killed.
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '200mb',
+        '--maxmemory-policy',
+        'noeviction',
+        '--requirepass',
+        '${SERVICE_PASSWORD_REDIS}',
+      ]
     volumes:
       - redisdata:/data
     healthcheck:
@@ -149,6 +170,69 @@ services:
     environment:
       REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
 
+  # Nightly pg_dump of the stack's database (RESTORE.md). Dumps go to the pgbackups volume, 14 days
+  # kept; with BACKUP_S3_BUCKET set each dump is also copied off the server (do this: a volume on the
+  # same VPS does not survive losing the VPS). BACKUP_HEARTBEAT_URL is pinged after every good dump,
+  # so the uptime monitor notices when backups stop (UPTIME.md). A first dump runs at start.
+  backup:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${SERVICE_USER_POSTGRES}
+      PGPASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      PGDATABASE: harusi
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-23}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_HEARTBEAT_URL: ${BACKUP_HEARTBEAT_URL:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-harusi/postgres}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${BACKUP_S3_REGION:-auto}
+    volumes:
+      - pgbackups:/backups
+    entrypoint: ['sh', '-c']
+    command:
+      - |
+        set -eu -o pipefail
+        if [ -n "$${BACKUP_S3_BUCKET}" ]; then apk add --no-cache aws-cli > /dev/null; fi
+        echo "[backup] daily at $${BACKUP_HOUR_UTC}:00 UTC, keeping $${BACKUP_KEEP_DAYS} days"
+        last=""
+        while true; do
+          day=$$(date -u +%Y%m%d)
+          if [ ! -e /backups/.started ] || { [ "$$(date -u +%H)" = "$$(printf %02d "$${BACKUP_HOUR_UTC}")" ] && [ "$$last" != "$$day" ]; }; then
+            touch /backups/.started
+            last=$$day
+            f="/backups/harusi-$$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
+            if pg_dump --no-owner --no-acl | gzip -9 > "$$f.tmp" && gzip -t "$$f.tmp" && [ "$$(wc -c < "$$f.tmp")" -gt 2000 ]; then
+              mv "$$f.tmp" "$$f"
+              echo "[backup] wrote $$f ($$(wc -c < "$$f") bytes)"
+              ok=1
+              if [ -n "$${BACKUP_S3_BUCKET}" ]; then
+                ep=""; [ -n "$${BACKUP_S3_ENDPOINT}" ] && ep="--endpoint-url $${BACKUP_S3_ENDPOINT}"
+                aws s3 cp "$$f" "s3://$${BACKUP_S3_BUCKET}/$${BACKUP_S3_PREFIX}/$$(basename "$$f")" $$ep --only-show-errors || { ok=0; echo "[backup] ERROR: upload failed"; }
+              fi
+              find /backups -name 'harusi-*.sql.gz' -mtime +"$${BACKUP_KEEP_DAYS}" -delete
+              if [ "$$ok" = 1 ] && [ -n "$${BACKUP_HEARTBEAT_URL}" ]; then wget -q -O /dev/null "$${BACKUP_HEARTBEAT_URL}" || echo "[backup] heartbeat ping failed"; fi
+            else
+              rm -f "$$f.tmp"
+              echo "[backup] ERROR: pg_dump failed or the dump is too small; nothing kept"
+            fi
+          fi
+          sleep 300
+        done
+
 volumes:
   pgdata:
   redisdata:
+  pgbackups:

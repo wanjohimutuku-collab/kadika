@@ -95,8 +95,34 @@ On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coo
 **Migrations.** The stack's `api` command runs `node dist/migrate.js` before the server starts, in the new
 image, so no Coolify pre-deployment hook is needed. Keep one `api` container: the migrator takes no lock.
 
-**Backups.** Postgres lives in the stack's `pgdata` volume. Schedule `infra/backup/pg-backup.sh` (see
-[`RESTORE.md`](RESTORE.md)); Coolify's built-in scheduled backups only cover standalone database resources.
+**Backups.** Postgres lives in the stack's `pgdata` volume. Coolify's built-in scheduled backups only cover
+standalone database resources, so the stack has its own `backup` service: a nightly `pg_dump` (23:00 UTC, 02:00
+in Dar es Salaam) into the `pgbackups` volume, 14 days kept, plus a first dump when it starts. Set
+`BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` (and `BACKUP_S3_ENDPOINT` for R2) so
+each dump is also copied off the server, and `BACKUP_HEARTBEAT_URL` to a monitor's push URL (see
+[`UPTIME.md`](UPTIME.md)). Restore steps: [`RESTORE.md`](RESTORE.md).
+
+## Owner actions (production readiness)
+
+From the audit in [`docs/ops/production-readiness-audit.md`](../../docs/ops/production-readiness-audit.md). None of
+these can be done from the repository.
+
+- [ ] **Backups off the server.** Redeploy so the `backup` service starts, and check its log for
+      `[backup] wrote …`. Set the `BACKUP_S3_*` variables, with a 30-day lifecycle rule on the bucket. Run the
+      drill in `RESTORE.md` and fill in its log. Production is a pasted compose: paste the `backup` service and
+      the `pgbackups` volume into it by hand.
+- [ ] **Sentry.** Create a project, set `SENTRY_DSN` on the api service (staging and production), and add alert
+      rules for new issues, "Message volume alert" and "OTP hourly limit reached".
+- [ ] **Provider spend alerts.** Low-balance alerts in NextSMS and Africa's Talking; a spending limit and billing
+      alerts for WhatsApp in Meta Business Manager; failed-payment and payout notifications in Snippe. Keep prepaid
+      balances to about one busy week.
+- [ ] **Uptime and backup heartbeat.** The monitors in `UPTIME.md`, with `BACKUP_HEARTBEAT_URL` set to the
+      heartbeat monitor's push URL.
+- [ ] **Origin firewall.** Allow 80/443 only from Cloudflare's IP ranges, so `cf-connecting-ip` (the
+      `CLIENT_IP_HEADER` rate limits key on) cannot be forged. On a stack not behind Cloudflare, set
+      `CLIENT_IP_HEADER` empty.
+- [ ] **Tune the guards** after the first busy week: `OTP_IP_HOURLY_LIMIT` (20), `OTP_GLOBAL_HOURLY_LIMIT` (500),
+      `MESSAGE_DAILY_ALERT` (5,000).
 
 ## Production hostnames (kadisasa.com)
 
@@ -191,6 +217,10 @@ workflow.
 
 Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
 roll back with the image, so check an old image still works with the current schema first.
+
+Keep migrations expand-only (add columns and tables; drop or rename only in a later release, once no image in
+use reads them), so any recent image can run on the current schema. Before tagging a release that migrates, take
+a fresh dump: `docker exec <backup container> sh -c 'pg_dump --no-owner --no-acl | gzip > /backups/pre-release.sql.gz'`.
 
 ## Keeping deploys fast
 

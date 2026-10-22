@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import {
   events,
   guests,
@@ -27,6 +27,8 @@ import { CARD_DELIVERY_KINDS } from '@harusi/schemas/billing';
 
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
+/** A `queued` claim older than this belongs to a send that died; the guest counts as unsent again. */
+const CLAIM_STALE_MS = 15 * 60_000;
 
 /**
  * Who a send goes to. `remaining` and `failed` fit invitations; `unanswered` (invited, no reply yet) and
@@ -277,7 +279,7 @@ export class DeliveryService {
           })
           .where(
             kind === 'invite'
-              ? and(eq(invitations.id, inv.id), eq(invitations.status, 'created'))
+              ? and(eq(invitations.id, inv.id), inArray(invitations.status, ['created', 'queued']))
               : eq(invitations.id, inv.id),
           );
         return { ok: true, channel: ch };
@@ -600,14 +602,58 @@ export class DeliveryService {
             ).map((r) => r.guestId),
           )
         : null;
+    const unsent = (inv: typeof invitations.$inferSelect) => this.unsent(inv);
     const picked = rows.filter(({ guest, inv }) => {
-      if (t === 'remaining') return inv.status === 'created';
-      if (t === 'failed') return inv.status === 'created' && failedIds!.has(guest.id);
+      if (t === 'remaining') return unsent(inv);
+      if (t === 'failed') return unsent(inv) && failedIds!.has(guest.id);
       if (typeof t === 'string') return false;
       if ('guestIds' in t) return t.guestIds.includes(guest.id);
-      return guest.groupLabel === t.group && inv.status === 'created';
+      return guest.groupLabel === t.group && unsent(inv);
     });
     return { event, kind, picked };
+  }
+
+  /** Not sent yet: `created`, or `queued` by a send that died before finishing (claim gone stale). */
+  private unsent(inv: typeof invitations.$inferSelect): boolean {
+    if (inv.status === 'created') return true;
+    return (
+      inv.status === 'queued' &&
+      inv.updatedAt.getTime() < this.deps.now().getTime() - CLAIM_STALE_MS
+    );
+  }
+
+  /**
+   * Claims an unsent invitation for this run (`created` → `queued`) with a conditional update, so two
+   * sends running at once (a retried request, a scheduled send next to a manual one, two committee
+   * members) never text the same guest twice. False: another run has it.
+   */
+  private async claim(inv: typeof invitations.$inferSelect): Promise<boolean> {
+    const now = this.deps.now();
+    const [row] = await this.deps.db
+      .update(invitations)
+      .set({ status: 'queued', updatedAt: now })
+      .where(
+        and(
+          eq(invitations.id, inv.id),
+          or(
+            eq(invitations.status, 'created'),
+            and(
+              eq(invitations.status, 'queued'),
+              lt(invitations.updatedAt, new Date(now.getTime() - CLAIM_STALE_MS)),
+            ),
+          ),
+        ),
+      )
+      .returning({ id: invitations.id });
+    return !!row;
+  }
+
+  /** Gives a claimed invitation back when nothing reached the guest, so a later send retries it. */
+  private async unclaim(inv: typeof invitations.$inferSelect): Promise<void> {
+    await this.deps.db
+      .update(invitations)
+      .set({ status: 'created' })
+      .where(and(eq(invitations.id, inv.id), eq(invitations.status, 'queued')));
   }
 
   /** How many guests an audience matches right now (a scheduled send stores this as its estimate). */
@@ -705,7 +751,21 @@ export class DeliveryService {
         summary.skipped++;
         continue;
       }
-      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft, undefined, budget);
+      // A first invitation is claimed before it goes out; a resend to someone already invited is not.
+      const claimed = kind === 'invite' && this.unsent(inv);
+      const takenElsewhere = kind === 'invite' && inv.status === 'queued' && !claimed;
+      if (takenElsewhere || (claimed && !(await this.claim(inv)))) {
+        summary.skipped++; // another send is reaching this guest right now
+        continue;
+      }
+      let r: Awaited<ReturnType<DeliveryService['dispatch']>>;
+      try {
+        r = await this.dispatch(guest, inv, event, kind, channels, daysLeft, undefined, budget);
+      } catch (e) {
+        if (claimed) await this.unclaim(inv);
+        throw e;
+      }
+      if (claimed && !r.ok) await this.unclaim(inv);
       if (r.ok) {
         summary.sent++;
         summary.byChannel[r.channel === 'whatsapp' ? 'whatsapp' : 'sms']++;

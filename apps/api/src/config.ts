@@ -72,6 +72,18 @@ export interface Config {
   cardReadLimit: number;
   /** Sentry project DSN; error reporting is off without it. */
   sentryDsn: string | null;
+  /**
+   * Header that carries the real client IP, set by the edge proxy (e.g. `cf-connecting-ip` behind
+   * Cloudflare). Without it the last X-Forwarded-For entry is used: the one the nearest proxy added,
+   * which a client cannot forge. Rate limits key on this IP.
+   */
+  clientIpHeader: string | null;
+  /** Login codes one IP may request per hour, across all phone numbers (SMS pumping guard). */
+  otpIpHourlyLimit: number;
+  /** Login codes the whole API sends per hour; past it requests fail and staff are alerted. */
+  otpGlobalHourlyLimit: number;
+  /** SMS + WhatsApp messages in 24 hours above which an alert is reported (spend guard; 0 = off). */
+  messageDailyAlert: number;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -194,5 +206,9 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     logRequests: env.LOG_REQUESTS !== '0',
     cardReadLimit: Number(env.CARD_READ_LIMIT ?? 120),
     sentryDsn: env.SENTRY_DSN || null,
+    clientIpHeader: env.CLIENT_IP_HEADER ? env.CLIENT_IP_HEADER.toLowerCase() : null,
+    otpIpHourlyLimit: Number(env.OTP_IP_HOURLY_LIMIT ?? 20),
+    otpGlobalHourlyLimit: Number(env.OTP_GLOBAL_HOURLY_LIMIT ?? 500),
+    messageDailyAlert: Number(env.MESSAGE_DAILY_ALERT ?? 5000),
   };
 }

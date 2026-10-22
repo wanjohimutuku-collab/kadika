@@ -27,7 +27,7 @@ const upload = (token: string, bytes: Uint8Array, version: string) =>
   ctx.app.request(`/v1/ops/app/android?version=${version}`, {
     method: 'PUT',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/octet-stream' },
-    body: bytes,
+    body: bytes.slice().buffer,
   });
 
 describe('Android app download from our own domain (ADR 047)', () => {

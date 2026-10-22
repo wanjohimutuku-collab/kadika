@@ -69,8 +69,8 @@ export default function AppReleasePage() {
       <QueryState query={q} skeleton={<Skeleton className="h-32" />}>
         {(release) =>
           release ? (
-            <Card className="flex flex-col gap-2" data-testid="app-release-current">
-              <h2 className="text-lg font-semibold">
+            <Card className="flex flex-col gap-2">
+              <h2 className="text-lg font-semibold" data-testid="app-release-current">
                 {t('current')}: {release.version}
               </h2>
               <p className="text-sm text-muted">

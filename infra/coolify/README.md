@@ -62,7 +62,7 @@ personal access token with the `read:packages` scope as a registry credential so
 
 ### 3. Coolify (one stack per environment)
 
-On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coolify.korahost.com), project
+On **coolify.kadisasa.com** (the kadisasa VPS; not the older coolify.korahost.com), project
 `kadika`, for staging (production is the same with the production values):
 
 1. **+ New → Application → Private Repository (with GitHub App)**, branch **`deploy/staging`** (`deploy/production`

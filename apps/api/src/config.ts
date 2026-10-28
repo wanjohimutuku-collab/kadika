@@ -86,6 +86,18 @@ export interface Config {
   otpGlobalHourlyLimit: number;
   /** SMS + WhatsApp messages in 24 hours above which an alert is reported (spend guard; 0 = off). */
   messageDailyAlert: number;
+  /**
+   * Who sends sign-in codes (ADR 048): `sms` is our own code through the SMS route; `firebase` is
+   * Firebase Phone Auth, and our SMS routes then carry only transactional messages.
+   */
+  authOtpProvider: 'sms' | 'firebase';
+  /** Firebase project for phone sign-in. The web values are public; clients read them from the API. */
+  firebase: {
+    projectId: string;
+    apiKey: string | null;
+    authDomain: string | null;
+    appId: string | null;
+  } | null;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -105,6 +117,11 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     throw new Error('JWT_SECRET and KEY_ENC_SECRET must be set to real secrets in production');
   }
   if (jwtSecret.length < 16) throw new Error('JWT_SECRET must be at least 16 characters');
+  const authOtpProvider = env.AUTH_OTP_PROVIDER ?? 'sms';
+  if (authOtpProvider !== 'sms' && authOtpProvider !== 'firebase')
+    throw new Error('AUTH_OTP_PROVIDER must be sms or firebase');
+  if (authOtpProvider === 'firebase' && !env.FIREBASE_PROJECT_ID)
+    throw new Error('AUTH_OTP_PROVIDER=firebase needs FIREBASE_PROJECT_ID');
   return {
     databaseUrl: required(env, 'DATABASE_URL'),
     jwtSecret,
@@ -213,5 +230,14 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     otpIpHourlyLimit: Number(env.OTP_IP_HOURLY_LIMIT ?? 20),
     otpGlobalHourlyLimit: Number(env.OTP_GLOBAL_HOURLY_LIMIT ?? 500),
     messageDailyAlert: Number(env.MESSAGE_DAILY_ALERT ?? 5000),
+    authOtpProvider,
+    firebase: env.FIREBASE_PROJECT_ID
+      ? {
+          projectId: env.FIREBASE_PROJECT_ID,
+          apiKey: env.FIREBASE_WEB_API_KEY ?? null,
+          authDomain: env.FIREBASE_AUTH_DOMAIN ?? `${env.FIREBASE_PROJECT_ID}.firebaseapp.com`,
+          appId: env.FIREBASE_WEB_APP_ID ?? null,
+        }
+      : null,
   };
 }

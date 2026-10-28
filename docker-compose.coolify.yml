@@ -71,8 +71,16 @@ services:
       OTP_IP_HOURLY_LIMIT: ${OTP_IP_HOURLY_LIMIT:-20}
       OTP_GLOBAL_HOURLY_LIMIT: ${OTP_GLOBAL_HOURLY_LIMIT:-500}
       MESSAGE_DAILY_ALERT: ${MESSAGE_DAILY_ALERT:-5000}
+      # Sign-in codes (ADR 048): `sms` sends our own code through the SMS route below; `firebase` uses
+      # Firebase Phone Auth and the SMS route then carries only invitations and other card messages.
+      # `firebase` needs FIREBASE_PROJECT_ID. The web values are public and served to clients by the API.
+      AUTH_OTP_PROVIDER: ${AUTH_OTP_PROVIDER:-sms}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY:-}
+      FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}
+      FIREBASE_WEB_APP_ID: ${FIREBASE_WEB_APP_ID:-}
       # Providers: everything is `fake` until filled in (fake = nothing is really sent or charged).
-      # With SMS fake, organizers never receive their login OTP.
+      # With SMS fake (and AUTH_OTP_PROVIDER=sms), organizers never receive their login OTP.
       # SMS, WhatsApp and the payment gateway are set in /ops/settings (ADR 031, 036), encrypted in the
       # database, and saved settings override everything below. These variables are only the first-start
       # fallback: the very first staff sign-in needs an SMS provider before anyone can open /ops, and a

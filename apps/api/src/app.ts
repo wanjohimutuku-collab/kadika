@@ -226,6 +226,8 @@ export function createApp(deps: Deps) {
     'otp-all',
     deps.rateStore,
   );
+  // Firebase already limits code requests; this only stops token-guessing floods on our side.
+  const firebaseSignIns = new RateLimiter(deps.now, 30, 600_000, 'firebase-signin', deps.rateStore);
   let otpAlertAt = 0; // one alert per 10 minutes, not one per refused request
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
@@ -309,6 +311,28 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await auth.verifyOtp(p, code));
+  });
+  // Which sign-in flow clients use (ADR 048); the Firebase web values are public by design.
+  app.get('/v1/auth/config', (c) => {
+    const fb = deps.config.firebase;
+    return c.json(
+      deps.config.authOtpProvider === 'firebase' && fb
+        ? {
+            otpProvider: 'firebase' as const,
+            firebase: {
+              projectId: fb.projectId,
+              apiKey: fb.apiKey,
+              authDomain: fb.authDomain,
+              appId: fb.appId,
+            },
+          }
+        : { otpProvider: 'sms' as const },
+    );
+  });
+  app.post('/v1/auth/firebase', async (c) => {
+    await firebaseSignIns.check(`ip:${client(c)}`);
+    const { idToken } = parse(z.object({ idToken: z.string().min(20).max(4096) }), await body(c));
+    return c.json(await auth.verifyFirebase(idToken));
   });
   app.post('/v1/auth/refresh', async (c) => {
     const { refreshToken } = parse(z.object({ refreshToken: z.string().min(10) }), await body(c));

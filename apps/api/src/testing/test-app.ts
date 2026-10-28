@@ -38,7 +38,11 @@ function migratedTemplate() {
 
 /** Real SQL (PGlite, in-process Postgres) + migrations + fake SMS: no Docker needed in unit tests. */
 export async function createTestContext(
-  opts: { now?: () => Date; env?: Record<string, string> } = {},
+  opts: {
+    now?: () => Date;
+    env?: Record<string, string>;
+    firebaseKeys?: Deps['firebaseKeys'];
+  } = {},
 ) {
   const client = (await (await migratedTemplate()).clone()) as PGlite;
   const db = drizzle(client, { schema }) as unknown as Db;
@@ -77,6 +81,7 @@ export async function createTestContext(
     payments,
     paymentsByCountry: { KE: paymentsKe },
     sleep: async () => {},
+    firebaseKeys: opts.firebaseKeys,
     config: loadConfig({
       DATABASE_URL: 'pglite',
       JWT_SECRET: 'test-secret-at-least-16-chars',

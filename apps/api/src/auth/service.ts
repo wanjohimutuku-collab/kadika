@@ -5,6 +5,7 @@ import { allowedCountries, type Country } from '@harusi/schemas/country';
 import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
+import { signInOf } from '../services/signin-settings';
 import { verifyFirebaseIdToken } from './firebase';
 import { OtpService } from './otp';
 import { StaffTotpService } from './staff-totp';
@@ -60,7 +61,7 @@ export class AuthService {
   async requestOtp(phoneInput: string) {
     const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
     // With Firebase Phone Auth the code comes from Firebase; our SMS routes carry no login codes.
-    if (this.deps.config.authOtpProvider === 'firebase')
+    if (signInOf(this.deps).provider === 'firebase')
       throw new ApiError('conflict', 'Sign-in codes are sent by Firebase', {
         reason: 'use_firebase',
       });

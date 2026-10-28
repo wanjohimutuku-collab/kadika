@@ -652,6 +652,7 @@ export interface OpsAuditEntry {
     | 'messaging'
     | 'payments'
     | 'branding'
+    | 'signin'
     | 'pricing'
     | 'grant'
     | 'purchase_paid';

@@ -20,6 +20,7 @@ import {
   MessagingSettingsService,
 } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
+import { SignInSettingsService } from './services/signin-settings';
 import { ContributionRecords } from './services/contribution-records';
 
 const config = loadConfig();
@@ -137,6 +138,14 @@ await deps.paymentSettings
     log({ level: 'error', msg: 'payment settings not loaded', error: e.message }),
   );
 setInterval(() => void deps.paymentSettings?.refresh().catch(() => undefined), 60_000).unref();
+// Sign-in code settings (ADR 049): saved in /ops, the AUTH_OTP_PROVIDER / FIREBASE_* variables otherwise.
+deps.signInSettings = new SignInSettingsService(deps, { log });
+await deps.signInSettings
+  .refresh(true)
+  .catch((e: Error) =>
+    log({ level: 'error', msg: 'sign-in settings not loaded', error: e.message }),
+  );
+setInterval(() => void deps.signInSettings?.refresh().catch(() => undefined), 60_000).unref();
 let worker: ReturnType<typeof startWorker> | undefined;
 if (config.redisUrl) {
   // Rate-limit counters in Redis so several API instances share one budget (§9).

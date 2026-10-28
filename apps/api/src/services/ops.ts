@@ -38,6 +38,7 @@ type OpsAction =
   | 'messaging'
   | 'payments'
   | 'branding'
+  | 'signin'
   | 'pricing'
   | 'grant'
   | 'purchase_paid';
@@ -67,7 +68,7 @@ export class OpsService {
 
   private async log(
     actorId: string,
-    action: Exclude<OpsAction, 'messaging' | 'payments' | 'branding'>,
+    action: Exclude<OpsAction, 'messaging' | 'payments' | 'branding' | 'signin'>,
     entity: string,
     entityId: string | null,
     target: string,
@@ -546,8 +547,9 @@ export class OpsService {
     return rows.map(({ a, name, phone }) => {
       const [, kind = '', sub = ''] = a.action.split('.');
       const diff = (a.diff ?? {}) as Record<string, unknown>;
-      // The settings pages (ADR 031, 036) log `ops.<area>.<what>` without a target or details line.
-      const settings = kind === 'messaging' || kind === 'payments' || kind === 'branding';
+      // The settings pages (ADR 031, 036, 049) log `ops.<area>.<what>` without a target or details line.
+      const settings =
+        kind === 'messaging' || kind === 'payments' || kind === 'branding' || kind === 'signin';
       const provider = (diff.provider as { to?: string } | undefined)?.to;
       return {
         id: a.id,

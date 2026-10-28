@@ -176,6 +176,13 @@
       "when": 1792602907194,
       "tag": "0024_event_deleted_at",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793230330347,
+      "tag": "0025_signin_settings",
+      "breakpoints": true
     }
   ]
 }

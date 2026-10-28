@@ -124,9 +124,10 @@ these can be done from the repository.
 - [ ] **Tune the guards** after the first busy week: `OTP_IP_HOURLY_LIMIT` (20), `OTP_GLOBAL_HOURLY_LIMIT` (500),
       `MESSAGE_DAILY_ALERT` (5,000).
 
-## Switching sign-in codes to Firebase (ADR 048)
+## Switching sign-in codes to Firebase (ADR 048, 049)
 
-Optional. Until `AUTH_OTP_PROVIDER=firebase` is set, login codes go through the SMS route as before.
+Optional. Until Firebase is chosen in /ops → Settings → Sign-in, login codes go through the SMS route as
+before. No Coolify variable or redeploy is needed for steps 6–7.
 
 1. **Firebase console:** create a project (or add Firebase to an existing Google Cloud project) and move it
    to the **Blaze** plan (phone sign-in needs billing). Add a Cloud Billing budget alert.
@@ -140,11 +141,15 @@ Optional. Until `AUTH_OTP_PROVIDER=firebase` is set, login codes go through the 
    (and SHA-1 from the same keystore, `keytool -list -v`). Enable the Play Integrity API in the Google Cloud
    project. Download `google-services.json` and store it as an EAS **file** environment variable named
    `GOOGLE_SERVICES_JSON` (never commit it). Build a new APK and upload it in /ops (ADR 047).
-6. **Coolify (api service):** set `FIREBASE_PROJECT_ID`, `FIREBASE_WEB_API_KEY`, `FIREBASE_AUTH_DOMAIN`,
-   `FIREBASE_WEB_APP_ID`, redeploy, and test sign-in on staging with numbers on each network. Then set
-   `AUTH_OTP_PROVIDER=firebase` and redeploy. Apps older than the Firebase APK cannot sign in after this, so
-   switch only once organizers have updated.
-7. **Rollback:** `AUTH_OTP_PROVIDER=sms` and redeploy the api; nothing else changes.
+6. **/ops → Settings → Sign-in** (admin staff): enter the project ID, web API key and app ID with "Login
+   codes" still on SMS, save, and press **Test with Firebase**. It reports the project and any of our web
+   hosts missing from the authorized domains. Test sign-in on staging with numbers on each network.
+7. **Switch:** choose Firebase Phone Auth and save. It applies on every API instance within a minute. Apps
+   older than the Firebase APK cannot sign in after this, so switch only once organizers have updated.
+8. **Rollback:** choose our SMS route and save. If nobody can sign in to do that, set `AUTH_FORCE_SMS=1` on
+   the api service and redeploy (break-glass: codes go by SMS whatever is saved), then remove it.
+
+The `AUTH_OTP_PROVIDER` and `FIREBASE_*` variables are only the fallback while nothing is saved in /ops.
 
 ## Production hostnames (kadisasa.com)
 

@@ -533,6 +533,18 @@ export const paymentSettings = pgTable('payment_settings', {
 });
 
 /**
+ * Sign-in code settings (ADR 049): a single row (`id = 'default'`). `config_enc` holds the Firebase web
+ * config as encrypted JSON, kept even while the provider is `sms` so it can be tested before switching.
+ */
+export const signinSettings = pgTable('signin_settings', {
+  id: text('id').primaryKey(),
+  provider: text('provider').notNull(),
+  configEnc: text('config_enc').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+/**
  * Business branding (ADR 036): a single row (`id = 'default'`). Public by design: name, colours and fonts
  * are served to every visitor, and the logo at /v1/branding/logo. `logo_data` is the SVG source, or
  * base64 for PNG/JPEG/WebP; `logo_version` changes on every upload so caches refresh.

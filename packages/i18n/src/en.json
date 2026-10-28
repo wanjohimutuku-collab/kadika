@@ -1475,7 +1475,8 @@
         "branding": "Changed branding",
         "pricing": "Changed prices",
         "grant": "Granted credit",
-        "purchase_paid": "Confirmed an order payment"
+        "purchase_paid": "Confirmed an order payment",
+        "signin": "Changed sign-in settings"
       },
       "empty": "No entries."
     },
@@ -1620,7 +1621,8 @@
         "branding": "Branding",
         "messaging": "SMS and WhatsApp",
         "payments": "Payments",
-        "app": "Android app"
+        "app": "Android app",
+        "signin": "Sign-in"
       },
       "noPermission": "Only admin staff can open the settings."
     },
@@ -1826,6 +1828,50 @@
       "removed": "App removed",
       "confirmTitle": "Remove the app?",
       "confirmBody": "The download button leaves the App page until you upload again."
+    },
+    "signInSettings": {
+      "intro": "Who sends the 6-digit login codes to organizers and staff. Changes apply at once on every server, without a restart. Card invitations and other messages always use the SMS and WhatsApp settings.",
+      "provider": "Login codes",
+      "providers": {
+        "sms": "Our SMS route (NextSMS / Africa's Talking)",
+        "firebase": "Firebase Phone Auth"
+      },
+      "source": {
+        "database": "Saved {when} by {by}.",
+        "environment": "Nothing saved yet; the server's variables are in use."
+      },
+      "activeSms": "In use now: our SMS route.",
+      "activeFirebase": "In use now: Firebase Phone Auth.",
+      "forced": "AUTH_FORCE_SMS is on at the server, so codes go by SMS whatever is saved here.",
+      "firebaseTitle": "Firebase project",
+      "firebaseIntro": "From Firebase console → Project settings → Your apps → Web app. You can save and test these while codes still go by SMS, then switch.",
+      "field": {
+        "projectId": "Project ID",
+        "apiKey": "Web API key",
+        "appId": "App ID",
+        "authDomain": "Auth domain"
+      },
+      "fieldHint": {
+        "projectId": "For example kadi-sasa-prod.",
+        "apiKey": "Starts with AIza.",
+        "appId": "For example 1:1234567890:web:abc123.",
+        "authDomain": "Leave empty to use the project ID followed by .firebaseapp.com."
+      },
+      "secretSaved": "Saved: {hint}. Leave empty to keep using it.",
+      "secretNew": "It is shown masked after saving.",
+      "missing": "Fill in: {fields}",
+      "switchWarning": "Installed apps older than the Firebase build cannot sign in after this switch. Test first, and keep a staff member signed in to switch back if needed.",
+      "save": "Save sign-in settings",
+      "saved": "Sign-in settings saved",
+      "reset": "Back to the server environment",
+      "resetTitle": "Go back to the server environment?",
+      "resetBody": "The saved settings are deleted. The server uses its own variables (AUTH_OTP_PROVIDER, FIREBASE_*) until you save again.",
+      "resetDone": "Sign-in settings removed",
+      "test": "Test with Firebase",
+      "testBody": "Asks Firebase which project the saved key belongs to and which domains may sign in. No SMS is sent.",
+      "testOk": "Firebase answered: project {project}, and every web address is authorized.",
+      "testFailed": "The test failed: {error}",
+      "domains": "Authorized domains: {domains}"
     }
   },
   "mobile": {

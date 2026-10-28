@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import type { Deps } from '../context';
+import { signInOf } from '../services/signin-settings';
 import { ApiError } from '../errors';
 
 /** Google's signing keys for Firebase ID tokens, as a JWK set (cached and rotated by jose). */
@@ -19,10 +20,10 @@ const remoteKeys = () => (googleKeys ??= createRemoteJWKSet(new URL(FIREBASE_JWK
  * recent. Returns the verified phone number; nothing else from the token is trusted.
  */
 export async function verifyFirebaseIdToken(
-  deps: Pick<Deps, 'config' | 'now' | 'firebaseKeys'>,
+  deps: Pick<Deps, 'config' | 'now' | 'firebaseKeys' | 'signIn'>,
   idToken: string,
 ): Promise<{ phoneE164: string; uid: string }> {
-  const fb = deps.config.firebase;
+  const fb = signInOf(deps).firebase;
   if (!fb) throw new ApiError('unavailable', 'Firebase sign-in is not configured');
   const nowS = Math.floor(deps.now().getTime() / 1000);
   let payload;

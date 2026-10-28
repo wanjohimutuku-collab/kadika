@@ -135,6 +135,13 @@ export interface MockState {
       { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
     >
   >;
+  /** Sign-in code settings saved in /ops (ADR 049); without them the env default (sms) shows. */
+  signInSettings?: {
+    provider: 'sms' | 'firebase';
+    fields: Record<string, string>;
+    updatedAt: string;
+    updatedBy: string;
+  };
   /** Business branding saved in /ops (ADR 036); undefined shows the defaults. */
   branding?: {
     input: BrandingInput;

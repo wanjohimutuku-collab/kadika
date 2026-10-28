@@ -37,11 +37,13 @@ import { OpsService } from './services/ops';
 import { requireStaff, type StaffCaller } from './services/staff-guard';
 import { MessagingSettingsService } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
+import { SignInSettingsService, signInOf } from './services/signin-settings';
 import { BrandingService } from './services/branding';
 import { AppReleaseService } from './services/app-release';
 import { Readable } from 'node:stream';
 import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
+import { SIGNIN_PROVIDERS } from '@harusi/schemas/signin-settings';
 import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { clientIp, RateLimiter } from './rate-limit';
@@ -189,6 +191,7 @@ export function createApp(deps: Deps) {
   const billingSvc = new BillingService(deps, eventsSvc);
   const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
+  const signInSettingsSvc = deps.signInSettings ?? new SignInSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
   const appReleaseSvc = new AppReleaseService(deps);
   const auditSvc = new AuditService(deps, eventsSvc);
@@ -314,9 +317,9 @@ export function createApp(deps: Deps) {
   });
   // Which sign-in flow clients use (ADR 048); the Firebase web values are public by design.
   app.get('/v1/auth/config', (c) => {
-    const fb = deps.config.firebase;
+    const { provider, firebase: fb } = signInOf(deps);
     return c.json(
-      deps.config.authOtpProvider === 'firebase' && fb
+      provider === 'firebase' && fb
         ? {
             otpProvider: 'firebase' as const,
             firebase: {
@@ -1053,6 +1056,24 @@ export function createApp(deps: Deps) {
 
   // ---- staff: payment gateway settings (ADR 036, admin staff only)
   const paymentRouteParam = (c: Context) => parse(z.enum(PAYMENT_ROUTES), c.req.param('route'));
+  // Sign-in codes (ADR 049): SMS or Firebase Phone Auth, and the Firebase project. Admin staff only.
+  app.get('/v1/ops/signin-settings', async (c) => c.json(await signInSettingsSvc.view(staff(c))));
+  app.put('/v1/ops/signin-settings', async (c) => {
+    const input = parse(
+      z.object({
+        provider: z.enum(SIGNIN_PROVIDERS),
+        fields: z.record(z.string().max(300)).default({}),
+      }),
+      await body(c),
+    );
+    return c.json(await signInSettingsSvc.save(staff(c), input));
+  });
+  app.delete('/v1/ops/signin-settings', async (c) =>
+    c.json(await signInSettingsSvc.reset(staff(c))),
+  );
+  app.post('/v1/ops/signin-settings/test', async (c) =>
+    c.json(await signInSettingsSvc.test(staff(c))),
+  );
   app.get('/v1/ops/payment-settings', async (c) => c.json(await paymentSettingsSvc.view(staff(c))));
   app.put('/v1/ops/payment-settings/:route', async (c) => {
     const input = parse(

@@ -2,12 +2,22 @@
   "expo": {
     "name": "Kadi Sasa",
     "slug": "harusi-pass",
-    "version": "0.0.0",
+    "version": "0.6.0",
     "scheme": "harusipass",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/adaptive-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FBF8F3"
+    },
     "android": {
       "package": "app.harusipass.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FBF8F3"
+      },
       "permissions": []
     },
     "plugins": [

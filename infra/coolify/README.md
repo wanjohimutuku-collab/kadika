@@ -270,6 +270,29 @@ rest, including the Coolify UI (504/524 timeouts through Cloudflare).
    reachable through Cloudflare, which makes pages slower and status updates stale. Follow Coolify's Cloudflare
    guide for the real-time ports.
 
+## Android app (the /programu download)
+
+Every release tag also runs `.github/workflows/mobile-eas.yml` (ADR 045). It builds a signed APK on EAS with
+`EXPO_PUBLIC_API_URL=https://api.kadisasa.com`, attaches `kadi-sasa.apk` to the version's release, and replaces it
+on the fixed `android-app` pre-release, so this download link never changes:
+
+    https://github.com/wanjohimutuku-collab/kadika/releases/download/android-app/kadi-sasa.apk
+
+One-time setup:
+
+1. **Expo account.** Sign in at expo.dev, create an access token (Account settings → Access tokens) and add it as
+   the repository secret `EXPO_TOKEN` (Settings → Secrets and variables → Actions). Without it the workflow notes
+   the missing token and passes; nothing else is blocked.
+2. **First build.** Run "Mobile EAS" by hand with the current tag (e.g. `v0.6.1`). The first run creates the
+   `harusi-pass` project on the Expo account and EAS generates the Android signing key, which it keeps. Keep
+   that key: installed apps only accept updates signed with it (download it once from expo.dev → Credentials
+   and store it somewhere safe).
+3. **Coolify.** On the production `web` service set `ANDROID_APK_URL` to the link above and restart. `/programu`
+   then shows the download button.
+
+Google Play later: `eas build -p android --profile production` makes the app bundle; put the listing URL in
+`ANDROID_PLAY_URL`.
+
 ## Not covered yet
 
 - Staging is set up as above on coolify.kadisasa.com (environment `staging`, tracking `deploy/staging`).

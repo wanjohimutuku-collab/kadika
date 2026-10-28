@@ -1,6 +1,7 @@
 # ADR 048: Sign-in codes come from Firebase Phone Auth; NextSMS is for transactional SMS only
 
-Status: accepted. Built with tests. Off until the owner sets `AUTH_OTP_PROVIDER=firebase`.
+Status: accepted. Built with tests. Off until switched on. The switch and the Firebase config moved to
+/ops → Settings → Sign-in in ADR 049; the variables below remain the fallback.
 
 ## Context
 

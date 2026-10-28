@@ -8,6 +8,11 @@ import type {
   PaymentSettingsInput,
   PaymentSettingsView,
 } from '@harusi/schemas/payment-settings';
+import type {
+  SignInSettingsInput,
+  SignInSettingsView,
+  SignInTestResult,
+} from '@harusi/schemas/signin-settings';
 import type { BrandingInput, BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import type {
   Allowance,
@@ -275,6 +280,12 @@ export interface Repository {
   opsTestPayment(
     route: PaymentRoute,
   ): Promise<{ ok: boolean; provider: string | null; status: number | null; error: string | null }>;
+  /** Sign-in codes: SMS or Firebase Phone Auth (ADR 049), admin staff only. The API key comes back masked. */
+  opsSignInSettings(): Promise<SignInSettingsView>;
+  opsSaveSignIn(input: SignInSettingsInput): Promise<SignInSettingsView>;
+  opsResetSignIn(): Promise<SignInSettingsView>;
+  /** Asks Firebase about the saved key: its project and authorized domains. Sends no SMS. */
+  opsTestSignIn(): Promise<SignInTestResult>;
   /** Prices for cards and messages (ADR 042); every staff level may read, billing and admin change. */
   opsPricing(): Promise<PricingView>;
   opsSavePricing(catalog: PricingCatalog): Promise<PricingView>;

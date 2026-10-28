@@ -9,6 +9,7 @@ import type { MessagingProvider } from '@harusi/messaging';
 import type { Config } from './config';
 import type { MessagingSettingsService } from './services/messaging-settings';
 import type { PaymentSettingsService } from './services/payment-settings';
+import type { SignInSettingsService, SignInState } from './services/signin-settings';
 
 /** Everything a service needs. Tests pass fakes (PGlite, fake SMS, fixed clock). */
 export interface Deps {
@@ -36,6 +37,10 @@ export interface Deps {
   messagingSettings?: MessagingSettingsService;
   /** Payment gateway settings edited in /ops (ADR 036); index.ts shares one with its refresh timer. */
   paymentSettings?: PaymentSettingsService;
+  /** Sign-in settings saved in /ops (ADR 049); the environment's when absent. Read via `signInOf`. */
+  signIn?: SignInState;
+  /** Sign-in settings edited in /ops (ADR 049); index.ts shares one with its refresh timer. */
+  signInSettings?: SignInSettingsService;
   /** Keys for Firebase ID tokens (ADR 048); Google's published keys when absent. Tests pass their own. */
   firebaseKeys?: JWTVerifyGetKey;
   config: Config;

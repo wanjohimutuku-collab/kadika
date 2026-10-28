@@ -91,6 +91,8 @@ export interface Config {
    * Firebase Phone Auth, and our SMS routes then carry only transactional messages.
    */
   authOtpProvider: 'sms' | 'firebase';
+  /** Break-glass (ADR 049): codes go by SMS whatever is saved in /ops, e.g. while Firebase is broken. */
+  authForceSms: boolean;
   /** Firebase project for phone sign-in. The web values are public; clients read them from the API. */
   firebase: {
     projectId: string;
@@ -231,6 +233,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     otpGlobalHourlyLimit: Number(env.OTP_GLOBAL_HOURLY_LIMIT ?? 500),
     messageDailyAlert: Number(env.MESSAGE_DAILY_ALERT ?? 5000),
     authOtpProvider,
+    authForceSms: env.AUTH_FORCE_SMS === '1' || env.AUTH_FORCE_SMS === 'true',
     firebase: env.FIREBASE_PROJECT_ID
       ? {
           projectId: env.FIREBASE_PROJECT_ID,

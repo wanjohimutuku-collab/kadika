@@ -18,6 +18,7 @@
     "./short-code": "./src/short-code.ts",
     "./messaging-settings": "./src/messaging-settings.ts",
     "./payment-settings": "./src/payment-settings.ts",
+    "./signin-settings": "./src/signin-settings.ts",
     "./branding": "./src/branding.ts",
     "./checkout": "./src/checkout.ts",
     "./billing": "./src/billing.ts"

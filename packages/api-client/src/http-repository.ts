@@ -1,5 +1,6 @@
 import type { MessagingRoute, MessagingSettingsView } from '@harusi/schemas/messaging-settings';
 import type { PaymentSettingsView } from '@harusi/schemas/payment-settings';
+import type { SignInSettingsView, SignInTestResult } from '@harusi/schemas/signin-settings';
 import type { BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import type {
   EventBillingView,
@@ -708,6 +709,18 @@ export function createHttpRepository(
       );
     },
 
+    async opsSignInSettings() {
+      return call<SignInSettingsView>('GET', '/v1/ops/signin-settings');
+    },
+    async opsSaveSignIn(input) {
+      return call<SignInSettingsView>('PUT', '/v1/ops/signin-settings', input);
+    },
+    async opsResetSignIn() {
+      return call<SignInSettingsView>('DELETE', '/v1/ops/signin-settings');
+    },
+    async opsTestSignIn() {
+      return call<SignInTestResult>('POST', '/v1/ops/signin-settings/test');
+    },
     async opsPaymentSettings() {
       return call<PaymentSettingsView>('GET', '/v1/ops/payment-settings');
     },

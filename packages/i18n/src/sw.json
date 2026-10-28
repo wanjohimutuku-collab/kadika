@@ -1479,7 +1479,8 @@
         "branding": "Alibadilisha chapa",
         "pricing": "Alibadilisha bei",
         "grant": "Alitoa salio",
-        "purchase_paid": "Alithibitisha malipo ya oda"
+        "purchase_paid": "Alithibitisha malipo ya oda",
+        "signin": "Alibadilisha mipangilio ya kuingia"
       },
       "empty": "Hakuna kumbukumbu."
     },
@@ -1624,7 +1625,8 @@
         "branding": "Chapa",
         "messaging": "SMS na WhatsApp",
         "payments": "Malipo",
-        "app": "Programu ya Android"
+        "app": "Programu ya Android",
+        "signin": "Kuingia"
       },
       "noPermission": "Ni wasimamizi pekee wanaoweza kufungua mipangilio."
     },
@@ -1830,6 +1832,50 @@
       "removed": "Programu imeondolewa",
       "confirmTitle": "Ondoa programu?",
       "confirmBody": "Kitufe cha kupakua kitaondoka kwenye ukurasa wa Programu hadi upakie tena."
+    },
+    "signInSettings": {
+      "intro": "Nani anatuma namba za tarakimu 6 za kuingia kwa waandaaji na wafanyakazi. Mabadiliko yanaanza kutumika mara moja kwenye kila seva, bila kuwasha upya. Kadi za mwaliko na jumbe nyingine hutumia mipangilio ya SMS na WhatsApp kila wakati.",
+      "provider": "Namba za kuingia",
+      "providers": {
+        "sms": "Njia yetu ya SMS (NextSMS / Africa's Talking)",
+        "firebase": "Firebase Phone Auth"
+      },
+      "source": {
+        "database": "Imehifadhiwa {when} na {by}.",
+        "environment": "Hakuna kilichohifadhiwa bado; vigezo vya seva vinatumika."
+      },
+      "activeSms": "Inayotumika sasa: njia yetu ya SMS.",
+      "activeFirebase": "Inayotumika sasa: Firebase Phone Auth.",
+      "forced": "AUTH_FORCE_SMS imewashwa kwenye seva, kwa hivyo namba zinatumwa kwa SMS bila kujali kilichohifadhiwa hapa.",
+      "firebaseTitle": "Mradi wa Firebase",
+      "firebaseIntro": "Kutoka Firebase console → Project settings → Your apps → Web app. Unaweza kuhifadhi na kujaribu haya namba zikiendelea kutumwa kwa SMS, kisha ubadilishe.",
+      "field": {
+        "projectId": "Kitambulisho cha mradi",
+        "apiKey": "Ufunguo wa API wa wavuti",
+        "appId": "Kitambulisho cha programu",
+        "authDomain": "Kikoa cha kuingia"
+      },
+      "fieldHint": {
+        "projectId": "Kwa mfano kadi-sasa-prod.",
+        "apiKey": "Unaanza na AIza.",
+        "appId": "Kwa mfano 1:1234567890:web:abc123.",
+        "authDomain": "Iache wazi kutumia kitambulisho cha mradi kikifuatwa na .firebaseapp.com."
+      },
+      "secretSaved": "Imehifadhiwa: {hint}. Iache wazi kuendelea kuitumia.",
+      "secretNew": "Itaonyeshwa ikiwa imefichwa baada ya kuhifadhi.",
+      "missing": "Jaza: {fields}",
+      "switchWarning": "Programu zilizosakinishwa kabla ya toleo la Firebase hazitaweza kuingia baada ya kubadilisha. Jaribu kwanza, na mfanyakazi mmoja abaki ameingia ili kurudisha ikihitajika.",
+      "save": "Hifadhi mipangilio ya kuingia",
+      "saved": "Mipangilio ya kuingia imehifadhiwa",
+      "reset": "Rudi kwenye mazingira ya seva",
+      "resetTitle": "Rudi kwenye mazingira ya seva?",
+      "resetBody": "Mipangilio iliyohifadhiwa itafutwa. Seva itatumia vigezo vyake (AUTH_OTP_PROVIDER, FIREBASE_*) hadi uhifadhi tena.",
+      "resetDone": "Mipangilio ya kuingia imeondolewa",
+      "test": "Jaribu na Firebase",
+      "testBody": "Huuliza Firebase ufunguo uliohifadhiwa ni wa mradi gani na vikoa vipi vinaruhusiwa kuingia. Hakuna SMS inayotumwa.",
+      "testOk": "Firebase imejibu: mradi {project}, na anwani zote za wavuti zimeruhusiwa.",
+      "testFailed": "Jaribio limeshindwa: {error}",
+      "domains": "Vikoa vilivyoruhusiwa: {domains}"
     }
   },
   "mobile": {

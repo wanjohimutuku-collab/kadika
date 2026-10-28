@@ -117,6 +117,13 @@ import {
   type PaymentSettingsView,
 } from '@harusi/schemas/payment-settings';
 import {
+  FIREBASE_FIELDS,
+  SIGNIN_PROVIDERS,
+  type SignInSettingsInput,
+  type SignInSettingsView,
+  type SignInTestResult,
+} from '@harusi/schemas/signin-settings';
+import {
   BODY_FONT_KEYS,
   BUSINESS_NAME_MAX,
   DEFAULT_BRANDING,
@@ -3139,6 +3146,105 @@ export class MockRepository implements Repository {
       return provider === 'snippe'
         ? { ok: true, provider, status: 200, error: null }
         : { ok: false, provider, status: null, error: 'This provider has nothing to test' };
+    });
+  }
+
+  // ---- Sign-in code settings (ADR 049). Mock: kept in state; the mock itself always signs in by SMS.
+  private signInView(): SignInSettingsView {
+    const row = this.state.signInSettings;
+    const fields: Record<string, string> = {};
+    const secrets: Record<string, string> = {};
+    for (const f of FIREBASE_FIELDS) {
+      const v = row?.fields[f.key];
+      if (!v) continue;
+      if ('secret' in f && f.secret) secrets[f.key] = `…${v.slice(-4)}`;
+      else fields[f.key] = v;
+    }
+    const provider = row?.provider ?? 'sms';
+    return {
+      provider,
+      active: provider,
+      forcedSms: false,
+      source: row ? 'database' : 'environment',
+      fields,
+      secrets,
+      updatedAt: row?.updatedAt ?? null,
+      updatedBy: row?.updatedBy ?? null,
+    };
+  }
+
+  opsSignInSettings(): Promise<SignInSettingsView> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff('settings');
+      return this.signInView();
+    });
+  }
+
+  opsSaveSignIn(input: SignInSettingsInput): Promise<SignInSettingsView> {
+    return this.run('write', 'ops-signin', () => {
+      const u = this.requireStaff('settings');
+      if (!(SIGNIN_PROVIDERS as readonly string[]).includes(input.provider))
+        throw new RepositoryError('validation', 'Unknown provider', { field: 'provider' });
+      const current = this.state.signInSettings;
+      const fields: Record<string, string> = {};
+      for (const f of FIREBASE_FIELDS) {
+        const v = (input.fields[f.key] ?? '').trim();
+        if (!v && 'secret' in f && f.secret) {
+          if (current?.fields[f.key]) fields[f.key] = current.fields[f.key]!;
+          continue;
+        }
+        if (v) fields[f.key] = v;
+      }
+      const missing =
+        input.provider === 'firebase'
+          ? FIREBASE_FIELDS.filter((f) => 'required' in f && f.required && !fields[f.key]).map(
+              (f) => f.key,
+            )
+          : [];
+      if (missing.length)
+        throw new RepositoryError('validation', `Missing ${missing.join(', ')}`, {
+          field: 'fields',
+          missing,
+        });
+      this.state.signInSettings = {
+        provider: input.provider,
+        fields,
+        updatedAt: iso(this.now()),
+        updatedBy: u.name,
+      };
+      this.opsLog('signin', 'default', `Namba za kuingia: ${input.provider}`);
+      return this.signInView();
+    });
+  }
+
+  opsResetSignIn(): Promise<SignInSettingsView> {
+    return this.run('write', 'ops-signin', () => {
+      this.requireStaff('settings');
+      delete this.state.signInSettings;
+      this.opsLog('signin', 'default', 'Mipangilio ya mazingira');
+      return this.signInView();
+    });
+  }
+
+  opsTestSignIn(): Promise<SignInTestResult> {
+    return this.run('write', 'ops-signin', () => {
+      this.requireStaff('settings');
+      const f = this.state.signInSettings?.fields;
+      return f?.apiKey && f.projectId
+        ? {
+            ok: true,
+            error: null,
+            projectId: f.projectId,
+            authorizedDomains: ['localhost', 'kadisasa.com', 'app.kadisasa.com', 'my.kadisasa.com'],
+            missingDomains: [],
+          }
+        : {
+            ok: false,
+            error: 'Save the Firebase project id and API key first',
+            projectId: null,
+            authorizedDomains: [],
+            missingDomains: [],
+          };
     });
   }
 

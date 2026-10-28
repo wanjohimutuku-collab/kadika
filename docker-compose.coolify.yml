@@ -74,7 +74,10 @@ services:
       # Sign-in codes (ADR 048): `sms` sends our own code through the SMS route below; `firebase` uses
       # Firebase Phone Auth and the SMS route then carries only invitations and other card messages.
       # `firebase` needs FIREBASE_PROJECT_ID. The web values are public and served to clients by the API.
+      # Set in /ops → Settings → Sign-in (ADR 049); these are only the fallback while nothing is saved there.
+      # AUTH_FORCE_SMS=1 is the break-glass: codes by SMS whatever is saved (e.g. Firebase broken).
       AUTH_OTP_PROVIDER: ${AUTH_OTP_PROVIDER:-sms}
+      AUTH_FORCE_SMS: ${AUTH_FORCE_SMS:-0}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
       FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY:-}
       FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}

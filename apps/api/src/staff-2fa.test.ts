@@ -194,6 +194,32 @@ describe('staff second factor (ADR 040)', () => {
     expect((await verify(fresh.secondFactor.challenge, totpNow(ctx, secret))).status).toBe(200);
   });
 
+  it('takes the attempt before checking the code, so a burst cannot outrun the lockout', async () => {
+    const r = await staffChallenge();
+    const secret = await enrol(r.secondFactor.challenge);
+    // Five guesses already counted (a parallel burst still in flight): even the right code is refused.
+    await ctx.db.update(users).set({ staffTotpFailedAttempts: 5 }).where(eq(users.id, r.user.id));
+    const res = await verify(r.secondFactor.challenge, totpNow(ctx, secret));
+    expect(res.status).toBe(423);
+    const [row] = await ctx.db.select().from(users).where(eq(users.id, r.user.id));
+    expect(row!.staffTotpEnrolledAt).toBeNull();
+    expect(row!.staffTotpLockedUntil).not.toBeNull();
+  });
+
+  it('lets one code sign in once, even when it is sent several times at once', async () => {
+    const r = await staffChallenge();
+    const ch = r.secondFactor.challenge;
+    const secret = await enrol(ch);
+    const code = totpNow(ctx, secret);
+    const statuses = (await Promise.all(Array.from({ length: 6 }, () => verify(ch, code)))).map(
+      (x) => x.status,
+    );
+    expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+    expect(
+      await ctx.db.select().from(refreshTokens).where(eq(refreshTokens.mfa, true)),
+    ).toHaveLength(1);
+  });
+
   it('counts a wrong first code while enrolling the same way', async () => {
     const r = await staffChallenge();
     const secret = await enrol(r.secondFactor.challenge);

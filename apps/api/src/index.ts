@@ -11,7 +11,7 @@ import { loadConfig } from './config';
 import { systemRandom, type Deps } from './context';
 import { Redis } from 'ioredis';
 import { RedisRateStore } from './rate-limit';
-import { initObservability } from './observability';
+import { initObservability, safeErrorMessage } from './observability';
 import { startWorker } from './worker';
 import { startScheduler } from './scheduler';
 import {
@@ -37,7 +37,7 @@ void ContributionRecords.of({ config })
       JSON.stringify({
         level: 'error',
         msg: 'sealing contribution records failed',
-        err: e.message,
+        err: safeErrorMessage(e),
       }),
     ),
   );
@@ -100,11 +100,15 @@ const reportError = initObservability(
 // exception still stops the process (Docker restarts it), after it has been reported.
 process.on('unhandledRejection', (reason) => {
   const err = reason instanceof Error ? reason : new Error(String(reason));
-  console.error(JSON.stringify({ level: 'error', msg: 'unhandled rejection', err: err.message }));
+  console.error(
+    JSON.stringify({ level: 'error', msg: 'unhandled rejection', err: safeErrorMessage(err) }),
+  );
   reportError?.(err);
 });
 process.on('uncaughtException', (err) => {
-  console.error(JSON.stringify({ level: 'fatal', msg: 'uncaught exception', err: err.message }));
+  console.error(
+    JSON.stringify({ level: 'fatal', msg: 'uncaught exception', err: safeErrorMessage(err) }),
+  );
   reportError?.(err);
   setTimeout(() => process.exit(1), 2_000).unref(); // give the report a moment to leave
 });
@@ -126,7 +130,7 @@ deps.messagingSettings = new MessagingSettingsService(deps, { wrapSms, log });
 await deps.messagingSettings
   .refresh(true)
   .catch((e: Error) =>
-    log({ level: 'error', msg: 'messaging settings not loaded', error: e.message }),
+    log({ level: 'error', msg: 'messaging settings not loaded', error: safeErrorMessage(e) }),
   );
 // Every API instance re-reads the saved settings each minute, so a save on one reaches the others.
 setInterval(() => void deps.messagingSettings?.refresh().catch(() => undefined), 60_000).unref();
@@ -135,7 +139,7 @@ deps.paymentSettings = new PaymentSettingsService(deps, { log });
 await deps.paymentSettings
   .refresh(true)
   .catch((e: Error) =>
-    log({ level: 'error', msg: 'payment settings not loaded', error: e.message }),
+    log({ level: 'error', msg: 'payment settings not loaded', error: safeErrorMessage(e) }),
   );
 setInterval(() => void deps.paymentSettings?.refresh().catch(() => undefined), 60_000).unref();
 // Sign-in code settings (ADR 049): saved in /ops, the AUTH_OTP_PROVIDER / FIREBASE_* variables otherwise.
@@ -143,7 +147,7 @@ deps.signInSettings = new SignInSettingsService(deps, { log });
 await deps.signInSettings
   .refresh(true)
   .catch((e: Error) =>
-    log({ level: 'error', msg: 'sign-in settings not loaded', error: e.message }),
+    log({ level: 'error', msg: 'sign-in settings not loaded', error: safeErrorMessage(e) }),
   );
 setInterval(() => void deps.signInSettings?.refresh().catch(() => undefined), 60_000).unref();
 let worker: ReturnType<typeof startWorker> | undefined;

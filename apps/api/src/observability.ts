@@ -8,14 +8,31 @@ const SECRET_PATHS: [RegExp, string][] = [
   [/\/v1\/payments\/[^/?#]+\/status/g, '/v1/payments/:ref/status'],
   [/\/guests\/[0-9a-f-]{36}/g, '/guests/:id'],
 ];
-const PHONE = /\+?255\d{9}\b|\b0[67]\d{8}\b/g;
+// Any E.164 number, Tanzanian and Kenyan numbers without the plus, and local 06/07/01 numbers.
+const PHONE = /\+\d{8,15}\b|\b25[45]\d{9}\b|\b0[167]\d{8}\b/g;
+/** Drizzle's `DrizzleQueryError` appends the bound values (`params: …`): names, phones, hashes. */
+const QUERY_PARAMS = /\nparams:[\s\S]*$/;
 const SENSITIVE_KEYS =
   /authorization|cookie|token|pin|otp|secret|password|apikey|api-key|signature|phone/i;
 
 export function scrubText(s: string): string {
-  let out = s;
+  let out = s.replace(QUERY_PARAMS, '');
   for (const [re, to] of SECRET_PATHS) out = out.replace(re, to);
   return out.replace(PHONE, '[phone]');
+}
+
+/**
+ * What may be logged about an unexpected error (§12). A failed query becomes its SQL text (placeholders
+ * only) and the database's reason; every message is scrubbed of card links and phone numbers.
+ */
+export function safeErrorMessage(err: unknown): string {
+  if (!(err instanceof Error)) return scrubText(String(err));
+  const q = err as Error & { query?: unknown; params?: unknown };
+  if (typeof q.query === 'string' && Array.isArray(q.params)) {
+    const why = err.cause instanceof Error ? `: ${err.cause.message}` : '';
+    return scrubText(`Failed query: ${q.query}${why}`);
+  }
+  return scrubText(err.message);
 }
 
 /** Deep-clones and redacts anything that looks sensitive by key or by value. */

@@ -515,8 +515,10 @@ export class BillingService {
       throw new ApiError('validation', 'Currency does not match the order', {
         reason: 'currency_mismatch',
       });
+    // A success that does not say how much arrived is not proof of payment either: staff check it.
+    const unstated = ev.status === 'success' && ev.amount === undefined;
     const short = ev.status === 'success' && ev.amount !== undefined && ev.amount < p.amount;
-    const status = ev.status === 'success' ? (short ? 'pending' : 'paid') : 'failed';
+    const status = ev.status === 'success' ? (short || unstated ? 'pending' : 'paid') : 'failed';
     const [done] = await this.db
       .update(eventPurchases)
       .set({
@@ -524,9 +526,11 @@ export class BillingService {
         paidAt: status === 'paid' ? (ev.paidAt ?? this.deps.now()) : null,
         note: short
           ? `amount_short:${ev.amount}`
-          : ev.status === 'failed'
-            ? (ev.failureReason ?? 'failed')
-            : p.note,
+          : unstated
+            ? 'amount_missing'
+            : ev.status === 'failed'
+              ? (ev.failureReason ?? 'failed')
+              : p.note,
         ...(ev.providerRef ? { providerTxn: ev.providerRef } : {}),
       })
       .where(and(eq(eventPurchases.id, p.id), eq(eventPurchases.status, 'pending')))

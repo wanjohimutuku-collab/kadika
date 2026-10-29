@@ -79,6 +79,40 @@ function ctxApp(deps: typeof ctx.deps) {
   return createApp(deps);
 }
 
+describe('request body limit', () => {
+  const post = (path: string, bytes: number, token?: string) =>
+    ctx.app.request(path, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ phone: '0712345678', pad: 'x'.repeat(bytes) }),
+    });
+
+  it('refuses a body over 1 MB on public routes and webhooks, before reading it', async () => {
+    for (const path of ['/v1/auth/otp/request', '/v1/payments/webhook/fake', '/v1/c/abc/rsvp']) {
+      const res = await post(path, 1_100_000);
+      expect(res.status).toBe(413);
+      const b = (await res.json()) as { error: { code: string; details: { reason: string } } };
+      expect(b.error).toMatchObject({ code: 'validation', details: { reason: 'body_too_large' } });
+    }
+  });
+
+  it('lets a large guest list through the import route only', async () => {
+    const { t, evId } = await setup();
+    // about 1.4 MB: over the default limit, under the import route's own
+    const rows = Array.from({ length: 50_000 }, (_, i) => `Mgeni namba ${i} wa harusi,`).join('\n');
+    const res = await ctx.app.request(`/v1/events/${evId}/guests/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${t}` },
+      body: JSON.stringify({ csv: `name,phone\n${rows}`, dryRun: true }),
+    });
+    expect(res.status).not.toBe(413);
+    expect((await post(`/v1/events/${evId}/guests`, 1_100_000, t)).status).toBe(413);
+  });
+});
+
 describe('audit trail', () => {
   it('records sensitive actions for the owner to read, and nobody else can', async () => {
     const { t, evId, g } = await setup();

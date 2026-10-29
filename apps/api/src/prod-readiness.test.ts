@@ -229,6 +229,53 @@ describe('gate sync from two devices at once', () => {
   });
 });
 
+describe('Firebase code go-ahead (finding 23)', () => {
+  const start = (c: TestContext, phone: string, ip: string) =>
+    c.app.request('/v1/auth/firebase/start', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+      body: JSON.stringify({ phone }),
+    });
+
+  it('normalises the number and refuses numbers outside the allowed countries', async () => {
+    const ok = await start(ctx, '0712345601', '41.2.0.1');
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toEqual({ phone: '+255712345601' });
+    expect((await start(ctx, '+447700900123', '41.2.0.2')).status).toBe(400);
+    expect((await start(ctx, 'not a phone', '41.2.0.3')).status).toBe(400);
+  });
+
+  it('caps codes per number', async () => {
+    for (let i = 0; i < 5; i++)
+      expect((await start(ctx, '0712345602', `41.2.1.${i}`)).status).toBe(200);
+    expect((await start(ctx, '0712345602', '41.2.1.9')).status).toBe(429);
+  });
+
+  it('shares the per-IP and hourly budget with SMS codes', async () => {
+    const c = await createTestContext({
+      env: { OTP_IP_HOURLY_LIMIT: '2', OTP_GLOBAL_HOURLY_LIMIT: '3' },
+    });
+    const reported: string[] = [];
+    c.deps.reportError = (e) => void reported.push(e.message);
+    try {
+      const sms = (phone: string, ip: string) =>
+        c.app.request('/v1/auth/otp/request', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          body: JSON.stringify({ phone }),
+        });
+      expect((await sms('0712345611', '41.3.0.1')).status).toBe(200);
+      expect((await start(c, '0712345612', '41.3.0.1')).status).toBe(200);
+      expect((await start(c, '0712345613', '41.3.0.1')).status).toBe(429); // same IP, budget spent
+      expect((await start(c, '0712345614', '41.3.0.2')).status).toBe(200);
+      expect((await start(c, '0712345615', '41.3.0.3')).status).toBe(429); // hourly total spent
+      expect(reported).toEqual(['OTP hourly limit reached: login codes are being refused']);
+    } finally {
+      await c.close();
+    }
+  });
+});
+
 describe('message volume alert', () => {
   it('reports once the 24-hour count passes MESSAGE_DAILY_ALERT', async () => {
     const reported: string[] = [];

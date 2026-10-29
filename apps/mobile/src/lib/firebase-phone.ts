@@ -1,4 +1,4 @@
-import type { AuthConfig } from '@harusi/api-client';
+import { isRepositoryError, type AuthConfig } from '@harusi/api-client';
 import type * as FirebaseAuth from '@react-native-firebase/auth';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { getRepository } from './repo';
@@ -58,10 +58,30 @@ function reasonOf(err: unknown): PhoneSignInError {
   return 'failed';
 }
 
+/**
+ * Our API's go-ahead before Firebase texts a code: Firebase codes spend the same per-IP, per-number
+ * and hourly budget as our own SMS codes (docs/ops/production-readiness-audit.md, finding 23).
+ */
+async function allowCode(phone: string): Promise<void> {
+  try {
+    await getRepository().startFirebaseSignIn(phone);
+  } catch (err) {
+    const code = isRepositoryError(err) ? err.code : '';
+    throw new FirebasePhoneError(
+      code === 'rate_limited' || code === 'locked'
+        ? 'too_many'
+        : code === 'validation'
+          ? 'invalid_phone'
+          : 'failed',
+    );
+  }
+}
+
 /** Asks Firebase to text a code to `phone` (E.164), in the app's language. */
 export async function startPhoneSignIn(phone: string, locale: string, resend = false) {
   const mod = await firebaseAuth();
   if (!mod) throw new FirebasePhoneError('update_app');
+  await allowCode(phone);
   try {
     const auth = mod.getAuth();
     await mod.setLanguageCode(auth, locale);

@@ -82,6 +82,11 @@ export interface Repository {
   /** GET /v1/auth/config: our own SMS code or Firebase Phone Auth (ADR 048). */
   getAuthConfig(): Promise<AuthConfig>;
   /**
+   * POST /v1/auth/firebase/start: asked before Firebase is told to text a code, so Firebase codes
+   * spend the same per-IP, per-number and hourly budget as SMS codes. Returns the number in E.164.
+   */
+  startFirebaseSignIn(phone: string): Promise<{ phone: string }>;
+  /**
    * POST /v1/auth/firebase: trades a Firebase ID token from a phone sign-in for our session. Same
    * result as `verifyOtp`, including `needsSecondFactor` for staff.
    */

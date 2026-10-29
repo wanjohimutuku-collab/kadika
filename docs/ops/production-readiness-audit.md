@@ -12,30 +12,31 @@ Line numbers refer to this branch (`xpressdev/prod-readiness-audit`).
 
 ## Summary
 
-| #   | Area            | Finding                                                                                                           | Severity | Status                            |
-| --- | --------------- | ----------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------- |
-| 1   | Race            | Idempotency-Key was checked, then stored after the work ran: concurrent retries both ran                          | High     | **Fixed**                         |
-| 2   | Race            | Two sends at once texted every remaining guest twice                                                              | High     | **Fixed**                         |
-| 3   | Race            | Two gate devices syncing the same guest at once could both admit them                                             | High     | **Fixed**                         |
-| 4   | Rate limits     | Client IP came from the first X-Forwarded-For entry, which the client controls                                    | High     | **Fixed**                         |
-| 5   | Spend           | No per-IP or total limit on login codes (SMS pumping)                                                             | High     | **Fixed**                         |
-| 6   | Race            | Gate PIN lockout: parallel wrong guesses lost updates and skipped the lockout                                     | High     | **Fixed**                         |
-| 7   | Backups         | No backup job runs anywhere in the stack; no heartbeat                                                            | High     | **Fixed** + owner action          |
-| 8   | Error tracking  | Worker/tick failures and errors outside requests never reached Sentry; no DSN set                                 | High     | **Fixed** + owner action          |
-| 9   | Spend           | Nothing alerts on message volume; no provider balance alerts                                                      | High     | **Fixed** (in-app) + owner action |
-| 10  | Background jobs | Redis had no `maxmemory`/`noeviction`; BullMQ can lose jobs or Redis gets OOM-killed                              | Medium   | **Fixed**                         |
-| 11  | Rollback        | No graceful shutdown: a redeploy cut a send off mid-way                                                           | Medium   | **Fixed**                         |
-| 12  | Race            | Billing allowance counted per send run in memory: two sends at once can overspend it                              | Medium   | Open                              |
-| 13  | Background jobs | Queued `send` jobs retry 3× and a stalled job re-runs: explicit-guest resends can repeat                          | Medium   | Open (mitigated by #2)            |
-| 14  | Auth            | OTP state is in process memory: lost on restart, wrong with >1 API replica, grows without bound                   | Medium   | Open                              |
-| 15  | Rate limits     | OG-image previews come from the web server's IP and share one per-IP card budget                                  | Medium   | Open                              |
-| 16  | Rollback        | Migrations are forward-only and take no lock; rolling back the image after a destructive migration breaks the API | Medium   | Open (documented)                 |
-| 17  | Error tracking  | The web app and the mobile app report no errors at all                                                            | Medium   | Open                              |
-| 18  | N+1             | CSV import runs about 8 queries and one transaction per row                                                       | Medium   | Open                              |
-| 19  | N+1             | Reminder and fallback ticks scan every active event's guests every 15 min                                         | Low      | Open                              |
-| 20  | Webhooks        | Delivery-webhook secret travels in a query string for Africa's Talking                                            | Low      | Accepted (provider limit)         |
-| 21  | Live DB         | Postgres has no `statement_timeout` / `idle_in_transaction_session_timeout`                                       | Low      | Open                              |
-| 22  | CI              | Trivy image scan is report-only                                                                                   | Low      | Open (by design)                  |
+| #   | Area            | Finding                                                                                                           | Severity | Status                              |
+| --- | --------------- | ----------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------- |
+| 1   | Race            | Idempotency-Key was checked, then stored after the work ran: concurrent retries both ran                          | High     | **Fixed**                           |
+| 2   | Race            | Two sends at once texted every remaining guest twice                                                              | High     | **Fixed**                           |
+| 3   | Race            | Two gate devices syncing the same guest at once could both admit them                                             | High     | **Fixed**                           |
+| 4   | Rate limits     | Client IP came from the first X-Forwarded-For entry, which the client controls                                    | High     | **Fixed**                           |
+| 5   | Spend           | No per-IP or total limit on login codes (SMS pumping)                                                             | High     | **Fixed**                           |
+| 6   | Race            | Gate PIN lockout: parallel wrong guesses lost updates and skipped the lockout                                     | High     | **Fixed**                           |
+| 7   | Backups         | No backup job runs anywhere in the stack; no heartbeat                                                            | High     | **Fixed** + owner action            |
+| 8   | Error tracking  | Worker/tick failures and errors outside requests never reached Sentry; no DSN set                                 | High     | **Fixed** + owner action            |
+| 9   | Spend           | Nothing alerts on message volume; no provider balance alerts                                                      | High     | **Fixed** (in-app) + owner action   |
+| 10  | Background jobs | Redis had no `maxmemory`/`noeviction`; BullMQ can lose jobs or Redis gets OOM-killed                              | Medium   | **Fixed**                           |
+| 11  | Rollback        | No graceful shutdown: a redeploy cut a send off mid-way                                                           | Medium   | **Fixed**                           |
+| 12  | Race            | Billing allowance counted per send run in memory: two sends at once can overspend it                              | Medium   | Open                                |
+| 13  | Background jobs | Queued `send` jobs retry 3× and a stalled job re-runs: explicit-guest resends can repeat                          | Medium   | Open (mitigated by #2)              |
+| 14  | Auth            | OTP state is in process memory: lost on restart, wrong with >1 API replica, grows without bound                   | Medium   | Open                                |
+| 15  | Rate limits     | OG-image previews come from the web server's IP and share one per-IP card budget                                  | Medium   | Open                                |
+| 16  | Rollback        | Migrations are forward-only and take no lock; rolling back the image after a destructive migration breaks the API | Medium   | Open (documented)                   |
+| 17  | Error tracking  | The web app and the mobile app report no errors at all                                                            | Medium   | Open                                |
+| 18  | N+1             | CSV import runs about 8 queries and one transaction per row                                                       | Medium   | Open                                |
+| 19  | N+1             | Reminder and fallback ticks scan every active event's guests every 15 min                                         | Low      | Open                                |
+| 20  | Webhooks        | Delivery-webhook secret travels in a query string for Africa's Talking                                            | Low      | Accepted (provider limit)           |
+| 21  | Live DB         | Postgres has no `statement_timeout` / `idle_in_transaction_session_timeout`                                       | Low      | Open                                |
+| 22  | CI              | Trivy image scan is report-only                                                                                   | Low      | Open (by design)                    |
+| 23  | Spend           | Firebase sign-in (ADR 048, added after this audit) sent codes from the client, outside our OTP caps               | Medium   | **Fixed** (our apps) + owner action |
 
 What I checked and found sound: payment webhooks verify HMAC (Snippe also checks a ±5-minute
 timestamp window), and the payment is applied in one conditional `UPDATE … WHERE status = 'pending'`,
@@ -255,6 +256,22 @@ set them on the app role only).
 `build-push.yml` runs Trivy with `exit-code: '0'`. Flip it to `1` once the list is clean. `pnpm audit
 --prod --audit-level=high` already blocks CI.
 
+### 23. Firebase sign-in codes bypassed the OTP caps (Medium, fixed for our apps + owner action)
+
+Re-checked on 2026-10-29, after PRs #61 and #62. With `AUTH_OTP_PROVIDER=firebase` the web and mobile apps asked
+Firebase Phone Auth for the code straight from the client, so `/v1/auth/otp/request` and its per-IP and hourly caps
+(#5) were not in the path. The SMS is billed to the Google Cloud project instead. The token check itself is sound:
+`auth/firebase.ts` checks RS256 against Google's keys, `aud`/`iss` for our project, a 10-minute `auth_time` and
+`sign_in_provider = phone`, and staff still need their authenticator.
+
+**Fix:** `POST /v1/auth/firebase/start` (`app.ts`) normalises the number and refuses countries that are not
+enabled. It spends the same per-IP and hourly code budget as SMS codes (one shared `codeBudget`, which still
+alerts when the hourly total trips) and caps codes at 5 per number per hour. `startPhoneSignIn` in
+`apps/web/src/lib/firebase-phone.ts` and `apps/mobile/src/lib/firebase-phone.ts` calls it before Firebase is asked to
+text, and a refusal shows as "too many" or "invalid number". Tests: `prod-readiness.test.ts` › "Firebase code
+go-ahead". **Still open:** the Firebase web config is public by design, so a script that calls Firebase directly
+skips our check. Only Firebase's own settings stop that (owner action 6).
+
 ## Owner actions
 
 These cannot be done from the repository. In order of urgency:
@@ -275,7 +292,10 @@ These cannot be done from the repository. In order of urgency:
 5. **Origin firewall.** Allow ports 80 and 443 only from Cloudflare's IP ranges, so
    `cf-connecting-ip` cannot be forged. If staging is not behind Cloudflare, set `CLIENT_IP_HEADER` to
    an empty value there.
-6. **Check the limits** after the first week in Sentry and the logs: `OTP_IP_HOURLY_LIMIT` (20),
+6. **Firebase (if `AUTH_OTP_PROVIDER=firebase`).** In Firebase Authentication → Settings → SMS region policy,
+   allow only Tanzania (+255) and, when Kenya is on, Kenya (+254). Turn on App Check (reCAPTCHA Enterprise for the
+   web, Play Integrity for Android) for Identity Platform. Add a budget alert on the Google Cloud billing account.
+7. **Check the limits** after the first week in Sentry and the logs: `OTP_IP_HOURLY_LIMIT` (20),
    `OTP_GLOBAL_HOURLY_LIMIT` (500), `MESSAGE_DAILY_ALERT` (5,000). Raise them before a large launch.
 
 ## Verification

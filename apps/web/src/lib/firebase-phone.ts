@@ -1,6 +1,6 @@
 'use client';
 
-import type { AuthConfig } from '@harusi/api-client';
+import { isRepositoryError, type AuthConfig } from '@harusi/api-client';
 import type { ConfirmationResult, RecaptchaVerifier } from 'firebase/auth';
 import { USE_MOCKS } from './env';
 import { getRepository } from './repo';
@@ -69,6 +69,25 @@ function reasonOf(err: unknown): PhoneSignInError {
 }
 
 /**
+ * Our API's go-ahead before Firebase texts a code: Firebase codes spend the same per-IP, per-number
+ * and hourly budget as our own SMS codes (docs/ops/production-readiness-audit.md, finding 23).
+ */
+async function allowCode(phone: string): Promise<void> {
+  try {
+    await getRepository().startFirebaseSignIn(phone);
+  } catch (err) {
+    const code = isRepositoryError(err) ? err.code : '';
+    throw new FirebasePhoneError(
+      code === 'rate_limited' || code === 'locked'
+        ? 'too_many'
+        : code === 'validation'
+          ? 'invalid_phone'
+          : 'failed',
+    );
+  }
+}
+
+/**
  * Asks Firebase to text a code to `phone` (E.164). `container` hosts the invisible reCAPTCHA; it must
  * stay in the page until the code is sent. Firebase writes the SMS in `locale`.
  */
@@ -79,6 +98,7 @@ export async function startPhoneSignIn(
 ): Promise<void> {
   const cfg = await loadAuthConfig();
   if (cfg.otpProvider !== 'firebase') throw new FirebasePhoneError('failed');
+  await allowCode(phone);
   const { auth, instance } = await firebaseAuth(cfg.firebase);
   instance.languageCode = locale;
   try {

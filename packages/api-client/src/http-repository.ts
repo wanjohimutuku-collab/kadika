@@ -491,6 +491,11 @@ export function createHttpRepository(
       if (r.status >= 400) return fail(r.status, r.json as never);
       return r.json as unknown as AuthConfig;
     },
+    async startFirebaseSignIn(phone) {
+      const r = await raw('POST', '/v1/auth/firebase/start', { phone }, {}, false);
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      return { phone: String(r.json!.phone) };
+    },
     async signInWithFirebase(idToken) {
       return signedIn(await raw('POST', '/v1/auth/firebase', { idToken }, {}, false));
     },

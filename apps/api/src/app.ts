@@ -18,7 +18,8 @@ import { users } from '@harusi/db';
 import type { HealthResponse } from '@harusi/schemas';
 import type { Deps } from './context';
 import { ApiError } from './errors';
-import { AuthService } from './auth/service';
+import { AuthService, parsePhone } from './auth/service';
+import { allowedCountries } from '@harusi/schemas/country';
 import { verifyAccessToken, verifyGateToken, type GateClaims } from './auth/tokens';
 import { EventService } from './services/events';
 import { GuestService } from './services/guests';
@@ -231,6 +232,8 @@ export function createApp(deps: Deps) {
   );
   // Firebase already limits code requests; this only stops token-guessing floods on our side.
   const firebaseSignIns = new RateLimiter(deps.now, 30, 600_000, 'firebase-signin', deps.rateStore);
+  // Firebase codes per phone number per hour, like the SMS route's own cap (auth/otp.ts).
+  const firebaseCodes = new RateLimiter(deps.now, 5, 3_600_000, 'firebase-code', deps.rateStore);
   let otpAlertAt = 0; // one alert per 10 minutes, not one per refused request
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
@@ -293,8 +296,8 @@ export function createApp(deps: Deps) {
   });
 
   // ---- auth
-  app.post('/v1/auth/otp/request', async (c) => {
-    const { phone: p } = parse(z.object({ phone }), await body(c));
+  /** The login-code budget, shared by our SMS codes and Firebase's (each one is a paid SMS). */
+  const codeBudget = async (c: Context) => {
     await otpByIp.check(`ip:${client(c)}`);
     try {
       await otpTotal.check('all');
@@ -306,6 +309,10 @@ export function createApp(deps: Deps) {
       }
       throw e;
     }
+  };
+  app.post('/v1/auth/otp/request', async (c) => {
+    const { phone: p } = parse(z.object({ phone }), await body(c));
+    await codeBudget(c);
     return c.json(await auth.requestOtp(p));
   });
   app.post('/v1/auth/otp/verify', async (c) => {
@@ -331,6 +338,16 @@ export function createApp(deps: Deps) {
           }
         : { otpProvider: 'sms' as const },
     );
+  });
+  // Our apps ask here before asking Firebase to text a code, so Firebase codes spend the same per-IP and
+  // hourly budget as our own SMS codes, plus a per-number cap. A caller that skips our apps and talks
+  // to Firebase directly is stopped by Firebase's own settings (SMS region policy, App Check).
+  app.post('/v1/auth/firebase/start', async (c) => {
+    const { phone: p } = parse(z.object({ phone }), await body(c));
+    const e164 = parsePhone(p, 'TZ', allowedCountries(deps.config.kenyaEnabled));
+    await codeBudget(c);
+    await firebaseCodes.check(`p:${e164}`);
+    return c.json({ phone: e164 });
   });
   app.post('/v1/auth/firebase', async (c) => {
     await firebaseSignIns.check(`ip:${client(c)}`);

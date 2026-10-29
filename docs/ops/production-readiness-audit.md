@@ -36,6 +36,7 @@ Line numbers refer to this branch (`xpressdev/prod-readiness-audit`).
 | 20  | Webhooks        | Delivery-webhook secret travels in a query string for Africa's Talking                                            | Low      | Accepted (provider limit)         |
 | 21  | Live DB         | Postgres has no `statement_timeout` / `idle_in_transaction_session_timeout`                                       | Low      | Open                              |
 | 22  | CI              | Trivy image scan is report-only                                                                                   | Low      | Open (by design)                  |
+| 23  | Spend           | Firebase sign-in (ADR 048, added after this audit) sends codes from the client, outside our OTP caps              | Medium   | Owner action                      |
 
 What I checked and found sound: payment webhooks verify HMAC (Snippe also checks a ±5-minute
 timestamp window), and the payment is applied in one conditional `UPDATE … WHERE status = 'pending'`,
@@ -255,6 +256,15 @@ set them on the app role only).
 `build-push.yml` runs Trivy with `exit-code: '0'`. Flip it to `1` once the list is clean. `pnpm audit
 --prod --audit-level=high` already blocks CI.
 
+### 23. Firebase sign-in codes bypass the OTP caps (Medium, owner action)
+
+Re-checked on 2026-10-29, after PRs #61 and #62. With `AUTH_OTP_PROVIDER=firebase` the app asks Firebase Phone
+Auth for the code straight from the browser or phone, so `/v1/auth/otp/request` and its per-IP and hourly caps
+(#5) are not in the path. The SMS is billed to the Google Cloud project instead. The API side is sound:
+`auth/firebase.ts` checks RS256 against Google's keys, `aud`/`iss` for our project, a 10-minute `auth_time` and
+`sign_in_provider = phone`. `/v1/auth/firebase` is rate-limited per client IP, and staff still need their
+authenticator. Pumping protection has to be set in Firebase itself, so it is owner action 6.
+
 ## Owner actions
 
 These cannot be done from the repository. In order of urgency:
@@ -275,7 +285,10 @@ These cannot be done from the repository. In order of urgency:
 5. **Origin firewall.** Allow ports 80 and 443 only from Cloudflare's IP ranges, so
    `cf-connecting-ip` cannot be forged. If staging is not behind Cloudflare, set `CLIENT_IP_HEADER` to
    an empty value there.
-6. **Check the limits** after the first week in Sentry and the logs: `OTP_IP_HOURLY_LIMIT` (20),
+6. **Firebase (if `AUTH_OTP_PROVIDER=firebase`).** In Firebase Authentication → Settings → SMS region policy,
+   allow only Tanzania (+255) and, when Kenya is on, Kenya (+254). Turn on App Check (reCAPTCHA Enterprise for the
+   web, Play Integrity for Android) for Identity Platform. Add a budget alert on the Google Cloud billing account.
+7. **Check the limits** after the first week in Sentry and the logs: `OTP_IP_HOURLY_LIMIT` (20),
    `OTP_GLOBAL_HOURLY_LIMIT` (500), `MESSAGE_DAILY_ALERT` (5,000). Raise them before a large launch.
 
 ## Verification

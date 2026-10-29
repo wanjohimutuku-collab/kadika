@@ -121,6 +121,9 @@ these can be done from the repository.
 - [ ] **Origin firewall.** Allow 80/443 only from Cloudflare's IP ranges, so `cf-connecting-ip` (the
       `CLIENT_IP_HEADER` rate limits key on) cannot be forged. On a stack not behind Cloudflare, set
       `CLIENT_IP_HEADER` empty.
+- [ ] **Firebase sign-in** (only with `AUTH_OTP_PROVIDER=firebase`): SMS region policy limited to +255 (and
+      +254 with Kenya on), App Check on, and a Google Cloud budget alert. Firebase sends these codes, so the
+      API's OTP caps do not apply to them.
 - [ ] **Tune the guards** after the first busy week: `OTP_IP_HOURLY_LIMIT` (20), `OTP_GLOBAL_HOURLY_LIMIT` (500),
       `MESSAGE_DAILY_ALERT` (5,000).
 

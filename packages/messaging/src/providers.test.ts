@@ -195,6 +195,10 @@ describe('WhatsAppCloudProvider', () => {
     expect(
       metaVerifyChallenge({ mode: 'subscribe', token: 'bad', challenge: '42' }, 'v'),
     ).toBeNull();
+    expect(metaVerifyChallenge({ mode: 'subscribe', token: '', challenge: '42' }, '')).toBeNull();
+    expect(
+      metaVerifyChallenge({ mode: 'unsubscribe', token: 'v', challenge: '42' }, 'v'),
+    ).toBeNull();
     expect(
       parseCloudStatuses({
         entry: [

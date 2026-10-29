@@ -2,6 +2,7 @@ import type { Deps } from './context';
 import { DeliveryService } from './services/delivery';
 import { EventService } from './services/events';
 import { ScheduledSendService } from './services/scheduled';
+import { safeErrorMessage } from './observability';
 
 const EVERY_MS = 60_000;
 
@@ -26,7 +27,7 @@ export function startScheduler(deps: Deps, everyMs = EVERY_MS): () => void {
         JSON.stringify({
           level: 'error',
           msg: 'scheduled sends failed',
-          err: e instanceof Error ? e.message : String(e),
+          err: safeErrorMessage(e),
         }),
       );
       deps.reportError?.(e as Error);

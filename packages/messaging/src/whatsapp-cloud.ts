@@ -120,7 +120,11 @@ export function metaVerifyChallenge(
   q: { mode?: string | null; token?: string | null; challenge?: string | null },
   verifyToken: string,
 ): string | null {
-  return q.mode === 'subscribe' && q.token === verifyToken && q.challenge ? q.challenge : null;
+  if (q.mode !== 'subscribe' || !q.challenge || !q.token || !verifyToken) return null;
+  // Constant time, like every other webhook secret (§9).
+  const a = Buffer.from(q.token);
+  const b = Buffer.from(verifyToken);
+  return a.length === b.length && timingSafeEqual(a, b) ? q.challenge : null;
 }
 
 /** Status callbacks (`entry[].changes[].value.statuses[]`) mapped to our delivery states. */

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
+import { bodyLimit } from 'hono/body-limit';
 import type { Context, MiddlewareHandler } from 'hono';
 import { z, ZodError } from 'zod';
 import { eq, sql } from 'drizzle-orm';
@@ -49,6 +50,7 @@ import { BODY_FONT_KEYS, DISPLAY_FONT_KEYS } from '@harusi/schemas/branding';
 import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledges';
 import { clientIp, RateLimiter } from './rate-limit';
 import { ReportService } from './services/reports';
+import { safeErrorMessage } from './observability';
 import { BillingService } from './services/billing';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
@@ -177,6 +179,28 @@ export function createApp(deps: Deps) {
       maxAge: 600,
     }),
   );
+  // No body is read whole without a ceiling (§9): public routes and webhooks would otherwise buffer
+  // whatever the edge lets through. Only the guest import and the staff APK upload need more than 1 MB.
+  const MB = 1024 * 1024;
+  const limited = (maxSize: number) =>
+    bodyLimit({
+      maxSize,
+      onError: (c) =>
+        c.json(
+          new ApiError('validation', 'Request body too large', {
+            reason: 'body_too_large',
+            maxBytes: maxSize,
+          }).toJSON(),
+          413,
+        ),
+    });
+  const bodyLimits = { default: limited(MB), import: limited(10 * MB), apk: limited(160 * MB) };
+  app.use('/v1/*', (c, next) => {
+    const p = c.req.path;
+    if (c.req.method === 'PUT' && p === '/v1/ops/app/android') return bodyLimits.apk(c, next);
+    if (/^\/v1\/events\/[^/]+\/guests\/import$/.test(p)) return bodyLimits.import(c, next);
+    return bodyLimits.default(c, next);
+  });
   const auth = new AuthService(deps);
   const eventsSvc = new EventService(deps);
   const guestsSvc = new GuestService(deps, eventsSvc);
@@ -1248,7 +1272,7 @@ export function createApp(deps: Deps) {
     if (err instanceof ZodError)
       return c.json(new ApiError('validation', 'Invalid input').toJSON(), 400);
     // Never log tokens, OTPs, keys or full phone numbers (§12): only the message.
-    console.error(JSON.stringify({ level: 'error', msg: err.message }));
+    console.error(JSON.stringify({ level: 'error', msg: safeErrorMessage(err) }));
     deps.reportError?.(err);
     return c.json(new ApiError('internal', 'Internal server error').toJSON(), 500);
   });

@@ -103,6 +103,27 @@ describe('messaging settings in /ops (ADR 031)', () => {
     expect(JSON.stringify(audit)).not.toContain('sup3r');
   });
 
+  it('asks for the key again when the host changes, so a saved key cannot be sent elsewhere', async () => {
+    const save = (baseUrl: string, apiKey: string) =>
+      api(ctx, 'PUT', '/v1/ops/messaging/sms_ke', {
+        token: admin,
+        body: {
+          provider: 'africastalking',
+          fields: { username: 'kadika', apiKey, senderId: 'KADI', baseUrl },
+        },
+      });
+    expect((await save('https://api.africastalking.com', 'at-key-0123456789')).status).toBe(200);
+    // same host, key left empty: kept
+    expect((await save('https://api.africastalking.com', '')).status).toBe(200);
+    // new host, key left empty: refused, nothing changes
+    const moved = await save('https://collector.example.net', '');
+    expect(moved.status).toBe(400);
+    expect(moved.body!.error.details.missing).toContain('apiKey');
+    const view = await api(ctx, 'GET', '/v1/ops/messaging', { token: admin });
+    const ke = view.body!.routes.find((x: { route: string }) => x.route === 'sms_ke');
+    expect(ke.fields.baseUrl).toBe('https://api.africastalking.com');
+  });
+
   it('a second instance picks the saved settings up on refresh', async () => {
     const other = { ...ctx.deps, config: { ...ctx.deps.config }, sms: ctx.sms };
     other.config.nextSms = null as typeof other.config.nextSms;

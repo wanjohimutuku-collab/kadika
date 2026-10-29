@@ -346,10 +346,14 @@ export class MessagingSettingsService {
     const current = s[route];
     const defs = providerFields(route, input.provider);
     const fields: Record<string, string> = {};
+    // A saved key never follows the provider to a new host: "Send test" would hand it to that host.
+    const sameHost =
+      current.provider === input.provider &&
+      (input.fields.baseUrl ?? '').trim() === (current.fields.baseUrl ?? '');
     for (const f of defs) {
       const v = (input.fields[f.key] ?? '').trim();
-      // An empty secret keeps the saved one (the browser never has it), if the provider is unchanged.
-      if (!v && 'secret' in f && f.secret && current.provider === input.provider) {
+      // An empty secret keeps the saved one (the browser never has it), if provider and host are unchanged.
+      if (!v && 'secret' in f && f.secret && sameHost) {
         if (current.fields[f.key]) fields[f.key] = current.fields[f.key]!;
         continue;
       }

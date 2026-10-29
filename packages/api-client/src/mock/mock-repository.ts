@@ -603,6 +603,12 @@ export class MockRepository implements Repository {
     return Promise.resolve({ otpProvider: 'sms' });
   }
 
+  startFirebaseSignIn(_phone: string): Promise<{ phone: string }> {
+    return Promise.reject(
+      new RepositoryError('not_implemented', 'Firebase sign-in is not available in the mock'),
+    );
+  }
+
   signInWithFirebase(_idToken: string): Promise<Session> {
     return Promise.reject(
       new RepositoryError('not_implemented', 'Firebase sign-in is not available in the mock'),

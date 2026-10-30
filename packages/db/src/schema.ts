@@ -124,6 +124,14 @@ export const events = pgTable('events', {
   contributionTarget: integer('contribution_target'),
   /** Whether guests may pledge and pay from their card (§7.3). */
   pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
+  /**
+   * Temporary photo album (ADR 050): off until the owner turns it on. Photos are kept until
+   * `album_keep_days` after the event date, then deleted for good.
+   */
+  albumEnabled: boolean('album_enabled').notNull().default(false),
+  /** Whether guests may add photos from their card; members always can. */
+  albumGuestUploads: boolean('album_guest_uploads').notNull().default(true),
+  albumKeepDays: integer('album_keep_days').notNull().default(1),
   plan: eventPlanEnum('plan').notNull().default('free'),
   /**
    * Set when the owner deletes the event. Its members, cards and gate stop working at once; the rows
@@ -410,6 +418,34 @@ export const auditLog = pgTable(
     ...timestamps,
   },
   (t) => [index('audit_log_event_idx').on(t.eventId, t.createdAt)],
+);
+
+/**
+ * One photo in an event's temporary album (ADR 050). The image itself is on the files volume, already
+ * compressed to WebP (a display size and a thumbnail); only its details are here. Rows and files are
+ * removed once the album closes.
+ */
+export const eventPhotos = pgTable(
+  'event_photos',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    /** A member who added it from the console, or the guest who added it from their card. */
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    guestId: uuid('guest_id').references(() => guests.id, { onDelete: 'set null' }),
+    uploaderName: text('uploader_name').notNull(),
+    caption: text('caption'),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    /** Stored sizes in bytes (display + thumbnail) and what the uploaded file weighed. */
+    bytes: integer('bytes').notNull(),
+    thumbBytes: integer('thumb_bytes').notNull(),
+    originalBytes: integer('original_bytes').notNull(),
+    ...timestamps,
+  },
+  (t) => [index('event_photos_event_idx').on(t.eventId, t.createdAt)],
 );
 
 export const refreshTokens = pgTable(

@@ -1,4 +1,5 @@
 import type { Deps } from './context';
+import { AlbumService } from './services/album';
 import { DeliveryService } from './services/delivery';
 import { EventService } from './services/events';
 import { ScheduledSendService } from './services/scheduled';
@@ -6,13 +7,15 @@ import { ScheduledSendService } from './services/scheduled';
 const EVERY_MS = 60_000;
 
 /**
- * Starts the check for scheduled sends that have come due (ADR 030). It is a plain interval rather than a
- * queue job so it also works without Redis; each send is claimed with a conditional update, so running
- * it on several instances is safe. Returns a function that stops it.
+ * Starts the check for scheduled sends that have come due (ADR 030), and the purge of closed photo
+ * albums (ADR 050). It is a plain interval rather than a queue job so it also works without Redis; each
+ * send is claimed with a conditional update and a purge only deletes, so running it on several
+ * instances is safe. Returns a function that stops it.
  */
 export function startScheduler(deps: Deps, everyMs = EVERY_MS): () => void {
   const events = new EventService(deps);
   const scheduled = new ScheduledSendService(deps, events, new DeliveryService(deps, events));
+  const album = new AlbumService(deps, events);
   let running = false;
   const tick = async () => {
     if (running) return; // a long send must not overlap the next check
@@ -26,6 +29,20 @@ export function startScheduler(deps: Deps, everyMs = EVERY_MS): () => void {
         JSON.stringify({
           level: 'error',
           msg: 'scheduled sends failed',
+          err: e instanceof Error ? e.message : String(e),
+        }),
+      );
+      deps.reportError?.(e as Error);
+    }
+    // Closed photo albums are deleted for good (ADR 050).
+    try {
+      const r = await album.purgeExpired();
+      if (r.photos > 0) console.log(JSON.stringify({ level: 'info', msg: 'albums purged', ...r }));
+    } catch (e) {
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          msg: 'album purge failed',
           err: e instanceof Error ? e.message : String(e),
         }),
       );

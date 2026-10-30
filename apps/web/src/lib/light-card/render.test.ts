@@ -187,3 +187,26 @@ describe('light guest card', () => {
     expect(html).toMatch(/<rect[^>]*fill="#FFFFFF"\/><path d="[^"]+" fill="#000000"\/>/);
   });
 });
+
+describe('temporary photo album on the guest card (ADR 050)', () => {
+  const album = { open: true, guestUploads: true, closesAt: '2026-12-06T07:00:00.000Z' };
+
+  it('links to the album page while it is open, saying until when the photos stay', () => {
+    const html = renderCard(view({ album }), opts);
+    expect(html).toContain('data-testid="album-section"');
+    expect(html).toContain(`href="/c/${opts.token}/album"`);
+    expect(html).toContain('Ongeza picha zako za kumbukumbu');
+  });
+
+  it('only invites viewing when guests cannot add photos', () => {
+    const html = renderCard(view({ album: { ...album, guestUploads: false } }), opts);
+    expect(html).toContain('Tazama picha za kumbukumbu');
+  });
+
+  it('shows nothing when the album is off or closed', () => {
+    expect(renderCard(view(), opts)).not.toContain('album-section');
+    expect(renderCard(view({ album: { ...album, open: false } }), opts)).not.toContain(
+      'album-section',
+    );
+  });
+});

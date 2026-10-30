@@ -29,6 +29,8 @@ import { applyGuestQuery } from './domain/guest-filter';
 import { buildSampleSms, estimateSmsCostFor } from './domain/sms';
 import type {
   Activity,
+  AlbumPhoto,
+  PhotoAlbum,
   AndroidRelease,
   AuditEntry,
   CardView,
@@ -119,6 +121,9 @@ interface ApiEvent {
   dressCode: string | null;
   committeePhone?: string | null;
   pledgesEnabled?: boolean;
+  albumEnabled?: boolean;
+  albumGuestUploads?: boolean;
+  albumKeepDays?: number;
   senderName?: string | null;
   greeting?: string | null;
   languageDefault: 'sw' | 'en';
@@ -228,6 +233,9 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
       e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
+    albumEnabled: e.albumEnabled ?? false,
+    albumGuestUploads: e.albumGuestUploads ?? true,
+    albumKeepDays: e.albumKeepDays ?? 1,
     requirePledgeBeforeCard: false,
     greeting: e.greeting ?? '',
     extraNote: '',
@@ -256,6 +264,7 @@ interface ApiCard {
   rsvp: CardView['rsvp'];
   rsvpOpen: boolean;
   eventPassed: boolean;
+  album?: CardView['album'];
 }
 
 function mapCard(token: string, c: ApiCard): CardView {
@@ -307,6 +316,7 @@ function mapCard(token: string, c: ApiCard): CardView {
     pledge: c.pledge ?? null,
     rsvpOpen: c.rsvpOpen,
     eventPassed: c.eventPassed,
+    album: c.album ?? null,
     isMock: false,
   };
 }
@@ -448,6 +458,14 @@ export function createHttpRepository(
     role: 'owner',
     expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   });
+
+  /** Photo links come back API-relative; `<img>` needs them absolute. */
+  const photoOf = (p: AlbumPhoto): AlbumPhoto => ({
+    ...p,
+    url: `${baseUrl}${p.url}`,
+    thumbUrl: `${baseUrl}${p.thumbUrl}`,
+  });
+  const albumOf = (a: PhotoAlbum): PhotoAlbum => ({ ...a, photos: a.photos.map(photoOf) });
 
   /** Funnel stats; a failure here must not hide the event itself. */
   const statsOf = (eventId: string): Promise<ApiStats | null> =>
@@ -819,6 +837,9 @@ export function createHttpRepository(
       if (patch.contributionTarget !== undefined)
         body.contributionTarget = patch.contributionTarget;
       if (patch.pledgesEnabled !== undefined) body.pledgesEnabled = patch.pledgesEnabled;
+      if (patch.albumEnabled !== undefined) body.albumEnabled = patch.albumEnabled;
+      if (patch.albumGuestUploads !== undefined) body.albumGuestUploads = patch.albumGuestUploads;
+      if (patch.albumKeepDays !== undefined) body.albumKeepDays = patch.albumKeepDays;
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
       if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
@@ -1007,6 +1028,51 @@ export function createHttpRepository(
       return mapGuest(r.guest);
     },
     // Public guest card (no login; the card token is the credential).
+    async getEventAlbum(eventId) {
+      return albumOf(
+        await call<PhotoAlbum>('GET', `/v1/events/${encodeURIComponent(eventId)}/album`),
+      );
+    },
+    async uploadEventPhoto(eventId, file, caption) {
+      const q = caption ? `?caption=${encodeURIComponent(caption)}` : '';
+      const p = await call<AlbumPhoto>(
+        'POST',
+        `/v1/events/${encodeURIComponent(eventId)}/album/photos${q}`,
+        file,
+      );
+      return photoOf(p);
+    },
+    async deleteEventPhoto(eventId, photoId) {
+      await call(
+        'DELETE',
+        `/v1/events/${encodeURIComponent(eventId)}/album/photos/${encodeURIComponent(photoId)}`,
+      );
+    },
+    async clearEventAlbum(eventId) {
+      return call<{ removed: number }>('DELETE', `/v1/events/${encodeURIComponent(eventId)}/album`);
+    },
+    async getCardAlbum(token) {
+      const r = await raw('GET', `/v1/c/${encodeURIComponent(token)}/album`, undefined, {}, false);
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      return albumOf(r.json as unknown as PhotoAlbum);
+    },
+    async uploadCardPhoto(token, file, caption) {
+      const q = caption ? `?caption=${encodeURIComponent(caption)}` : '';
+      const r = await raw(
+        'POST',
+        `/v1/c/${encodeURIComponent(token)}/album/photos${q}`,
+        file,
+        {},
+        false,
+      );
+      if (r.status >= 400) return fail(r.status, r.json as never);
+      return photoOf(r.json as unknown as AlbumPhoto);
+    },
+    async deleteCardPhoto(token, photoId) {
+      const path = `/v1/c/${encodeURIComponent(token)}/album/photos/${encodeURIComponent(photoId)}`;
+      const r = await raw('DELETE', path, undefined, {}, false);
+      if (r.status >= 400) return fail(r.status, r.json as never);
+    },
     async getCard(token) {
       const r = await raw('GET', `/v1/c/${encodeURIComponent(token)}`, undefined, {}, false);
       if (r.status >= 400) return fail(r.status, r.json as never);

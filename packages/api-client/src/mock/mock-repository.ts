@@ -55,6 +55,8 @@ function checkedPalette(themeId: string, raw: PaletteOverrides | undefined): Pal
 import type { Repository } from '../repository';
 import type {
   Activity,
+  AlbumPhoto,
+  PhotoAlbum,
   AndroidRelease,
   AuditEntry,
   CardView,
@@ -188,6 +190,9 @@ export class MockRepository implements Repository {
   private rng: Rng;
   private baseUrl: string;
   private changeListeners = new Set<() => void>();
+  /** Album photos live in memory only: images are too big for the saved demo state. */
+  private albumPhotos: (AlbumPhoto & { eventId: string; guestId: string | null; size: number })[] =
+    [];
 
   constructor(opts: MockRepositoryOptions = {}) {
     this.storage = opts.storage ?? null;
@@ -752,6 +757,9 @@ export class MockRepository implements Repository {
         ),
         committeePhone: u.phoneE164,
         pledgesEnabled: true,
+        albumEnabled: false,
+        albumGuestUploads: true,
+        albumKeepDays: 1,
         requirePledgeBeforeCard: false,
         greeting: '',
         extraNote: '',
@@ -2057,6 +2065,13 @@ export class MockRepository implements Repository {
         g.status !== 'checked_in' &&
         e.status !== 'archived',
       eventPassed,
+      album: e.albumEnabled
+        ? {
+            open: now < this.albumClosesAt(e),
+            guestUploads: e.albumGuestUploads ?? true,
+            closesAt: iso(this.albumClosesAt(e)),
+          }
+        : null,
       isMock: true,
     };
   }
@@ -3414,6 +3429,137 @@ export class MockRepository implements Repository {
         uploadedAt: iso(this.now()),
       };
       return this.state.androidRelease;
+    });
+  }
+
+  // ---- temporary photo album (ADR 050). The real API compresses; the demo keeps the file as is.
+  private albumClosesAt(e: EventRecord) {
+    return Date.parse(e.dateStart) + (e.albumKeepDays ?? 1) * DAY;
+  }
+
+  private albumView(e: EventRecord, guestId: string | null): PhotoAlbum {
+    const open = !!e.albumEnabled && this.now() < this.albumClosesAt(e);
+    const photos = this.albumPhotos.filter((p) => p.eventId === e.id);
+    const mine = photos.filter((p) => guestId && p.guestId === guestId).length;
+    const strip = ({ eventId: _e, guestId: g, size: _s, ...p }: (typeof photos)[number]) => ({
+      ...p,
+      uploaderName: guestId ? (p.uploaderName.split(' ')[0] ?? '') : p.uploaderName,
+      mine: guestId ? g === guestId : undefined,
+    });
+    return {
+      enabled: !!e.albumEnabled,
+      guestUploads: e.albumGuestUploads ?? true,
+      keepDays: e.albumKeepDays ?? 1,
+      closesAt: iso(this.albumClosesAt(e)),
+      open,
+      canUpload: open && (guestId ? (e.albumGuestUploads ?? true) && mine < 20 : true),
+      photos: open || !guestId ? photos.map(strip) : [],
+      stats: guestId
+        ? undefined
+        : {
+            count: photos.length,
+            bytes: photos.reduce((t, p) => t + p.size, 0),
+            originalBytes: photos.reduce((t, p) => t + p.size, 0),
+          },
+    };
+  }
+
+  private addAlbumPhoto(
+    e: EventRecord,
+    by: { guestId: string | null; name: string },
+    file: Blob,
+    caption?: string,
+  ): AlbumPhoto {
+    if (!e.albumEnabled || this.now() >= this.albumClosesAt(e))
+      throw new RepositoryError('conflict', 'The album is closed', { reason: 'album.closed' });
+    if (!file.type.startsWith('image/'))
+      throw new RepositoryError('validation', 'This file is not a photo', { field: 'file' });
+    const url =
+      typeof URL !== 'undefined' && 'createObjectURL' in URL ? URL.createObjectURL(file) : '';
+    const photo = {
+      id: this.rng.uuid(),
+      eventId: e.id,
+      guestId: by.guestId,
+      size: file.size,
+      uploaderName: by.name,
+      caption: caption?.trim() || null,
+      width: 0,
+      height: 0,
+      createdAt: iso(this.now()),
+      url,
+      thumbUrl: url,
+    };
+    this.albumPhotos.push(photo);
+    return { ...photo, mine: by.guestId ? true : undefined };
+  }
+
+  private cardGuest(token: string) {
+    const g = this.state.guests.find((x) => x.token === token && !x.deletedAt);
+    const e = g && this.state.events.find((x) => x.id === g.eventId && !x.deletedAt);
+    if (!g || !e) throw new RepositoryError('not_found', 'Invalid link');
+    return { g, e };
+  }
+
+  getEventAlbum(eventId: string): Promise<PhotoAlbum> {
+    return this.run('read', 'album', () => {
+      this.requireSession();
+      return this.albumView(this.event(eventId), null);
+    });
+  }
+
+  uploadEventPhoto(eventId: string, file: Blob, caption?: string): Promise<AlbumPhoto> {
+    return this.run('write', 'album', () => {
+      const u = this.requireSession();
+      return this.addAlbumPhoto(
+        this.event(eventId),
+        { guestId: null, name: u.name },
+        file,
+        caption,
+      );
+    });
+  }
+
+  deleteEventPhoto(eventId: string, photoId: string): Promise<void> {
+    return this.run('write', 'album', () => {
+      this.requireSession();
+      this.event(eventId);
+      this.albumPhotos = this.albumPhotos.filter(
+        (p) => !(p.id === photoId && p.eventId === eventId),
+      );
+    });
+  }
+
+  clearEventAlbum(eventId: string): Promise<{ removed: number }> {
+    return this.run('write', 'album', () => {
+      this.requireSession();
+      this.event(eventId);
+      const before = this.albumPhotos.length;
+      this.albumPhotos = this.albumPhotos.filter((p) => p.eventId !== eventId);
+      return { removed: before - this.albumPhotos.length };
+    });
+  }
+
+  getCardAlbum(token: string): Promise<PhotoAlbum> {
+    return this.run('card-read', 'album', () => {
+      const { g, e } = this.cardGuest(token);
+      if (!e.albumEnabled) throw new RepositoryError('not_found', 'No album for this event');
+      return this.albumView(e, g.id);
+    });
+  }
+
+  uploadCardPhoto(token: string, file: Blob, caption?: string): Promise<AlbumPhoto> {
+    return this.run('write', 'album', () => {
+      const { g, e } = this.cardGuest(token);
+      if (!(e.albumGuestUploads ?? true))
+        throw new RepositoryError('forbidden', 'Guests cannot add photos to this album');
+      return this.addAlbumPhoto(e, { guestId: g.id, name: g.displayName }, file, caption);
+    });
+  }
+
+  deleteCardPhoto(token: string, photoId: string): Promise<void> {
+    return this.run('write', 'album', () => {
+      const { g } = this.cardGuest(token);
+      this.albumPhotos = this.albumPhotos.filter((p) => !(p.id === photoId && p.guestId === g.id));
     });
   }
 

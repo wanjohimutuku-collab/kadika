@@ -248,7 +248,11 @@
     "appLink": "Programu ya Android",
     "payToTitle": "Tuma mchango wako kwa:",
     "payToNone": "Wasiliana na kamati kujua namba ya kutuma mchango.",
-    "payToDirect": "Mchango unaenda moja kwa moja kwa wenyeji. Kamati itaandika malipo yako. Usitume PIN yako kwa mtu yeyote."
+    "payToDirect": "Mchango unaenda moja kwa moja kwa wenyeji. Kamati itaandika malipo yako. Usitume PIN yako kwa mtu yeyote.",
+    "albumTitle": "Picha za kumbukumbu",
+    "albumInvite": "Ongeza picha zako za kumbukumbu. Zitaonekana hadi {date}.",
+    "albumViewOnly": "Tazama picha za kumbukumbu. Zitaonekana hadi {date}.",
+    "albumOpen": "Fungua albamu"
   },
   "pay": {
     "title": "Lipa mchango",
@@ -339,7 +343,8 @@
     "gateNoConsoleTitle": "Huna ruhusa ya dashibodi",
     "opsLink": "Dashibodi ya wafanyakazi",
     "content": "Maandishi ya kadi",
-    "billing": "Kifurushi"
+    "billing": "Kifurushi",
+    "album": "Albamu"
   },
   "auth": {
     "title": "Ingia kwenye {brand}",
@@ -2245,5 +2250,44 @@
     },
     "buy": "Nunua kadi {n} · {total}",
     "skip": "Anza na kadi {n} za bure"
+  },
+  "album": {
+    "title": "Albamu ya picha",
+    "subtitle": "Picha za muda — zinafutwa {date}",
+    "intro": "Washa albamu ili wageni na kamati waweke picha za kumbukumbu. Picha zinapunguzwa ukubwa ili zifunguke haraka bila kupoteza uwazi, na zinafutwa baada ya sherehe.",
+    "enable": "Washa albamu",
+    "enableHint": "Kiungo cha albamu kitaonekana kwenye kadi za wageni",
+    "guestUploads": "Wageni waweke picha",
+    "guestUploadsHint": "Kutoka kwenye kadi zao; hadi picha 20 kila mmoja",
+    "keepDays": "Picha zifutwe",
+    "keep1": "Siku 1 baada ya sherehe",
+    "keep7": "Wiki 1 baada ya sherehe",
+    "keep30": "Siku 30 baada ya sherehe",
+    "add": "Ongeza picha",
+    "uploading": "Inapakia {done}/{total}…",
+    "uploaded": "{count, plural, one {Picha # imeongezwa} other {Picha # zimeongezwa}}",
+    "someFailed": "{count, plural, one {Picha # haikupakia} other {Picha # hazikupakia}}. Jaribu tena.",
+    "tooBig": "Picha ni kubwa kuliko MB 15.",
+    "notImage": "Faili hili si picha.",
+    "limit": "Umefikia kikomo cha picha 20.",
+    "compressNote": "Tunapunguza ukubwa wa picha bila kupoteza uwazi.",
+    "empty": "Hakuna picha bado",
+    "by": "Na {name}",
+    "photo": "Picha ya {name}",
+    "delete": "Futa picha",
+    "deleteTitle": "Futa picha hii?",
+    "deleteConsequence": "Itaondolewa kwenye albamu kwa kila mtu.",
+    "deleted": "Picha imefutwa",
+    "clear": "Futa picha zote",
+    "clearConsequence": "{count, plural, one {Picha # itafutwa} other {Picha # zitafutwa}} sasa hivi kwa kila mtu. Haiwezi kurudishwa.",
+    "cleared": "Albamu imesafishwa",
+    "space": "{count, plural, one {Picha #} other {Picha #}} · {size} (zilipakiwa {original})",
+    "closed": "Albamu imefungwa na picha zimefutwa.",
+    "guestUploadsOff": "Ni wenyeji tu wanaoweza kuongeza picha.",
+    "privacy": "Picha zinaonekana kwa wenye kadi ya sherehe hii tu, na zinafutwa {date}.",
+    "back": "Rudi kwenye kadi",
+    "prev": "Iliyotangulia",
+    "next": "Inayofuata",
+    "open": "Fungua picha {n} kati ya {total}"
   }
 }

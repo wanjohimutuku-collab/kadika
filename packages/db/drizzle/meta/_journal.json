@@ -183,6 +183,13 @@
       "when": 1793230330347,
       "tag": "0025_signin_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793268065554,
+      "tag": "0026_album",
+      "breakpoints": true
     }
   ]
 }

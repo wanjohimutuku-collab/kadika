@@ -15,6 +15,7 @@ import {
   Cloud,
   CreditCard,
   HandCoins,
+  Images,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
@@ -48,6 +49,7 @@ type NavKey =
   | 'gate'
   | 'pledges'
   | 'cards'
+  | 'album'
   | 'team'
   | 'reports'
   | 'billing'
@@ -80,6 +82,12 @@ export function navItems(eventId: string): { primary: NavItem[]; secondary: NavI
         key: 'cards',
         href: `${base}/cards`,
         icon: <CreditCard className={i} aria-hidden="true" />,
+      },
+      // ADR 050: the temporary photo album; owner and committee add and remove photos.
+      {
+        key: 'album',
+        href: `${base}/album`,
+        icon: <Images className={i} aria-hidden="true" />,
       },
       // §17.3: committee members do not manage members or event settings.
       {

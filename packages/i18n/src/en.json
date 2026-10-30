@@ -244,7 +244,11 @@
     "appLink": "Android app",
     "payToTitle": "Send your contribution to:",
     "payToNone": "Ask the committee where to send your contribution.",
-    "payToDirect": "Your contribution goes straight to the hosts, and the committee records it. Never share your PIN with anyone."
+    "payToDirect": "Your contribution goes straight to the hosts, and the committee records it. Never share your PIN with anyone.",
+    "albumTitle": "Photo memories",
+    "albumInvite": "Add your photo memories. They stay up until {date}.",
+    "albumViewOnly": "See the photo memories. They stay up until {date}.",
+    "albumOpen": "Open album"
   },
   "pay": {
     "title": "Pay contribution",
@@ -335,7 +339,8 @@
     "gateNoConsoleTitle": "No dashboard access",
     "opsLink": "Staff dashboard",
     "content": "Card text",
-    "billing": "Plan"
+    "billing": "Plan",
+    "album": "Album"
   },
   "auth": {
     "title": "Sign in to {brand}",
@@ -2241,5 +2246,44 @@
     },
     "buy": "Buy {n} cards · {total}",
     "skip": "Start with {n} free cards"
+  },
+  "album": {
+    "title": "Photo album",
+    "subtitle": "Temporary photos — deleted on {date}",
+    "intro": "Turn the album on so guests and the committee can share photo memories. Photos are shrunk to load fast without losing sharpness, and deleted after the event.",
+    "enable": "Album on",
+    "enableHint": "A link to the album shows on guests' cards",
+    "guestUploads": "Guests can add photos",
+    "guestUploadsHint": "From their card; up to 20 photos each",
+    "keepDays": "Delete photos",
+    "keep1": "1 day after the event",
+    "keep7": "1 week after the event",
+    "keep30": "30 days after the event",
+    "add": "Add photos",
+    "uploading": "Uploading {done}/{total}…",
+    "uploaded": "{count, plural, one {# photo added} other {# photos added}}",
+    "someFailed": "{count, plural, one {# photo did not upload} other {# photos did not upload}}. Try again.",
+    "tooBig": "The photo is larger than 15 MB.",
+    "notImage": "This file is not a photo.",
+    "limit": "You have reached the 20-photo limit.",
+    "compressNote": "We shrink photos without losing sharpness.",
+    "empty": "No photos yet",
+    "by": "By {name}",
+    "photo": "Photo by {name}",
+    "delete": "Delete photo",
+    "deleteTitle": "Delete this photo?",
+    "deleteConsequence": "It will be removed from the album for everyone.",
+    "deleted": "Photo deleted",
+    "clear": "Delete all photos",
+    "clearConsequence": "{count, plural, one {# photo} other {# photos}} will be deleted now for everyone. This cannot be undone.",
+    "cleared": "Album emptied",
+    "space": "{count, plural, one {# photo} other {# photos}} · {size} (uploaded {original})",
+    "closed": "The album is closed and its photos have been deleted.",
+    "guestUploadsOff": "Only the hosts can add photos.",
+    "privacy": "Only people with a card for this event can see the photos. They are deleted on {date}.",
+    "back": "Back to the card",
+    "prev": "Previous",
+    "next": "Next",
+    "open": "Open photo {n} of {total}"
   }
 }

@@ -7,6 +7,7 @@ import { ApiError } from '../errors';
 import { decryptSecret } from '../crypto-at-rest';
 import { pledgeSummaryOf, type PledgeSummary } from './pledges';
 import { ContributionRecords } from './contribution-records';
+import { albumClosesAt } from './album';
 
 type Status = typeof invitations.$inferSelect.status;
 const RANK: Record<Status, number> = {
@@ -63,6 +64,8 @@ export interface CardView {
   rsvp: { status: 'pending' | 'confirmed' | 'declined'; partySize: number | null };
   rsvpOpen: boolean;
   eventPassed: boolean;
+  /** The event's temporary photo album (ADR 050), when the owner turned it on. */
+  album: { open: boolean; guestUploads: boolean; closesAt: Date } | null;
 }
 
 const EMPTY = (state: 'reissued' | 'invalid'): CardView => ({
@@ -76,6 +79,7 @@ const EMPTY = (state: 'reissued' | 'invalid'): CardView => ({
   rsvp: { status: 'pending', partySize: null },
   rsvpOpen: false,
   eventPassed: false,
+  album: null,
 });
 
 /**
@@ -162,6 +166,13 @@ export class CardService {
         invitation.status !== 'checked_in' &&
         event.status !== 'archived',
       eventPassed,
+      album: event.albumEnabled
+        ? {
+            open: now < albumClosesAt(event).getTime(),
+            guestUploads: event.albumGuestUploads,
+            closesAt: albumClosesAt(event),
+          }
+        : null,
     };
   }
 

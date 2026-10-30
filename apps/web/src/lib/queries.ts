@@ -26,6 +26,7 @@ export const qk = {
   job: (jobId: string) => ['job', jobId] as const,
   scheduled: (id: string) => ['scheduled-sends', id] as const,
   billing: (id: string) => ['billing', id] as const,
+  album: (id: string) => ['album', id] as const,
   ops: (name: string) => ['ops', name] as const,
 } satisfies Record<string, QueryKey | ((...a: never[]) => QueryKey)>;
 

@@ -141,6 +141,11 @@ export interface WeddingEvent {
   senderName: string;
   committeePhone: string;
   pledgesEnabled: boolean;
+  /** Temporary photo album (ADR 050), off by default. Photos are deleted `albumKeepDays` after the date. */
+  albumEnabled: boolean;
+  /** Guests may add photos from their card (members always can). */
+  albumGuestUploads: boolean;
+  albumKeepDays: number;
   /** §7.5 policy toggle, default OFF. */
   requirePledgeBeforeCard: boolean;
   greeting: string;
@@ -376,7 +381,38 @@ export interface CardView {
   pledge: PledgeSummary | null;
   rsvpOpen: boolean;
   eventPassed: boolean;
+  /** The event's temporary photo album (ADR 050), when the hosts turned it on. */
+  album?: { open: boolean; guestUploads: boolean; closesAt: ISODate } | null;
   isMock: boolean;
+}
+
+/** One photo in an event's temporary album (ADR 050), already compressed by the API. */
+export interface AlbumPhoto {
+  id: string;
+  /** Full name in the console; first name only on a guest's card. */
+  uploaderName: string;
+  caption: string | null;
+  width: number;
+  height: number;
+  createdAt: ISODate;
+  /** Absolute signed links, valid until the album closes. */
+  url: string;
+  thumbUrl: string;
+  /** On a guest's card: their own photo, which they may delete. */
+  mine?: boolean;
+}
+
+export interface PhotoAlbum {
+  enabled: boolean;
+  guestUploads: boolean;
+  keepDays: number;
+  /** When every photo is deleted for good. */
+  closesAt: ISODate;
+  open: boolean;
+  canUpload: boolean;
+  photos: AlbumPhoto[];
+  /** Console only: space used after compression vs what was uploaded. */
+  stats?: { count: number; bytes: number; originalBytes: number };
 }
 
 export interface SendRequest {

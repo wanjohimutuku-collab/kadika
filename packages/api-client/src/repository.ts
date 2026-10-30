@@ -61,6 +61,8 @@ import type {
   Session,
   AuthConfig,
   WeddingEvent,
+  AlbumPhoto,
+  PhotoAlbum,
   DataRequest,
   OpsAuditEntry,
   OpsEvent,
@@ -218,6 +220,19 @@ export interface Repository {
   ): Promise<PurchaseView>;
   getPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
   cancelPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
+
+  // Temporary photo album (ADR 050) — GET /v1/events/:id/album, POST …/album/photos, DELETE …
+  /** Owner and committee. Album settings change through `updateEvent`. */
+  getEventAlbum(eventId: string): Promise<PhotoAlbum>;
+  /** The file goes as is; the API compresses it. Callers may shrink it first to save data. */
+  uploadEventPhoto(eventId: string, file: Blob, caption?: string): Promise<AlbumPhoto>;
+  deleteEventPhoto(eventId: string, photoId: string): Promise<void>;
+  /** Owner only: deletes every photo now. */
+  clearEventAlbum(eventId: string): Promise<{ removed: number }>;
+  /** The guest's view from their card — GET /v1/c/:token/album, POST …/photos, DELETE …/photos/:id */
+  getCardAlbum(token: string): Promise<PhotoAlbum>;
+  uploadCardPhoto(token: string, file: Blob, caption?: string): Promise<AlbumPhoto>;
+  deleteCardPhoto(token: string, photoId: string): Promise<void>;
 
   // Guest card (public) — GET /v1/c/:token, POST …/rsvp, POST …/pay
   getCard(token: string): Promise<CardView>;

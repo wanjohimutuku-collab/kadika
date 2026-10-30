@@ -41,6 +41,8 @@ import { PaymentSettingsService } from './services/payment-settings';
 import { SignInSettingsService, signInOf } from './services/signin-settings';
 import { BrandingService } from './services/branding';
 import { AppReleaseService } from './services/app-release';
+import { AlbumService, MAX_UPLOAD_BYTES } from './services/album';
+import { bodyLimit } from 'hono/body-limit';
 import { Readable } from 'node:stream';
 import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
@@ -93,6 +95,9 @@ const eventBase = z.object({
   rsvpDeadline: optionalDate,
   contributionTarget: z.number().int().min(0).nullish(),
   pledgesEnabled: z.boolean().optional(),
+  albumEnabled: z.boolean().optional(),
+  albumGuestUploads: z.boolean().optional(),
+  albumKeepDays: z.number().int().min(1).max(30).optional(),
   brandTheme: z.record(z.unknown()).nullish(),
   cardContent: cardContentSchema.optional(),
 });
@@ -148,7 +153,11 @@ export function createApp(deps: Deps) {
   });
   // The public logo route sets its own, stricter set (it serves an image, so it also needs `sandbox`
   // and an inline-style allowance); the global middleware would overwrite it after the handler runs.
-  app.use('*', (c, next) => (c.req.path === '/v1/branding/logo' ? next() : secure(c, next)));
+  app.use('*', (c, next) =>
+    c.req.path === '/v1/branding/logo' || c.req.path.startsWith('/v1/album-photos/')
+      ? next()
+      : secure(c, next),
+  );
   // One JSON line per request, never with a card token, PIN, OTP or phone number in it: the route
   // pattern (`/v1/c/:token/pay`) is logged, not the real path (§12).
   app.use('*', async (c, next) => {
@@ -195,6 +204,7 @@ export function createApp(deps: Deps) {
   const signInSettingsSvc = deps.signInSettings ?? new SignInSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
   const appReleaseSvc = new AppReleaseService(deps);
+  const albumSvc = new AlbumService(deps, eventsSvc);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const reportSvc = new ReportService(deps, eventsSvc, deliverySvc, pledgeSvc, gateSvc);
@@ -388,6 +398,7 @@ export function createApp(deps: Deps) {
     c.req.path === '/v1/app/android' ||
     c.req.path === '/v1/app/android.apk' ||
     c.req.path === '/v1/branding/logo' ||
+    c.req.path.startsWith('/v1/album-photos/') ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
       : gateOrUser(c, next),
@@ -534,6 +545,75 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await cardsSvc.rsvp(c.req.param('token'), input));
+  });
+
+  // ---- temporary photo album (ADR 050): photos go up as raw bytes, the caption in the query
+  const photoBody = bodyLimit({
+    maxSize: MAX_UPLOAD_BYTES,
+    onError: () => {
+      throw new ApiError('validation', 'The photo is larger than 15 MB', {
+        field: 'file',
+        reason: 'album.too_large',
+      });
+    },
+  });
+  const captionOf = (c: Context) =>
+    parse(z.string().trim().max(140).nullish(), c.req.query('caption')) ?? null;
+  const photoBytes = async (c: Context) => new Uint8Array(await c.req.arrayBuffer());
+  app.get('/v1/c/:token/album', async (c) => {
+    await cardReads.check(`ip:${client(c)}`);
+    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    return c.json(await albumSvc.forGuest(c.req.param('token')));
+  });
+  app.post('/v1/c/:token/album/photos', photoBody, async (c) => {
+    await cardWrites.check(`ip:${client(c)}`);
+    await cardWrites.check(`t:${c.req.param('token').slice(0, 8)}`);
+    const caption = captionOf(c);
+    const photo = await albumSvc.addByGuest(c.req.param('token'), await photoBytes(c), caption);
+    return c.json(photo, 201);
+  });
+  app.delete('/v1/c/:token/album/photos/:pid', async (c) => {
+    await cardWrites.check(`ip:${client(c)}`);
+    await albumSvc.removeByGuest(c.req.param('token'), c.req.param('pid'));
+    return c.json({ ok: true });
+  });
+  app.get('/v1/events/:id/album', async (c) =>
+    c.json(await albumSvc.forMember(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/album/photos', photoBody, async (c) => {
+    const caption = captionOf(c);
+    const photo = await albumSvc.addByMember(
+      c.req.param('id'),
+      c.get('userId'),
+      await photoBytes(c),
+      caption,
+    );
+    return c.json(photo, 201);
+  });
+  app.delete('/v1/events/:id/album/photos/:pid', async (c) => {
+    await albumSvc.removeByMember(c.req.param('id'), c.get('userId'), c.req.param('pid'));
+    return c.json({ ok: true });
+  });
+  app.delete('/v1/events/:id/album', async (c) =>
+    c.json(await albumSvc.clear(c.req.param('id'), c.get('userId'))),
+  );
+  // The image itself, by signed link only (the album lists them). Not a page: no script, no framing.
+  app.get('/v1/album-photos/:pid', async (c) => {
+    const q = c.req.query();
+    const file = await albumSvc.file(c.req.param('pid'), q.s ?? '', q.e ?? '', q.k ?? '');
+    const left = Math.max(0, file.exp - Math.floor(deps.now().getTime() / 1000));
+    return c.body(new Uint8Array(file.body), 200, {
+      'content-type': 'image/webp',
+      'cache-control': `private, max-age=${Math.min(left, 86_400)}`,
+      'x-content-type-options': 'nosniff',
+      'content-disposition': 'inline',
+      'content-security-policy': "default-src 'none'; frame-ancestors 'none'; sandbox",
+      'strict-transport-security': 'max-age=63072000; includeSubDomains',
+      'referrer-policy': 'no-referrer',
+      'x-frame-options': 'DENY',
+      // shown with <img> on the web app's origin
+      'cross-origin-resource-policy': 'cross-origin',
+    });
   });
 
   // ---- events

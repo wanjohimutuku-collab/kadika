@@ -411,6 +411,12 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
       }</section>`
     : '';
 
+  // The temporary photo album (ADR 050): a link to its own page, so the card stays light.
+  const album = view.album;
+  const albumSection = album?.open
+    ? `<section class="no-print" data-testid="album-section"><h2>${esc(t.albumTitle)}</h2><p class="muted">${esc(fmt((album.guestUploads ? t.albumInvite : t.albumViewOnly)!, { date: formatDate(album.closesAt, locale) }))}</p><a class="btn primary block mt" href="/c/${encodeURIComponent(view.token)}/album" data-testid="album-link">${esc(t.albumOpen)}</a></section>`
+    : '';
+
   const hasPhone = !!phoneRaw;
   const fromCommittee = senderKind === 'committee';
   const trustLine = L(content.sender?.trustLine);
@@ -488,6 +494,7 @@ ${programme}
 ${rsvpSection}
 ${confirmed ? '' : qrSection}
 ${contributionSection}
+${albumSection}
 ${closingSection}
 <footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a><a href="/programu" data-testid="card-app-link">${esc(t.appLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;

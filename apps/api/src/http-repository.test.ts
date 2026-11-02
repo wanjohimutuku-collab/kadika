@@ -46,6 +46,59 @@ describe('HttpRepository against the real API', () => {
     expect(tokens.get()?.refreshToken).toBeTruthy();
   });
 
+  it('keeps the session when two tabs refresh an expired token at the same time', async () => {
+    // Browser tabs share the tokens in localStorage, and a reused refresh token revokes the whole
+    // session; before the shared lock this signed staff out and every /v1/ops call answered 401.
+    let queue: Promise<unknown> = Promise.resolve();
+    const lock = <T>(fn: () => Promise<T>): Promise<T> => {
+      const run = queue.then(fn);
+      queue = run.catch(() => undefined);
+      return run;
+    };
+    const tokens = memoryTokenStore();
+    const tab = () =>
+      createHttpRepository('http://api.test', {
+        tokens,
+        refreshLock: lock,
+        fetchImpl: ((url: string, init?: RequestInit) =>
+          ctx.app.request(url.replace('http://api.test', ''), init)) as typeof fetch,
+      });
+    const a = tab();
+    const b = tab();
+    const s = await login(a, '0712 100 130');
+    ctx.clock.now += 16 * 60_000;
+    const [sa, sb] = await Promise.all([a.getSession(), b.getSession()]);
+    expect(sa?.user.id).toBe(s.user.id);
+    expect(sb?.user.id).toBe(s.user.id);
+    // Still signed in afterwards: nothing tripped the reuse detection.
+    ctx.clock.now += 16 * 60_000;
+    expect((await tab().getSession())?.user.id).toBe(s.user.id);
+  });
+
+  it('a failed refresh in one tab does not clear the pair another tab just stored', async () => {
+    const tokens = memoryTokenStore();
+    const a = repo(tokens);
+    const s = await login(a, '0712 100 131');
+    ctx.clock.now += 16 * 60_000;
+    const fresh = repo(tokens);
+    // This tab's refresh is refused (as when the token was rotated elsewhere); meanwhile the other
+    // tab stores a good pair. The refused tab must leave that pair alone.
+    const refused = createHttpRepository('http://api.test', {
+      tokens,
+      fetchImpl: (async (url: string, init?: RequestInit) => {
+        const path = url.replace('http://api.test', '');
+        if (path === '/v1/auth/refresh') {
+          await fresh.getSession();
+          return new Response(JSON.stringify({ error: { code: 'unauthorized' } }), { status: 401 });
+        }
+        return ctx.app.request(path, init);
+      }) as typeof fetch,
+    });
+    expect(await refused.getSession()).toBeNull();
+    expect(tokens.get()).not.toBeNull();
+    expect((await repo(tokens).getSession())?.user.id).toBe(s.user.id);
+  });
+
   it('maps API errors to RepositoryError codes', async () => {
     const r = repo();
     await expect(r.requestOtp('0712')).rejects.toMatchObject({ code: 'validation' });

@@ -8,6 +8,7 @@ The Coolify stack's `backup` service (`docker-compose.coolify.yml`) writes `haru
 
 - **Redis** (queues, nothing durable: safe to lose; unsent queued messages are re-run by retrying failed sends).
 - **Object storage** (card images, PDFs): replicate the bucket or accept that PDFs are regenerated on demand.
+- **Kumbukumbu photos** (ADR 050): the `photofiles` volume (`/data/photo-files` in the `api` container). Copy it off the server with the dumps, e.g. nightly `docker run --rm -v <stack>_photofiles:/p:ro -v /backups:/b alpine tar czf /b/photos-$(date +%F).tgz -C /p .`; restore by extracting into an empty volume before the API starts. Rows without files show empty frames; files without rows are never served.
 - **Secrets** (`KEY_ENC_SECRET`, `JWT_SECRET`, aggregator keys): in the secret store. **Without `KEY_ENC_SECRET` the event signing keys in a restored database cannot be decrypted and every printed QR becomes unverifiable**, so keep that secret backed up separately and never in the same place as the dumps.
 
 ## Drill (about 20 minutes)

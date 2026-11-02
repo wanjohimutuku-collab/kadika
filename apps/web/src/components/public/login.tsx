@@ -17,25 +17,34 @@ import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
 import { useBrand } from '@/components/brand/brand-provider';
 import {
+  clearSmsFallback,
   confirmPhoneCode,
   FirebasePhoneError,
   hasPendingCode,
   loadAuthConfig,
   startPhoneSignIn,
+  usesSmsFallback,
   type PhoneSignInError,
 } from '@/lib/firebase-phone';
 
 const PHONE_KEY = 'harusi.login.phone';
 
-/** Sends the code through whichever provider the API names (ADR 048). */
-async function sendCode(phone: string, recaptcha: HTMLElement | null, locale: string) {
+/**
+ * Sends the code through whichever provider the API names (ADR 048). Says who checks it: Firebase, or
+ * our API (the SMS flow, or Firebase refused to send and our own SMS code went instead).
+ */
+async function sendCode(
+  phone: string,
+  recaptcha: HTMLElement | null,
+  locale: string,
+): Promise<'firebase' | 'sms'> {
   const cfg = await loadAuthConfig();
   if (cfg.otpProvider === 'firebase') {
     if (!recaptcha) throw new FirebasePhoneError('failed');
-    await startPhoneSignIn(phone, recaptcha, locale);
-    return;
+    return startPhoneSignIn(phone, recaptcha, locale);
   }
   await getRepository().requestOtp(phone);
+  return 'sms';
 }
 
 function useFirebaseMessage() {
@@ -198,7 +207,8 @@ export function LoginOtp() {
     }
     setPhone(p);
     void loadAuthConfig().then((cfg) => {
-      if (cfg.otpProvider !== 'firebase') return;
+      // Our own SMS code (Firebase refused to send) is checked by our API, as in the SMS flow.
+      if (cfg.otpProvider !== 'firebase' || usesSmsFallback(p)) return;
       // The Firebase code lives in this tab only: after a reload the visitor asks for a new one.
       if (!hasPendingCode(p)) router.replace('/login');
       else setFirebase(true);
@@ -220,6 +230,7 @@ export function LoginOtp() {
         ? await getRepository().signInWithFirebase(await confirmPhoneCode(value))
         : await getRepository().verifyOtp(phone, value);
       sessionStorage.removeItem(PHONE_KEY);
+      clearSmsFallback();
       if (session.needsSecondFactor) {
         // Staff accounts need a second factor before any data is available.
         setSecondFactor(true);
@@ -429,7 +440,7 @@ export function LoginOtp() {
           onClick={async () => {
             if (!phone) return;
             try {
-              await sendCode(phone, recaptcha.current, locale);
+              setFirebase((await sendCode(phone, recaptcha.current, locale)) === 'firebase');
               setNotice(t('resent'));
               setResendIn(30);
             } catch (err) {

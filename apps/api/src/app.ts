@@ -623,6 +623,19 @@ export function createApp(deps: Deps) {
     );
     return c.json(await memoriesSvc.update(c.req.param('mid'), c.get('userId'), patch));
   });
+  app.post('/v1/events/:id/memories/send', async (c) => {
+    const input = parse(
+      z.object({ guestIds: z.array(z.string().uuid()).max(5000).optional() }),
+      await body(c),
+    );
+    return c.json(
+      await deliverySvc.sendMemories(c.req.param('id'), c.get('userId'), input.guestIds ?? 'all'),
+    );
+  });
+  // The response carries the guest's link: it is never logged (routes are logged, not bodies).
+  app.get('/v1/guests/:gid/memories-link', async (c) =>
+    c.json(await deliverySvc.memoriesLink(c.req.param('gid'), c.get('userId'))),
+  );
   app.delete('/v1/memories/:mid', async (c) => {
     await memoriesSvc.remove(c.req.param('mid'), c.get('userId'));
     return c.body(null, 204);

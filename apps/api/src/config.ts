@@ -54,12 +54,24 @@ export interface Config {
     apiVersion: string;
     verifyToken: string | null;
     appSecret: string | null;
-    templates: { invite?: string; reminder?: string; pledge?: string; contribution?: string };
+    templates: {
+      invite?: string;
+      reminder?: string;
+      pledge?: string;
+      contribution?: string;
+      memories?: string;
+    };
     /** Templates approved per country; Kenya's use a one-host-field parameter layout (ADR 026). */
     templatesByCountry: Partial<
       Record<
         Country,
-        { invite?: string; reminder?: string; pledge?: string; contribution?: string }
+        {
+          invite?: string;
+          reminder?: string;
+          pledge?: string;
+          contribution?: string;
+          memories?: string;
+        }
       >
     >;
   } | null;
@@ -191,18 +203,21 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,
               pledge: env.WHATSAPP_TEMPLATE_PLEDGE,
               contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION,
+              memories: env.WHATSAPP_TEMPLATE_MEMORIES,
             },
             templatesByCountry:
               env.WHATSAPP_TEMPLATE_INVITE_KE ||
               env.WHATSAPP_TEMPLATE_REMINDER_KE ||
               env.WHATSAPP_TEMPLATE_PLEDGE_KE ||
-              env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE
+              env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE ||
+              env.WHATSAPP_TEMPLATE_MEMORIES_KE
                 ? {
                     KE: {
                       invite: env.WHATSAPP_TEMPLATE_INVITE_KE,
                       reminder: env.WHATSAPP_TEMPLATE_REMINDER_KE,
                       pledge: env.WHATSAPP_TEMPLATE_PLEDGE_KE,
                       contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE,
+                      memories: env.WHATSAPP_TEMPLATE_MEMORIES_KE,
                     },
                   }
                 : {},

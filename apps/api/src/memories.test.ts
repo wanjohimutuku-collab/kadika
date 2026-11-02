@@ -1,7 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import sharp from 'sharp';
-import { eventMembers, eventPurchases, events, memories, newId } from '@harusi/db';
+import {
+  eventMembers,
+  eventPurchases,
+  events,
+  guests,
+  memories,
+  messageLog,
+  newId,
+} from '@harusi/db';
 import {
   api,
   createTestContext,
@@ -306,5 +314,85 @@ describe('deletion and the staff limit', () => {
       body: { limit: 90, note: 'jaribio' },
     });
     expect(denied.status).toBe(403);
+  });
+});
+
+describe('sending the memories link', () => {
+  async function ready() {
+    const s = await setup();
+    await pay(s.evId);
+    await upload(s.t, s.evId, await photo());
+    return s;
+  }
+  const sentTo = (phone: string) =>
+    [...ctx.whatsapp.sent, ...ctx.sms.sent].filter((m) => m.to === phone);
+
+  it('sends each guest their own link, logged as a memories message', async () => {
+    const { t, evId, g } = await ready();
+    const [guest] = await ctx.db.select().from(guests).where(eq(guests.id, g.id));
+    const r = await api(ctx, 'POST', `/v1/events/${evId}/memories/send`, { token: t, body: {} });
+    expect(r.body).toEqual({ sent: 1, failed: 0, skipped: 0 });
+    const msgs = sentTo(guest!.phoneE164!);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0]!.channel).toBe('whatsapp');
+    expect(msgs[0]!.template).toMatchObject({ kind: 'memories', locale: 'sw' });
+    expect(msgs[0]!.template!.params[1]).toMatch(new RegExp(`/s/${g.cardToken}/k$`));
+    const logged = await ctx.db
+      .select()
+      .from(messageLog)
+      .where(and(eq(messageLog.guestId, g.id), eq(messageLog.kind, 'memories')));
+    expect(logged).toHaveLength(1);
+  });
+
+  it('falls back to SMS when WhatsApp fails; the failed message is not charged', async () => {
+    const { t, evId, g } = await ready();
+    const [guest] = await ctx.db.select().from(guests).where(eq(guests.id, g.id));
+    ctx.fail.wa = (to) => to === guest!.phoneE164;
+    try {
+      const r = await api(ctx, 'POST', `/v1/events/${evId}/memories/send`, { token: t, body: {} });
+      expect(r.body).toMatchObject({ sent: 1, failed: 0 });
+    } finally {
+      ctx.fail.wa = () => false;
+    }
+    const sms = ctx.sms.sent.filter((m) => m.to === guest!.phoneE164);
+    expect(sms).toHaveLength(1);
+    expect(sms[0]!.body).toContain(`/s/${g.cardToken}/k`);
+    expect(sms[0]!.body.length).toBeLessThanOrEqual(160);
+  });
+
+  it('refuses a locked event and an empty page; gate agents cannot send', async () => {
+    const locked = await setup();
+    const a = await api(ctx, 'POST', `/v1/events/${locked.evId}/memories/send`, {
+      token: locked.t,
+      body: {},
+    });
+    expect(a.status).toBe(402);
+    const empty = await setup();
+    await pay(empty.evId);
+    const b = await api(ctx, 'POST', `/v1/events/${empty.evId}/memories/send`, {
+      token: empty.t,
+      body: {},
+    });
+    expect(b.status).toBe(400);
+    expect(b.body!.error.details.reason).toBe('no_memories');
+    const s = await ready();
+    const gate = await loginAs(ctx, `07883${String(++seq).padStart(5, '0')}`);
+    await ctx.db
+      .insert(eventMembers)
+      .values({ eventId: s.evId, userId: gate.user.id, role: 'gate' });
+    const c = await api(ctx, 'POST', `/v1/events/${s.evId}/memories/send`, {
+      token: gate.accessToken,
+      body: {},
+    });
+    expect(c.status).toBe(403);
+  });
+
+  it("gives the host a wa.me link with the guest's own memories link", async () => {
+    const { t, g } = await ready();
+    const r = await api(ctx, 'GET', `/v1/guests/${g.id}/memories-link`, { token: t });
+    expect(r.status).toBe(200);
+    expect(r.body!.url).toMatch(new RegExp(`/s/${g.cardToken}/k$`));
+    expect(r.body!.waUrl).toMatch(/^https:\/\/wa\.me\/2557\d{8}\?text=/);
+    expect(decodeURIComponent(r.body!.waUrl.split('text=')[1])).toContain(r.body!.url);
   });
 });

@@ -71,10 +71,12 @@ export function envSettings(config: Config): MessagingSettings {
               templateReminder: wc?.templates.reminder,
               templatePledge: wc?.templates.pledge,
               templateContribution: wc?.templates.contribution,
+              templateMemories: wc?.templates.memories,
               templateInviteKe: ke?.invite,
               templateReminderKe: ke?.reminder,
               templatePledgeKe: ke?.pledge,
               templateContributionKe: ke?.contribution,
+              templateMemoriesKe: ke?.memories,
             }),
     },
   };
@@ -98,6 +100,7 @@ const templates = (f: Record<string, string>, suffix = '') => {
     reminder: f[`templateReminder${suffix}`],
     pledge: f[`templatePledge${suffix}`],
     contribution: f[`templateContribution${suffix}`],
+    memories: f[`templateMemories${suffix}`],
   });
   return Object.keys(t).length ? t : undefined;
 };

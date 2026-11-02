@@ -1599,10 +1599,12 @@
         "templateReminder": "Reminder",
         "templatePledge": "Pledge",
         "templateContribution": "Contribution card",
+        "templateMemories": "Memories",
         "templateInviteKe": "Invitation (Kenya)",
         "templateReminderKe": "Reminder (Kenya)",
         "templatePledgeKe": "Pledge (Kenya)",
-        "templateContributionKe": "Contribution card (Kenya)"
+        "templateContributionKe": "Contribution card (Kenya)",
+        "templateMemoriesKe": "Memories (Kenya)"
       },
       "missing": "Fill in these fields first: {fields}",
       "importEnv": {

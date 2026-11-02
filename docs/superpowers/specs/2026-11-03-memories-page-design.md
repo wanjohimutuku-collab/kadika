@@ -63,7 +63,7 @@ the console changes `sort_order`, which only matters among memories with the sam
 
 Done in the API on upload with `sharp`:
 
-- Accept JPEG, PNG, WebP and HEIC, up to 8 MB. Check the real type from the bytes, not the file name or
+- Accept JPEG, PNG and WebP, up to 8 MB (prebuilt sharp cannot decode HEIC; phones hand browsers and the app picker JPEG). Check the real type from the bytes, not the file name or
   the browser's header.
 - Rotate according to EXIF orientation, then **remove all metadata** (EXIF, GPS, XMP) so a phone photo
   never reveals where it was taken.

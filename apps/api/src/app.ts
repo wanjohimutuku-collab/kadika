@@ -41,6 +41,7 @@ import { PaymentSettingsService } from './services/payment-settings';
 import { SignInSettingsService, signInOf } from './services/signin-settings';
 import { BrandingService } from './services/branding';
 import { AppReleaseService } from './services/app-release';
+import { MemoriesService } from './services/memories';
 import { Readable } from 'node:stream';
 import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
@@ -52,6 +53,13 @@ import { ReportService } from './services/reports';
 import { BillingService } from './services/billing';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
+
+/** Kumbukumbu photos (ADR 050): never cached by shared caches, never sniffed as anything but WebP. */
+const PHOTO_HEADERS = {
+  'content-type': 'image/webp',
+  'cache-control': 'private, max-age=86400',
+  'x-content-type-options': 'nosniff',
+};
 
 function parse<T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> {
   const r = schema.safeParse(data);
@@ -195,6 +203,7 @@ export function createApp(deps: Deps) {
   const signInSettingsSvc = deps.signInSettings ?? new SignInSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
   const appReleaseSvc = new AppReleaseService(deps);
+  const memoriesSvc = new MemoriesService(deps, eventsSvc);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const reportSvc = new ReportService(deps, eventsSvc, deliverySvc, pledgeSvc, gateSvc);
@@ -311,9 +320,12 @@ export function createApp(deps: Deps) {
     }
   };
   app.post('/v1/auth/otp/request', async (c) => {
-    const { phone: p } = parse(z.object({ phone }), await body(c));
+    const { phone: p, fallback } = parse(
+      z.object({ phone, fallback: z.boolean().optional() }),
+      await body(c),
+    );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p));
+    return c.json(await auth.requestOtp(p, fallback));
   });
   app.post('/v1/auth/otp/verify', async (c) => {
     const { phone: p, code } = parse(
@@ -559,6 +571,49 @@ export function createApp(deps: Deps) {
   app.delete('/v1/events/:id', async (c) => {
     await eventsSvc.remove(c.req.param('id'), c.get('userId'));
     return c.body(null, 204);
+  });
+  // ---- Kumbukumbu (ADR 050): owner and committee manage the couple's photos
+  app.get('/v1/events/:id/memories', async (c) =>
+    c.json(await memoriesSvc.list(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/memories', async (c) => {
+    const form = await c.req.parseBody();
+    const file = form.photo;
+    if (!(file instanceof File))
+      throw new ApiError('validation', 'Choose a photo', { field: 'photo' });
+    const text = (k: string) => (typeof form[k] === 'string' ? (form[k] as string) : undefined);
+    const m = await memoriesSvc.add(
+      c.req.param('id'),
+      c.get('userId'),
+      new Uint8Array(await file.arrayBuffer()),
+      { caption: text('caption'), takenOn: text('takenOn') },
+    );
+    return c.json(m, 201);
+  });
+  app.patch('/v1/memories/:mid', async (c) => {
+    const patch = parse(
+      z.object({
+        caption: z.string().nullable().optional(),
+        takenOn: z.string().nullable().optional(),
+        sortOrder: z.number().int().min(0).max(10_000).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(await memoriesSvc.update(c.req.param('mid'), c.get('userId'), patch));
+  });
+  app.delete('/v1/memories/:mid', async (c) => {
+    await memoriesSvc.remove(c.req.param('mid'), c.get('userId'));
+    return c.body(null, 204);
+  });
+  app.get('/v1/events/:id/memories/:mid/:size{thumb|full}', async (c) => {
+    await memoriesSvc.assertStaff(c.req.param('id'), c.get('userId'));
+    const bytes = await memoriesSvc.photo(
+      c.req.param('id'),
+      c.req.param('mid'),
+      c.req.param('size') as 'thumb' | 'full',
+    );
+    if (!bytes) throw new ApiError('not_found', 'Photo not found');
+    return c.body(bytes, 200, PHOTO_HEADERS);
   });
   // ---- the console's activity feed, reports and test message (§7.7, §17.8)
   app.get('/v1/events/:id/activity', async (c) =>

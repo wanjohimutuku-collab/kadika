@@ -6,7 +6,7 @@ import type { Deps } from '../context';
 export interface PhotoStore {
   put(key: string, bytes: Uint8Array): Promise<void>;
   /** The bytes, or null when there is no such file. */
-  get(key: string): Promise<Uint8Array | null>;
+  get(key: string): Promise<Uint8Array<ArrayBuffer> | null>;
   delete(key: string): Promise<void>;
 }
 
@@ -46,9 +46,9 @@ export class DiskPhotoStore implements PhotoStore {
 
 /** In-memory store for tests and local dev (§12). */
 export class MemoryPhotoStore implements PhotoStore {
-  readonly files = new Map<string, Uint8Array>();
+  readonly files = new Map<string, Uint8Array<ArrayBuffer>>();
   async put(key: string, bytes: Uint8Array) {
-    this.files.set(key, bytes);
+    this.files.set(key, new Uint8Array(bytes));
   }
   async get(key: string) {
     return this.files.get(key) ?? null;

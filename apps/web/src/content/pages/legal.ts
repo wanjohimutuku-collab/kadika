@@ -1,6 +1,7 @@
 import type { ContentPageDef } from '../types';
 
 const UPDATED = '2026-10-15';
+const PRIVACY_UPDATED = '2026-11-02';
 
 /**
  * Legal drafts. Facts here follow what the product actually does. Company identity, hosting
@@ -12,173 +13,444 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     group: 'legal',
     schema: 'WebPage',
     draft: true,
-    updated: UPDATED,
+    updated: PRIVACY_UPDATED,
     related: ['ombi-la-data', 'cookies', 'terms', 'usalama-wa-kadi-za-mtandaoni'],
     sw: {
       nav: 'Sera ya faragha',
       title: 'Sera ya Faragha | Kadi Sasa',
       description:
-        'Sera ya faragha ya Kadi Sasa: taarifa tunazokusanya, tunavyozitumia, tunavyozishiriki, muda wa kuzihifadhi na haki zako chini ya sheria ya Tanzania.',
+        'Sera ya faragha ya Kadi Sasa: taarifa tunazokusanya, tunavyozitumia na kuzishiriki, muda wa kuzihifadhi na haki zako chini ya sheria za Tanzania na Afrika.',
       h1: 'Sera ya faragha',
       answer:
-        'Kadi Sasa inakusanya taarifa chache zinazohitajika kutuma mialiko, kupokea majibu na michango, na kuingiza wageni langoni. Hatuuzi data wala hatutumii matangazo. Mwenyeji anaweza kupakua au kufuta data za wageni, na mgeni anaweza kuomba nakala au kufutwa.',
+        'Kadi Sasa inakusanya taarifa zinazohitajika kutuma mialiko, kupokea majibu, kurekodi michango na kuingiza wageni langoni. Hatuuzi taarifa binafsi wala hatuzitumii kwa matangazo. Mwenyeji anadhibiti taarifa za wageni wake, na mtu yeyote anaweza kuomba nakala, marekebisho au kufutwa kwa taarifa zake.',
       sections: [
         {
-          id: 'sisi',
-          h2: 'Sisi ni nani na nani anadhibiti data',
+          id: 'utangulizi',
+          h2: '1. Utangulizi',
           blocks: [
             {
               t: 'p',
-              text: 'Kadi Sasa inaendeshwa nchini Tanzania na tunafuata Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania ya mwaka 2022. Kwa taarifa za wageni, mwenyeji wa tukio ndiye anayeamua ni nani aalikwe na kwa nini, kwa hiyo ndiye mdhibiti wa data hizo; sisi tunazishughulikia kwa niaba yake. Kwa taarifa za akaunti ya mwenyeji na kamati, sisi ndio wadhibiti.',
+              text: 'Kadi Sasa ("sisi") ni jukwaa la mialiko ya matukio, usimamizi wa wageni, kumbukumbu za michango na uthibitisho wa kuingia langoni, kwa watu binafsi, familia, taasisi, kamati na waandaaji wa matukio barani Afrika.',
             },
             {
               t: 'p',
-              text: 'Maelezo ya usajili wa kampuni na anwani yatawekwa hapa kabla ya uzinduzi.',
+              text: 'Sera hii inaeleza taarifa binafsi tunazokusanya, kwa nini, tunavyozitumia, tunayeshiriki naye, muda tunaozihifadhi na jinsi ya kutumia haki zako. Tunafuata sheria za ulinzi wa taarifa binafsi za nchi tunazofanya kazi, ikiwemo Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania ya mwaka 2022.',
+            },
+            {
+              t: 'p',
+              text: 'Hatuuzi taarifa binafsi na hatuzitumii kuonyesha matangazo ya watu wengine.',
+            },
+          ],
+        },
+        {
+          id: 'sisi',
+          h2: '2. Sisi ni nani na nani anadhibiti data',
+          blocks: [
+            {
+              t: 'table',
+              head: ['Kipengele', 'Maelezo'],
+              rows: [
+                ['Jina la kisheria la biashara', '[WEKA JINA LILILOSAJILIWA]'],
+                ['Namba ya usajili', '[WEKA NAMBA YA USAJILI]'],
+                ['Anwani iliyosajiliwa', '[WEKA ANWANI]'],
+                ['Nchi ya usajili', 'Tanzania'],
+                ['Tovuti', 'https://kadisasa.com'],
+                ['Mawasiliano ya faragha', 'faragha@kadisasa.com'],
+              ],
+            },
+            {
+              t: 'p',
+              text: 'Kwa taarifa za wageni wa tukio, mwenyeji ndiye anayeamua ni nani aalikwe na kwa nini, kwa hiyo kwa kawaida yeye ndiye mdhibiti wa data hizo, na sisi tunazishughulikia kwa niaba yake.',
+            },
+            {
+              t: 'p',
+              text: 'Sisi ni wadhibiti wa taarifa za akaunti zetu wenyewe, usimamizi wa jukwaa, usalama, malipo ya huduma na uboreshaji wa huduma. Nafasi ya kisheria ya watoa huduma wengine inategemea kazi wanayofanya.',
             },
           ],
         },
         {
           id: 'tunachokusanya',
-          h2: 'Taarifa tunazokusanya',
+          h2: '3. Taarifa tunazokusanya',
           blocks: [
+            { t: 'h3', text: '3.1 Mwenyeji na kamati' },
             {
-              t: 'table',
-              head: ['Kutoka kwa', 'Taarifa'],
-              rows: [
-                [
-                  'Mwenyeji na kamati',
-                  'Jina, namba ya simu, jukumu kwenye tukio, kumbukumbu za vitendo muhimu (kama kurekodi malipo)',
-                ],
-                [
-                  'Wageni (zinaingizwa na mwenyeji)',
-                  'Jina, namba ya simu (ikiwa ipo), kikundi, idadi ya watu wanaoruhusiwa, lugha, maelezo ya mwenyeji',
-                ],
-                [
-                  'Mgeni anapotumia kadi',
-                  'Jibu la mwaliko, idadi ya watu, kuomba kuacha vikumbusho, ahadi na malipo (kiasi, mtoa huduma, namba ya simu ya malipo)',
-                ],
-                [
-                  'Langoni',
-                  'Kuskaniwa kwa kadi: saa, lango, matokeo, na nani aliyeingiza kwa mkono',
-                ],
-                [
-                  'Ujumbe',
-                  'Hali ya ujumbe wa WhatsApp au SMS uliotumwa (umetumwa, umefika, umeshindwa)',
-                ],
+              t: 'ul',
+              items: [
+                'Jina kamili, namba ya simu, na barua pepe ikiwa imetolewa.',
+                'Taarifa za kuingia na uthibitisho wa akaunti.',
+                'Jukumu ulilopewa kwenye tukio na ruhusa zake.',
+                'Kumbukumbu za vitendo muhimu na za usalama wa akaunti.',
+                'Taarifa za malipo ya huduma (vifurushi vya kadi, SMS au WhatsApp), pale zinapohusika.',
               ],
+            },
+            { t: 'h3', text: '3.2 Wageni (zinaingizwa na mwenyeji au kamati)' },
+            {
+              t: 'ul',
+              items: [
+                'Jina, namba ya simu, na barua pepe ikiwa imetolewa.',
+                'Kikundi au familia, na idadi ya watu wanaoruhusiwa kuhudhuria.',
+                'Lugha ya mwaliko na maelezo ya mwenyeji.',
+                'Hali ya mwaliko na kuhudhuria.',
+              ],
+            },
+            {
+              t: 'p',
+              text: 'Mwenyeji anawajibika kuhakikisha ana msingi halali wa kisheria wa kutupatia taarifa za wageni.',
+            },
+            { t: 'h3', text: '3.3 Majibu ya mwaliko' },
+            {
+              t: 'p',
+              text: 'Mgeni anapofungua kadi yake tunarekodi: kufunguliwa kwa kadi, jibu la kuhudhuria, idadi ya watu wanaoambatana naye, ujumbe alioandika, ombi la kuacha vikumbusho, na hali ya kufika kwa ujumbe.',
+            },
+            { t: 'h3', text: '3.4 Michango' },
+            {
+              t: 'p',
+              text: 'Kadi Sasa haikusanyi wala haipitishi fedha za michango ya wageni. Mchango unalipwa moja kwa moja kati ya mgeni na mwenyeji, nje ya Kadi Sasa. Mwenyeji au kamati wanaweza kurekodi ahadi na malipo (kiasi, njia ya malipo, tarehe, kumbukumbu na maelezo). Kumbukumbu hizi zimesimbwa, na zinaonekana kwa mwenyeji na kamati ya tukio tu, si kwa wafanyakazi wetu.',
+            },
+            {
+              t: 'p',
+              text: 'Hatuombi namba za kadi za benki, PIN za pesa kwa simu wala nenosiri la benki kupitia kadi za mwaliko.',
+            },
+            { t: 'h3', text: '3.5 Langoni' },
+            {
+              t: 'p',
+              text: 'Tukio likitumia uthibitisho wa kidijitali wa kuingia, tunarekodi: taarifa za uthibitisho wa QR au namba ya kadi, tarehe na saa ya kuskani, lango, matokeo (kukubaliwa au kukataliwa), kuingizwa kwa mkono na sababu yake, na mlinda lango aliyehusika. Kumbukumbu hizi huzuia kuingia mara mbili na humpa mwenyeji orodha ya waliofika.',
+            },
+            { t: 'h3', text: '3.6 Mawasiliano' },
+            {
+              t: 'p',
+              text: 'Tunarekodi hali ya SMS na ujumbe wa WhatsApp uliotumwa (umetumwa, umefika, umeshindwa), historia ya vikumbusho na mapendeleo ya mawasiliano.',
+            },
+            { t: 'h3', text: '3.7 Taarifa za kiufundi' },
+            {
+              t: 'p',
+              text: 'Unapotumia Kadi Sasa tunaweza kukusanya anwani ya IP, aina ya kivinjari na kifaa, mfumo wa uendeshaji, nyakati za kuingia, kumbukumbu za usalama na hitilafu, na hifadhi ya kivinjari. Tunazitumia kuendesha, kutunza na kulinda jukwaa.',
             },
           ],
         },
         {
           id: 'matumizi',
-          h2: 'Tunavyotumia taarifa',
+          h2: '4. Tunavyotumia taarifa',
           blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Kuunda na kusimamia akaunti za wenyeji.',
+                'Kuunda na kutuma mialiko ya kidijitali na ya kuchapisha.',
+                'Kutunza orodha za wageni na ruhusa za kamati.',
+                'Kupokea na kurekodi majibu ya kuhudhuria.',
+                'Kutuma vikumbusho na taarifa za huduma.',
+                'Kumwezesha mwenyeji kurekodi michango.',
+                'Kuthibitisha kadi na kuingia kwa wageni, na kuzuia kuingia mara mbili, udanganyifu na matumizi yasiyoruhusiwa.',
+                'Kulinda usalama na uaminifu wa jukwaa.',
+                'Kutoa msaada kwa wateja.',
+                'Kutimiza wajibu wa kisheria, kutatua migogoro na kulinda maslahi halali ya biashara.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'msingi',
+          h2: '5. Msingi wa kisheria',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Tunashughulikia taarifa binafsi kwa msingi halali unaotambuliwa na sheria husika. Kulingana na shughuli na nchi, msingi huo unaweza kuwa ridhaa ya mhusika, utekelezaji wa mkataba, wajibu wa kisheria, maslahi halali yaliyopimwa dhidi ya haki za mhusika, au msingi mwingine unaotambuliwa na sheria ya nchi husika.',
+            },
+            {
+              t: 'p',
+              text: 'Tunapima msingi unaofaa kwa kila shughuli. Pale tunapotegemea ridhaa, unaweza kuiondoa wakati wowote, kwa kuzingatia masharti ya sheria.',
+            },
+          ],
+        },
+        {
+          id: 'wenyeji',
+          h2: '6. Wenyeji na taarifa za wageni',
+          blocks: [
+            { t: 'p', text: 'Kwa kawaida mwenyeji anawajibika:' },
             {
               t: 'ul',
               items: [
-                'Kutuma kadi na vikumbusho, na kuonyesha hali kwa kamati.',
-                'Kupokea na kurekodi michango na malipo.',
-                'Kuthibitisha kuingia langoni na kuzuia kadi kutumika mara mbili.',
-                'Kuzuia matumizi mabaya na kulinda usalama wa huduma.',
-                'Kutimiza wajibu wa kisheria.',
+                'Kuhakikisha taarifa za wageni zimekusanywa kihalali.',
+                'Kuwajulisha wageni jinsi taarifa zao zinavyotumika.',
+                'Kutoa taarifa sahihi za wageni.',
+                'Kuwapa ruhusa wanakamati walioidhinishwa tu.',
+                'Kutumia taarifa za wageni kwa madhumuni halali ya tukio tu.',
+                'Kujibu maombi ya faragha ya wageni wa tukio lake.',
               ],
             },
             {
               t: 'p',
-              text: 'Msingi wa kisheria wa kila matumizi (ridhaa, mkataba, maslahi halali au wajibu wa kisheria) utathibitishwa na mwanasheria kabla ya uzinduzi.',
+              text: 'Tunashughulikia taarifa za wageni kwa maelekezo ya mwenyeji na wajibu wetu wa huduma. Hatuuruhusu mwenyeji kutumia Kadi Sasa kukusanya au kusambaza taarifa binafsi kinyume cha sheria.',
             },
-            { t: 'p', text: 'Hatuuzi wala kushiriki data na watangazaji.' },
           ],
         },
         {
           id: 'watoa-huduma',
-          h2: 'Watoa huduma tunaowatumia',
+          h2: '7. Tunayeshiriki naye taarifa',
           blocks: [
             {
               t: 'p',
-              text: 'Ili kutuma kadi na kuthibitisha malipo tunatumia: kampuni za ujumbe wa WhatsApp na SMS, mtoa huduma wa malipo ya simu, na seva za kuhifadhi data. Wanapokea tu kinachohitajika kufanya kazi hiyo na hawaruhusiwi kukitumia kwa shughuli nyingine.',
+              text: 'Tunashiriki taarifa pale tu inapohitajika kuendesha jukwaa, kutoa huduma uliyoomba au kutii sheria.',
+            },
+            {
+              t: 'table',
+              head: ['Mtoa huduma', 'Anachopokea'],
+              rows: [
+                [
+                  'Ujumbe (WhatsApp na SMS)',
+                  'Namba ya simu na maandishi ya mwaliko, kikumbusho au taarifa',
+                ],
+                [
+                  'Malipo ya huduma',
+                  'Taarifa za muamala wa mwenyeji anapolipia huduma za Kadi Sasa. Hawapokei taarifa za wageni wala michango',
+                ],
+                ['Seva na miundombinu', 'Taarifa zinazohitajika kuendesha Kadi Sasa'],
+                [
+                  'Usalama na ufuatiliaji wa hitilafu',
+                  'Kumbukumbu za kiufundi, pale tunapowatumia',
+                ],
+                [
+                  'Mamlaka za kisheria',
+                  'Pale tu sheria, amri halali au ombi halali la mamlaka linapotaka',
+                ],
+              ],
             },
             {
               t: 'p',
-              text: 'Mahali seva zilipo na uhamishaji wowote wa data nje ya Tanzania vitaelezwa hapa kabla ya uzinduzi.',
+              text: 'Watoa huduma wanaofanya kazi kwa niaba yetu wanapaswa kulinda taarifa binafsi na kuzitumia kwa madhumuni yaliyoidhinishwa tu. Kila mtoa huduma pia ana sera yake ya faragha. Orodha ya majina ya watoa huduma itachapishwa hapa ikishathibitishwa.',
+            },
+          ],
+        },
+        {
+          id: 'nje-ya-nchi',
+          h2: '8. Kuhamisha taarifa nje ya nchi',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Baadhi ya watoa huduma wanaweza kuhifadhi au kushughulikia taarifa nje ya nchi anayoishi mwenyeji au mgeni. Kabla ya kuhamisha taarifa nje ya mipaka tunapima masharti ya sheria husika na kuweka kinga zinazofaa, kama vile uamuzi wa kutosheleza ulinzi, mikataba iliyoidhinishwa, kibali cha mamlaka, ridhaa pale inaporuhusiwa, au kinga nyingine inayotakiwa na sheria.',
+            },
+            {
+              t: 'p',
+              text: 'Mahali seva zetu zilipo na mtiririko wa taarifa nje ya nchi vitaelezwa hapa: [WEKA MTOA HUDUMA WA SEVA NA NCHI].',
             },
           ],
         },
         {
           id: 'muda',
-          h2: 'Tunahifadhi kwa muda gani',
+          h2: '9. Muda wa kuhifadhi na kufuta',
           blocks: [
             {
-              t: 'p',
-              text: 'Data za tukio zinabaki hadi mwenyeji azifute au aombe zifutwe. Tukipokea ombi la kufuta akaunti, tunafuta akaunti na matukio husika ndani ya siku 30. Mgeni akifutwa, jina, simu na maelezo yake huondolewa; kiasi cha malipo kinabaki bila taarifa za mtu, kwa ajili ya hesabu za tukio.',
+              t: 'table',
+              head: ['Taarifa', 'Muda wa kuhifadhi'],
+              rows: [
+                [
+                  'Akaunti',
+                  'Wakati akaunti iko hai, na muda wa ziada unaohitajika kwa sababu za kisheria, usalama au hesabu',
+                ],
+                [
+                  'Tukio na wageni',
+                  'Wakati tukio liko hai au kama mwenyeji atakavyoelekeza, kwa kuzingatia sheria',
+                ],
+                [
+                  'Kumbukumbu za malipo ya huduma',
+                  'Kulingana na masharti ya fedha, hesabu na sheria',
+                ],
+                [
+                  'Kumbukumbu za lango na kuhudhuria',
+                  'Kwa usimamizi wa tukio, kutatua migogoro na masharti ya sheria',
+                ],
+                [
+                  'Kumbukumbu za kiufundi na usalama',
+                  'Kulingana na ratiba yetu ya ndani ya kuhifadhi',
+                ],
+              ],
             },
             {
               t: 'p',
-              text: 'Muda wa juu wa kuhifadhi data baada ya tukio kuisha utawekwa na mwanasheria.',
+              text: 'Tukipokea ombi la kufuta akaunti, tunafuta akaunti na matukio yake ndani ya siku 30, isipokuwa pale sheria inapotutaka tuhifadhi. Mgeni akifutwa, jina, simu na maelezo yake huondolewa; kiasi cha mchango kinaweza kubaki bila kumtambulisha mtu, kwa ajili ya hesabu za tukio. Taarifa zisizohitajika tena hufutwa au kufanywa zisizomtambulisha mtu. Nakala za akiba zilizolindwa zinaweza kubaki kwa muda mfupi hadi mzunguko wa kufuta akiba ukamilike.',
             },
           ],
         },
         {
           id: 'kifaa',
-          h2: 'Kinachohifadhiwa kwenye kifaa chako',
+          h2: '10. Vidakuzi na hifadhi ya kifaa',
           blocks: [
             {
               t: 'p',
-              text: 'Kadi yako huhifadhi nakala kwenye kivinjari ili ionekane bila mtandao, na jibu lako hadi litumwe. Programu ya lango huhifadhi orodha ya wageni kwenye simu ya mlinda lango; PIN ya lango haihifadhiwi. Maelezo zaidi yako kwenye ukurasa wa vidakuzi.',
+              text: 'Tunatumia hifadhi ya kivinjari na teknolojia zinazofanana kwa ajili ya kuingia kwenye akaunti, usalama, mapendeleo muhimu, nakala ya kadi kwa matumizi bila mtandao, na majibu yanayosubiri kutumwa.',
+            },
+            {
+              t: 'p',
+              text: 'Programu ya lango huhifadhi kwa muda orodha ya wageni kwenye kifaa kilichoidhinishwa ili kuthibitisha kuingia bila mtandao, na hutuma kumbukumbu za kuskani mtandao ukirudi. PIN ya lango haihifadhiwi kwenye kifaa.',
+            },
+            {
+              t: 'p',
+              text: 'Hatutumii vidakuzi vya matangazo. Unaweza kusimamia vidakuzi kwenye mipangilio ya kivinjari; kufuta hifadhi kunaweza kuondoa nakala ya kadi ya bila mtandao na majibu ambayo hayajatumwa. Maelezo zaidi yako kwenye ukurasa wa vidakuzi.',
             },
           ],
         },
         {
           id: 'usalama',
-          h2: 'Usalama',
+          h2: '11. Usalama wa taarifa',
           blocks: [
             {
+              t: 'ul',
+              items: [
+                'Ruhusa kulingana na jukumu: mwenyeji, kamati na mlinda lango kila mmoja anaona anachohitaji tu; mlinda lango haoni taarifa za fedha.',
+                'Uthibitisho salama wa kuingia, na hatua ya pili ya uthibitisho kwa wafanyakazi wetu.',
+                'Usimbaji fiche wakati wa kutuma na kwenye hifadhi inayohusika, ikiwemo kumbukumbu za michango.',
+                'Viungo vya kadi ni vya kipekee na havitabiriki; tunahifadhi alama zake za kificho tu, pamoja na nakala iliyosimbwa ya kutuma tena kiungo.',
+                'Funguo za kusaini QR zimesimbwa na haziondoki kwenye seva.',
+                'Ufuatiliaji wa shughuli zinazotia shaka, kumbukumbu za ukaguzi za vitendo vya kiutawala, na taratibu za akiba na urejeshaji.',
+              ],
+            },
+            {
               t: 'p',
-              text: 'Viungo vya kadi ni vya kipekee na havitabiriki; tunahifadhi alama zake za kificho kwa ajili ya kuhakiki, pamoja na nakala iliyosimbwa inayohitajika kutuma tena kiungo. Funguo za kusaini QR zimesimbwa kwenye seva. Hatuombi nenosiri, PIN wala namba za siri kutoka kwa wageni. Hakuna mfumo usio na hatari kabisa; tukigundua uvujaji tutawajulisha walioathirika na mamlaka husika kama sheria inavyohitaji.',
+              text: 'Hakuna mfumo wa kielektroniki usio na hatari kabisa. Uvujaji wa taarifa binafsi ukitokea, tunatathmini tukio, tunachukua hatua za kulidhibiti, na tunawajulisha walioathirika na mamlaka husika kama sheria inavyotaka.',
             },
           ],
         },
         {
           id: 'haki',
-          h2: 'Haki zako',
+          h2: '12. Haki zako',
           blocks: [
+            { t: 'p', text: 'Kulingana na nchi yako na sheria husika, una haki ya:' },
             {
               t: 'ul',
               items: [
-                'Kujua taarifa zako tulizonazo na kupata nakala.',
-                'Kusahihisha taarifa zisizo sahihi.',
-                'Kuomba zifutwe, na kupinga matumizi fulani.',
-                'Kuacha kupokea vikumbusho kutoka kwenye kadi yako.',
-                'Kulalamika kwa mamlaka ya ulinzi wa taarifa binafsi ya Tanzania [mwanasheria athibitishe jina na anwani ya mamlaka].',
+                'Kujua kama tunashughulikia taarifa zako, na kupata nakala yake.',
+                'Kusahihisha taarifa zisizo sahihi au zisizokamilika.',
+                'Kuomba zifutwe.',
+                'Kupinga matumizi fulani, au kuomba yazuiwe pale inaporuhusiwa.',
+                'Kuondoa ridhaa pale ridhaa ndiyo msingi wa kisheria.',
+                'Kupinga baadhi ya maamuzi yanayofanywa na mfumo pekee.',
+                'Kupata taarifa kuhusu uhamishaji wa taarifa nje ya nchi.',
+                'Kulalamika kwa mamlaka ya ulinzi wa taarifa ya nchi yako.',
               ],
             },
-            { t: 'p', text: 'Jinsi ya kuomba iko kwenye ukurasa wa maombi ya data.' },
+            {
+              t: 'p',
+              text: 'Kuomba, tuma barua pepe kwa faragha@kadisasa.com ukiweka jina lako, mawasiliano yako, tukio au akaunti husika, aina ya ombi, na taarifa zinazohitajika kukutambua. Tunaweza kuomba taarifa zaidi kuthibitisha utambulisho wako ili tusitoe taarifa kwa mtu asiyehusika. Tunajibu ndani ya muda unaotakiwa na sheria husika. Maelezo zaidi yako kwenye ukurasa wa maombi ya data.',
+            },
+            {
+              t: 'p',
+              text: 'Mgeni anaweza kuacha vikumbusho kupitia kitufe kwenye kadi yake au kwa kuwasiliana na mwenyeji. Kuacha vikumbusho hakufuti kumbukumbu nyingine za tukio.',
+            },
           ],
         },
         {
           id: 'watoto',
-          h2: 'Watoto',
+          h2: '13. Watoto',
           blocks: [
             {
               t: 'p',
-              text: 'Huduma hii ni ya wenyeji wazima. Hatuwalengi watoto, na mwenyeji anawajibika kwa taarifa za wageni anaowaingiza, wakiwemo watoto.',
+              text: 'Kadi Sasa ni kwa wenyeji na wanakamati wazima. Orodha ya wageni inaweza kuwa na watoto pale mwenyeji anapowaalika. Sheria ya Tanzania inahesabu taarifa za watoto kuwa taarifa nyeti, kwa hiyo mwenyeji anapaswa kuhakikisha ana mamlaka ya kisheria, ushiriki au ridhaa ya mzazi au mlezi, au msingi mwingine halali pale unapohitajika, na kuingiza kiwango cha chini kinachohitajika (kwa mfano jina tu ndani ya familia).',
+            },
+            {
+              t: 'p',
+              text: 'Hatuwapi watoto akaunti, na hatutumii taarifa za watoto kwa matangazo wala uchambuzi usiohusiana na tukio.',
+            },
+          ],
+        },
+        {
+          id: 'nyeti',
+          h2: '14. Taarifa nyeti',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Baadhi ya taarifa za tukio zinaweza kuhesabiwa kuwa nyeti chini ya sheria, kama taarifa za watoto, kumbukumbu za fedha, afya, dini, au taarifa za kibayometriki ikiwa huduma hiyo itaanzishwa baadaye. Hatumtaki mwenyeji kukusanya taarifa nyeti zisizohitajika. Pale zinaposhughulikiwa, tunaweka kinga za ziada na tunahitaji msingi halali wa kisheria.',
+            },
+          ],
+        },
+        {
+          id: 'mfumo',
+          h2: '15. Uchakataji wa kiotomatiki',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Mfumo hufanya kiotomatiki: kuthibitisha uhalali wa kadi, kugundua kuskaniwa mara mbili, kusasisha hali ya kuhudhuria, na kurekodi hali ya kufika kwa ujumbe. Hizi ni kwa usimamizi wa tukio. Mlinda lango anaweza kumtafuta mgeni kwa jina na kumwingiza kwa mkono, kwa hiyo hakuna uamuzi mzito unaofanywa na mfumo pekee bila mtu kuhusika.',
+            },
+          ],
+        },
+        {
+          id: 'tovuti-nyingine',
+          h2: '16. Tovuti na huduma za nje',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Kadi Sasa inaweza kuwa na viungo vya huduma za nje, kama ramani, WhatsApp na watoa huduma za malipo. Huduma hizo zina sera na masharti yao, na hatuwajibiki kwa jinsi zinavyoshughulikia faragha.',
+            },
+          ],
+        },
+        {
+          id: 'ujumbe',
+          h2: '17. Ujumbe na matangazo',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Hatuuzi taarifa za wageni wala kuzitumia kwa matangazo ya watu wengine, na hatutumi ujumbe wa matangazo kwa wageni. Tunaweza kutuma ujumbe wa huduma kwa wenyeji, kama taarifa za akaunti, hali ya kutuma mialiko, uthibitisho wa malipo ya huduma, taarifa za usalama na matangazo muhimu ya jukwaa. Tukianzisha ujumbe wa matangazo, tutaomba ridhaa inayotakiwa na sheria na kuweka njia ya kujiondoa.',
+            },
+          ],
+        },
+        {
+          id: 'afrika',
+          h2: '18. Ulinzi wa taarifa barani Afrika',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Nchi za Afrika zina sheria na mamlaka tofauti za ulinzi wa taarifa. Mfumo wetu wa faragha umeundwa kuzingatia masharti ya kitaifa, ikiwemo:',
+            },
+            {
+              t: 'table',
+              head: ['Nchi', 'Sheria'],
+              rows: [
+                ['Tanzania', 'Sheria ya Ulinzi wa Taarifa Binafsi, 2022 (Na. 11 ya 2022)'],
+                ['Kenya', 'Data Protection Act, 2019'],
+                ['Uganda', 'Data Protection and Privacy Act, 2019'],
+                ['Rwanda', 'Sheria Na. 058/2021 kuhusu ulinzi wa taarifa binafsi na faragha'],
+                ['Nigeria', 'Nigeria Data Protection Act, 2023'],
+                ['Afrika Kusini', 'Protection of Personal Information Act (POPIA), 2013'],
+                ['Ghana', 'Data Protection Act, 2012'],
+                ['Malawi', 'Data Protection Act, 2024'],
+                ['Botswana', 'Data Protection Act, 2024'],
+              ],
+            },
+            {
+              t: 'p',
+              text: 'Pale sheria ya nchi inapotoa ulinzi zaidi, sheria hiyo inatangulia kuliko masharti yanayopingana ya sera hii. Tunaweza kuchapisha maelezo ya ziada kwa nchi mahususi pale yanapohitajika.',
+            },
+          ],
+        },
+        {
+          id: 'malalamiko',
+          h2: '19. Malalamiko na mamlaka',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Ikiwa unaona tumeshughulikia taarifa zako vibaya, wasiliana nasi kwanza kupitia faragha@kadisasa.com. Pia una haki ya kuwasilisha malalamiko kwa mamlaka ya ulinzi wa taarifa ya nchi yako: Tume ya Ulinzi wa Taarifa Binafsi (PDPC) kwa Tanzania, Ofisi ya Kamishna wa Ulinzi wa Data (ODPC) kwa Kenya, na mamlaka ya kitaifa husika kwa nchi nyingine.',
             },
           ],
         },
         {
           id: 'mabadiliko',
-          h2: 'Mabadiliko ya sera',
+          h2: '20. Mabadiliko ya sera',
           blocks: [
             {
               t: 'p',
-              text: 'Tukibadilisha sera hii tutasasisha tarehe iliyo juu ya ukurasa na, kwa mabadiliko makubwa, tutawajulisha wenyeji.',
+              text: 'Tunaweza kubadilisha sera hii huduma zetu, watoa huduma, sheria au mahitaji ya usalama yakibadilika. Toleo jipya litawekwa kwenye https://kadisasa.com/privacy na tarehe iliyo juu itasasishwa. Kwa mabadiliko makubwa, tutawajulisha watumiaji pale sheria inapotaka.',
             },
           ],
         },
         {
           id: 'mawasiliano',
-          h2: 'Mawasiliano',
-          blocks: [{ t: 'p', text: 'Maswali kuhusu faragha: faragha@kadisasa.com.' }],
+          h2: '21. Wasiliana nasi',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Timu ya Faragha ya Kadi Sasa. Barua pepe: faragha@kadisasa.com. Tovuti: https://kadisasa.com. Nchi: Tanzania. Anwani: [WEKA ANWANI ILIYOTHIBITISHWA].',
+            },
+          ],
         },
       ],
     },
@@ -186,161 +458,432 @@ export const LEGAL_PAGES: ContentPageDef[] = [
       nav: 'Privacy policy',
       title: 'Privacy Policy | Kadi Sasa',
       description:
-        'Kadi Sasa privacy policy: what we collect, how we use and share it, how long we keep it, and your rights under Tanzanian law.',
+        'Kadi Sasa privacy policy: what we collect, how we use and share it, how long we keep it, and your rights under Tanzanian and other African data protection laws.',
       h1: 'Privacy policy',
       answer:
-        'Kadi Sasa collects the minimum needed to send invitations, receive replies and contributions, and admit guests at the gate. We do not sell data or use advertising. A host can download or delete guest data, and a guest can ask for a copy or for erasure.',
+        'Kadi Sasa collects what is needed to send invitations, receive replies, record contributions and admit guests at the gate. We do not sell personal information or use it for advertising. Hosts control their guests’ information, and anyone can ask for a copy, a correction or erasure of their data.',
       sections: [
         {
-          id: 'who',
-          h2: 'Who we are and who controls the data',
+          id: 'introduction',
+          h2: '1. Introduction',
           blocks: [
             {
               t: 'p',
-              text: 'Kadi Sasa operates in Tanzania and follows the Personal Data Protection Act, 2022. For guest information, the event host decides who is invited and why, so the host is the controller of that data and we process it on their behalf. For host and committee account information, we are the controller.',
+              text: 'Kadi Sasa ("we", "us") is an event invitation, guest management, contribution record-keeping and event access platform for individuals, families, organisations, committees and event organisers across Africa.',
             },
             {
               t: 'p',
-              text: 'Company registration details and address will be added here before launch.',
+              text: 'This policy explains what personal information we collect, why, how we use it, who receives it, how long we keep it and how you exercise your rights. We follow the data protection laws of the countries where we operate, including Tanzania’s Personal Data Protection Act, 2022.',
+            },
+            {
+              t: 'p',
+              text: 'We do not sell personal information or use it to serve third-party advertisements.',
+            },
+          ],
+        },
+        {
+          id: 'who',
+          h2: '2. Who we are and who controls the data',
+          blocks: [
+            {
+              t: 'table',
+              head: ['Item', 'Details'],
+              rows: [
+                ['Legal business name', '[INSERT REGISTERED BUSINESS NAME]'],
+                ['Registration number', '[INSERT REGISTRATION NUMBER]'],
+                ['Registered address', '[INSERT BUSINESS ADDRESS]'],
+                ['Country of registration', 'Tanzania'],
+                ['Website', 'https://kadisasa.com'],
+                ['Privacy contact', 'faragha@kadisasa.com'],
+              ],
+            },
+            {
+              t: 'p',
+              text: 'For guest information collected for an event, the host decides who is invited and why, so the host is normally the data controller and we process that information on the host’s behalf.',
+            },
+            {
+              t: 'p',
+              text: 'We are the controller for information about our own accounts, platform administration, security, billing and service improvement. The legal role of other service providers depends on what they actually do.',
             },
           ],
         },
         {
           id: 'collect',
-          h2: 'What we collect',
+          h2: '3. Information we collect',
           blocks: [
+            { t: 'h3', text: '3.1 Hosts and committee members' },
             {
-              t: 'table',
-              head: ['From', 'Information'],
-              rows: [
-                [
-                  'Host and committee',
-                  'Name, phone number, role in the event, records of important actions (such as recording a payment)',
-                ],
-                [
-                  'Guests (entered by the host)',
-                  'Name, phone number (if any), group, number of people allowed, language, host notes',
-                ],
-                [
-                  'A guest using their card',
-                  'Reply, party size, request to stop reminders, pledges and payments (amount, provider, payment phone number)',
-                ],
-                ['At the gate', 'Card scans: time, gate, result, and who admitted manually'],
-                ['Messages', 'Status of the WhatsApp or SMS sent (sent, delivered, failed)'],
+              t: 'ul',
+              items: [
+                'Full name, phone number, and email address where provided.',
+                'Sign-in and authentication information.',
+                'Your role in an event and its permissions.',
+                'Records of important actions and account security.',
+                'Billing information for our services (card bundles, SMS or WhatsApp packs), where applicable.',
               ],
+            },
+            { t: 'h3', text: '3.2 Guests (entered by the host or committee)' },
+            {
+              t: 'ul',
+              items: [
+                'Name, phone number, and email address where provided.',
+                'Household or invitation group, and the number of people allowed to attend.',
+                'Invitation language and host notes.',
+                'Invitation and attendance status.',
+              ],
+            },
+            {
+              t: 'p',
+              text: 'Hosts are responsible for having a lawful basis to give us their guests’ information.',
+            },
+            { t: 'h3', text: '3.3 Invitation responses' },
+            {
+              t: 'p',
+              text: 'When a guest opens their card we record: that the card was opened, the attendance reply, the number of accompanying guests, any message they write, requests to stop reminders, and message delivery status.',
+            },
+            { t: 'h3', text: '3.4 Contributions' },
+            {
+              t: 'p',
+              text: 'Kadi Sasa does not collect or move guests’ contribution money. A contribution is paid directly between the guest and the host, outside Kadi Sasa. The host or committee may record pledges and payments (amount, payment method, date, reference and notes). These records are encrypted and visible only to the event’s host and committee, not to our staff.',
+            },
+            {
+              t: 'p',
+              text: 'We never ask for card numbers, mobile money PINs or banking passwords through invitation cards.',
+            },
+            { t: 'h3', text: '3.5 Gate and attendance' },
+            {
+              t: 'p',
+              text: 'When an event uses digital entry checks, we record: QR or card-number verification details, the date and time of the scan, the gate, the result (admitted or refused), manual admissions and their reason, and the gate agent involved. These records prevent duplicate entry and give the host an attendance record.',
+            },
+            { t: 'h3', text: '3.6 Communications' },
+            {
+              t: 'p',
+              text: 'We record the status of SMS and WhatsApp messages sent (sent, delivered, failed), reminder history and communication preferences.',
+            },
+            { t: 'h3', text: '3.7 Technical information' },
+            {
+              t: 'p',
+              text: 'When you use Kadi Sasa we may collect IP address, browser and device type, operating system, access times, security and error logs, and browser storage. We use these to operate, maintain and secure the platform.',
             },
           ],
         },
         {
           id: 'use',
-          h2: 'How we use it',
+          h2: '4. How we use personal information',
           blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Creating and managing host accounts.',
+                'Creating and sending digital and printed invitations.',
+                'Maintaining guest lists and committee access.',
+                'Receiving and recording attendance replies.',
+                'Sending reminders and service notifications.',
+                'Letting hosts keep records of contributions.',
+                'Verifying cards and guest entry, and preventing duplicate entry, fraud and unauthorised access.',
+                'Keeping the platform secure and reliable.',
+                'Providing customer support.',
+                'Meeting legal obligations, resolving disputes and protecting legitimate business interests.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'basis',
+          h2: '5. Lawful basis',
+          blocks: [
+            {
+              t: 'p',
+              text: 'We process personal information on a lawful basis recognised by the applicable law. Depending on the activity and country, that may be consent, performance of a contract, a legal obligation, legitimate interests balanced against individual rights, or another ground the country’s law recognises.',
+            },
+            {
+              t: 'p',
+              text: 'We assess the appropriate basis for each activity. Where we rely on consent, you may withdraw it at any time, subject to legal requirements.',
+            },
+          ],
+        },
+        {
+          id: 'hosts',
+          h2: '6. Hosts and guest information',
+          blocks: [
+            { t: 'p', text: 'The host is generally responsible for:' },
             {
               t: 'ul',
               items: [
-                'To send cards and reminders and show status to the committee.',
-                'To receive and record contributions and payments.',
-                'To confirm entry at the gate and prevent a card being used twice.',
-                'To prevent misuse and protect the service.',
-                'To meet legal obligations.',
+                'Making sure guest information was collected lawfully.',
+                'Telling guests how their information is used.',
+                'Providing accurate guest information.',
+                'Giving access only to authorised committee members.',
+                'Using guest information only for legitimate event purposes.',
+                'Responding to guests’ privacy requests about their event.',
               ],
             },
             {
               t: 'p',
-              text: 'The legal basis for each use (consent, contract, legitimate interest or legal obligation) will be confirmed by a lawyer before launch.',
+              text: 'We process guest information on the host’s instructions and under our service obligations. We do not allow hosts to use Kadi Sasa to collect or distribute personal information unlawfully.',
             },
-            { t: 'p', text: 'We do not sell or share data with advertisers.' },
           ],
         },
         {
           id: 'providers',
-          h2: 'Providers we use',
+          h2: '7. Who we share information with',
           blocks: [
             {
               t: 'p',
-              text: 'To send cards and confirm payments we use: WhatsApp and SMS messaging companies, a mobile payment provider, and servers that store data. They receive only what is needed for that job and may not use it for anything else.',
+              text: 'We share information only where needed to run the platform, deliver a requested service or comply with the law.',
+            },
+            {
+              t: 'table',
+              head: ['Provider', 'What they receive'],
+              rows: [
+                [
+                  'Messaging (WhatsApp and SMS)',
+                  'Phone number and the text of the invitation, reminder or notice',
+                ],
+                [
+                  'Billing payments',
+                  'Transaction details when a host pays for Kadi Sasa services. They receive no guest or contribution information',
+                ],
+                ['Hosting and infrastructure', 'Information needed to operate Kadi Sasa'],
+                ['Security and error monitoring', 'Technical logs, where engaged'],
+                [
+                  'Legal and regulatory authorities',
+                  'Only where the law, a valid legal process or a lawful regulatory request requires it',
+                ],
+              ],
             },
             {
               t: 'p',
-              text: 'Where servers are located and any transfer of data outside Tanzania will be described here before launch.',
+              text: 'Providers acting on our behalf must protect personal information and use it only for authorised purposes. Each provider also has its own privacy policy. A list of provider names will be published here once verified.',
+            },
+          ],
+        },
+        {
+          id: 'transfers',
+          h2: '8. International transfers',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Some providers may store or process information outside the country where a host or guest lives. Before information crosses a border we assess the applicable legal requirements and put appropriate safeguards in place, such as an adequacy decision or equivalent protection, approved contractual terms, regulatory authorisation, consent where permitted, or other safeguards the law requires.',
+            },
+            {
+              t: 'p',
+              text: 'Our hosting locations and cross-border data flows will be listed here: [INSERT HOSTING PROVIDER AND COUNTRY].',
             },
           ],
         },
         {
           id: 'retention',
-          h2: 'How long we keep it',
+          h2: '9. Retention and deletion',
           blocks: [
             {
-              t: 'p',
-              text: 'Event data stays until the host deletes it or asks us to. When we receive a request to delete an account, we delete the account and its events within 30 days. When a guest is erased, their name, phone and notes are removed; the payment amount stays without personal details, for the event’s accounts.',
+              t: 'table',
+              head: ['Information', 'How long we keep it'],
+              rows: [
+                [
+                  'Accounts',
+                  'While the account is active, plus any period needed for legal, security or accounting reasons',
+                ],
+                [
+                  'Events and guests',
+                  'While the event is active or as the host instructs, subject to the law',
+                ],
+                ['Billing payment records', 'As financial, accounting and legal rules require'],
+                [
+                  'Gate and attendance records',
+                  'For event administration, dispute resolution and legal requirements',
+                ],
+                ['Technical and security logs', 'Under our internal retention schedule'],
+              ],
             },
             {
               t: 'p',
-              text: 'A maximum retention period after an event ends will be set by a lawyer.',
+              text: 'When we receive a request to delete an account, we delete the account and its events within 30 days unless the law requires us to keep something. When a guest is erased, their name, phone and notes are removed; a contribution amount may stay without anything identifying them, for the event’s accounts. Information no longer needed is deleted or anonymised. Protected backups may hold deleted information briefly until the backup deletion cycle completes.',
             },
           ],
         },
         {
           id: 'device',
-          h2: 'What is stored on your device',
+          h2: '10. Cookies and device storage',
           blocks: [
             {
               t: 'p',
-              text: 'Your card keeps a copy in the browser so it shows offline, and your reply until it is sent. The gate app stores the guest list on the agent’s phone; the gate PIN is not stored. More detail is on the cookies page.',
+              text: 'We use browser storage and similar technologies for sign-in, security, essential preferences, offline copies of invitation cards, and replies waiting to be sent.',
+            },
+            {
+              t: 'p',
+              text: 'The gate app temporarily stores the guest list on an authorised device so entry can be checked offline, and sends scan records once the connection returns. The gate PIN is not stored on the device.',
+            },
+            {
+              t: 'p',
+              text: 'We do not use advertising cookies. You can manage cookies in your browser settings; clearing storage may remove the offline copy of a card and replies not yet sent. More detail is on the cookies page.',
             },
           ],
         },
         {
           id: 'security',
-          h2: 'Security',
+          h2: '11. Information security',
           blocks: [
             {
+              t: 'ul',
+              items: [
+                'Role-based access: host, committee and gate agent each see only what they need; gate agents never see financial information.',
+                'Secure sign-in, with a second factor for our staff.',
+                'Encryption in transit and in relevant storage, including contribution records.',
+                'Card links are unique and cannot be guessed; we store only hashed forms, plus an encrypted copy used to resend the link.',
+                'QR signing keys are encrypted and never leave the server.',
+                'Monitoring of suspicious activity, audit logs of administrative actions, and backup and recovery procedures.',
+              ],
+            },
+            {
               t: 'p',
-              text: 'Card links are unique and cannot be guessed; we store hashed forms for verification, plus an encrypted copy needed to resend the link. The keys used to sign QR codes are encrypted on the server. We never ask guests for a password, PIN or secret number. No system is risk-free; if we find a breach we will tell those affected and the authority as the law requires.',
+              text: 'No electronic system is completely secure. If a personal data breach happens, we assess it, contain it, and notify affected people and the relevant authorities as the law requires.',
             },
           ],
         },
         {
           id: 'rights',
-          h2: 'Your rights',
+          h2: '12. Your rights',
           blocks: [
+            {
+              t: 'p',
+              text: 'Depending on your country and the applicable law, you have the right to:',
+            },
             {
               t: 'ul',
               items: [
-                'To know what we hold about you and get a copy.',
-                'To correct inaccurate information.',
-                'To ask for deletion and object to certain uses.',
-                'To stop reminders from your card.',
-                'To complain to Tanzania’s data protection authority [a lawyer to confirm the authority’s name and address].',
+                'Know whether we process your information, and get a copy.',
+                'Correct inaccurate or incomplete information.',
+                'Ask for erasure.',
+                'Object to certain processing, or ask for it to be restricted where available.',
+                'Withdraw consent where consent is the lawful basis.',
+                'Challenge certain decisions made solely by automated means.',
+                'Get information about international transfers.',
+                'Complain to your country’s data protection authority.',
               ],
             },
-            { t: 'p', text: 'How to ask is on the data requests page.' },
+            {
+              t: 'p',
+              text: 'To make a request, email faragha@kadisasa.com with your name, contact details, the event or account concerned, the type of request, and the information needed to identify you. We may ask for more to confirm your identity so we do not disclose information to the wrong person. We respond within the time the applicable law sets. More detail is on the data requests page.',
+            },
+            {
+              t: 'p',
+              text: 'Guests can stop reminders with the button on their card or by contacting the host. Stopping reminders does not delete other event records.',
+            },
           ],
         },
         {
           id: 'children',
-          h2: 'Children',
+          h2: '13. Children',
           blocks: [
             {
               t: 'p',
-              text: 'The service is for adult hosts. We do not target children, and hosts are responsible for the information of the guests they add, including children.',
+              text: 'Kadi Sasa is for adult hosts and committee members. Guest lists may include children when a host invites them. Tanzanian law treats children’s information as sensitive, so hosts must have the legal authority, parental or guardian involvement or consent, or another lawful basis where required, and should enter only the minimum needed (for example, a name within a household).',
+            },
+            {
+              t: 'p',
+              text: 'We do not give accounts to children, and we do not use children’s information for advertising or unrelated profiling.',
+            },
+          ],
+        },
+        {
+          id: 'sensitive',
+          h2: '14. Sensitive information',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Some event information may count as sensitive under the law, such as information about children, financial records, health, religion, or biometric information if such a service is introduced later. We do not require hosts to collect unnecessary sensitive information. Where it is processed, we apply additional safeguards and require a lawful basis.',
+            },
+          ],
+        },
+        {
+          id: 'automated',
+          h2: '15. Automated processing',
+          blocks: [
+            {
+              t: 'p',
+              text: 'The system automatically verifies card validity, detects duplicate scans, updates attendance status and records message delivery status. These support event administration. A gate agent can always look a guest up by name and admit them manually, so no significant decision is made by the system alone without a person involved.',
+            },
+          ],
+        },
+        {
+          id: 'third-party',
+          h2: '16. Third-party websites and services',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Kadi Sasa may link to external services such as maps, WhatsApp and payment providers. Those services have their own privacy policies and terms, and we are not responsible for their privacy practices.',
+            },
+          ],
+        },
+        {
+          id: 'marketing',
+          h2: '17. Marketing and communications',
+          blocks: [
+            {
+              t: 'p',
+              text: 'We do not sell guest information or use it for third-party advertising, and we do not send promotional messages to guests. We may send hosts service messages such as account notices, invitation delivery updates, billing confirmations, security alerts and important platform announcements. If we introduce promotional messages, we will get any consent the law requires and provide a way to unsubscribe.',
+            },
+          ],
+        },
+        {
+          id: 'africa',
+          h2: '18. Data protection across Africa',
+          blocks: [
+            {
+              t: 'p',
+              text: 'African countries have different data protection laws and authorities. Our privacy framework is designed to support national requirements, including:',
+            },
+            {
+              t: 'table',
+              head: ['Country', 'Law'],
+              rows: [
+                ['Tanzania', 'Personal Data Protection Act, 2022 (Act No. 11 of 2022)'],
+                ['Kenya', 'Data Protection Act, 2019'],
+                ['Uganda', 'Data Protection and Privacy Act, 2019'],
+                ['Rwanda', 'Law No. 058/2021 on the protection of personal data and privacy'],
+                ['Nigeria', 'Nigeria Data Protection Act, 2023'],
+                ['South Africa', 'Protection of Personal Information Act (POPIA), 2013'],
+                ['Ghana', 'Data Protection Act, 2012'],
+                ['Malawi', 'Data Protection Act, 2024'],
+                ['Botswana', 'Data Protection Act, 2024'],
+              ],
+            },
+            {
+              t: 'p',
+              text: 'Where a country’s mandatory law gives more protection, it takes precedence over any inconsistent part of this policy. We may publish country-specific notices where needed.',
+            },
+          ],
+        },
+        {
+          id: 'complaints',
+          h2: '19. Complaints and authorities',
+          blocks: [
+            {
+              t: 'p',
+              text: 'If you think we have mishandled your information, contact us first at faragha@kadisasa.com. You also have the right to complain to your country’s data protection authority: the Personal Data Protection Commission (PDPC) in Tanzania, the Office of the Data Protection Commissioner (ODPC) in Kenya, and the relevant national authority elsewhere.',
             },
           ],
         },
         {
           id: 'changes',
-          h2: 'Changes to this policy',
+          h2: '20. Changes to this policy',
           blocks: [
             {
               t: 'p',
-              text: 'If we change this policy we will update the date at the top and, for significant changes, tell hosts.',
+              text: 'We may update this policy when our services, providers, the law or security needs change. The latest version is published at https://kadisasa.com/privacy and the date at the top is updated. Where the law requires, we will tell users about significant changes.',
             },
           ],
         },
         {
           id: 'contact',
-          h2: 'Contact',
-          blocks: [{ t: 'p', text: 'Privacy questions: faragha@kadisasa.com.' }],
+          h2: '21. Contact us',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Kadi Sasa Privacy Team. Email: faragha@kadisasa.com. Website: https://kadisasa.com. Country: Tanzania. Address: [INSERT VERIFIED BUSINESS ADDRESS].',
+            },
+          ],
         },
       ],
     },

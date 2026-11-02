@@ -30,6 +30,7 @@ import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { allPaymentProviders, paymentsFor } from '../payment-routing';
 import { recordAudit } from './audit';
+import { BrandingService } from './branding';
 import type { EventService } from './events';
 import { requireStaff, type StaffCaller } from './staff-guard';
 import type { MOBILE_METHODS } from './pledges';
@@ -430,6 +431,7 @@ export class BillingService {
     });
 
     if (provider && phone) {
+      const brand = await new BrandingService(this.deps).businessName();
       try {
         const r = await provider.startCollection({
           reference,
@@ -437,7 +439,7 @@ export class BillingService {
           currency: event.currency,
           phoneE164: phone,
           method: input.mobileMethod!,
-          description: `Harusi Pass - ${q.label}`,
+          description: `${brand} - ${q.label}`,
         });
         await this.db
           .update(eventPurchases)

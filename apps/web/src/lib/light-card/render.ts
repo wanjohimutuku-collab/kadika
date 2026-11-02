@@ -45,14 +45,14 @@ export interface LightCardOptions {
   apiUrl: string;
 }
 
-const esc = (v: unknown): string =>
+export const esc = (v: unknown): string =>
   String(v ?? '').replace(
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
 
 /** The business logo as a link home, or nothing when there is none. Height is fixed so nothing jumps as it loads. */
-function brandLogo(brand?: LightBrand): string {
+export function brandLogo(brand?: LightBrand): string {
   if (!brand?.logoSrc) return '';
   return `<a class="brand" href="/" data-testid="card-brand"><img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}" height="28" style="height:28px;width:auto;max-width:160px;object-fit:contain"></a>`;
 }
@@ -73,7 +73,7 @@ const ICONS = {
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.1-17.1 1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   x: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6m0-6 6 6"/>',
 };
-const icon = (name: keyof typeof ICONS, cls = ''): string =>
+export const icon = (name: keyof typeof ICONS, cls = ''): string =>
   `<svg class="ic ${cls}" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 
 const c = lightColors;
@@ -154,7 +154,7 @@ footer nav a{min-height:40px;display:inline-flex;align-items:center}
 @media print{.no-print{display:none!important}.card{border:0;margin:0}}
 `;
 
-type Msg = Record<string, string>;
+export type Msg = Record<string, string>;
 
 /** Every colour the page uses, resolved once: preset + the event's overrides + banner tints. */
 function paletteCss(p: Palette): string {
@@ -183,7 +183,7 @@ function fmt(tpl: string, values: Record<string, string | number> = {}): string 
   return formatIcu(tpl, values);
 }
 
-function langChip(locale: Locale): string {
+export function langChip(locale: Locale): string {
   const common = messages[locale].common as unknown as Record<string, unknown>;
   const names = common.languageName as Record<Locale, string>;
   const b = (l: Locale) =>
@@ -191,7 +191,7 @@ function langChip(locale: Locale): string {
   return `<div class="lang no-print" role="group" aria-label="${esc(String(common.language))}">${b('sw')}${b('en')}</div>`;
 }
 
-function shell(opts: {
+export function shell(opts: {
   locale: Locale;
   title: string;
   description?: string;
@@ -229,17 +229,37 @@ export function renderProblem(
   });
 }
 
+/**
+ * Who sent this, how to call them, and that we never ask for secrets (§17.6, P1/P7). Shared by the
+ * card and the Kumbukumbu page (ADR 050).
+ */
+export function trustStrip(view: CardView, locale: Locale, domain: string): string {
+  const event = view.event!;
+  const t = (pickMessages(locale, ['card'], event.country ?? 'TZ') as unknown as { card: Msg })
+    .card;
+  const content = (event.cardContent ?? {}) as CardContent;
+  const sender = senderNameFor(event, locale);
+  const phoneRaw = content.sender?.phone?.trim() || event.committeePhone || '';
+  const phone = formatPhone(phoneRaw, event.country ?? 'TZ');
+  const telHref = phoneRaw.replace(/[^\d+]/g, '');
+  const fromCommittee = senderKindOf(content) === 'committee';
+  const trustLine = pick(content.sender?.trustLine, locale);
+  return `<section id="hp-trust-section" style="padding-top:16px"><div class="trust" data-testid="trust-strip"><div>${icon('shield')}<div><p><b>${esc(trustLine ? renderTemplate(trustLine, { sender }) : fmt(t.trustSender!, { sender }))}</b></p>${phoneRaw ? `<p>${esc(fmt(fromCommittee ? t.trustCommitteePhone! : t.trustContactPhone!, { phone }))}</p>` : ''}<p class="muted">${esc(fmt(t.trustDomain!, { domain }))}</p><p class="muted" style="margin-top:4px">${esc(t.trustNever)}</p></div></div>
+${phoneRaw ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(fmt(fromCommittee ? t.callCommittee! : t.callContact!, { phone }))}">${icon('phone').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.call)}</a>` : ''}</div></section>`;
+}
+
 export function renderCard(view: CardView, o: LightCardOptions): string {
   const { locale } = o;
   const event = view.event!;
   const m = pickMessages(
     locale,
-    ['card', 'states', 'common'],
+    ['card', 'states', 'common', 'memories'],
     event.country ?? 'TZ',
   ) as unknown as {
     card: Msg;
     states: Msg;
     common: Msg;
+    memories: Msg;
   };
   const t = m.card;
   const cur = event.currency ?? 'TZS';
@@ -413,9 +433,10 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
 
   const hasPhone = !!phoneRaw;
   const fromCommittee = senderKind === 'committee';
-  const trustLine = L(content.sender?.trustLine);
-  const trust = `<section id="hp-trust-section" style="padding-top:16px"><div class="trust" data-testid="trust-strip"><div>${icon('shield')}<div><p><b>${esc(trustLine ? renderTemplate(trustLine, { sender }) : fmt(t.trustSender!, { sender }))}</b></p>${hasPhone ? `<p>${esc(fmt(fromCommittee ? t.trustCommitteePhone! : t.trustContactPhone!, { phone }))}</p>` : ''}<p class="muted">${esc(fmt(t.trustDomain!, { domain: o.domain }))}</p><p class="muted" style="margin-top:4px">${esc(t.trustNever)}</p></div></div>
-${hasPhone ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(fmt(fromCommittee ? t.callCommittee! : t.callContact!, { phone }))}">${icon('phone').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.call)}</a>` : ''}</div></section>`;
+  const trust = trustStrip(view, locale, o.domain);
+  const memoriesLink = view.memoriesAvailable
+    ? `<section class="no-print"><a class="btn block" href="/c/${encodeURIComponent(view.token)}/kumbukumbu" data-testid="card-memories">${esc(m.memories.openCardMemories)}</a></section>`
+    : '';
 
   const confirmed = view.rsvp.status === 'confirmed';
   const rsvpSection =
@@ -482,6 +503,7 @@ ${showWhen ? `<p class="when">${esc(formatWeekday(event.dateStart, locale))} ${e
 ${lead}
 ${message}
 ${trust}
+${memoriesLink}
 ${confirmed ? qrSection : ''}
 ${venueSection}
 ${programme}

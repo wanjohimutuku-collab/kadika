@@ -311,9 +311,12 @@ export function createApp(deps: Deps) {
     }
   };
   app.post('/v1/auth/otp/request', async (c) => {
-    const { phone: p } = parse(z.object({ phone }), await body(c));
+    const { phone: p, fallback } = parse(
+      z.object({ phone, fallback: z.boolean().optional() }),
+      await body(c),
+    );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p));
+    return c.json(await auth.requestOtp(p, fallback));
   });
   app.post('/v1/auth/otp/verify', async (c) => {
     const { phone: p, code } = parse(

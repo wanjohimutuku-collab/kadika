@@ -173,6 +173,19 @@ describe('Firebase phone sign-in (ADR 048)', () => {
     expect(r.body!.error.details.reason).toBe('use_firebase');
     expect(ctx.sms.sent).toHaveLength(0);
   });
+
+  it('sends our own SMS code when the client says Firebase would not send, and it signs in', async () => {
+    const r = await api(ctx, 'POST', '/v1/auth/otp/request', {
+      body: { phone: '0712480001', fallback: true },
+    });
+    expect(r.status).toBe(200);
+    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255712480001') ?? '')![1]!;
+    const v = await api(ctx, 'POST', '/v1/auth/otp/verify', {
+      body: { phone: '0712480001', code },
+    });
+    expect(v.status).toBe(200);
+    expect(v.body!.user.phoneE164).toBe('+255712480001');
+  });
 });
 
 describe('sign-in provider switch', () => {

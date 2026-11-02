@@ -58,10 +58,15 @@ export class AuthService {
     this.totp = new StaffTotpService(deps);
   }
 
-  async requestOtp(phoneInput: string) {
+  /**
+   * `fallback`: the client tried Firebase and Firebase would not send (e.g. its 503 "error 39"
+   * anti-abuse refusal for Tanzanian numbers), so our own SMS code is sent instead. It spends the
+   * same login-code budget, so it opens no cheaper path than the SMS flow itself.
+   */
+  async requestOtp(phoneInput: string, fallback = false) {
     const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
     // With Firebase Phone Auth the code comes from Firebase; our SMS routes carry no login codes.
-    if (signInOf(this.deps).provider === 'firebase')
+    if (signInOf(this.deps).provider === 'firebase' && !fallback)
       throw new ApiError('conflict', 'Sign-in codes are sent by Firebase', {
         reason: 'use_firebase',
       });

@@ -23,8 +23,10 @@ export default function Phone() {
     setBusy(true);
     try {
       // Firebase Phone Auth or our own SMS code, as the API says (ADR 048).
-      const firebase = (await loadAuthConfig()).otpProvider === 'firebase';
-      if (firebase) await startPhoneSignIn(p.e164, locale);
+      // Firebase may refuse to send; our own SMS code then goes instead and our API checks it.
+      let firebase = false;
+      if ((await loadAuthConfig()).otpProvider === 'firebase')
+        firebase = (await startPhoneSignIn(p.e164, locale)) === 'firebase';
       else await getRepository().requestOtp(p.e164);
       router.push({
         pathname: '/otp',

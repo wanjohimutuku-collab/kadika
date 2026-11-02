@@ -17,7 +17,7 @@ export default function Otp() {
   const t = useT();
   const { phone, via } = useLocalSearchParams<{ phone: string; via?: string }>();
   /** Firebase sent the code (ADR 048): it checks it, then the API trades the ID token. */
-  const firebase = via === 'firebase';
+  const [firebase, setFirebase] = useState(via === 'firebase');
   const { locale } = useLocale();
   const signingIn = useRef(false);
   const { refresh } = useSession();
@@ -152,7 +152,11 @@ export default function Otp() {
         label={wait > 0 ? t('auth.resendIn', { seconds: wait }) : t('auth.resend')}
         disabled={wait > 0}
         onPress={async () => {
-          if (firebase) await startPhoneSignIn(phone!, locale, true).catch(() => undefined);
+          if (firebase)
+            await startPhoneSignIn(phone!, locale, true).then(
+              (via) => setFirebase(via === 'firebase'),
+              () => undefined,
+            );
           else
             await getRepository()
               .requestOtp(phone!)

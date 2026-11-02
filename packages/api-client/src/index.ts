@@ -15,6 +15,7 @@ export {
   fetchCardPreview,
   memoryTokenStore,
   webStorageTokenStore,
+  webRefreshLock,
   type TokenStore,
   type HttpRepositoryOptions,
 } from './http-repository';

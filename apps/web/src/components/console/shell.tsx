@@ -14,6 +14,7 @@ import {
   CloudOff,
   Cloud,
   CreditCard,
+  Images,
   HandCoins,
   LayoutDashboard,
   LayoutGrid,
@@ -48,6 +49,7 @@ type NavKey =
   | 'gate'
   | 'pledges'
   | 'cards'
+  | 'memories'
   | 'team'
   | 'reports'
   | 'billing'
@@ -80,6 +82,12 @@ export function navItems(eventId: string): { primary: NavItem[]; secondary: NavI
         key: 'cards',
         href: `${base}/cards`,
         icon: <CreditCard className={i} aria-hidden="true" />,
+      },
+      // ADR 050: the couple's photos for their guests (owner and committee).
+      {
+        key: 'memories',
+        href: `${base}/kumbukumbu`,
+        icon: <Images className={i} aria-hidden="true" />,
       },
       // §17.3: committee members do not manage members or event settings.
       {

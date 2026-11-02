@@ -57,8 +57,54 @@ export default function OpsEventsPage() {
     },
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
   });
+  // Kumbukumbu (ADR 050): how many photos an event may hold, changed with a reason.
+  const tm = useTranslations('memories');
+  const [limiting, setLimiting] = useState<OpsEvent | null>(null);
+  const [limit, setLimit] = useState({ value: '30', note: '' });
+  const saveLimit = useMutation({
+    mutationFn: () =>
+      getRepository().opsSetMemoriesLimit(limiting!.id, n(limit.value), limit.note.trim()),
+    onSuccess: () => {
+      toast({ tone: 'success', title: tm('limitSaved') });
+      setLimiting(null);
+      setLimit({ value: '30', note: '' });
+    },
+    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+  });
   return (
     <OpsPage title={t('title')}>
+      <BottomSheet
+        open={!!limiting}
+        onOpenChange={(o) => !o && setLimiting(null)}
+        closeLabel={tc('close')}
+        title={limiting ? `${tm('title')} · ${limiting.coupleNames}` : ''}
+        footer={
+          <Button
+            className="w-full"
+            disabled={limit.note.trim().length < 3 || n(limit.value) < 1 || n(limit.value) > 200}
+            loading={saveLimit.isPending}
+            onClick={() => saveLimit.mutate()}
+          >
+            {tc('save')}
+          </Button>
+        }
+      >
+        <TextField
+          label={tm('limitLabel')}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={200}
+          value={limit.value}
+          onChange={(e) => setLimit((l) => ({ ...l, value: e.target.value }))}
+        />
+        <TextField
+          wrapperClassName="mt-3"
+          label={tg('grantNote')}
+          value={limit.note}
+          onChange={(e) => setLimit((l) => ({ ...l, note: e.target.value }))}
+        />
+      </BottomSheet>
       <BottomSheet
         open={!!granting}
         onOpenChange={(o) => !o && setGranting(null)}
@@ -163,6 +209,11 @@ export default function OpsEventsPage() {
                   {canPlan ? (
                     <Button size="sm" variant="ghost" onClick={() => setGranting(e)}>
                       {tg('grant')}
+                    </Button>
+                  ) : null}
+                  {canPlan ? (
+                    <Button size="sm" variant="ghost" onClick={() => setLimiting(e)}>
+                      {tm('limitLabel')}
                     </Button>
                   ) : null}
                 </Td>

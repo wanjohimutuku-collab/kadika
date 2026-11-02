@@ -29,6 +29,7 @@ const CONSOLE_NAMESPACES = [
   'cards',
   'card',
   'pledges',
+  'memories',
   'gate',
   'team',
   'reports',

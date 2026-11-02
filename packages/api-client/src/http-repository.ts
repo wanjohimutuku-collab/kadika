@@ -58,6 +58,7 @@ import type {
   AuthConfig,
   StaffRole,
   WeddingEvent,
+  Memory,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
 
@@ -119,6 +120,7 @@ interface ApiEvent {
   dressCode: string | null;
   committeePhone?: string | null;
   pledgesEnabled?: boolean;
+  memoriesEnabled?: boolean;
   senderName?: string | null;
   greeting?: string | null;
   languageDefault: 'sw' | 'en';
@@ -228,6 +230,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
       e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
+    memoriesEnabled: e.memoriesEnabled ?? true,
     requirePledgeBeforeCard: false,
     greeting: e.greeting ?? '',
     extraNote: '',
@@ -256,7 +259,11 @@ interface ApiCard {
   rsvp: CardView['rsvp'];
   rsvpOpen: boolean;
   eventPassed: boolean;
+  memoriesAvailable?: boolean;
 }
+
+/** FormData exists in browsers, React Native and Node 18+; checked by name so no global is needed. */
+const isForm = (b: unknown): boolean => typeof FormData !== 'undefined' && b instanceof FormData;
 
 function mapCard(token: string, c: ApiCard): CardView {
   const e = c.event;
@@ -307,6 +314,7 @@ function mapCard(token: string, c: ApiCard): CardView {
     pledge: c.pledge ?? null,
     rsvpOpen: c.rsvpOpen,
     eventPassed: c.eventPassed,
+    memoriesAvailable: c.memoriesAvailable ?? false,
     isMock: false,
   };
 }
@@ -389,12 +397,23 @@ export function createHttpRepository(
       res = await doFetch(`${baseUrl}${path}`, {
         method,
         headers: {
-          // a Blob (the APK upload) goes as raw bytes; everything else is JSON
-          'content-type': body instanceof Blob ? 'application/octet-stream' : 'application/json',
+          // a Blob (the APK upload) goes as raw bytes; FormData (a Kumbukumbu photo) sets its own
+          // multipart boundary; everything else is JSON
+          ...(isForm(body)
+            ? {}
+            : {
+                'content-type':
+                  body instanceof Blob ? 'application/octet-stream' : 'application/json',
+              }),
           ...(auth && tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
           ...extra,
         },
-        body: body === undefined ? undefined : body instanceof Blob ? body : JSON.stringify(body),
+        body:
+          body === undefined
+            ? undefined
+            : body instanceof Blob || isForm(body)
+              ? (body as Blob | FormData)
+              : JSON.stringify(body),
       });
     } catch {
       throw new RepositoryError('offline', 'No network');
@@ -819,6 +838,7 @@ export function createHttpRepository(
       if (patch.contributionTarget !== undefined)
         body.contributionTarget = patch.contributionTarget;
       if (patch.pledgesEnabled !== undefined) body.pledgesEnabled = patch.pledgesEnabled;
+      if (patch.memoriesEnabled !== undefined) body.memoriesEnabled = patch.memoriesEnabled;
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
       if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
@@ -1302,6 +1322,57 @@ export function createHttpRepository(
     if (r.status >= 400) return fail(r.status, r.json as never);
     return r.json as unknown as PaymentStatusView;
   };
+  // ---- Kumbukumbu (ADR 050)
+  const ev = (id: string) => `/v1/events/${encodeURIComponent(id)}`;
+  impl.listMemories = (eventId) => call('GET', `${ev(eventId)}/memories`);
+  impl.addMemory = (eventId, photo, input) => {
+    const form = new FormData();
+    // React Native's FormData takes `{ uri, name, type }` for a file; the web takes a Blob.
+    form.append('photo', photo as unknown as Blob, 'name' in photo ? photo.name : 'photo');
+    if (input.caption) form.append('caption', input.caption);
+    if (input.takenOn) form.append('takenOn', input.takenOn);
+    return call('POST', `${ev(eventId)}/memories`, form);
+  };
+  impl.updateMemory = (memoryId, patch) =>
+    call('PATCH', `/v1/memories/${encodeURIComponent(memoryId)}`, patch);
+  impl.deleteMemory = async (memoryId) => {
+    await call('DELETE', `/v1/memories/${encodeURIComponent(memoryId)}`);
+  };
+  impl.fetchMemoryPhoto = async (eventId, memoryId, size) => {
+    const send = () =>
+      doFetch(`${baseUrl}${ev(eventId)}/memories/${encodeURIComponent(memoryId)}/${size}`, {
+        headers: tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {},
+      });
+    let res: Response;
+    try {
+      res = await send();
+      if (res.status === 401 && tokens.get() && (await refreshTokens())) res = await send();
+    } catch {
+      throw new RepositoryError('offline', 'No network');
+    }
+    if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
+    return res.blob();
+  };
+  impl.sendMemories = (eventId, guestIds) =>
+    call('POST', `${ev(eventId)}/memories/send`, guestIds ? { guestIds } : {});
+  impl.getMemoriesLink = (guestId) =>
+    call('GET', `/v1/guests/${encodeURIComponent(guestId)}/memories-link`);
+  impl.getGuestMemories = async (token) => {
+    const r = await raw('GET', `/v1/c/${encodeURIComponent(token)}/memories`, undefined, {}, false);
+    if (r.status >= 400) {
+      const err = (r.json as { error?: { details?: { reason?: string } } } | null)?.error;
+      if (r.status === 409 && err?.details?.reason === 'reissued')
+        throw new RepositoryError('reissued', 'This card was replaced');
+      return fail(r.status, r.json as never);
+    }
+    const j = r.json as unknown as { card: ApiCard; memories: Memory[] };
+    return { card: mapCard(token, j.card), memories: j.memories };
+  };
+  impl.opsSetMemoriesLimit = (eventId, limit, note) =>
+    call('PATCH', `/v1/ops/events/${encodeURIComponent(eventId)}/memories-limit`, {
+      limit,
+      note,
+    });
   impl.exportCsv = async (eventId, kind) => {
     if (kind !== 'pledges' && kind !== 'payments')
       throw new RepositoryError('not_implemented', 'That export is not available yet');

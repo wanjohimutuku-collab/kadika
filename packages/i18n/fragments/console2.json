@@ -71,6 +71,7 @@
         "invite": "Mwaliko",
         "reminder": "Kikumbusho",
         "thank_you": "Shukrani",
+        "memories": "Kumbukumbu",
         "test": "Majaribio"
       },
       "msgStatus": {
@@ -270,6 +271,7 @@
         "invite": "Invitation",
         "reminder": "Reminder",
         "thank_you": "Thank you",
+        "memories": "Memories",
         "test": "Test"
       },
       "msgStatus": {

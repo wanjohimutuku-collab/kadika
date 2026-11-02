@@ -91,6 +91,10 @@ import type {
   OpsOverview,
   OpsUsage,
   StaffPermission,
+  GuestMemoriesView,
+  MemoriesAdminView,
+  Memory,
+  MemoryUpload,
 } from '../types';
 import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
@@ -2057,6 +2061,7 @@ export class MockRepository implements Repository {
         g.status !== 'checked_in' &&
         e.status !== 'archived',
       eventPassed,
+      memoriesAvailable: this.memoriesAvailable(e.id),
       isMock: true,
     };
   }
@@ -2259,6 +2264,226 @@ export class MockRepository implements Repository {
       const list = this.guestsOf(eventId).filter((g) => guestIds.includes(g.id));
       for (const g of list) g.printCard = printCard;
       return { updated: list.length };
+    });
+  }
+
+  // ---------------------------------------------------------------- Kumbukumbu (ADR 050)
+
+  /** Photos are kept in memory only: localStorage cannot hold them, so a reload shows placeholders. */
+  private memoryBlobs = new Map<string, Blob>();
+
+  private memoriesUnlocked(eventId: string): boolean {
+    return (this.state.purchases ?? []).some(
+      (p) => p.eventId === eventId && p.kind === 'cards' && p.status === 'paid',
+    );
+  }
+
+  private memoriesOf(eventId: string): Memory[] {
+    return [...(this.state.memories?.[eventId] ?? [])].sort(
+      (a, b) =>
+        (a.takenOn === null ? 1 : 0) - (b.takenOn === null ? 1 : 0) ||
+        (a.takenOn ?? '').localeCompare(b.takenOn ?? '') ||
+        a.sortOrder - b.sortOrder,
+    );
+  }
+
+  private memoriesAvailable(eventId: string): boolean {
+    const e = this.state.events.find((x) => x.id === eventId);
+    return (
+      e?.memoriesEnabled !== false &&
+      this.memoriesUnlocked(eventId) &&
+      this.memoriesOf(eventId).length > 0
+    );
+  }
+
+  private memoryEvent(memoryId: string): string {
+    for (const [eventId, list] of Object.entries(this.state.memories ?? {}))
+      if (list.some((m) => m.id === memoryId)) return eventId;
+    throw new RepositoryError('not_found', 'Memory not found');
+  }
+
+  private checkMemoryFields(caption?: string | null, takenOn?: string | null) {
+    if (caption && caption.trim().length > 140)
+      throw new RepositoryError('validation', 'Caption is at most 140 characters', {
+        field: 'caption',
+      });
+    if (takenOn && !/^\d{4}-\d{2}-\d{2}$/.test(takenOn))
+      throw new RepositoryError('validation', 'Date must look like 2019-03-02', {
+        field: 'takenOn',
+      });
+  }
+
+  listMemories(eventId: string): Promise<MemoriesAdminView> {
+    return this.run('read', 'memories', () => {
+      this.requireSession();
+      const e = this.event(eventId);
+      const memories = this.memoriesOf(eventId);
+      return {
+        unlocked: this.memoriesUnlocked(eventId),
+        enabled: e.memoriesEnabled !== false,
+        limit: this.state.memoriesLimit?.[eventId] ?? 30,
+        count: memories.length,
+        memories,
+      };
+    });
+  }
+
+  addMemory(
+    eventId: string,
+    photo: MemoryUpload,
+    input: { caption?: string; takenOn?: string },
+  ): Promise<Memory> {
+    return this.run('online-only', 'Kumbukumbu', () => {
+      this.requireSession();
+      this.event(eventId);
+      this.checkMemoryFields(input.caption, input.takenOn);
+      if (!this.memoriesUnlocked(eventId))
+        throw new RepositoryError('payment_required', 'Buy cards to unlock memories', {
+          reason: 'feature_locked',
+          feature: 'memories',
+        });
+      const list = ((this.state.memories ??= {})[eventId] ??= []);
+      if (list.length >= (this.state.memoriesLimit?.[eventId] ?? 30))
+        throw new RepositoryError('payment_required', 'Memories limit reached', {
+          reason: 'quota_exceeded',
+          resource: 'memories',
+          remaining: 0,
+          needed: 1,
+        });
+      const m: Memory = {
+        id: this.rng.uuid(),
+        caption: input.caption?.trim() || null,
+        takenOn: input.takenOn || null,
+        sortOrder: list.length,
+        width: 1280,
+        height: 853,
+      };
+      list.push(m);
+      if (photo instanceof Blob) this.memoryBlobs.set(m.id, photo);
+      this.persist();
+      return { ...m };
+    });
+  }
+
+  updateMemory(
+    memoryId: string,
+    patch: { caption?: string | null; takenOn?: string | null; sortOrder?: number },
+  ): Promise<Memory> {
+    return this.run('write', 'Kumbukumbu', () => {
+      this.requireSession();
+      this.checkMemoryFields(patch.caption, patch.takenOn);
+      const m = this.state.memories![this.memoryEvent(memoryId)]!.find((x) => x.id === memoryId)!;
+      if (patch.caption !== undefined) m.caption = patch.caption?.trim() || null;
+      if (patch.takenOn !== undefined) m.takenOn = patch.takenOn || null;
+      if (patch.sortOrder !== undefined) m.sortOrder = patch.sortOrder;
+      return { ...m };
+    });
+  }
+
+  deleteMemory(memoryId: string): Promise<void> {
+    return this.run('write', 'Kumbukumbu', () => {
+      this.requireSession();
+      const eventId = this.memoryEvent(memoryId);
+      this.state.memories![eventId] = this.state.memories![eventId]!.filter(
+        (x) => x.id !== memoryId,
+      );
+      this.memoryBlobs.delete(memoryId);
+    });
+  }
+
+  fetchMemoryPhoto(_eventId: string, memoryId: string, _size?: 'thumb' | 'full'): Promise<Blob> {
+    return this.run('read', 'memory-photo', () => {
+      const blob = this.memoryBlobs.get(memoryId);
+      if (blob) return blob;
+      // After a reload: a soft placeholder the size of the photo.
+      return new Blob(
+        [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 853"><rect width="1280" height="853" fill="#E6DFD3"/><circle cx="640" cy="426" r="120" fill="#B8893B" opacity=".5"/></svg>',
+        ],
+        { type: 'image/svg+xml' },
+      );
+    });
+  }
+
+  sendMemories(
+    eventId: string,
+    guestIds?: string[],
+  ): Promise<{ sent: number; failed: number; skipped: number }> {
+    return this.run('send', 'Kumbukumbu', () => {
+      this.requireSession();
+      if (!this.memoriesUnlocked(eventId))
+        throw new RepositoryError('payment_required', 'Buy cards to unlock memories', {
+          reason: 'feature_locked',
+          feature: 'memories',
+        });
+      if (!this.memoriesAvailable(eventId))
+        throw new RepositoryError('validation', 'Add photos first', { reason: 'no_memories' });
+      const picked = this.guestsOf(eventId).filter((g) => !guestIds || guestIds.includes(g.id));
+      let sent = 0;
+      for (const g of picked) {
+        if (!g.phoneE164) continue;
+        this.state.messages.push({
+          id: this.rng.uuid(),
+          eventId,
+          guestId: g.id,
+          channel: g.hasSmartphone ? 'whatsapp' : 'sms',
+          provider: g.hasSmartphone ? 'whatsapp-cloud' : 'fake-sms',
+          kind: 'memories',
+          status: 'sent',
+          error: null,
+          cost: g.hasSmartphone ? 0 : 25,
+          createdAt: iso(this.now()),
+        });
+        sent++;
+      }
+      this.persist();
+      return { sent, failed: 0, skipped: picked.length - sent };
+    });
+  }
+
+  getMemoriesLink(guestId: string): Promise<{ url: string; waUrl: string | null }> {
+    return this.run('read', 'memories-link', () => {
+      this.requireSession();
+      const g = this.guestRecord(guestId);
+      const e = this.event(g.eventId);
+      const url = `${this.baseUrl}/s/${g.token}/k`;
+      const text = `${e.coupleNames} wameshiriki kumbukumbu zao nawe: ${url}`;
+      return {
+        url,
+        waUrl: g.phoneE164
+          ? `https://wa.me/${g.phoneE164.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`
+          : null,
+      };
+    });
+  }
+
+  getGuestMemories(token: string): Promise<GuestMemoriesView> {
+    return this.run('card-read', 'memories', () => this.peekGuestMemories(token));
+  }
+
+  /** The guest page without latency or side effects, for server rendering in mock mode. */
+  peekGuestMemories(token: string): GuestMemoriesView {
+    const card = this.cardView(token);
+    if (card.state === 'reissued') throw new RepositoryError('reissued');
+    if (card.state !== 'ok' || !card.event) throw new RepositoryError('not_found', 'Invalid link');
+    if (!this.memoriesAvailable(card.event.id))
+      throw new RepositoryError('not_found', 'Memories are not available', {
+        reason: 'memories_unavailable',
+      });
+    return {
+      card: { ...card, pledge: null, qrPayload: '' },
+      memories: this.memoriesOf(card.event.id),
+    };
+  }
+
+  opsSetMemoriesLimit(eventId: string, limit: number, note: string): Promise<{ limit: number }> {
+    return this.run('write', 'ops', () => {
+      this.requireStaff('plan');
+      if (note.trim().length < 3)
+        throw new RepositoryError('validation', 'reason_required', { field: 'note' });
+      this.event(eventId);
+      (this.state.memoriesLimit ??= {})[eventId] = limit;
+      return { limit };
     });
   }
 

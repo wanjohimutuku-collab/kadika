@@ -12,7 +12,6 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     slug: 'privacy',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: PRIVACY_UPDATED,
     related: ['ombi-la-data', 'cookies', 'terms', 'usalama-wa-kadi-za-mtandaoni'],
     sw: {
@@ -50,9 +49,9 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Kipengele', 'Maelezo'],
               rows: [
-                ['Jina la kisheria la biashara', '[WEKA JINA LILILOSAJILIWA]'],
-                ['Namba ya usajili', '[WEKA NAMBA YA USAJILI]'],
-                ['Anwani iliyosajiliwa', '[WEKA ANWANI]'],
+                ['Jina la kisheria la biashara', 'KADISASA'],
+                ['Namba ya usajili', '482589'],
+                ['Anwani iliyosajiliwa', 'Soweto, Moshi, Tanzania'],
                 ['Nchi ya usajili', 'Tanzania'],
                 ['Tovuti', 'https://kadisasa.com'],
                 ['Mawasiliano ya faragha', 'faragha@kadisasa.com'],
@@ -205,6 +204,10 @@ export const LEGAL_PAGES: ContentPageDef[] = [
                   'Malipo ya huduma',
                   'Taarifa za muamala wa mwenyeji anapolipia huduma za Kadi Sasa. Hawapokei taarifa za wageni wala michango',
                 ],
+                [
+                  'Google Firebase (uthibitisho wa kuingia)',
+                  'Namba ya simu ya mwenyeji au mwanakamati anayeingia, anwani ya IP na ishara za kifaa za kuzuia roboti (reCAPTCHA au Play Integrity)',
+                ],
                 ['Seva na miundombinu', 'Taarifa zinazohitajika kuendesha Kadi Sasa'],
                 [
                   'Usalama na ufuatiliaji wa hitilafu',
@@ -218,7 +221,20 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Watoa huduma wanaofanya kazi kwa niaba yetu wanapaswa kulinda taarifa binafsi na kuzitumia kwa madhumuni yaliyoidhinishwa tu. Kila mtoa huduma pia ana sera yake ya faragha. Orodha ya majina ya watoa huduma itachapishwa hapa ikishathibitishwa.',
+              text: 'Watoa huduma wanaofanya kazi kwa niaba yetu wanapaswa kulinda taarifa binafsi na kuzitumia kwa madhumuni yaliyoidhinishwa tu. Kila mtoa huduma pia ana sera yake ya faragha. Ukitaka orodha ya sasa ya majina ya watoa huduma, tuandikie faragha@kadisasa.com.',
+            },
+            { t: 'h3', text: '7.1 Namba za kuingia na Google' },
+            {
+              t: 'p',
+              text: 'Wenyeji, wanakamati na wafanyakazi wetu huingia kwa namba ya simu. Namba ya kuthibitisha (OTP) hutumwa na kukaguliwa na Google Firebase Authentication. Firebase hupokea namba ya simu inayoingia, anwani ya IP, na ishara za kifaa za kuzuia roboti (reCAPTCHA kwenye kivinjari, Play Integrity kwenye Android). Baada ya namba kuthibitishwa, tunapokea kutoka Firebase uthibitisho uliosainiwa wenye namba ya simu tu, kisha tunaondoka kwenye kikao cha Firebase na kutumia kikao chetu wenyewe.',
+            },
+            {
+              t: 'p',
+              text: 'Hatutumii "Ingia kwa Google" na hatuombi ruhusa ya kufikia akaunti yako ya Google. Hatusomi barua pepe, anwani, faili, kalenda, picha wala taarifa nyingine yoyote ya akaunti ya Google. Namba ya simu iliyothibitishwa inatumika kukuingiza kwenye Kadi Sasa na kulinda akaunti yako tu; haiuzwi, haitumiki kwa matangazo, na haishirikiwi na mtu mwingine isipokuwa kama ilivyoelezwa kwenye sera hii.',
+            },
+            {
+              t: 'p',
+              text: 'Wageni hawahitaji kuingia: wanafungua kadi kwa kiungo chao, na hawapiti Firebase. Google inashughulikia taarifa hizi kwa mujibu wa masharti ya Firebase na sera ya faragha ya Google (https://policies.google.com/privacy).',
             },
           ],
         },
@@ -232,7 +248,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Mahali seva zetu zilipo na mtiririko wa taarifa nje ya nchi vitaelezwa hapa: [WEKA MTOA HUDUMA WA SEVA NA NCHI].',
+              text: 'Seva zinazohifadhi taarifa za Kadi Sasa ziko Marekani (United States), kwa hiyo taarifa za wenyeji na wageni huhifadhiwa nje ya Tanzania. Uthibitisho wa kuingia unashughulikiwa na Google Firebase kwenye miundombinu ya Google duniani. Tunatumia kinga zilizoelezwa hapo juu kwa uhamisho huu.',
             },
           ],
         },
@@ -448,7 +464,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Timu ya Faragha ya Kadi Sasa. Barua pepe: faragha@kadisasa.com. Tovuti: https://kadisasa.com. Nchi: Tanzania. Anwani: [WEKA ANWANI ILIYOTHIBITISHWA].',
+              text: 'Timu ya Faragha ya Kadi Sasa. Barua pepe: faragha@kadisasa.com. Tovuti: https://kadisasa.com. Nchi: Tanzania. Anwani: KADISASA, Soweto, Moshi, Tanzania.',
             },
           ],
         },
@@ -489,9 +505,9 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Item', 'Details'],
               rows: [
-                ['Legal business name', '[INSERT REGISTERED BUSINESS NAME]'],
-                ['Registration number', '[INSERT REGISTRATION NUMBER]'],
-                ['Registered address', '[INSERT BUSINESS ADDRESS]'],
+                ['Legal business name', 'KADISASA'],
+                ['Registration number', '482589'],
+                ['Registered address', 'Soweto, Moshi, Tanzania'],
                 ['Country of registration', 'Tanzania'],
                 ['Website', 'https://kadisasa.com'],
                 ['Privacy contact', 'faragha@kadisasa.com'],
@@ -644,6 +660,10 @@ export const LEGAL_PAGES: ContentPageDef[] = [
                   'Billing payments',
                   'Transaction details when a host pays for Kadi Sasa services. They receive no guest or contribution information',
                 ],
+                [
+                  'Google Firebase (sign-in verification)',
+                  'The phone number of the host or committee member signing in, IP address and anti-abuse device signals (reCAPTCHA or Play Integrity)',
+                ],
                 ['Hosting and infrastructure', 'Information needed to operate Kadi Sasa'],
                 ['Security and error monitoring', 'Technical logs, where engaged'],
                 [
@@ -654,7 +674,20 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Providers acting on our behalf must protect personal information and use it only for authorised purposes. Each provider also has its own privacy policy. A list of provider names will be published here once verified.',
+              text: 'Providers acting on our behalf must protect personal information and use it only for authorised purposes. Each provider also has its own privacy policy. For the current list of provider names, write to faragha@kadisasa.com.',
+            },
+            { t: 'h3', text: '7.1 Sign-in codes and Google' },
+            {
+              t: 'p',
+              text: 'Hosts, committee members and our staff sign in with a phone number. The one-time code (OTP) is sent and checked by Google Firebase Authentication. Firebase receives the phone number being signed in, the IP address, and anti-abuse device signals (reCAPTCHA in the browser, Play Integrity on Android). Once the code is confirmed, we receive from Firebase a signed token that contains only the verified phone number; we then end the Firebase session and use our own.',
+            },
+            {
+              t: 'p',
+              text: 'We do not offer "Sign in with Google" and we do not request access to your Google Account. We do not read your Gmail, contacts, Drive files, calendar, photos or any other Google Account data. The verified phone number is used only to sign you in to Kadi Sasa and protect your account; it is not sold, not used for advertising, and not shared with anyone except as described in this policy.',
+            },
+            {
+              t: 'p',
+              text: 'Guests never sign in: they open their card from their own link and do not go through Firebase. Google processes this information under the Firebase terms and the Google Privacy Policy (https://policies.google.com/privacy).',
             },
           ],
         },
@@ -668,7 +701,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Our hosting locations and cross-border data flows will be listed here: [INSERT HOSTING PROVIDER AND COUNTRY].',
+              text: 'The servers that store Kadi Sasa data are in the United States, so host and guest information is stored outside Tanzania. Sign-in verification is handled by Google Firebase on Google’s global infrastructure. We apply the safeguards described above to these transfers.',
             },
           ],
         },
@@ -881,7 +914,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Kadi Sasa Privacy Team. Email: faragha@kadisasa.com. Website: https://kadisasa.com. Country: Tanzania. Address: [INSERT VERIFIED BUSINESS ADDRESS].',
+              text: 'Kadi Sasa Privacy Team. Email: faragha@kadisasa.com. Website: https://kadisasa.com. Country: Tanzania. Address: KADISASA, Soweto, Moshi, Tanzania.',
             },
           ],
         },

@@ -216,6 +216,16 @@ describe('sign-in settings in /ops (ADR 049)', () => {
     });
     expect(r.body!.error).toContain('my.kadisasa.com');
 
+    // Firebase answers with the project number (the middle of the app id), not the project id.
+    fetchMock.mockImplementation(async () =>
+      Response.json({
+        projectId: '123456789',
+        authorizedDomains: ['app.kadisasa.com', 'my.kadisasa.com'],
+      }),
+    );
+    const byNumber = await api(ctx, 'POST', '/v1/ops/signin-settings/test', { token });
+    expect(byNumber.body).toMatchObject({ ok: true, error: null, missingDomains: [] });
+
     fetchMock.mockImplementation(async () =>
       Response.json({ projectId: 'someone-else', authorizedDomains: [] }),
     );

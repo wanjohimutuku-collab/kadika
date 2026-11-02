@@ -282,7 +282,11 @@ export class SignInSettingsService {
           const authorizedDomains = body?.authorizedDomains ?? [];
           const missingDomains = this.webHosts().filter((h) => !authorizedDomains.includes(h));
           const projectId = body?.projectId ?? null;
-          const wrongProject = projectId !== null && projectId !== fb.projectId;
+          // Identity Toolkit names the project by its number, the middle part of the web app id
+          // (`1:<number>:web:…`), so either form of the saved project counts as a match.
+          const projectNumber = /^\d+:(\d+):/.exec(fb.appId ?? '')?.[1] ?? null;
+          const wrongProject =
+            projectId !== null && projectId !== fb.projectId && projectId !== projectNumber;
           out = result({
             ok: !wrongProject && missingDomains.length === 0,
             error: wrongProject

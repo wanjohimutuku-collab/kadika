@@ -1087,6 +1087,14 @@ export function createApp(deps: Deps) {
     );
     return c.json(await billingSvc.opsGrant(staff(c), idParam(c), input), 201);
   });
+  // Kumbukumbu (ADR 050): how many photos an event may hold
+  app.patch('/v1/ops/events/:id/memories-limit', async (c) => {
+    const input = parse(
+      z.object({ limit: z.number().int().min(1).max(200), note: z.string().max(500) }),
+      await body(c),
+    );
+    return c.json(await memoriesSvc.opsSetLimit(staff(c), idParam(c), input.limit, input.note));
+  });
   app.get('/v1/ops/lookup', async (c) => {
     const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());
     return c.json(await opsSvc.lookup(staff(c), q));

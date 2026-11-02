@@ -2,7 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
 import { eventMembers, eventPurchases, events, memories, newId } from '@harusi/db';
-import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
+import {
+  api,
+  createTestContext,
+  loginAs,
+  loginAsStaff,
+  type TestContext,
+} from './testing/test-app';
 
 let ctx: TestContext;
 beforeAll(async () => {
@@ -265,5 +271,40 @@ describe('the guest page', () => {
     await pay(empty.evId);
     const e = await api(ctx, 'GET', `/v1/c/${empty.g.cardToken}/memories`);
     expect(e.body!.error.details.reason).toBe('memories_unavailable');
+  });
+});
+
+describe('deletion and the staff limit', () => {
+  it('deleting the event removes its memories and files', async () => {
+    const { t, evId } = await setup();
+    await pay(evId);
+    const m = await (await upload(t, evId, await photo())).json();
+    expect((await api(ctx, 'DELETE', `/v1/events/${evId}`, { token: t })).status).toBe(204);
+    expect(await ctx.db.select().from(memories).where(eq(memories.eventId, evId))).toEqual([]);
+    expect(ctx.photos.files.has(`events/${evId}/${m.id}.webp`)).toBe(false);
+    expect(ctx.photos.files.has(`events/${evId}/${m.id}.thumb.webp`)).toBe(false);
+  });
+
+  it('staff with the plan permission change the limit, with a reason', async () => {
+    const { evId } = await setup();
+    const billing = await loginAsStaff(ctx, '0746100001', 'billing');
+    const noReason = await api(ctx, 'PATCH', `/v1/ops/events/${evId}/memories-limit`, {
+      token: billing.accessToken,
+      body: { limit: 60, note: '' },
+    });
+    expect(noReason.status).toBe(400);
+    const ok = await api(ctx, 'PATCH', `/v1/ops/events/${evId}/memories-limit`, {
+      token: billing.accessToken,
+      body: { limit: 60, note: 'Mteja aliomba' },
+    });
+    expect(ok.body).toEqual({ limit: 60 });
+    const [e] = await ctx.db.select().from(events).where(eq(events.id, evId));
+    expect(e!.memoriesLimit).toBe(60);
+    const support = await loginAsStaff(ctx, '0746100002', 'support');
+    const denied = await api(ctx, 'PATCH', `/v1/ops/events/${evId}/memories-limit`, {
+      token: support.accessToken,
+      body: { limit: 90, note: 'jaribio' },
+    });
+    expect(denied.status).toBe(403);
   });
 });

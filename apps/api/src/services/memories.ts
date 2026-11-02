@@ -7,6 +7,7 @@ import { photosOf } from '../photos/store';
 import { recordAudit } from './audit';
 import type { CardService } from './cards';
 import type { EventService } from './events';
+import { requireStaff, type StaffCaller } from './staff-guard';
 
 export interface MemoryView {
   id: string;
@@ -53,6 +54,20 @@ export function cleanDate(v: string | null | undefined): string | null | undefin
   if (!DATE.test(v) || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v)
     throw new ApiError('validation', 'Date must look like 2019-03-02', { field: 'takenOn' });
   return v;
+}
+
+/**
+ * Deletes every memory of an event, files first. Called after event deletion and PDPA erasure, never
+ * inside a transaction: a file delete cannot be rolled back.
+ */
+export async function purgeEventMemories(deps: Deps, eventId: string): Promise<void> {
+  const store = photosOf(deps);
+  const rows = await deps.db.select().from(memories).where(eq(memories.eventId, eventId));
+  for (const m of rows) {
+    await store.delete(m.photoKey);
+    await store.delete(m.thumbKey);
+  }
+  await deps.db.delete(memories).where(eq(memories.eventId, eventId));
 }
 
 /**
@@ -235,14 +250,26 @@ export class MemoriesService {
     return this.photos.get(size === 'thumb' ? m.thumbKey : m.photoKey);
   }
 
-  /** Deletes every memory of an event, files first (event deletion, PDPA erasure). */
-  async purgeEvent(eventId: string): Promise<void> {
-    const rows = await this.deps.db.select().from(memories).where(eq(memories.eventId, eventId));
-    for (const m of rows) {
-      await this.photos.delete(m.photoKey);
-      await this.photos.delete(m.thumbKey);
-    }
-    await this.deps.db.delete(memories).where(eq(memories.eventId, eventId));
+  /** Staff (`plan`) change how many photos an event may hold, with a reason. */
+  async opsSetLimit(caller: StaffCaller, eventId: string, limit: number, note: string) {
+    const staff = await requireStaff(this.deps.db, caller, 'plan');
+    const why = note.trim();
+    if (why.length < 3) throw new ApiError('validation', 'reason_required', { field: 'note' });
+    const [row] = await this.deps.db
+      .update(events)
+      .set({ memoriesLimit: limit })
+      .where(eq(events.id, eventId))
+      .returning({ limit: events.memoriesLimit });
+    if (!row) throw new ApiError('not_found', 'Event not found');
+    await recordAudit(this.deps.db, {
+      eventId: null,
+      actorId: staff.id,
+      action: 'ops.memories_limit',
+      entity: 'event',
+      entityId: eventId,
+      diff: { limit, note: why },
+    });
+    return { limit: row.limit };
   }
 
   // ---------------------------------------------------------------- guests (by card token)

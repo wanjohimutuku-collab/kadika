@@ -3,6 +3,7 @@ import type { Db } from '@harusi/db';
 import type { Country } from '@harusi/schemas/country';
 import type { DeliveryState } from '@harusi/messaging';
 import type { PaymentProvider } from '@harusi/payments';
+import type { PhotoStore } from './photos/store';
 import type { RateStore } from './rate-limit';
 import type { SendInput } from './services/delivery';
 import type { MessagingProvider } from '@harusi/messaging';
@@ -43,6 +44,8 @@ export interface Deps {
   signInSettings?: SignInSettingsService;
   /** Keys for Firebase ID tokens (ADR 048); Google's published keys when absent. Tests pass their own. */
   firebaseKeys?: JWTVerifyGetKey;
+  /** Kumbukumbu photo files (ADR 050); a disk store at `PHOTO_FILES_DIR` when absent. */
+  photos?: PhotoStore;
   config: Config;
   now: () => Date;
   random: (n: number) => Uint8Array;

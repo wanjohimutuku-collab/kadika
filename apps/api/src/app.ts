@@ -101,6 +101,7 @@ const eventBase = z.object({
   rsvpDeadline: optionalDate,
   contributionTarget: z.number().int().min(0).nullish(),
   pledgesEnabled: z.boolean().optional(),
+  memoriesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
   cardContent: cardContentSchema.optional(),
 });
@@ -221,6 +222,8 @@ export function createApp(deps: Deps) {
     deps.rateStore,
   );
   const cardWrites = new RateLimiter(deps.now, 20, 60_000, 'card-write', deps.rateStore);
+  // A Kumbukumbu page loads up to 30 thumbnails at once; photos get their own, larger budget.
+  const memoryPhotos = new RateLimiter(deps.now, 600, 60_000, 'memory-photo', deps.rateStore);
   // a test message goes to the caller's own phone and costs us a send: a few per ten minutes
   const testSends = new RateLimiter(deps.now, 5, 600_000, 'test-send', deps.rateStore);
   const client = (c: Context) => clientIp((h) => c.req.header(h), deps.config.clientIpHeader);
@@ -441,13 +444,32 @@ export function createApp(deps: Deps) {
   app.get('/v1/c/:token', async (c) => {
     await cardReads.check(`ip:${client(c)}`);
     await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
-    return c.json(await cardsSvc.get(c.req.param('token')));
+    const v = await cardsSvc.get(c.req.param('token'));
+    // The card shows a Kumbukumbu button only when the page has something to show (ADR 050).
+    const memoriesAvailable = v.event ? await memoriesSvc.availableFor(v.event.id) : false;
+    return c.json({ ...v, memoriesAvailable });
   });
   app.get('/v1/c/:token/preview', async (c) => {
     await cardReads.check(`ip:${client(c)}`);
     await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     const v = await cardsSvc.preview(c.req.param('token'));
     return c.json({ ...v, qrPayload: null });
+  });
+  app.get('/v1/c/:token/memories', async (c) => {
+    await cardReads.check(`ip:${client(c)}`);
+    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    return c.json(await memoriesSvc.forGuest(c.req.param('token'), cardsSvc));
+  });
+  app.get('/v1/c/:token/memories/:mid/:size{thumb|full}', async (c) => {
+    await memoryPhotos.check(`ip:${client(c)}`);
+    const eventId = await memoriesSvc.guestEvent(c.req.param('token'), cardsSvc);
+    const bytes = await memoriesSvc.photo(
+      eventId,
+      c.req.param('mid'),
+      c.req.param('size') as 'thumb' | 'full',
+    );
+    if (!bytes) throw new ApiError('not_found', 'Photo not found');
+    return c.body(bytes, 200, PHOTO_HEADERS);
   });
   app.post('/v1/c/:token/reminders/opt-out', async (c) => {
     await cardWrites.check(`ip:${client(c)}`);

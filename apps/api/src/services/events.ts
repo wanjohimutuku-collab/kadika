@@ -32,6 +32,8 @@ export interface EventInput {
   rsvpDeadline?: Date | null;
   contributionTarget?: number | null;
   pledgesEnabled?: boolean;
+  /** Kumbukumbu page shown to guests (ADR 050). */
+  memoriesEnabled?: boolean;
   brandTheme?: Record<string, unknown> | null;
   /** Validated by the route; new events default to family-sent cards (ADR 029). */
   cardContent?: CardContent;

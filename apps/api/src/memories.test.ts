@@ -203,3 +203,67 @@ describe('adding and editing memories', () => {
     ).toBe(403);
   });
 });
+
+describe('the guest page', () => {
+  async function withMemory() {
+    const s = await setup();
+    await pay(s.evId);
+    const m = await (await upload(s.t, s.evId, await photo(), { caption: 'Tulipokutana' })).json();
+    return { ...s, m };
+  }
+
+  it('shows the memories to the guest by card token, and serves the photos', async () => {
+    const { g, m } = await withMemory();
+    const r = await api(ctx, 'GET', `/v1/c/${g.cardToken}/memories`);
+    expect(r.status).toBe(200);
+    expect(r.body!.memories).toEqual([
+      expect.objectContaining({ id: m.id, caption: 'Tulipokutana' }),
+    ]);
+    expect(r.body!.card.event.coupleNames).toBe('Asha & Juma');
+    expect(r.body!.card.pledge).toBeNull();
+    expect(JSON.stringify(r.body)).not.toContain('.webp'); // no storage keys leak
+    const img = await ctx.app.request(`/v1/c/${g.cardToken}/memories/${m.id}/thumb`);
+    expect(img.status).toBe(200);
+    expect(img.headers.get('content-type')).toBe('image/webp');
+    expect(img.headers.get('cache-control')).toBe('private, max-age=86400');
+    expect((await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!.memoriesAvailable).toBe(true);
+  });
+
+  it("a guest of another event cannot fetch this event's photo", async () => {
+    const { m } = await withMemory();
+    const other = await withMemory();
+    const img = await ctx.app.request(`/v1/c/${other.g.cardToken}/memories/${m.id}/full`);
+    expect(img.status).toBe(404);
+  });
+
+  it('a reissued card is refused; a made-up token is not found', async () => {
+    const { t, g } = await withMemory();
+    expect((await api(ctx, 'POST', `/v1/guests/${g.id}/reissue`, { token: t })).status).toBe(200);
+    const old = await api(ctx, 'GET', `/v1/c/${g.cardToken}/memories`);
+    expect(old.status).toBe(409);
+    expect(old.body!.error.details.reason).toBe('reissued');
+    expect((await api(ctx, 'GET', '/v1/c/not-a-real-token-at-all/memories')).status).toBe(404);
+  });
+
+  it('is unavailable when switched off, locked, or empty', async () => {
+    const { t, evId, g } = await withMemory();
+    const off = await api(ctx, 'PATCH', `/v1/events/${evId}`, {
+      token: t,
+      body: { memoriesEnabled: false },
+    });
+    expect(off.body!.memoriesEnabled).toBe(false);
+    const hidden = await api(ctx, 'GET', `/v1/c/${g.cardToken}/memories`);
+    expect(hidden.status).toBe(404);
+    expect(hidden.body!.error.details.reason).toBe('memories_unavailable');
+    expect((await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!.memoriesAvailable).toBe(false);
+
+    const locked = await setup();
+    const r = await api(ctx, 'GET', `/v1/c/${locked.g.cardToken}/memories`);
+    expect(r.body!.error.details.reason).toBe('memories_unavailable');
+
+    const empty = await setup();
+    await pay(empty.evId);
+    const e = await api(ctx, 'GET', `/v1/c/${empty.g.cardToken}/memories`);
+    expect(e.body!.error.details.reason).toBe('memories_unavailable');
+  });
+});

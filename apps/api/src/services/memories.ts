@@ -5,6 +5,7 @@ import { ApiError } from '../errors';
 import { processPhoto } from '../photos/process';
 import { photosOf } from '../photos/store';
 import { recordAudit } from './audit';
+import type { CardService } from './cards';
 import type { EventService } from './events';
 
 export interface MemoryView {
@@ -242,5 +243,45 @@ export class MemoriesService {
       await this.photos.delete(m.thumbKey);
     }
     await this.deps.db.delete(memories).where(eq(memories.eventId, eventId));
+  }
+
+  // ---------------------------------------------------------------- guests (by card token)
+
+  /** Unlocked, switched on, and at least one photo. */
+  async availableFor(eventId: string): Promise<boolean> {
+    const [event] = await this.deps.db
+      .select({ enabled: events.memoriesEnabled })
+      .from(events)
+      .where(eq(events.id, eventId));
+    if (!event?.enabled || !(await this.unlocked(eventId))) return false;
+    const [{ n } = { n: 0 }] = await this.deps.db
+      .select({ n: count() })
+      .from(memories)
+      .where(eq(memories.eventId, eventId));
+    return n > 0;
+  }
+
+  /** The event a guest's token opens. Never says why it is unavailable: guests hear nothing of payments. */
+  async guestEvent(token: string, cards: CardService): Promise<string> {
+    const r = await cards.resolveToken(token);
+    if (r.state !== 'ok')
+      throw r.state === 'reissued'
+        ? new ApiError('conflict', 'This card was replaced', { reason: 'reissued' })
+        : new ApiError('not_found', 'Invalid link');
+    if (!(await this.availableFor(r.eventId)))
+      throw new ApiError('not_found', 'Memories are not available', {
+        reason: 'memories_unavailable',
+      });
+    return r.eventId;
+  }
+
+  /** The guest's page: the card's names, theme and trust details, and the photos (no storage keys). */
+  async forGuest(token: string, cards: CardService) {
+    const eventId = await this.guestEvent(token, cards);
+    const card = await cards.preview(token);
+    return {
+      card: { ...card, pledge: null, qrPayload: '' },
+      memories: (await this.rows(eventId)).map(view),
+    };
   }
 }

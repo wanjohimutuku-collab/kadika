@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   integer,
   jsonb,
   pgEnum,
@@ -124,6 +125,10 @@ export const events = pgTable('events', {
   contributionTarget: integer('contribution_target'),
   /** Whether guests may pledge and pay from their card (§7.3). */
   pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
+  /** Kumbukumbu (ADR 050): the host can hide the page without deleting photos. */
+  memoriesEnabled: boolean('memories_enabled').notNull().default(true),
+  /** Most photos the page may hold; staff with the `plan` permission change it. */
+  memoriesLimit: integer('memories_limit').notNull().default(30),
   plan: eventPlanEnum('plan').notNull().default('free'),
   /**
    * Set when the owner deletes the event. Its members, cards and gate stop working at once; the rows
@@ -652,4 +657,28 @@ export const eventPurchases = pgTable(
     index('event_purchases_status_idx').on(t.status, t.createdAt),
     uniqueIndex('event_purchases_ref_uq').on(t.providerRef),
   ],
+);
+
+/**
+ * Kumbukumbu (ADR 050): the couple's past photos, shown to their guests by card token. Files live in
+ * the `PhotoStore`; these rows hold only keys, never anything built from user input.
+ */
+export const memories = pgTable(
+  'memories',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    photoKey: text('photo_key').notNull(),
+    thumbKey: text('thumb_key').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    caption: text('caption'),
+    takenOn: date('taken_on', { mode: 'string' }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [index('memories_event_idx').on(t.eventId, t.sortOrder)],
 );

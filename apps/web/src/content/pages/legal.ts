@@ -12,7 +12,6 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     slug: 'privacy',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: PRIVACY_UPDATED,
     related: ['ombi-la-data', 'cookies', 'terms', 'usalama-wa-kadi-za-mtandaoni'],
     sw: {
@@ -50,9 +49,9 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Kipengele', 'Maelezo'],
               rows: [
-                ['Jina la kisheria la biashara', '[WEKA JINA LILILOSAJILIWA]'],
-                ['Namba ya usajili', '[WEKA NAMBA YA USAJILI]'],
-                ['Anwani iliyosajiliwa', '[WEKA ANWANI]'],
+                ['Jina la kisheria la biashara', 'KADISASA'],
+                ['Namba ya usajili', '482589'],
+                ['Anwani iliyosajiliwa', 'Soweto, Moshi, Tanzania'],
                 ['Nchi ya usajili', 'Tanzania'],
                 ['Tovuti', 'https://kadisasa.com'],
                 ['Mawasiliano ya faragha', 'faragha@kadisasa.com'],
@@ -222,7 +221,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Watoa huduma wanaofanya kazi kwa niaba yetu wanapaswa kulinda taarifa binafsi na kuzitumia kwa madhumuni yaliyoidhinishwa tu. Kila mtoa huduma pia ana sera yake ya faragha. Orodha ya majina ya watoa huduma itachapishwa hapa ikishathibitishwa.',
+              text: 'Watoa huduma wanaofanya kazi kwa niaba yetu wanapaswa kulinda taarifa binafsi na kuzitumia kwa madhumuni yaliyoidhinishwa tu. Kila mtoa huduma pia ana sera yake ya faragha. Ukitaka orodha ya sasa ya majina ya watoa huduma, tuandikie faragha@kadisasa.com.',
             },
             { t: 'h3', text: '7.1 Namba za kuingia na Google' },
             {
@@ -249,7 +248,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Mahali seva zetu zilipo na mtiririko wa taarifa nje ya nchi vitaelezwa hapa: [WEKA MTOA HUDUMA WA SEVA NA NCHI].',
+              text: 'Seva zinazohifadhi taarifa za Kadi Sasa ziko Marekani (United States), kwa hiyo taarifa za wenyeji na wageni huhifadhiwa nje ya Tanzania. Uthibitisho wa kuingia unashughulikiwa na Google Firebase kwenye miundombinu ya Google duniani. Tunatumia kinga zilizoelezwa hapo juu kwa uhamisho huu.',
             },
           ],
         },
@@ -465,7 +464,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Timu ya Faragha ya Kadi Sasa. Barua pepe: faragha@kadisasa.com. Tovuti: https://kadisasa.com. Nchi: Tanzania. Anwani: [WEKA ANWANI ILIYOTHIBITISHWA].',
+              text: 'Timu ya Faragha ya Kadi Sasa. Barua pepe: faragha@kadisasa.com. Tovuti: https://kadisasa.com. Nchi: Tanzania. Anwani: KADISASA, Soweto, Moshi, Tanzania.',
             },
           ],
         },
@@ -506,9 +505,9 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Item', 'Details'],
               rows: [
-                ['Legal business name', '[INSERT REGISTERED BUSINESS NAME]'],
-                ['Registration number', '[INSERT REGISTRATION NUMBER]'],
-                ['Registered address', '[INSERT BUSINESS ADDRESS]'],
+                ['Legal business name', 'KADISASA'],
+                ['Registration number', '482589'],
+                ['Registered address', 'Soweto, Moshi, Tanzania'],
                 ['Country of registration', 'Tanzania'],
                 ['Website', 'https://kadisasa.com'],
                 ['Privacy contact', 'faragha@kadisasa.com'],
@@ -675,7 +674,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Providers acting on our behalf must protect personal information and use it only for authorised purposes. Each provider also has its own privacy policy. A list of provider names will be published here once verified.',
+              text: 'Providers acting on our behalf must protect personal information and use it only for authorised purposes. Each provider also has its own privacy policy. For the current list of provider names, write to faragha@kadisasa.com.',
             },
             { t: 'h3', text: '7.1 Sign-in codes and Google' },
             {
@@ -702,7 +701,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             },
             {
               t: 'p',
-              text: 'Our hosting locations and cross-border data flows will be listed here: [INSERT HOSTING PROVIDER AND COUNTRY].',
+              text: 'The servers that store Kadi Sasa data are in the United States, so host and guest information is stored outside Tanzania. Sign-in verification is handled by Google Firebase on Google’s global infrastructure. We apply the safeguards described above to these transfers.',
             },
           ],
         },
@@ -915,7 +914,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Kadi Sasa Privacy Team. Email: faragha@kadisasa.com. Website: https://kadisasa.com. Country: Tanzania. Address: [INSERT VERIFIED BUSINESS ADDRESS].',
+              text: 'Kadi Sasa Privacy Team. Email: faragha@kadisasa.com. Website: https://kadisasa.com. Country: Tanzania. Address: KADISASA, Soweto, Moshi, Tanzania.',
             },
           ],
         },

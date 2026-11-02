@@ -20,7 +20,15 @@
         }
       ],
       "expo-sqlite",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kadi Sasa inahitaji picha zako ili uweke kumbukumbu za harusi.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {},
     "web": {

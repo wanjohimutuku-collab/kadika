@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { GuestQuery, ImportRowInput, SendRequest, WeddingEvent } from '@harusi/api-client';
+import type {
+  GuestQuery,
+  ImportRowInput,
+  MemoryUpload,
+  SendRequest,
+  WeddingEvent,
+} from '@harusi/api-client';
 import type { CardKind, EventInput, GuestInput, PaymentMethod } from '@harusi/schemas';
 
 export type ManualMethod = PaymentMethod;
@@ -13,6 +19,7 @@ export const keys = {
   guests: (id: string, q?: GuestQuery) => ['guests', id, q ?? {}] as const,
   guest: (id: string) => ['guest', id] as const,
   members: (id: string) => ['members', id] as const,
+  memories: (id: string) => ['memories', id] as const,
 };
 
 export const useEvents = () =>
@@ -131,4 +138,25 @@ export const useRevokeMember = (eventId: string) =>
   useInvalidating(
     (memberId: string) => repo().revokeMember(eventId, memberId),
     () => [keys.members(eventId)],
+  );
+
+// Kumbukumbu (ADR 050): the couple's photos for their guests
+export const useMemories = (eventId: string) =>
+  useQuery({ queryKey: keys.memories(eventId), queryFn: () => repo().listMemories(eventId) });
+export const useAddMemory = (eventId: string) =>
+  useInvalidating(
+    (v: { photo: MemoryUpload; caption?: string; takenOn?: string }) =>
+      repo().addMemory(eventId, v.photo, { caption: v.caption, takenOn: v.takenOn }),
+    () => [keys.memories(eventId)],
+  );
+export const useUpdateMemory = (eventId: string) =>
+  useInvalidating(
+    (v: { id: string; sortOrder?: number; caption?: string | null; takenOn?: string | null }) =>
+      repo().updateMemory(v.id, { sortOrder: v.sortOrder, caption: v.caption, takenOn: v.takenOn }),
+    () => [keys.memories(eventId)],
+  );
+export const useDeleteMemory = (eventId: string) =>
+  useInvalidating(
+    (id: string) => repo().deleteMemory(id),
+    () => [keys.memories(eventId)],
   );

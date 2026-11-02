@@ -1,5 +1,7 @@
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   BellRing,
   Calendar,
   Check,
@@ -11,6 +13,8 @@ import {
   FileText,
   Globe,
   History,
+  ImagePlus,
+  Images,
   LayoutDashboard,
   MapPin,
   MessageCircle,
@@ -24,6 +28,7 @@ import {
   Settings,
   Shield,
   Smartphone,
+  Trash2,
   Upload,
   UserPlus,
   Users,
@@ -66,6 +71,11 @@ export const ICONS = {
   download: Download,
   bell: BellRing,
   clock: Clock,
+  memories: Images,
+  addPhoto: ImagePlus,
+  trash: Trash2,
+  up: ArrowUp,
+  down: ArrowDown,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

@@ -24,6 +24,7 @@ import {
   loadAuthConfig,
   smsLanguage,
   startPhoneSignIn,
+  requestSmsFallback,
   usesSmsFallback,
   type PhoneSignInError,
 } from '@/lib/firebase-phone';
@@ -440,7 +441,10 @@ export function LoginOtp() {
           onClick={async () => {
             if (!phone) return;
             try {
-              setFirebase((await sendCode(phone, recaptcha.current, locale)) === 'firebase');
+              // Always our own SMS code: Firebase can accept a send and the SMS still never
+              // arrives (seen on Tanzanian networks), and asking it again changes nothing.
+              await requestSmsFallback(phone, locale);
+              setFirebase(false);
               setNotice(t('resent'));
               setResendIn(30);
             } catch (err) {

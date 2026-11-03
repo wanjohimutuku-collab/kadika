@@ -4,12 +4,7 @@ import { formatPhone } from '@harusi/schemas/phone';
 import type { Session } from '@harusi/api-client';
 import { getRepository } from '../../src/lib/repo';
 import { useSession } from '../../src/lib/session';
-import {
-  confirmPhoneCode,
-  FirebasePhoneError,
-  onAutoVerified,
-  startPhoneSignIn,
-} from '../../src/lib/firebase-phone';
+import { confirmPhoneCode, FirebasePhoneError, onAutoVerified } from '../../src/lib/firebase-phone';
 import { useLocale, useT } from '../../src/lib/i18n';
 import { Banner, Button, Field, Screen, Txt } from '../../src/ui/kit';
 
@@ -152,17 +147,14 @@ export default function Otp() {
         label={wait > 0 ? t('auth.resendIn', { seconds: wait }) : t('auth.resend')}
         disabled={wait > 0}
         onPress={async () => {
-          if (firebase)
-            await startPhoneSignIn(phone!, locale, true).then(
-              (via) => setFirebase(via === 'firebase'),
+          // Always our own SMS code: Firebase can accept a send and the SMS still never arrives
+          // (seen on Tanzanian networks). The fallback flag changes nothing in the SMS flow.
+          await getRepository()
+            .requestOtp(phone!, { fallback: true, language: locale })
+            .then(
+              () => setFirebase(false),
               () => undefined,
             );
-          // Our own SMS code: the SMS flow, or Firebase refused earlier (fallback, else the API
-          // answers use_firebase); the flag changes nothing in the SMS flow.
-          else
-            await getRepository()
-              .requestOtp(phone!, { fallback: true, language: locale })
-              .catch(() => undefined);
           setWait(30);
         }}
       />

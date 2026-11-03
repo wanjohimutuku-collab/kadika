@@ -1973,7 +1973,12 @@
     "linkCode": "Namba ya kiungo",
     "linkPin": "PIN",
     "linkUrl": "Kiungo",
-    "openGate": "Fungua kiskana"
+    "openGate": "Fungua kiskana",
+    "welcomeGate": "Ninalinda lango",
+    "codeOrLink": "Namba ya kiungo au kiungo chote",
+    "linkQrHelp": "Mlinda lango askani QR hii kwa kamera ya simu yake, au afungue kiungo. Mpe PIN kwa njia nyingine.",
+    "linkQrAlt": "Msimbo wa QR wa kiungo cha lango; namba {code}",
+    "share": "Tuma kiungo"
   },
   "content": {
     "title": "Maandishi ya kadi na ujumbe",
@@ -2318,5 +2323,19 @@
     "limited": "Umeruhusu baadhi ya anwani tu. Unaweza kuruhusu zaidi kwenye mipangilio ya simu.",
     "read": "Soma anwani",
     "readHelp": "Kadi Sasa itaomba ruhusa ya kusoma anwani. Hakuna kinachotumwa mpaka uthibitishe."
+  },
+  "gateJoinPage": {
+    "metaTitle": "Kiungo cha lango · {brand}",
+    "eyebrow": "Kiungo cha lango",
+    "title": "Umealikwa kulinda lango",
+    "body": "Lango linaendeshwa kwenye programu ya {brand} ya Android. Huhitaji akaunti: namba hii ya kiungo na PIN uliyopewa na mwenye harusi zinatosha.",
+    "codeLabel": "Namba ya kiungo",
+    "open": "Fungua kwenye programu",
+    "download": "Pakua programu",
+    "stepsTitle": "Hatua",
+    "step1": "Pakua na usakinishe programu ya {brand} (Android 8 au mpya zaidi).",
+    "step2": "Rudi kwenye ukurasa huu ubonyeze \"Fungua kwenye programu\", au fungua programu uchague \"Ninalinda lango\" na uweke namba {code}.",
+    "step3": "Weka PIN uliyopewa. Orodha ya wageni itapakuliwa, kisha unaweza kuskani hata bila mtandao.",
+    "trust": "Hatutakuomba nenosiri wala namba ya siri ya simu yako. PIN ya lango unapewa na mwenye harusi tu."
   }
 }

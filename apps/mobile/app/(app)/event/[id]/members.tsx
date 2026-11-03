@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { formatPhone } from '@harusi/schemas/phone';
@@ -7,6 +7,7 @@ import { useInviteMember, useMembers, useRevokeMember } from '../../../../src/li
 import { useT } from '../../../../src/lib/i18n';
 import { useColors } from '../../../../src/lib/theme';
 import { AppHeader } from '../../../../src/ui/header';
+import { QrCode } from '../../../../src/ui/qr';
 import {
   Banner,
   Button,
@@ -149,9 +150,23 @@ export default function Members() {
         <Txt size={36} bold>
           {link?.pin}
         </Txt>
+        {link ? (
+          <QrCode value={link.url} label={t('gateApp.linkQrAlt', { code: link.code })} />
+        ) : null}
+        <Txt size={14} color={c.muted}>
+          {t('gateApp.linkQrHelp')}
+        </Txt>
         <Txt size={14} color={c.muted}>
           {link?.url}
         </Txt>
+        {/* The link goes by WhatsApp or SMS; the PIN is given separately, so it is not in the message. */}
+        <Button
+          variant="secondary"
+          label={t('gateApp.share')}
+          onPress={() => {
+            if (link) void Share.share({ message: link.url }).catch(() => undefined);
+          }}
+        />
         <Button
           variant="secondary"
           label={t('common.copy')}

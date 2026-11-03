@@ -155,9 +155,25 @@ export function createApp(deps: Deps) {
     referrerPolicy: 'no-referrer',
     xFrameOptions: 'DENY',
   });
+  // Kumbukumbu photos (ADR 050) are shown on the guest page, another origin, with <img>: the default
+  // `same-origin` resource policy would make every browser block them.
+  const securePhoto = secureHeaders({
+    strictTransportSecurity: 'max-age=63072000; includeSubDomains',
+    contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+    referrerPolicy: 'no-referrer',
+    xFrameOptions: 'DENY',
+    crossOriginResourcePolicy: 'cross-origin',
+  });
+  const guestPhoto = /^\/v1\/c\/[^/]+\/memories\/[^/]+\/(thumb|full)$/;
   // The public logo route sets its own, stricter set (it serves an image, so it also needs `sandbox`
   // and an inline-style allowance); the global middleware would overwrite it after the handler runs.
-  app.use('*', (c, next) => (c.req.path === '/v1/branding/logo' ? next() : secure(c, next)));
+  app.use('*', (c, next) =>
+    c.req.path === '/v1/branding/logo'
+      ? next()
+      : guestPhoto.test(c.req.path)
+        ? securePhoto(c, next)
+        : secure(c, next),
+  );
   // One JSON line per request, never with a card token, PIN, OTP or phone number in it: the route
   // pattern (`/v1/c/:token/pay`) is logged, not the real path (§12).
   app.use('*', async (c, next) => {

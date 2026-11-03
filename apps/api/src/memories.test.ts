@@ -240,6 +240,8 @@ describe('the guest page', () => {
     expect(img.status).toBe(200);
     expect(img.headers.get('content-type')).toBe('image/webp');
     expect(img.headers.get('cache-control')).toBe('private, max-age=86400');
+    // The guest page (kadisasa.com) shows it with <img> from the API host: same-origin would block it.
+    expect(img.headers.get('cross-origin-resource-policy')).toBe('cross-origin');
     expect((await api(ctx, 'GET', `/v1/c/${g.cardToken}`)).body!.memoriesAvailable).toBe(true);
   });
 

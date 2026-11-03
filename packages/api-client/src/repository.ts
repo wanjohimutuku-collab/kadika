@@ -77,8 +77,14 @@ import type {
  */
 export interface Repository {
   // Auth — POST /v1/auth/otp/request, /verify, /refresh
-  /** `fallback`: Firebase would not send the code, so ask for our own SMS code instead (ADR 048). */
-  requestOtp(phoneE164: string, fallback?: boolean): Promise<{ resendAfterSeconds: number }>;
+  /**
+   * `fallback`: Firebase would not send the code, so ask for our own SMS code instead (ADR 048).
+   * `language`: the visitor's site or app language, which the SMS is written in.
+   */
+  requestOtp(
+    phoneE164: string,
+    opts?: { fallback?: boolean; language?: 'sw' | 'en' },
+  ): Promise<{ resendAfterSeconds: number }>;
   verifyOtp(phoneE164: string, code: string): Promise<Session>;
   /** GET /v1/auth/config: our own SMS code or Firebase Phone Auth (ADR 048). */
   getAuthConfig(): Promise<AuthConfig>;

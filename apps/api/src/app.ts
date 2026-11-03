@@ -19,7 +19,7 @@ import type { HealthResponse } from '@harusi/schemas';
 import type { Deps } from './context';
 import { ApiError } from './errors';
 import { AuthService, parsePhone } from './auth/service';
-import { allowedCountries } from '@harusi/schemas/country';
+import { SIGN_IN_COUNTRIES } from '@harusi/schemas/country';
 import { verifyAccessToken, verifyGateToken, type GateClaims } from './auth/tokens';
 import { EventService } from './services/events';
 import { GuestService } from './services/guests';
@@ -311,12 +311,20 @@ export function createApp(deps: Deps) {
     }
   };
   app.post('/v1/auth/otp/request', async (c) => {
-    const { phone: p, fallback } = parse(
-      z.object({ phone, fallback: z.boolean().optional() }),
+    const {
+      phone: p,
+      fallback,
+      language,
+    } = parse(
+      z.object({
+        phone,
+        fallback: z.boolean().optional(),
+        language: z.enum(['sw', 'en']).optional(),
+      }),
       await body(c),
     );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p, fallback));
+    return c.json(await auth.requestOtp(p, fallback, language));
   });
   app.post('/v1/auth/otp/verify', async (c) => {
     const { phone: p, code } = parse(
@@ -347,7 +355,7 @@ export function createApp(deps: Deps) {
   // to Firebase directly is stopped by Firebase's own settings (SMS region policy, App Check).
   app.post('/v1/auth/firebase/start', async (c) => {
     const { phone: p } = parse(z.object({ phone }), await body(c));
-    const e164 = parsePhone(p, 'TZ', allowedCountries(deps.config.kenyaEnabled));
+    const e164 = parsePhone(p, 'TZ', SIGN_IN_COUNTRIES);
     await codeBudget(c);
     await firebaseCodes.check(`p:${e164}`);
     return c.json({ phone: e164 });

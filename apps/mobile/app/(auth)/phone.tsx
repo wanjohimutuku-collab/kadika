@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { COUNTRIES, type Country } from '@harusi/schemas/country';
+import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { getRepository } from '../../src/lib/repo';
-import { ALLOWED_COUNTRIES, KENYA_ENABLED, parsePhone } from '../../src/lib/country';
+import { parsePhone } from '../../src/lib/country';
 import { FirebasePhoneError, loadAuthConfig, startPhoneSignIn } from '../../src/lib/firebase-phone';
 import { useLocale, useT } from '../../src/lib/i18n';
 import { Banner, Button, Chip, Field, Screen, Txt } from '../../src/ui/kit';
@@ -17,7 +17,7 @@ export default function Phone() {
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    const p = parsePhone(raw, country);
+    const p = parsePhone(raw, country, SIGN_IN_COUNTRIES);
     if (!p.ok) return setError(t(`validation.phone.${p.error}`));
     setError(null);
     setBusy(true);
@@ -27,7 +27,7 @@ export default function Phone() {
       let firebase = false;
       if ((await loadAuthConfig()).otpProvider === 'firebase')
         firebase = (await startPhoneSignIn(p.e164, locale)) === 'firebase';
-      else await getRepository().requestOtp(p.e164);
+      else await getRepository().requestOtp(p.e164, { language: locale });
       router.push({
         pathname: '/otp',
         params: { phone: p.e164, ...(firebase ? { via: 'firebase' } : {}) },
@@ -59,18 +59,17 @@ export default function Phone() {
         {t('auth.title')}
       </Txt>
       <Txt>{t('auth.subtitle')}</Txt>
-      {KENYA_ENABLED ? (
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {COUNTRIES.filter((c) => ALLOWED_COUNTRIES.includes(c)).map((c) => (
-            <Chip
-              key={c}
-              label={t(`common.countries.${c}`)}
-              active={country === c}
-              onPress={() => setCountry(c)}
-            />
-          ))}
-        </View>
-      ) : null}
+      {/* Kenyan numbers sign in even while the Kenya product is off. */}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {SIGN_IN_COUNTRIES.map((c) => (
+          <Chip
+            key={c}
+            label={t(`common.countries.${c}`)}
+            active={country === c}
+            onPress={() => setCountry(c)}
+          />
+        ))}
+      </View>
       <Field
         label={t('auth.phone')}
         hint={t('auth.phoneHint')}

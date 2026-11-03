@@ -504,11 +504,15 @@ export function createHttpRepository(
   };
 
   const impl: Partial<Repository> = {
-    async requestOtp(phone, fallback) {
+    async requestOtp(phone, opts) {
       const r = await raw(
         'POST',
         '/v1/auth/otp/request',
-        fallback ? { phone, fallback } : { phone },
+        {
+          phone,
+          ...(opts?.fallback ? { fallback: true } : {}),
+          ...(opts?.language ? { language: opts.language } : {}),
+        },
         {},
         false,
       );

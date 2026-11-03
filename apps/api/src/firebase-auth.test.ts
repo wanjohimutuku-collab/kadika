@@ -148,13 +148,31 @@ describe('Firebase phone sign-in (ADR 048)', () => {
     expect(r.body!.error.details.reason).toBe('suspended');
   });
 
-  it('refuses numbers from a country that is not enabled, as the SMS code does', async () => {
+  it('signs in Kenyan numbers even while the Kenya product is off', async () => {
+    expect(ctx.deps.config.kenyaEnabled).toBe(false);
     const ke = await signIn(
       await idToken({
         claims: { phone_number: '+254712480001', firebase: { sign_in_provider: 'phone' } },
       }),
     );
-    expect(ke.status).toBe(400);
+    expect(ke.status).toBe(200);
+    const start = await api(ctx, 'POST', '/v1/auth/firebase/start', {
+      body: { phone: '+254712480002' },
+    });
+    expect(start.status).toBe(200);
+  });
+
+  it('writes the fallback SMS code in the language the visitor uses', async () => {
+    const en = await api(ctx, 'POST', '/v1/auth/otp/request', {
+      body: { phone: '0712480011', fallback: true, language: 'en' },
+    });
+    expect(en.status).toBe(200);
+    expect(ctx.sms.sent.at(-1)!.body).toMatch(/verification code is \d{6}/);
+    const sw = await api(ctx, 'POST', '/v1/auth/otp/request', {
+      body: { phone: '0712480012', fallback: true, language: 'sw' },
+    });
+    expect(sw.status).toBe(200);
+    expect(ctx.sms.sent.at(-1)!.body).toMatch(/Namba yako ya uthibitisho/);
   });
 
   it('sends no login code through our SMS routes and tells clients to use Firebase', async () => {

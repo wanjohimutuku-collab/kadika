@@ -71,10 +71,12 @@ export function envSettings(config: Config): MessagingSettings {
               templateReminder: wc?.templates.reminder,
               templatePledge: wc?.templates.pledge,
               templateContribution: wc?.templates.contribution,
+              templateMemories: wc?.templates.memories,
               templateInviteKe: ke?.invite,
               templateReminderKe: ke?.reminder,
               templatePledgeKe: ke?.pledge,
               templateContributionKe: ke?.contribution,
+              templateMemoriesKe: ke?.memories,
             }),
     },
   };
@@ -98,6 +100,7 @@ const templates = (f: Record<string, string>, suffix = '') => {
     reminder: f[`templateReminder${suffix}`],
     pledge: f[`templatePledge${suffix}`],
     contribution: f[`templateContribution${suffix}`],
+    memories: f[`templateMemories${suffix}`],
   });
   return Object.keys(t).length ? t : undefined;
 };
@@ -196,8 +199,9 @@ export function applyMessaging(deps: Deps, s: MessagingSettings, opts: ApplyOpti
   deps.sms = wrap(sms);
   deps.smsReport = smsReport;
   deps.whatsapp = whatsapp;
-  // Kenyan numbers need their own SMS route (ADR 026); only built when Kenya is enabled.
-  if (deps.config.kenyaEnabled) {
+  // Kenyan numbers need their own SMS route (ADR 026). Built when Kenya is enabled, or when Africa's
+  // Talking is set up: Kenyan organisers sign in even with Kenya off, and their codes go this way.
+  if (deps.config.kenyaEnabled || cfg.africasTalking) {
     const ke = cfg.africasTalking
       ? new AfricasTalkingProvider(cfg.africasTalking)
       : new FakeMessagingProvider('sms', undefined, 'fake-ke');
@@ -289,9 +293,8 @@ export class MessagingSettingsService {
       sms_ke: this.deps.smsByCountry?.KE?.name ?? null,
       whatsapp: this.deps.whatsapp?.name ?? null,
     };
-    const routes: MessagingRouteView[] = MESSAGING_ROUTES.filter(
-      (r) => r !== 'sms_ke' || this.deps.config.kenyaEnabled,
-    ).map((route) => {
+    // The Kenyan route shows even with Kenya off: it carries Kenyan sign-in codes.
+    const routes: MessagingRouteView[] = MESSAGING_ROUTES.map((route) => {
       const { provider, fields } = s[route];
       const defs = providerFields(route, provider);
       const plain: Record<string, string> = {};
@@ -321,15 +324,11 @@ export class MessagingSettingsService {
         { route: 'whatsapp', provider: 'evolution', path: '/v1/webhooks/whatsapp' },
         { route: 'whatsapp', provider: 'cloud', path: '/v1/webhooks/whatsapp-cloud' },
         { route: 'sms_tz', provider: 'nextsms', path: '/v1/webhooks/sms' },
-        ...(this.deps.config.kenyaEnabled
-          ? [
-              {
-                route: 'sms_ke' as const,
-                provider: 'africastalking',
-                path: '/v1/webhooks/sms/africastalking?secret=<WEBHOOK_SECRET>',
-              },
-            ]
-          : []),
+        {
+          route: 'sms_ke',
+          provider: 'africastalking',
+          path: '/v1/webhooks/sms/africastalking?secret=<WEBHOOK_SECRET>',
+        },
       ],
     };
   }
@@ -340,8 +339,6 @@ export class MessagingSettingsService {
     input: MessagingSettingsInput,
   ): Promise<MessagingSettingsView> {
     await this.requireAdmin(caller);
-    if (route === 'sms_ke' && !this.deps.config.kenyaEnabled)
-      throw new ApiError('validation', 'Kenya is not enabled', { field: 'route' });
     const { s } = await this.effective();
     const current = s[route];
     const defs = providerFields(route, input.provider);
@@ -436,7 +433,6 @@ export class MessagingSettingsService {
     const imported: MessagingRoute[] = [];
     const now = this.deps.now();
     for (const route of MESSAGING_ROUTES) {
-      if (route === 'sms_ke' && !this.deps.config.kenyaEnabled) continue;
       if (saved.has(route)) continue;
       const env = this.env[route];
       if (env.provider === 'fake' || settingsProblem(route, env)) continue;

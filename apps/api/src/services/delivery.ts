@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import {
   events,
   guests,
@@ -23,6 +23,7 @@ import type { EventService } from './events';
 import { BillingService, type CreditBudget } from './billing';
 import { BrandingService } from './branding';
 import { recordAudit } from './audit';
+import { MemoriesService } from './memories';
 import { CARD_DELIVERY_KINDS } from '@harusi/schemas/billing';
 
 const MAX_ATTEMPTS = 3;
@@ -524,6 +525,90 @@ export class DeliveryService {
       out[r.ok ? 'sent' : 'failed']++;
     }
     return out;
+  }
+
+  /**
+   * Kumbukumbu (ADR 050): each guest with a phone gets their own memories link. Spends one reminder
+   * credit per message that is not a failure (ADR 042), refused up front when credits are short.
+   */
+  async sendMemories(eventId: string, userId: string, guestIds: string[] | 'all') {
+    const role = await this.eventsSvc.role(eventId, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot send messages');
+    const memoriesSvc = new MemoriesService(this.deps, this.eventsSvc);
+    if (!(await memoriesSvc.unlocked(eventId)))
+      throw new ApiError('payment_required', 'Buy cards to unlock memories', {
+        reason: 'feature_locked',
+        feature: 'memories',
+      });
+    if (!(await memoriesSvc.availableFor(eventId)))
+      throw new ApiError('validation', 'Add photos and switch the page on first', {
+        reason: 'no_memories',
+      });
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    if (!event) throw new ApiError('not_found', 'Event not found');
+    const rows = await this.deps.db
+      .select({ guest: guests, inv: invitations })
+      .from(guests)
+      .innerJoin(invitations, eq(invitations.guestId, guests.id))
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          isNotNull(guests.phoneE164),
+          ...(guestIds === 'all' ? [] : [inArray(guests.id, guestIds)]),
+        ),
+      );
+    const targets = rows.filter((r) => this.channelsFor(r.guest, 'auto').length > 0);
+    await this.billing.assertCanUse(eventId, { messages: targets.length });
+    const budget = await this.billing.budget(eventId);
+    const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
+    const hosts = hostNames(a, b);
+    const out = { sent: 0, failed: 0, skipped: rows.length - targets.length };
+    for (const { guest, inv } of targets) {
+      const link = `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}/k`;
+      const r = await this.dispatch(
+        guest,
+        inv,
+        event,
+        'memories',
+        this.channelsFor(guest, 'auto'),
+        undefined,
+        {
+          text: composeSms('memories', { event, guest, link }),
+          template: {
+            kind: 'memories',
+            locale: guest.language,
+            country: event.country,
+            params: [hosts, link],
+          },
+        },
+        budget,
+      );
+      out[r.ok ? 'sent' : 'failed']++;
+    }
+    return out;
+  }
+
+  /** The guest's own memories link, and a wa.me link the host opens on their own phone (free). */
+  async memoriesLink(guestId: string, userId: string) {
+    const [row] = await this.deps.db
+      .select({ guest: guests, inv: invitations, event: events })
+      .from(guests)
+      .innerJoin(events, eq(events.id, guests.eventId))
+      .leftJoin(invitations, eq(invitations.guestId, guests.id))
+      .where(and(eq(guests.id, guestId), isNull(guests.deletedAt)));
+    if (!row) throw new ApiError('not_found', 'Guest not found');
+    const role = await this.eventsSvc.role(row.event.id, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot share links');
+    if (!row.inv)
+      throw new ApiError('conflict', 'This guest has no card yet', { reason: 'no_invitation' });
+    // The country's short domain, as in the SMS; `/s/<token>/k` opens `/c/<token>/kumbukumbu`.
+    const url = `${shortBaseFor(this.deps.config, row.event.country)}/s/${await this.cardToken(row.inv)}/k`;
+    const text = composeSms('memories', { event: row.event, guest: row.guest, link: url });
+    const waUrl = row.guest.phoneE164
+      ? `https://wa.me/${row.guest.phoneE164.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`
+      : null;
+    return { url, waUrl };
   }
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {

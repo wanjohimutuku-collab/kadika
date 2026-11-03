@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Linking, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { CARD_KINDS, type CardKind } from '@harusi/schemas';
 import {
   buildPreview,
+  contactsToRows,
   guessMapping,
   parsePastedList,
   summarizePreview,
@@ -13,9 +14,19 @@ import { useT } from '../../../../../src/lib/i18n';
 import { useColors } from '../../../../../src/lib/theme';
 import { AppHeader } from '../../../../../src/ui/header';
 import { Banner, Button, Field, Row, Screen, Segmented, Txt } from '../../../../../src/ui/kit';
-import { useRef } from 'react';
+import { ContactsPicker } from '../../../../../src/ui/contacts-picker';
+import {
+  askForMoreContacts,
+  readDeviceContacts,
+  type DeviceContacts,
+} from '../../../../../src/lib/device-contacts';
 
-/** Three steps (§17.4): choose source → preview → confirm. Nothing is saved until the last step. */
+type Source = 'paste' | 'contacts';
+
+/**
+ * Three steps (§17.4): choose source → preview → confirm. Nothing is saved until the last step. The
+ * phone's contacts (ADR 051) are read on the phone; only the people picked reach the preview and the API.
+ */
 export default function Import() {
   const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const t = useT();
@@ -28,23 +39,53 @@ export default function Import() {
     card === 'contribution' ? 'contribution' : 'invitation',
   );
   const [text, setText] = useState('');
+  const [source, setSource] = useState<Source>('paste');
+  const [device, setDevice] = useState<DeviceContacts | null>(null);
+  const [reading, setReading] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [query, setQuery] = useState('');
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
   const [failed, setFailed] = useState(false);
   const key = useRef(
     `import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
   );
 
-  const rows = useMemo(() => parsePastedList(text), [text]);
+  const contacts = device?.status === 'ok' ? device.contacts : [];
+  const rows = useMemo(
+    () =>
+      source === 'contacts'
+        ? contactsToRows([...picked].sort((a, b) => a - b).map((i) => contacts[i]!))
+        : parsePastedList(text),
+    [source, picked, contacts, text],
+  );
   const preview = useMemo(() => {
     if (rows.length === 0) return [];
-    const { mapping, hasHeader } = guessMapping(rows[0]!);
-    return buildPreview(rows, mapping, {
+    // contacts are always name, phone: a contact called "Mgeni …" must not be read as a header row
+    const { mapping, hasHeader } =
+      source === 'contacts'
+        ? { mapping: ['name', 'phone'] as const, hasHeader: false }
+        : guessMapping(rows[0]!);
+    return buildPreview(rows, [...mapping], {
       hasHeader,
       existingPhones: (existing.data ?? []).map((g) => g.phoneE164).filter((p): p is string => !!p),
       existingNames: (existing.data ?? []).map((g) => g.displayName),
     });
-  }, [rows, existing.data]);
+  }, [rows, source, existing.data]);
   const summary = summarizePreview(preview);
+
+  // the contacts list scrolls by itself (FlatList), so the screen must not
+  const listing = step === 1 && source === 'contacts' && device?.status === 'ok';
+
+  const readContacts = async () => {
+    setReading(true);
+    try {
+      setDevice(await readDeviceContacts());
+    } catch {
+      setDevice({ status: 'unavailable' });
+    } finally {
+      setReading(false);
+    }
+  };
 
   const confirm = async () => {
     setFailed(false);
@@ -104,6 +145,7 @@ export default function Import() {
         onBack={() => (step === 2 ? setStep(1) : router.back())}
       />
       <Screen
+        scroll={!listing}
         footer={
           step === 1 ? (
             <Button
@@ -131,17 +173,91 @@ export default function Import() {
               onChange={setCardKind}
               options={CARD_KINDS.map((k) => ({ value: k, label: t(`guestForm.cardKinds.${k}`) }))}
             />
-            <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>
-            <Txt>{t('import.pasteHint')}</Txt>
-            <Field
-              label={t('import.pasteLabel')}
-              value={text}
-              onChangeText={setText}
-              multiline
-              numberOfLines={8}
-              autoCapitalize="none"
-              style={{ minHeight: 160, textAlignVertical: 'top' } as never}
+            {listing ? null : <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>}
+            <Segmented<Source>
+              value={source}
+              onChange={setSource}
+              options={[
+                { value: 'paste', label: t('import.sourcePaste') },
+                { value: 'contacts', label: t('import.sourceContacts') },
+              ]}
             />
+            {source === 'paste' ? (
+              <>
+                <Txt>{t('import.pasteHint')}</Txt>
+                <Field
+                  label={t('import.pasteLabel')}
+                  value={text}
+                  onChangeText={setText}
+                  multiline
+                  numberOfLines={8}
+                  autoCapitalize="none"
+                  style={{ minHeight: 160, textAlignVertical: 'top' } as never}
+                />
+              </>
+            ) : device?.status === 'ok' ? (
+              <>
+                {device.limited ? (
+                  <>
+                    <Banner tone="info" text={t('contacts.limited')} />
+                    <Button
+                      variant="ghost"
+                      icon="plus"
+                      label={t('contacts.read')}
+                      onPress={async () => {
+                        await askForMoreContacts();
+                        await readContacts();
+                      }}
+                    />
+                  </>
+                ) : null}
+                <ContactsPicker
+                  contacts={device.contacts}
+                  picked={picked}
+                  onChange={setPicked}
+                  query={query}
+                  onQuery={setQuery}
+                />
+              </>
+            ) : device?.status === 'denied' ? (
+              <>
+                <Banner
+                  tone="warning"
+                  text={`${t('states.permContacts')}. ${t('contacts.permPhone')}`}
+                />
+                <Button
+                  label={device.canAskAgain ? t('contacts.read') : t('states.openSettings')}
+                  onPress={() =>
+                    device.canAskAgain ? void readContacts() : void Linking.openSettings()
+                  }
+                />
+                <Button
+                  variant="secondary"
+                  label={t('import.sourcePaste')}
+                  onPress={() => setSource('paste')}
+                />
+              </>
+            ) : device?.status === 'unavailable' ? (
+              <>
+                <Banner tone="warning" text={t('contacts.permPhone')} />
+                <Button
+                  variant="secondary"
+                  label={t('import.sourcePaste')}
+                  onPress={() => setSource('paste')}
+                />
+              </>
+            ) : (
+              <>
+                <Banner tone="info" text={t('contacts.privacy')} />
+                <Txt>{t('contacts.readHelp')}</Txt>
+                <Button
+                  icon="guests"
+                  label={reading ? t('contacts.loading') : t('contacts.read')}
+                  loading={reading}
+                  onPress={readContacts}
+                />
+              </>
+            )}
           </>
         ) : (
           <>

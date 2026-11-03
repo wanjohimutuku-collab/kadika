@@ -78,8 +78,11 @@ async function allowCode(phone: string): Promise<void> {
 }
 
 /** Our own SMS code instead of Firebase's; errors are the API's, as in the SMS flow. */
-async function smsFallback(phone: string): Promise<'sms'> {
-  await getRepository().requestOtp(phone, true);
+async function smsFallback(phone: string, locale: string): Promise<'sms'> {
+  await getRepository().requestOtp(phone, {
+    fallback: true,
+    language: locale === 'en' ? 'en' : 'sw',
+  });
   pending = null;
   return 'sms';
 }
@@ -96,7 +99,7 @@ export async function startPhoneSignIn(
   resend = false,
 ): Promise<'firebase' | 'sms'> {
   const mod = await firebaseAuth();
-  if (!mod) return smsFallback(phone);
+  if (!mod) return smsFallback(phone, locale);
   await allowCode(phone);
   try {
     const auth = mod.getAuth();
@@ -108,7 +111,7 @@ export async function startPhoneSignIn(
   } catch (err) {
     const reason = reasonOf(err);
     if (reason === 'invalid_phone') throw new FirebasePhoneError(reason);
-    return smsFallback(phone);
+    return smsFallback(phone, locale);
   }
 }
 

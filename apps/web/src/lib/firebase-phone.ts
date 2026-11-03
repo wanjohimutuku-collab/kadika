@@ -108,9 +108,14 @@ export function usesSmsFallback(phone: string): boolean {
   }
 }
 
+/** The language our own SMS code is written in: the one the visitor has the site in. */
+export function smsLanguage(locale: string): 'sw' | 'en' {
+  return locale === 'en' ? 'en' : 'sw';
+}
+
 /** Our own SMS code instead of Firebase's; errors are the API's, as in the SMS flow. */
-export async function requestSmsFallback(phone: string): Promise<void> {
-  await getRepository().requestOtp(phone, true);
+export async function requestSmsFallback(phone: string, locale: string): Promise<void> {
+  await getRepository().requestOtp(phone, { fallback: true, language: smsLanguage(locale) });
   pending = null;
   setSmsFallback(phone);
 }
@@ -132,7 +137,7 @@ export async function startPhoneSignIn(
   if (cfg.otpProvider !== 'firebase') throw new FirebasePhoneError('failed');
   if (usesSmsFallback(phone)) {
     // A resend after a fallback: Firebase just refused this number, ask our API again.
-    await requestSmsFallback(phone);
+    await requestSmsFallback(phone, locale);
     return 'sms';
   }
   await allowCode(phone);
@@ -155,7 +160,7 @@ export async function startPhoneSignIn(
     const reason = reasonOf(err);
     // A wrong number stays an error; any refusal on Firebase's side falls back to our SMS code.
     if (reason === 'invalid_phone') throw new FirebasePhoneError(reason);
-    await requestSmsFallback(phone);
+    await requestSmsFallback(phone, locale);
     return 'sms';
   }
 }

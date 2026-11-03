@@ -7,6 +7,7 @@ export type TemplateNames = {
   reminder?: string;
   pledge?: string;
   contribution?: string;
+  memories?: string;
 };
 
 export interface WhatsAppCloudOptions {

@@ -1,6 +1,6 @@
 import 'server-only';
 import { createSeedState, MockRepository } from '@harusi/api-client/mock';
-import type { CardView } from '@harusi/api-client';
+import type { CardView, GuestMemoriesView } from '@harusi/api-client';
 
 let cached: { day: string; repo: MockRepository } | null = null;
 
@@ -21,4 +21,9 @@ export function peekCardOnServer(token: string): CardView {
 
 export function peekShortCodeOnServer(code: string): string | null {
   return serverRepo().peekShortCode(code);
+}
+
+/** Mock mode: the Kumbukumbu page from the seed (throws like the API when it is unavailable). */
+export function peekGuestMemoriesOnServer(token: string): GuestMemoriesView {
+  return serverRepo().peekGuestMemories(token);
 }

@@ -29,6 +29,7 @@ export default async function OpsLayout({ children }: { children: ReactNode }) {
         'pay',
         'guestDetail',
         'wizard',
+        'memories',
       ])}
     >
       <ConsoleProviders>

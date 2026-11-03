@@ -39,6 +39,9 @@ ENV MIGRATIONS_DIR=/app/drizzle
 # copies this folder's owner on first use, so the API (user node) can write to it.
 RUN mkdir -p /data/app-files && chown node:node /data/app-files
 ENV APP_FILES_DIR=/data/app-files
+# Kumbukumbu photos (ADR 050): same arrangement, on their own volume.
+RUN mkdir -p /data/photo-files && chown node:node /data/photo-files
+ENV PHOTO_FILES_DIR=/data/photo-files
 # The commit this image was built from, reported by /health so a deploy can be confirmed (ADR 035).
 # Set last so it never invalidates the build layers above.
 ARG GIT_SHA=dev

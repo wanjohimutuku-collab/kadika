@@ -80,6 +80,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
                 'Jukumu ulilopewa kwenye tukio na ruhusa zake.',
                 'Kumbukumbu za vitendo muhimu na za usalama wa akaunti.',
                 'Taarifa za malipo ya huduma (vifurushi vya kadi, SMS au WhatsApp), pale zinapohusika.',
+                'Picha za kumbukumbu mnazopakia kwa ajili ya wageni wenu, pamoja na maelezo na tarehe zake. Wageni walioalikwa pekee ndio wanaziona, kwa kiungo cha kadi zao. Tunaondoa taarifa za mahali na za kamera kwenye kila picha, na tunazifuta mnapozifuta, mnapofuta tukio au akaunti.',
               ],
             },
             { t: 'h3', text: '3.2 Wageni (zinaingizwa na mwenyeji au kamati)' },
@@ -95,6 +96,10 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'p',
               text: 'Mwenyeji anawajibika kuhakikisha ana msingi halali wa kisheria wa kutupatia taarifa za wageni.',
+            },
+            {
+              t: 'p',
+              text: 'Mwenyeji akiingiza wageni kutoka kwenye anwani za simu, Google Contacts au faili la anwani, anwani hizo zinasomwa kwenye kifaa chake tu. Tunasoma majina na namba za simu pekee, na tunahifadhi wale tu anaowachagua. Ruhusa ya Google ni ya kusoma tu, inatumika mara moja na inafutwa mara tu tunapomaliza kusoma. Hatuihifadhi, hatushiriki taarifa hizo na mtu yeyote, na hatuzitumii kwa matangazo. Matumizi yetu ya taarifa kutoka API za Google yanafuata Google API Services User Data Policy, ikiwemo masharti ya Limited Use.',
             },
             { t: 'h3', text: '3.3 Majibu ya mwaliko' },
             {
@@ -536,6 +541,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
                 'Your role in an event and its permissions.',
                 'Records of important actions and account security.',
                 'Billing information for our services (card bundles, SMS or WhatsApp packs), where applicable.',
+                'Memory photos you upload for your guests, with their captions and dates. Only invited guests see them, through their own card link. We remove location and camera details from every photo, and delete the photos when you delete them, the event or your account.',
               ],
             },
             { t: 'h3', text: '3.2 Guests (entered by the host or committee)' },
@@ -551,6 +557,10 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'p',
               text: 'Hosts are responsible for having a lawful basis to give us their guests’ information.',
+            },
+            {
+              t: 'p',
+              text: 'When a host adds guests from phone contacts, Google Contacts or a contacts file, the contacts are read on the host’s own device. We read names and phone numbers only, and keep only the people the host picks. Google access is read-only, used once and removed as soon as we finish reading. We do not store it, share the information with anyone, or use it for advertising. Our use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.',
             },
             { t: 'h3', text: '3.3 Invitation responses' },
             {

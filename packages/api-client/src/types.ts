@@ -141,6 +141,8 @@ export interface WeddingEvent {
   senderName: string;
   committeePhone: string;
   pledgesEnabled: boolean;
+  /** Kumbukumbu page shown to guests (ADR 050); absent means on. */
+  memoriesEnabled?: boolean;
   /** §7.5 policy toggle, default OFF. */
   requirePledgeBeforeCard: boolean;
   greeting: string;
@@ -199,7 +201,7 @@ export interface MessageLogEntry {
   guestId: string;
   channel: MessageChannel;
   provider: string;
-  kind: 'invite' | 'reminder' | 'thank_you' | 'test';
+  kind: 'invite' | 'reminder' | 'thank_you' | 'test' | 'memories';
   status: MessageStatus;
   error: string | null;
   cost: number;
@@ -376,8 +378,37 @@ export interface CardView {
   pledge: PledgeSummary | null;
   rsvpOpen: boolean;
   eventPassed: boolean;
+  /** The card links to a Kumbukumbu page with photos (ADR 050). */
+  memoriesAvailable?: boolean;
   isMock: boolean;
 }
+
+/** One Kumbukumbu photo (ADR 050). `takenOn` is `YYYY-MM-DD`. */
+export interface Memory {
+  id: string;
+  caption: string | null;
+  takenOn: string | null;
+  sortOrder: number;
+  width: number;
+  height: number;
+}
+
+export interface MemoriesAdminView {
+  /** A paid card order unlocks the page. */
+  unlocked: boolean;
+  enabled: boolean;
+  limit: number;
+  count: number;
+  memories: Memory[];
+}
+
+export interface GuestMemoriesView {
+  card: CardView;
+  memories: Memory[];
+}
+
+/** A photo to upload: a Blob on the web, a file reference from the React Native image picker. */
+export type MemoryUpload = Blob | { uri: string; name: string; type: string };
 
 export interface SendRequest {
   audience:

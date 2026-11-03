@@ -689,3 +689,79 @@ describe('sending by card type (ADR 041)', () => {
     expect(switched).toMatchObject({ cardKind: 'invitation', status: 'created' });
   });
 });
+
+describe('Kumbukumbu (ADR 050)', () => {
+  /** A repository whose first event has a paid card order, signed in as its owner. */
+  async function paidRepo() {
+    const storage = memoryStorage();
+    const state = createSeedState({ now: NOW });
+    const ev = state.events[0]!;
+    state.purchases = [
+      {
+        id: 'paid-cards',
+        eventId: ev.id,
+        phone: null,
+        kind: 'cards',
+        itemKey: null,
+        label: 'Kadi 100',
+        adds: { cards: 100, messages: 400 },
+        unitPrice: 2200,
+        amount: 220_000,
+        currency: 'TZS',
+        status: 'paid',
+        method: 'manual',
+        reference: null,
+        note: null,
+        createdAt: new Date(NOW).toISOString(),
+        paidAt: new Date(NOW).toISOString(),
+      } as NonNullable<typeof state.purchases>[number],
+    ];
+    const r = new MockRepository({
+      storage,
+      controls: new MockControls(storage),
+      now: () => clock,
+      initialState: state,
+    });
+    await r.requestOtp('+255712000001');
+    await r.verifyOtp('+255712000001', '123456');
+    return { r, ev: ev.id };
+  }
+  const png = () => new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
+
+  it('is locked until a card order is paid', async () => {
+    const ev = (await repo.listEvents())[0]!.id;
+    expect((await repo.listMemories(ev)).unlocked).toBe(false);
+    await expect(repo.addMemory(ev, png(), {})).rejects.toMatchObject({
+      code: 'payment_required',
+      details: { reason: 'feature_locked' },
+    });
+  });
+
+  it('adds, lists by date, edits, deletes, and shows the guest page', async () => {
+    const { r, ev } = await paidRepo();
+    await r.addMemory(ev, png(), { caption: 'B', takenOn: '2020-01-01' });
+    await r.addMemory(ev, png(), { caption: 'Bila tarehe' });
+    const a = await r.addMemory(ev, png(), { caption: 'A', takenOn: '2019-01-01' });
+    expect((await r.listMemories(ev)).memories.map((m) => m.caption)).toEqual([
+      'A',
+      'B',
+      'Bila tarehe',
+    ]);
+    expect(await r.fetchMemoryPhoto(ev, a.id, 'thumb')).toBeInstanceOf(Blob);
+    await r.updateMemory(a.id, { caption: 'A2' });
+    await r.deleteMemory(a.id);
+    const v = await r.listMemories(ev);
+    expect(v.memories.map((m) => m.caption)).toEqual(['B', 'Bila tarehe']);
+    expect(v).toMatchObject({ unlocked: true, enabled: true, limit: 30, count: 2 });
+
+    const guest = (await r.listGuests(ev)).find((g) => g.phoneE164)!;
+    const link = await r.getMemoriesLink(guest.id);
+    expect(link.url).toMatch(/\/s\/.+\/k$/);
+    expect(link.waUrl).toMatch(/^https:\/\/wa\.me\/\d+\?text=/);
+    const token = link.url.split('/s/')[1]!.replace(/\/k$/, '');
+    const page = await r.getGuestMemories(token);
+    expect(page.memories).toHaveLength(2);
+    expect((await r.getCard(token)).memoriesAvailable).toBe(true);
+    expect((await r.sendMemories(ev)).sent).toBeGreaterThan(0);
+  });
+});

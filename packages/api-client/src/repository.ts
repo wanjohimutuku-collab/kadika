@@ -68,6 +68,10 @@ import type {
   OpsOrganizer,
   OpsOverview,
   OpsUsage,
+  GuestMemoriesView,
+  MemoriesAdminView,
+  Memory,
+  MemoryUpload,
 } from './types';
 
 /**
@@ -77,8 +81,14 @@ import type {
  */
 export interface Repository {
   // Auth — POST /v1/auth/otp/request, /verify, /refresh
-  /** `fallback`: Firebase would not send the code, so ask for our own SMS code instead (ADR 048). */
-  requestOtp(phoneE164: string, fallback?: boolean): Promise<{ resendAfterSeconds: number }>;
+  /**
+   * `fallback`: Firebase would not send the code, so ask for our own SMS code instead (ADR 048).
+   * `language`: the visitor's site or app language, which the SMS is written in.
+   */
+  requestOtp(
+    phoneE164: string,
+    opts?: { fallback?: boolean; language?: 'sw' | 'en' },
+  ): Promise<{ resendAfterSeconds: number }>;
   verifyOtp(phoneE164: string, code: string): Promise<Session>;
   /** GET /v1/auth/config: our own SMS code or Firebase Phone Auth (ADR 048). */
   getAuthConfig(): Promise<AuthConfig>;
@@ -219,6 +229,33 @@ export interface Repository {
   ): Promise<PurchaseView>;
   getPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
   cancelPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
+
+  // Kumbukumbu (ADR 050) — the couple's photos for their guests; owner and committee manage them
+  listMemories(eventId: string): Promise<MemoriesAdminView>;
+  /** `photo` is a Blob on the web, or `{ uri, name, type }` from the React Native image picker. */
+  addMemory(
+    eventId: string,
+    photo: MemoryUpload,
+    input: { caption?: string; takenOn?: string },
+  ): Promise<Memory>;
+  updateMemory(
+    memoryId: string,
+    patch: { caption?: string | null; takenOn?: string | null; sortOrder?: number },
+  ): Promise<Memory>;
+  deleteMemory(memoryId: string): Promise<void>;
+  /** The photo for the console (it needs the Bearer token, so it is fetched, not linked). */
+  fetchMemoryPhoto(eventId: string, memoryId: string, size: 'thumb' | 'full'): Promise<Blob>;
+  /** Sends each guest (all with a phone, or these) their own link; one message credit each. */
+  sendMemories(
+    eventId: string,
+    guestIds?: string[],
+  ): Promise<{ sent: number; failed: number; skipped: number }>;
+  /** The guest's own link and a wa.me link the host opens on their phone (free). */
+  getMemoriesLink(guestId: string): Promise<{ url: string; waUrl: string | null }>;
+  /** Public: the guest's page by card token. */
+  getGuestMemories(token: string): Promise<GuestMemoriesView>;
+  /** Staff with the `plan` permission: how many photos the event may hold. */
+  opsSetMemoriesLimit(eventId: string, limit: number, note: string): Promise<{ limit: number }>;
 
   // Guest card (public) — GET /v1/c/:token, POST …/rsvp, POST …/pay
   getCard(token: string): Promise<CardView>;

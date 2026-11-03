@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, like } from 'drizzle-orm';
-import { auditLog, events, messageLog, refreshTokens, users } from '@harusi/db';
+import { auditLog, events, memories, messageLog, newId, refreshTokens, users } from '@harusi/db';
 import { createHttpRepository, memoryTokenStore } from '@harusi/api-client';
 import {
   api,
@@ -431,6 +431,19 @@ describe('PDPA data requests', () => {
   });
 
   it('completing a deletion wipes the account and archives the weddings it owns', async () => {
+    // a Kumbukumbu photo of the owner's wedding: personal data that goes with the account (ADR 050)
+    const memoryId = newId();
+    const key = `events/${eventId}/${memoryId}.webp`;
+    await ctx.photos.put(key, new Uint8Array([1]));
+    await ctx.photos.put(`events/${eventId}/${memoryId}.thumb.webp`, new Uint8Array([1]));
+    await ctx.db.insert(memories).values({
+      id: memoryId,
+      eventId,
+      photoKey: key,
+      thumbKey: `events/${eventId}/${memoryId}.thumb.webp`,
+      width: 1,
+      height: 1,
+    });
     await api(ctx, 'POST', '/v1/me/data-requests', {
       token: owner.accessToken,
       body: { kind: 'deletion' },
@@ -451,6 +464,8 @@ describe('PDPA data requests', () => {
     expect(u!.phoneE164).not.toContain('711900004');
     const [e] = await ctx.db.select().from(events).where(eq(events.id, eventId));
     expect(e!.status).toBe('archived');
+    expect(await ctx.db.select().from(memories).where(eq(memories.eventId, eventId))).toEqual([]);
+    expect(ctx.photos.files.has(key)).toBe(false);
     expect((await api(ctx, 'GET', '/v1/me', { token: owner.accessToken })).status).toBe(403);
     // the account is gone from the customer list; the guests' cards are untouched
     const orgs = await api(ctx, 'GET', '/v1/ops/organizers', { token: admin });

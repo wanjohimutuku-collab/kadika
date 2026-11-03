@@ -11,6 +11,7 @@ import {
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
+import { purgeEventMemories } from './memories';
 import { encryptSecret } from '../crypto-at-rest';
 
 export type MemberRole = 'owner' | 'committee' | 'gate';
@@ -32,6 +33,8 @@ export interface EventInput {
   rsvpDeadline?: Date | null;
   contributionTarget?: number | null;
   pledgesEnabled?: boolean;
+  /** Kumbukumbu page shown to guests (ADR 050). */
+  memoriesEnabled?: boolean;
   brandTheme?: Record<string, unknown> | null;
   /** Validated by the route; new events default to family-sent cards (ADR 029). */
   cardContent?: CardContent;
@@ -203,6 +206,8 @@ export class EventService {
         .set({ status: 'cancelled', finishedAt: now })
         .where(and(eq(scheduledSends.eventId, eventId), eq(scheduledSends.status, 'scheduled')));
     });
+    // Kumbukumbu photos are not needed for billing or PDPA records: they go now (ADR 050).
+    await purgeEventMemories(this.deps, eventId);
     await recordAudit(this.deps.db, {
       eventId,
       actorId: userId,

@@ -8,5 +8,6 @@ export default defineConfig({
   // Workspace packages ship as TS source, so bundle them; third-party deps stay external.
   noExternal: [/^@harusi\//],
   // Declared in apps/api/package.json so they are installed in the image.
-  external: ['pg', 'uuid', 'drizzle-orm', /^drizzle-orm\//],
+  // sharp is a native module (Kumbukumbu photos, ADR 050): it can never be bundled.
+  external: ['pg', 'uuid', 'drizzle-orm', /^drizzle-orm\//, 'sharp'],
 });

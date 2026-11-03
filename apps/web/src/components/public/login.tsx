@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShieldCheck } from 'lucide-react';
 import { isRepositoryError } from '@harusi/api-client';
-import { COUNTRIES, type Country } from '@harusi/schemas/country';
-import { ALLOWED_COUNTRIES, KENYA_ENABLED, parsePhone } from '@/lib/country';
+import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
+import { parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
@@ -22,6 +22,7 @@ import {
   FirebasePhoneError,
   hasPendingCode,
   loadAuthConfig,
+  smsLanguage,
   startPhoneSignIn,
   usesSmsFallback,
   type PhoneSignInError,
@@ -43,7 +44,7 @@ async function sendCode(
     if (!recaptcha) throw new FirebasePhoneError('failed');
     return startPhoneSignIn(phone, recaptcha, locale);
   }
-  await getRepository().requestOtp(phone);
+  await getRepository().requestOtp(phone, { language: smsLanguage(locale) });
   return 'sms';
 }
 
@@ -96,7 +97,7 @@ export function LoginPhone() {
         className="flex flex-col gap-4"
         onSubmit={async (e) => {
           e.preventDefault();
-          const r = parsePhone(phone, country);
+          const r = parsePhone(phone, country, SIGN_IN_COUNTRIES);
           if (!r.ok) {
             setError(tv(`phone.${r.error}`));
             return;
@@ -138,17 +139,16 @@ export function LoginPhone() {
           );
         }}
       >
-        {KENYA_ENABLED ? (
-          <Select
-            label={tcm('country')}
-            value={country}
-            onChange={(e) => setCountry(e.target.value as Country)}
-            options={COUNTRIES.filter((c) => ALLOWED_COUNTRIES.includes(c)).map((c) => ({
-              value: c,
-              label: tcm(`countries.${c}`),
-            }))}
-          />
-        ) : null}
+        {/* Kenyan numbers sign in even while the Kenya product is off. */}
+        <Select
+          label={tcm('country')}
+          value={country}
+          onChange={(e) => setCountry(e.target.value as Country)}
+          options={SIGN_IN_COUNTRIES.map((c) => ({
+            value: c,
+            label: tcm(`countries.${c}`),
+          }))}
+        />
         <PhoneField
           country={country}
           label={t('phone')}

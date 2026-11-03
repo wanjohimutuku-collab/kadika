@@ -10,6 +10,8 @@ const ROUTES = [
   '/k',
   `/c/${'TOKEN'}`,
   `/c/${'TOKEN'}/pay`,
+  '/dev/memories',
+  '/dev/memories?state=unavailable',
   '/app',
   '/app/events/new',
   `/app/e/${UPCOMING}`,

@@ -554,7 +554,9 @@ describe('moving SMS and WhatsApp from the environment into settings (ADR 036)',
 
   it('copies working environment settings into encrypted saved ones, once, without overwriting', async () => {
     const before = await api(env, 'GET', '/v1/ops/messaging', { token: tok });
+    // sms_ke shows with Kenya off: it carries Kenyan sign-in codes
     expect(before.body!.routes.map((r: { source: string }) => r.source)).toEqual([
+      'environment',
       'environment',
       'environment',
     ]);

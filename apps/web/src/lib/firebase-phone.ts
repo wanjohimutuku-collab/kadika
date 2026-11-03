@@ -87,17 +87,59 @@ async function allowCode(phone: string): Promise<void> {
   }
 }
 
+/** The number whose code came as our own SMS because Firebase would not send; survives a reload. */
+const FALLBACK_KEY = 'harusi.login.smsFallback';
+
+function setSmsFallback(phone: string | null) {
+  try {
+    if (phone) sessionStorage.setItem(FALLBACK_KEY, phone);
+    else sessionStorage.removeItem(FALLBACK_KEY);
+  } catch {
+    // storage blocked: the code screen then asks for a new code after a reload
+  }
+}
+
+/** True when the code for `phone` is our own SMS code (Firebase refused to send it). */
+export function usesSmsFallback(phone: string): boolean {
+  try {
+    return sessionStorage.getItem(FALLBACK_KEY) === phone;
+  } catch {
+    return false;
+  }
+}
+
+/** The language our own SMS code is written in: the one the visitor has the site in. */
+export function smsLanguage(locale: string): 'sw' | 'en' {
+  return locale === 'en' ? 'en' : 'sw';
+}
+
+/** Our own SMS code instead of Firebase's; errors are the API's, as in the SMS flow. */
+export async function requestSmsFallback(phone: string, locale: string): Promise<void> {
+  await getRepository().requestOtp(phone, { fallback: true, language: smsLanguage(locale) });
+  pending = null;
+  setSmsFallback(phone);
+}
+
 /**
  * Asks Firebase to text a code to `phone` (E.164). `container` hosts the invisible reCAPTCHA; it must
  * stay in the page until the code is sent. Firebase writes the SMS in `locale`.
+ *
+ * Firebase can pass the reCAPTCHA and still refuse to send (a 503, "error code 39": its anti-abuse
+ * block, seen on Tanzanian numbers while reCAPTCHA Enterprise is off). The visitor then gets our own
+ * SMS code instead, and the code screen checks it with our API (`'sms'`).
  */
 export async function startPhoneSignIn(
   phone: string,
   container: HTMLElement,
   locale: string,
-): Promise<void> {
+): Promise<'firebase' | 'sms'> {
   const cfg = await loadAuthConfig();
   if (cfg.otpProvider !== 'firebase') throw new FirebasePhoneError('failed');
+  if (usesSmsFallback(phone)) {
+    // A resend after a fallback: Firebase just refused this number, ask our API again.
+    await requestSmsFallback(phone, locale);
+    return 'sms';
+  }
   await allowCode(phone);
   const { auth, instance } = await firebaseAuth(cfg.firebase);
   instance.languageCode = locale;
@@ -106,16 +148,27 @@ export async function startPhoneSignIn(
     verifier = new auth.RecaptchaVerifier(instance, container, { size: 'invisible' });
     const confirmation = await auth.signInWithPhoneNumber(instance, phone, verifier);
     pending = { phone, confirmation, signOut: () => auth.signOut(instance) };
+    setSmsFallback(null);
+    return 'firebase';
   } catch (err) {
     verifier?.clear();
     verifier = null;
-    throw new FirebasePhoneError(reasonOf(err));
+    const reason = reasonOf(err);
+    // A wrong number stays an error; any refusal on Firebase's side falls back to our SMS code.
+    if (reason === 'invalid_phone') throw new FirebasePhoneError(reason);
+    await requestSmsFallback(phone, locale);
+    return 'sms';
   }
 }
 
 /** True while a Firebase code for `phone` is waiting to be typed. */
 export function hasPendingCode(phone: string): boolean {
   return pending?.phone === phone;
+}
+
+/** After a sign-in with the fallback SMS code. */
+export function clearSmsFallback() {
+  setSmsFallback(null);
 }
 
 /** Checks the typed code with Firebase and returns the ID token the API trades for a session. */

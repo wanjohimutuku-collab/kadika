@@ -497,8 +497,18 @@ export function createHttpRepository(
   };
 
   const impl: Partial<Repository> = {
-    async requestOtp(phone) {
-      const r = await raw('POST', '/v1/auth/otp/request', { phone }, {}, false);
+    async requestOtp(phone, opts) {
+      const r = await raw(
+        'POST',
+        '/v1/auth/otp/request',
+        {
+          phone,
+          ...(opts?.fallback ? { fallback: true } : {}),
+          ...(opts?.language ? { language: opts.language } : {}),
+        },
+        {},
+        false,
+      );
       if (r.status >= 400) return fail(r.status, r.json as never);
       return { resendAfterSeconds: Number(r.json!.resendAfterSeconds ?? 30) };
     },

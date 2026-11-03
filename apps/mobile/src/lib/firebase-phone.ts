@@ -77,10 +77,29 @@ async function allowCode(phone: string): Promise<void> {
   }
 }
 
-/** Asks Firebase to text a code to `phone` (E.164), in the app's language. */
-export async function startPhoneSignIn(phone: string, locale: string, resend = false) {
+/** Our own SMS code instead of Firebase's; errors are the API's, as in the SMS flow. */
+async function smsFallback(phone: string, locale: string): Promise<'sms'> {
+  await getRepository().requestOtp(phone, {
+    fallback: true,
+    language: locale === 'en' ? 'en' : 'sw',
+  });
+  pending = null;
+  return 'sms';
+}
+
+/**
+ * Asks Firebase to text a code to `phone` (E.164), in the app's language. Says who checks the code:
+ * Firebase, or our API when Firebase would not send (its 503 "error code 39" anti-abuse refusal,
+ * Play Integrity failing on a sideloaded APK) or this build has no Firebase, and our own SMS code
+ * went instead.
+ */
+export async function startPhoneSignIn(
+  phone: string,
+  locale: string,
+  resend = false,
+): Promise<'firebase' | 'sms'> {
   const mod = await firebaseAuth();
-  if (!mod) throw new FirebasePhoneError('update_app');
+  if (!mod) return smsFallback(phone, locale);
   await allowCode(phone);
   try {
     const auth = mod.getAuth();
@@ -88,8 +107,11 @@ export async function startPhoneSignIn(phone: string, locale: string, resend = f
     const confirmation = await mod.signInWithPhoneNumber(auth, phone, undefined, resend);
     pending = { phone, confirmation };
     trade = null;
+    return 'firebase';
   } catch (err) {
-    throw new FirebasePhoneError(reasonOf(err));
+    const reason = reasonOf(err);
+    if (reason === 'invalid_phone') throw new FirebasePhoneError(reason);
+    return smsFallback(phone, locale);
   }
 }
 

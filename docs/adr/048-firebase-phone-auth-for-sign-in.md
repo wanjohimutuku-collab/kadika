@@ -43,6 +43,20 @@ against bots, and returns a signed ID token naming the verified phone number.
 4. **With `firebase`, `POST /v1/auth/otp/request` is refused** (`409`, `reason: use_firebase`) and no
    login code goes through NextSMS or Africa's Talking. Those routes carry only transactional messages:
    invitations, reminders, WhatsApp fallbacks, pledge and contribution messages, and test messages.
+   **Exception (Nov 2026):** when Firebase passes the reCAPTCHA but refuses to send (seen in
+   production as `sendVerificationCode` 503, "error code 39", Google's anti-abuse block on Tanzanian
+   numbers while reCAPTCHA Enterprise is off), or a mobile build has no Firebase, web and mobile call
+   `/v1/auth/otp/request` with `fallback: true` and the visitor gets our own SMS code, checked by
+   `/otp/verify`. It spends the same login-code budget (per IP, hourly total, OtpService per-number
+   limits). The lasting fix is reCAPTCHA Enterprise phone protection in the Firebase console.
+   Our own SMS code is written in the language the visitor has the site or app in (`language: sw|en`
+   on `/otp/request`; without it, Swahili for +255 and English for +254), as Firebase's is.
+   6a. **Kenyan numbers sign in even while `KENYA_ENABLED` is off (Nov 2026).** Sign-in accepts
+   `SIGN_IN_COUNTRIES` (TZ, KE); the Kenya product (Kenyan events, KES, Kenyan payments) stays behind
+   the flag. Firebase texts +254 codes once the console's SMS region policy allows Kenya; our own
+   +254 codes go through Africa's Talking, whose route is built whenever it is set up in /ops or the
+   environment. Without it a +254 code is refused (`sms_route_missing`), never sent via the
+   Tanzanian gateway.
 5. **Web** (`/login`, `/login/otp`): the Firebase JS SDK is loaded on demand on the login pages only,
    with an invisible reCAPTCHA; the code is checked by Firebase, the ID token traded at the API, and the
    Firebase session signed out. Mock mode always uses the SMS flow.

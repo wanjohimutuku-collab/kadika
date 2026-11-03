@@ -1,0 +1,72 @@
+{
+  "sw": {
+    "import": {
+      "sourceCsv": "Pakia faili",
+      "csvLabel": "Pakia faili la CSV au vCard",
+      "csvHint": "CSV yetu (Jina, Simu, Kikundi, Idadi), CSV ya Google Contacts au vCard (.vcf) ya iPhone",
+      "notCsv": "Faili hili halisomeki kama CSV au vCard"
+    },
+    "contacts": {
+      "sourcesTitle": "Anwani zako ziko wapi?",
+      "thisPhone": "Anwani za simu hii",
+      "thisPhoneHelp": "Chagua watu moja kwa moja kutoka kwenye simu yako.",
+      "google": "Google Contacts",
+      "googleHelp": "Google itakuuliza ruhusa ya kusoma tu. Tunaifuta mara tu tunapomaliza kusoma.",
+      "file": "Faili la anwani",
+      "fileHelp": "iPhone au iCloud: icloud.com/contacts → Hamisha vCard. Google: contacts.google.com → Hamisha. Android: Anwani → Hamisha kwenda faili la .vcf.",
+      "chooseFile": "Chagua faili",
+      "notContacts": "Faili hili halina anwani zinazosomeka",
+      "tooLarge": "Faili ni kubwa mno (zaidi ya MB 5)",
+      "privacy": "Anwani zako zinasomwa kwenye kifaa hiki tu. Tunahifadhi jina na namba ya wale tu unaowachagua.",
+      "search": "Tafuta kwenye anwani",
+      "selectAll": "Chagua wote ({count})",
+      "selectNone": "Ondoa wote",
+      "selected": "{count, plural, one {# amechaguliwa} other {# wamechaguliwa}}",
+      "loading": "Inasoma anwani…",
+      "googleDenied": "Google haikutoa ruhusa. Jaribu tena au tumia faili.",
+      "googleFailed": "Imeshindikana kusoma anwani za Google. Tafadhali jaribu tena.",
+      "empty": "Hakuna anwani zenye majina",
+      "noMatch": "Hakuna anayelingana na utafutaji",
+      "another": "Chagua chanzo kingine",
+      "permPhone": "Ruhusu Kadi Sasa kusoma anwani kwenye mipangilio ya simu, au bandika orodha badala yake.",
+      "limited": "Umeruhusu baadhi ya anwani tu. Unaweza kuruhusu zaidi kwenye mipangilio ya simu.",
+      "read": "Soma anwani",
+      "readHelp": "Kadi Sasa itaomba ruhusa ya kusoma anwani. Hakuna kinachotumwa mpaka uthibitishe."
+    }
+  },
+  "en": {
+    "import": {
+      "sourceCsv": "Upload file",
+      "csvLabel": "Upload a CSV or vCard file",
+      "csvHint": "Our CSV (Name, Phone, Group, Party), a Google Contacts CSV or an iPhone vCard (.vcf)",
+      "notCsv": "This file can't be read as CSV or vCard"
+    },
+    "contacts": {
+      "sourcesTitle": "Where are your contacts?",
+      "thisPhone": "This phone's contacts",
+      "thisPhoneHelp": "Pick people straight from your phone.",
+      "google": "Google Contacts",
+      "googleHelp": "Google will ask you for read-only access. We remove it as soon as we have finished reading.",
+      "file": "Contacts file",
+      "fileHelp": "iPhone or iCloud: icloud.com/contacts → Export vCard. Google: contacts.google.com → Export. Android: Contacts → Export to .vcf file.",
+      "chooseFile": "Choose file",
+      "notContacts": "This file has no readable contacts",
+      "tooLarge": "The file is too large (over 5 MB)",
+      "privacy": "Your contacts are read on this device only. We keep the name and number only of the people you pick.",
+      "search": "Search contacts",
+      "selectAll": "Select all ({count})",
+      "selectNone": "Clear all",
+      "selected": "{count} selected",
+      "loading": "Reading contacts…",
+      "googleDenied": "Google did not grant access. Try again or use a file.",
+      "googleFailed": "Couldn't read your Google contacts. Please try again.",
+      "empty": "No contacts with names",
+      "noMatch": "No one matches your search",
+      "another": "Choose another source",
+      "permPhone": "Allow Kadi Sasa to read contacts in your phone settings, or paste a list instead.",
+      "limited": "You allowed only some contacts. You can allow more in your phone settings.",
+      "read": "Read contacts",
+      "readHelp": "Kadi Sasa will ask for permission to read your contacts. Nothing is sent until you confirm."
+    }
+  }
+}

@@ -24,6 +24,7 @@ const CONSOLE_NAMESPACES = [
   'guests',
   'guestForm',
   'import',
+  'contacts',
   'guestDetail',
   'send',
   'cards',

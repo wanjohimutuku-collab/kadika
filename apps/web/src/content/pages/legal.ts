@@ -98,6 +98,10 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'p',
               text: 'Mwenyeji anawajibika kuhakikisha ana msingi halali wa kisheria wa kutupatia taarifa za wageni.',
             },
+            {
+              t: 'p',
+              text: 'Mwenyeji akiingiza wageni kutoka kwenye anwani za simu, Google Contacts au faili la anwani, anwani hizo zinasomwa kwenye kifaa chake tu. Tunasoma majina na namba za simu pekee, na tunahifadhi wale tu anaowachagua. Ruhusa ya Google ni ya kusoma tu, inatumika mara moja na inafutwa mara tu tunapomaliza kusoma. Hatuihifadhi, hatushiriki taarifa hizo na mtu yeyote, na hatuzitumii kwa matangazo. Matumizi yetu ya taarifa kutoka API za Google yanafuata Google API Services User Data Policy, ikiwemo masharti ya Limited Use.',
+            },
             { t: 'h3', text: '3.3 Majibu ya mwaliko' },
             {
               t: 'p',
@@ -537,6 +541,10 @@ export const LEGAL_PAGES: ContentPageDef[] = [
             {
               t: 'p',
               text: 'Hosts are responsible for having a lawful basis to give us their guests’ information.',
+            },
+            {
+              t: 'p',
+              text: 'When a host adds guests from phone contacts, Google Contacts or a contacts file, the contacts are read on the host’s own device. We read names and phone numbers only, and keep only the people the host picks. Google access is read-only, used once and removed as soon as we finish reading. We do not store it, share the information with anyone, or use it for advertising. Our use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.',
             },
             { t: 'h3', text: '3.3 Invitation responses' },
             {

@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "android": {
       "package": "app.harusipass.mobile",
-      "permissions": []
+      "permissions": [],
+      "blockedPermissions": ["android.permission.WRITE_CONTACTS"]
     },
     "plugins": [
       "expo-router",
@@ -20,6 +21,12 @@
         }
       ],
       "expo-sqlite",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Kadi Sasa inasoma majina na namba za simu unazochagua ili uwaongeze kama wageni. Hazitumwi popote mpaka uthibitishe."
+        }
+      ],
       "expo-audio",
       [
         "expo-image-picker",

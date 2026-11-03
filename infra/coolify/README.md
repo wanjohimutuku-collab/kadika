@@ -181,6 +181,12 @@ Environment variables for the production stack's `api` service (see [`/.env.exam
 | `CORS_EXTRA_ORIGINS` | `https://www.kadisasa.com,https://app.kadisasa.com,https://my.kadisasa.com` | The browser calls the API from every web host; the stack already allows the `web` service's first domain. |
 | `SHORT_BASE_URL`     | `https://kadisasa.com`                                                      | Card links in SMS and WhatsApp messages open on the public host.                                          |
 
+For the `web` service, `GOOGLE_CONTACTS_CLIENT_ID` (optional, read at runtime so a restart is enough) turns on
+"Google Contacts" in the console's contacts import. Create an OAuth client of type _Web application_ in the
+Firebase project's Google Cloud console, with `https://app.kadisasa.com` (and the staging console host) as
+authorised JavaScript origins, and the `contacts.readonly` scope on the consent screen. Until Google verifies that
+scope, only listed test users can use it. Setup and security notes: [ADR 051](../../docs/adr/051-contacts-import.md).
+
 A staff member signs in at `my.kadisasa.com` and a customer at `app.kadisasa.com`. The session belongs to the host,
 so signing in on the wrong one sends you to the right host to sign in again.
 

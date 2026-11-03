@@ -52,6 +52,13 @@ export const COUNTRY_INFO: Record<Country, CountryInfo> = {
 };
 
 /** Countries a deployment accepts: Tanzania only unless the Kenya flag is on (ADR 025). */
+/**
+ * Numbers that may sign in. Kenyan organisers sign in even while the Kenya product (Kenyan events,
+ * KES, Kenyan payments; `KENYA_ENABLED`) is off: Firebase texts the code, or Africa's Talking when
+ * Firebase refuses.
+ */
+export const SIGN_IN_COUNTRIES: readonly Country[] = COUNTRIES;
+
 export function allowedCountries(kenyaEnabled: boolean): readonly Country[] {
   return kenyaEnabled ? COUNTRIES : ['TZ'];
 }

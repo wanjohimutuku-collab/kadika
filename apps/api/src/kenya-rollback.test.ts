@@ -107,7 +107,7 @@ describe('rollback levers (docs/ops/kenya-pilot-runbook.md)', () => {
   });
 
   it('with Kenya switched off, Kenyan data stays readable and nothing uses the wrong route', async () => {
-    // What index.ts does with KENYA_ENABLED off: no Kenyan providers, Kenyan numbers not accepted.
+    // What index.ts does with KENYA_ENABLED off and no Africa's Talking: no Kenyan providers.
     const smsRoute = ctx.deps.smsByCountry!.KE;
     const payRoute = ctx.deps.paymentsByCountry!.KE;
     delete ctx.deps.smsByCountry!.KE;
@@ -118,11 +118,15 @@ describe('rollback levers (docs/ops/kenya-pilot-runbook.md)', () => {
       expect(ev.body).toMatchObject({ country: 'KE', currency: 'KES' });
       const list = await api(ctx, 'GET', `/v1/events/${evId}/guests`, { token: t });
       expect(list.body?.items).toHaveLength(2);
-      // a Kenyan number can no longer sign in
+      // a Kenyan number may still sign in, but with no Kenyan SMS route its code is refused,
+      // never sent through the Tanzanian gateway
+      ctx.sms.sent.length = 0;
       const otp = await api(ctx, 'POST', '/v1/auth/otp/request', {
         body: { phone: '+254733000999' },
       });
-      expect(otp.status).toBe(400);
+      expect(otp.status).toBe(503);
+      expect(otp.body!.error.details.reason).toBe('sms_route_missing');
+      expect(ctx.sms.sent).toHaveLength(0);
       // sends fail safely, never through the Tanzanian gateway
       await ctx.db.update(guests).set({ phoneE164: '+254712345681' }).where(eq(guests.id, g1.id));
       ctx.sms.sent.length = 0;

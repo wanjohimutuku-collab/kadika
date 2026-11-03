@@ -45,7 +45,8 @@ export class OtpService {
     return toHex(sha256(new TextEncoder().encode(`${phone}:${code}`)));
   }
 
-  async request(phone: string): Promise<{ resendAfterSeconds: number }> {
+  /** `language`: the visitor's site or app language; without it, the number's country decides. */
+  async request(phone: string, language?: 'sw' | 'en'): Promise<{ resendAfterSeconds: number }> {
     const now = this.deps.now().getTime();
     const r = this.rec(phone);
     if (r.lockedUntil && r.lockedUntil > now)
@@ -77,9 +78,10 @@ export class OtpService {
     r.attempts = 0;
     r.requests.push(now);
     const brand = await this.branding.businessName();
+    const lang = language ?? (country === 'KE' ? 'en' : 'sw');
     await route.send(
       phone,
-      country === 'KE'
+      lang === 'en'
         ? `Your ${brand} verification code is ${code}. Do not share it with anyone.`
         : `Namba yako ya uthibitisho ya ${brand} ni ${code}. Usimpe mtu yeyote.`,
     );

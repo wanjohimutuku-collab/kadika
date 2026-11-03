@@ -57,7 +57,7 @@ describe('Firebase phone sign-in with SMS fallback', () => {
       }),
     );
     expect(await startPhoneSignIn(PHONE, container, 'sw')).toBe('sms');
-    expect(repo.requestOtp).toHaveBeenCalledWith(PHONE, true);
+    expect(repo.requestOtp).toHaveBeenCalledWith(PHONE, { fallback: true, language: 'sw' });
     expect(hasPendingCode(PHONE)).toBe(false);
     expect(usesSmsFallback(PHONE)).toBe(true);
     // a resend goes straight to our SMS code, without asking Firebase again

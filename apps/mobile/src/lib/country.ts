@@ -6,9 +6,16 @@ import { useEvent } from './queries';
 export const KENYA_ENABLED = process.env.EXPO_PUBLIC_KENYA_ENABLED === '1';
 export const ALLOWED_COUNTRIES = allowedCountries(KENYA_ENABLED);
 
-/** Reads a phone number: local formats in `country`, international forms of any allowed country. */
-export function parsePhone(raw: string, country: Country = 'TZ'): PhoneResult {
-  return normalizePhone(raw, country, ALLOWED_COUNTRIES);
+/**
+ * Reads a phone number: local formats in `country`, international forms of any allowed country.
+ * Sign-in passes `SIGN_IN_COUNTRIES`: Kenyan numbers sign in even with Kenya off.
+ */
+export function parsePhone(
+  raw: string,
+  country: Country = 'TZ',
+  allowed: readonly Country[] = ALLOWED_COUNTRIES,
+): PhoneResult {
+  return normalizePhone(raw, country, allowed);
 }
 
 /** The event's country and currency from the cached event query; Tanzania until it loads. */

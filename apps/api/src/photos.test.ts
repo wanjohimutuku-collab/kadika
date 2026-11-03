@@ -44,6 +44,12 @@ describe('processPhoto', () => {
     );
     const out = await processPhoto(big);
     expect({ w: out.width, h: out.height }).toEqual({ w: 1280, h: 853 });
+    const medium = await sharp(out.medium).metadata();
+    expect({ w: medium.width, h: medium.height, f: medium.format }).toEqual({
+      w: 640,
+      h: 427,
+      f: 'webp',
+    });
   });
 
   it('refuses a file that is not an image as invalid_image', async () => {

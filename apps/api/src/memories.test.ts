@@ -130,6 +130,7 @@ describe('adding and editing memories', () => {
     });
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.webp`)).toBe(true);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.thumb.webp`)).toBe(true);
+    expect(ctx.photos.files.has(`events/${evId}/${m.id}.medium.webp`)).toBe(true);
     await upload(t, evId, await photo(), { caption: 'Bila tarehe' });
     await upload(t, evId, await photo(), { caption: 'Mapema', takenOn: '2018-01-01' });
     const list = (await api(ctx, 'GET', `/v1/events/${evId}/memories`, { token: t })).body!;
@@ -144,6 +145,15 @@ describe('adding and editing memories', () => {
     });
     expect(thumb.status).toBe(200);
     expect(thumb.headers.get('content-type')).toBe('image/webp');
+    // a photo stored before the 640 px size existed falls back to the full photo
+    ctx.photos.files.delete(`events/${evId}/${m.id}.medium.webp`);
+    const medium = await ctx.app.request(`/v1/events/${evId}/memories/${m.id}/medium`, {
+      headers: { authorization: `Bearer ${t}` },
+    });
+    expect(medium.status).toBe(200);
+    expect(new Uint8Array(await medium.arrayBuffer())).toEqual(
+      ctx.photos.files.get(`events/${evId}/${m.id}.webp`),
+    );
   });
 
   it('refuses a photo past the limit, and allows it after the limit is raised', async () => {
@@ -193,6 +203,7 @@ describe('adding and editing memories', () => {
     expect((await api(ctx, 'DELETE', `/v1/memories/${m.id}`, { token: t })).status).toBe(204);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.webp`)).toBe(false);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.thumb.webp`)).toBe(false);
+    expect(ctx.photos.files.has(`events/${evId}/${m.id}.medium.webp`)).toBe(false);
   });
 
   it('committee can upload; gate gets 403; strangers get 404', async () => {
@@ -293,6 +304,7 @@ describe('deletion and the staff limit', () => {
     expect(await ctx.db.select().from(memories).where(eq(memories.eventId, evId))).toEqual([]);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.webp`)).toBe(false);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.thumb.webp`)).toBe(false);
+    expect(ctx.photos.files.has(`events/${evId}/${m.id}.medium.webp`)).toBe(false);
   });
 
   it('staff with the plan permission change the limit, with a reason', async () => {

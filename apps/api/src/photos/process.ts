@@ -35,6 +35,12 @@ export async function processPhoto(bytes: Uint8Array) {
       .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 78 })
       .toBuffer({ resolveWithObject: true });
+    // what the guest page shows inline: sharp on 2× phone screens without the 1280 px weight on 3G
+    const medium = await sharp(bytes)
+      .rotate()
+      .resize(640, 640, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 74 })
+      .toBuffer();
     const thumb = await sharp(bytes)
       .rotate()
       .resize(320, 320, { fit: 'inside', withoutEnlargement: true })
@@ -42,6 +48,7 @@ export async function processPhoto(bytes: Uint8Array) {
       .toBuffer();
     return {
       full: new Uint8Array(full.data),
+      medium: new Uint8Array(medium),
       thumb: new Uint8Array(thumb),
       width: full.info.width,
       height: full.info.height,

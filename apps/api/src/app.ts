@@ -41,7 +41,7 @@ import { PaymentSettingsService } from './services/payment-settings';
 import { SignInSettingsService, signInOf } from './services/signin-settings';
 import { BrandingService } from './services/branding';
 import { AppReleaseService } from './services/app-release';
-import { MemoriesService } from './services/memories';
+import { MemoriesService, type MemoryPhotoSize } from './services/memories';
 import { Readable } from 'node:stream';
 import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
@@ -164,7 +164,7 @@ export function createApp(deps: Deps) {
     xFrameOptions: 'DENY',
     crossOriginResourcePolicy: 'cross-origin',
   });
-  const guestPhoto = /^\/v1\/c\/[^/]+\/memories\/[^/]+\/(thumb|full)$/;
+  const guestPhoto = /^\/v1\/c\/[^/]+\/memories\/[^/]+\/(thumb|medium|full)$/;
   // The public logo route sets its own, stricter set (it serves an image, so it also needs `sandbox`
   // and an inline-style allowance); the global middleware would overwrite it after the handler runs.
   app.use('*', (c, next) =>
@@ -484,13 +484,13 @@ export function createApp(deps: Deps) {
     await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     return c.json(await memoriesSvc.forGuest(c.req.param('token'), cardsSvc));
   });
-  app.get('/v1/c/:token/memories/:mid/:size{thumb|full}', async (c) => {
+  app.get('/v1/c/:token/memories/:mid/:size{thumb|medium|full}', async (c) => {
     await memoryPhotos.check(`ip:${client(c)}`);
     const eventId = await memoriesSvc.guestEvent(c.req.param('token'), cardsSvc);
     const bytes = await memoriesSvc.photo(
       eventId,
       c.req.param('mid'),
-      c.req.param('size') as 'thumb' | 'full',
+      c.req.param('size') as MemoryPhotoSize,
     );
     if (!bytes) throw new ApiError('not_found', 'Photo not found');
     return c.body(bytes, 200, PHOTO_HEADERS);
@@ -664,12 +664,12 @@ export function createApp(deps: Deps) {
     await memoriesSvc.remove(c.req.param('mid'), c.get('userId'));
     return c.body(null, 204);
   });
-  app.get('/v1/events/:id/memories/:mid/:size{thumb|full}', async (c) => {
+  app.get('/v1/events/:id/memories/:mid/:size{thumb|medium|full}', async (c) => {
     await memoriesSvc.assertStaff(c.req.param('id'), c.get('userId'));
     const bytes = await memoriesSvc.photo(
       c.req.param('id'),
       c.req.param('mid'),
-      c.req.param('size') as 'thumb' | 'full',
+      c.req.param('size') as MemoryPhotoSize,
     );
     if (!bytes) throw new ApiError('not_found', 'Photo not found');
     return c.body(bytes, 200, PHOTO_HEADERS);

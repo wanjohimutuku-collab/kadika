@@ -2291,7 +2291,16 @@
     "photoAltNoCaption": "Memory photo",
     "close": "Close",
     "limitLabel": "Photo limit",
-    "limitSaved": "Limit saved"
+    "limitSaved": "Limit saved",
+    "chooseMany": "Choose one or more photos. Then add a caption and date to each before uploading.",
+    "draftTitle": "New photos",
+    "uploadAll": "{count, plural, one {Upload # photo} other {Upload # photos}}",
+    "removeDraft": "Remove this photo",
+    "tooMany": "There is room for only {count} more, so the extra photos were left out.",
+    "uploadedCount": "{count, plural, one {# photo uploaded} other {# photos uploaded}}",
+    "dateFormat": "Write the date like 2019-03-02",
+    "editCaption": "Edit caption",
+    "sendShort": "Send to guests"
   },
   "contacts": {
     "sourcesTitle": "Where are your contacts?",

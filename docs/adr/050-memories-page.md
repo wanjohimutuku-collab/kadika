@@ -20,8 +20,10 @@ buying cards, never reveal anything private, and load on slow phones.
    `event/[id]/memories`); gate agents get 403; guests only view. Only the owner switches the page off
    (`events.memories_enabled`).
 4. **Guest access by card token:** `/c/<token>/kumbukumbu`, plain HTML like the card (ADR 014), with the
-   trust strip. Photos come from `GET /v1/c/:token/memories/:mid/thumb|full`, which checks the token for
-   every file. A reissued card's old link gets the "replaced" page. A switched-off, locked or empty page
+   trust strip. Photos come from `GET /v1/c/:token/memories/:mid/thumb|medium|full`, which checks the token
+   for every file. Each upload is stored at 320, 640 and 1280 px; the page lists photos with `srcset` so
+   2-3x phone screens get the 640 px copy, and photos stored before the 640 px size fall back to the full
+   one. A reissued card's old link gets the "replaced" page. A switched-off, locked or empty page
    reads "not available", never mentioning payment. The card shows a Kumbukumbu button only when the page
    has photos (`memoriesAvailable` on the card view).
 5. **Storage:** files on a persistent volume (`PHOTO_FILES_DIR`, the `photofiles` volume in

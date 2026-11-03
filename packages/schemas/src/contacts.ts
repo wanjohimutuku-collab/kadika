@@ -89,15 +89,14 @@ export function parseVCard(text: string): ContactLite[] {
   // Unfold: a line starting with a space or tab continues the previous one (RFC 6350 §3.2);
   // a QUOTED-PRINTABLE soft break is a trailing "=".
   const lines = text
-    .replace(/^﻿/, '')
-    .replace(/=\r?\n/g, '=\u0000')
+    .replace(/^\uFEFF/, '')
+    .replace(/=\r?\n/g, '')
     .split(/\r?\n/)
     .reduce<string[]>((acc, line) => {
       if (/^[ \t]/.test(line) && acc.length) acc[acc.length - 1] += line.slice(1);
       else acc.push(line);
       return acc;
-    }, [])
-    .map((l) => l.replace(/=\u0000/g, ''));
+    }, []);
 
   const out: ContactLite[] = [];
   let fn = '';

@@ -16,6 +16,13 @@ export default function Welcome() {
         </Txt>
         <Txt size={20}>{t('common.tagline')}</Txt>
         <Txt color={c.muted}>{t('auth.trust')}</Txt>
+        {/* Gate agents have no account: they join with the link code and PIN from the hosts. */}
+        <Button
+          variant="secondary"
+          icon="gate"
+          label={t('gateApp.welcomeGate')}
+          onPress={() => router.push('/gate-join')}
+        />
         <Button
           variant="ghost"
           label={t('common.switchTo', {

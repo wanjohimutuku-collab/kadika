@@ -1969,7 +1969,12 @@
     "linkCode": "Link code",
     "linkPin": "PIN",
     "linkUrl": "Link",
-    "openGate": "Open the scanner"
+    "openGate": "Open the scanner",
+    "welcomeGate": "I'm running the gate",
+    "codeOrLink": "Link code or the whole link",
+    "linkQrHelp": "The gate agent scans this QR with their phone camera, or opens the link. Give them the PIN separately.",
+    "linkQrAlt": "Gate link QR code; code {code}",
+    "share": "Send link"
   },
   "content": {
     "title": "Card text and messages",
@@ -2314,5 +2319,19 @@
     "limited": "You allowed only some contacts. You can allow more in your phone settings.",
     "read": "Read contacts",
     "readHelp": "Kadi Sasa will ask for permission to read your contacts. Nothing is sent until you confirm."
+  },
+  "gateJoinPage": {
+    "metaTitle": "Gate link · {brand}",
+    "eyebrow": "Gate link",
+    "title": "You've been asked to run the gate",
+    "body": "The gate runs in the {brand} Android app. You don't need an account: this link code and the PIN the hosts gave you are enough.",
+    "codeLabel": "Link code",
+    "open": "Open in the app",
+    "download": "Download the app",
+    "stepsTitle": "Steps",
+    "step1": "Download and install the {brand} app (Android 8 or newer).",
+    "step2": "Come back to this page and tap \"Open in the app\", or open the app, choose \"I'm running the gate\" and enter code {code}.",
+    "step3": "Enter the PIN you were given. The guest list downloads, then you can scan even without a network.",
+    "trust": "We will never ask for a password or your phone's PIN. The gate PIN only comes from the hosts."
   }
 }

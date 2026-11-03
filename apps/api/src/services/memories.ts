@@ -56,6 +56,11 @@ export function cleanDate(v: string | null | undefined): string | null | undefin
   return v;
 }
 
+export type MemoryPhotoSize = 'thumb' | 'medium' | 'full';
+
+/** The 640 px copy sits next to the full photo; photos stored before it existed have none. */
+export const mediumKeyOf = (photoKey: string) => photoKey.replace(/\.webp$/, '.medium.webp');
+
 /**
  * Deletes every memory of an event, files first. Called after event deletion and PDPA erasure, never
  * inside a transaction: a file delete cannot be rolled back.
@@ -65,6 +70,7 @@ export async function purgeEventMemories(deps: Deps, eventId: string): Promise<v
   const rows = await deps.db.select().from(memories).where(eq(memories.eventId, eventId));
   for (const m of rows) {
     await store.delete(m.photoKey);
+    await store.delete(mediumKeyOf(m.photoKey));
     await store.delete(m.thumbKey);
   }
   await deps.db.delete(memories).where(eq(memories.eventId, eventId));
@@ -168,6 +174,7 @@ export class MemoriesService {
     const photoKey = `events/${eventId}/${id}.webp`;
     const thumbKey = `events/${eventId}/${id}.thumb.webp`;
     await this.photos.put(photoKey, img.full);
+    await this.photos.put(mediumKeyOf(photoKey), img.medium);
     await this.photos.put(thumbKey, img.thumb);
     const [row] = await this.deps.db
       .insert(memories)
@@ -230,6 +237,7 @@ export class MemoriesService {
     const m = await this.own(memoryId, userId);
     await this.deps.db.delete(memories).where(eq(memories.id, memoryId));
     await this.photos.delete(m.photoKey);
+    await this.photos.delete(mediumKeyOf(m.photoKey));
     await this.photos.delete(m.thumbKey);
     await recordAudit(this.deps.db, {
       eventId: m.eventId,
@@ -241,13 +249,16 @@ export class MemoriesService {
   }
 
   /** The file for a memory of this event; null when the memory is not this event's. */
-  async photo(eventId: string, memoryId: string, size: 'thumb' | 'full') {
+  async photo(eventId: string, memoryId: string, size: MemoryPhotoSize) {
     const [m] = await this.deps.db
       .select()
       .from(memories)
       .where(and(eq(memories.id, memoryId), eq(memories.eventId, eventId)));
     if (!m) return null;
-    return this.photos.get(size === 'thumb' ? m.thumbKey : m.photoKey);
+    if (size === 'thumb') return this.photos.get(m.thumbKey);
+    if (size === 'medium')
+      return (await this.photos.get(mediumKeyOf(m.photoKey))) ?? this.photos.get(m.photoKey);
+    return this.photos.get(m.photoKey);
   }
 
   /** Staff (`plan`) change how many photos an event may hold, with a reason. */

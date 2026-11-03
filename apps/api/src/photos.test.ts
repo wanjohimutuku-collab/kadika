@@ -44,12 +44,36 @@ describe('processPhoto', () => {
     );
     const out = await processPhoto(big);
     expect({ w: out.width, h: out.height }).toEqual({ w: 1280, h: 853 });
+    const medium = await sharp(out.medium).metadata();
+    expect({ w: medium.width, h: medium.height, f: medium.format }).toEqual({
+      w: 640,
+      h: 427,
+      f: 'webp',
+    });
   });
 
   it('refuses a file that is not an image as invalid_image', async () => {
     await expect(
       processPhoto(new TextEncoder().encode('not a photo at all')),
     ).rejects.toMatchObject({ code: 'validation', details: { reason: 'invalid_image' } });
+  });
+
+  it('refuses a small file that decodes to more pixels than any camera makes', async () => {
+    const bomb = new Uint8Array(
+      await sharp({ create: { width: 8000, height: 8000, channels: 3, background: '#fff' } })
+        .png()
+        .toBuffer(),
+    );
+    expect(bomb.length).toBeLessThan(8 * 1024 * 1024);
+    await expect(processPhoto(bomb)).rejects.toMatchObject({
+      details: { reason: 'invalid_image' },
+    });
+  });
+
+  it('finishes every photo when many arrive at once', async () => {
+    const input = await jpegWithExif();
+    const outs = await Promise.all(Array.from({ length: 6 }, () => processPhoto(input)));
+    expect(outs.map((o) => o.width)).toEqual([200, 200, 200, 200, 200, 200]);
   });
 
   it('refuses more than 8 MB before decoding', async () => {

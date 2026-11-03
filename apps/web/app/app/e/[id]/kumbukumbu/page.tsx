@@ -1,10 +1,10 @@
 'use client';
 
-import { use, useRef, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Images, ImagePlus, Lock, Pencil, Send, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Images, ImagePlus, Lock, Pencil, Send, Trash2, X } from 'lucide-react';
 import { isRepositoryError, type Memory } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
@@ -18,8 +18,19 @@ import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { useQuotaToast } from '@/components/console/quota';
 import { getRepository } from '@/lib/repo';
+import { shrinkPhoto } from '@/lib/shrink-photo';
 import { qk, useSession } from '@/lib/queries';
 import { formatDate } from '@/lib/format';
+
+/** A chosen photo waiting for its caption and date; nothing is uploaded until the host says so. */
+interface Draft {
+  key: string;
+  file: File;
+  preview: string;
+  caption: string;
+  takenOn: string;
+  error?: string;
+}
 
 /** Kumbukumbu (ADR 050): the couple's photos, shown to each guest through their own card link. */
 export default function MemoriesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,8 +48,7 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
   });
   const refresh = () => qc.invalidateQueries({ queryKey: qk.memories(id) });
   const file = useRef<HTMLInputElement>(null);
-  const [caption, setCaption] = useState('');
-  const [takenOn, setTakenOn] = useState('');
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [editing, setEditing] = useState<Memory | null>(null);
   const [deleting, setDeleting] = useState<Memory | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
@@ -54,21 +64,57 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
     return t('uploadFailed');
   };
 
-  const add = useMutation({
-    mutationFn: (photo: File) =>
-      getRepository().addMemory(id, photo, {
-        caption: caption.trim() || undefined,
-        takenOn: takenOn || undefined,
+  // Preview URLs are released when a draft leaves the list and when the page closes.
+  const previews = useRef(new Set<string>());
+  useEffect(() => {
+    const urls = previews.current;
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, []);
+  const dropDraft = (key: string) =>
+    setDrafts((ds) =>
+      ds.filter((d) => {
+        if (d.key !== key) return true;
+        URL.revokeObjectURL(d.preview);
+        previews.current.delete(d.preview);
+        return false;
       }),
-    onSuccess: () => {
-      setCaption('');
-      setTakenOn('');
-      void refresh();
+    );
+  const patchDraft = (key: string, patch: Partial<Draft>) =>
+    setDrafts((ds) => ds.map((d) => (d.key === key ? { ...d, ...patch } : d)));
+  const choose = (files: File[], room: number) => {
+    const space = Math.max(0, room - drafts.length);
+    if (files.length > space) toast({ tone: 'info', title: t('tooMany', { count: space }) });
+    const next = files.slice(0, space).map((f, i) => {
+      const preview = URL.createObjectURL(f);
+      previews.current.add(preview);
+      return { key: `${Date.now()}-${i}-${f.name}`, file: f, preview, caption: '', takenOn: '' };
+    });
+    setDrafts((ds) => [...ds, ...next]);
+  };
+
+  // One at a time, in the order shown; a photo that fails stays in the list with its reason.
+  const add = useMutation({
+    mutationFn: async (list: Draft[]) => {
+      let done = 0;
+      for (const d of list) {
+        try {
+          await getRepository().addMemory(id, await shrinkPhoto(d.file), {
+            caption: d.caption.trim() || undefined,
+            takenOn: d.takenOn || undefined,
+          });
+          done++;
+          dropDraft(d.key);
+        } catch (e) {
+          patchDraft(d.key, { error: errorText(e, q.data?.limit ?? 30) });
+          if (isRepositoryError(e) && e.details?.reason === 'quota_exceeded') break;
+        }
+      }
+      return done;
     },
-    onError: (e) => toast({ tone: 'error', title: errorText(e, q.data?.limit ?? 30) }),
-    onSettled: () => {
-      if (file.current) file.current.value = '';
+    onSuccess: (done) => {
+      if (done) toast({ tone: 'success', title: t('uploadedCount', { count: done }) });
     },
+    onSettled: () => void refresh(),
   });
   const save = useMutation({
     mutationFn: (m: Memory) =>
@@ -157,37 +203,26 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                   <p className="text-muted" data-testid="memories-count">
                     {t('count', { count: v.count, limit: v.limit })}
                   </p>
-                  <TextField
-                    label={t('caption')}
-                    value={caption}
-                    maxLength={140}
-                    onChange={(e) => setCaption(e.target.value)}
-                  />
-                  <TextField
-                    label={t('takenOn')}
-                    type="date"
-                    value={takenOn}
-                    onChange={(e) => setTakenOn(e.target.value)}
-                  />
+                  <p className="text-sm text-muted">{t('chooseMany')}</p>
                   <input
                     ref={file}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
+                    multiple
                     className="sr-only"
                     tabIndex={-1}
                     aria-hidden="true"
                     data-testid="memory-file"
                     onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) add.mutate(f);
+                      choose([...(e.target.files ?? [])], v.limit - v.count);
+                      e.target.value = '';
                     }}
                   />
                   <Button
+                    variant={drafts.length ? 'secondary' : 'primary'}
                     icon={<ImagePlus className="size-5" aria-hidden="true" />}
                     onClick={() => file.current?.click()}
-                    loading={add.isPending}
-                    loadingLabel={t('uploading')}
-                    disabled={v.count >= v.limit}
+                    disabled={v.count + drafts.length >= v.limit || add.isPending}
                   >
                     {t('add')}
                   </Button>
@@ -196,6 +231,71 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                   ) : null}
                 </div>
               </Card>
+              {drafts.length ? (
+                <Card title={t('draftTitle')}>
+                  <div className="flex flex-col gap-4">
+                    <ul className="flex flex-col gap-4" data-testid="memory-drafts">
+                      {drafts.map((d) => (
+                        <li
+                          key={d.key}
+                          className="flex flex-col gap-3 border-b border-border pb-4 last:border-0 last:pb-0 sm:flex-row"
+                        >
+                          <div className="relative w-full shrink-0 sm:w-40">
+                            <img
+                              src={d.preview}
+                              alt={d.file.name}
+                              className="aspect-square w-full rounded-card bg-border object-cover"
+                            />
+                            <IconButton
+                              label={t('removeDraft')}
+                              icon={<X className="size-5" />}
+                              variant="secondary"
+                              className="absolute right-2 top-2"
+                              disabled={add.isPending}
+                              onClick={() => dropDraft(d.key)}
+                            />
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col gap-3">
+                            <TextField
+                              label={t('caption')}
+                              value={d.caption}
+                              maxLength={140}
+                              disabled={add.isPending}
+                              onChange={(e) => patchDraft(d.key, { caption: e.target.value })}
+                            />
+                            <TextField
+                              label={t('takenOn')}
+                              type="date"
+                              value={d.takenOn}
+                              disabled={add.isPending}
+                              onChange={(e) => patchDraft(d.key, { takenOn: e.target.value })}
+                            />
+                            {d.error ? <Banner tone="error">{d.error}</Banner> : null}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        icon={<ImagePlus className="size-5" aria-hidden="true" />}
+                        onClick={() => add.mutate(drafts)}
+                        loading={add.isPending}
+                        loadingLabel={t('uploading')}
+                        data-testid="memory-upload"
+                      >
+                        {t('uploadAll', { count: drafts.length })}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={add.isPending}
+                        onClick={() => drafts.forEach((d) => dropDraft(d.key))}
+                      >
+                        {tc('cancel')}
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ) : null}
               {v.enabled && v.count > 0 ? (
                 <Card title={t('sendTitle')}>
                   <div className="flex flex-col gap-3">

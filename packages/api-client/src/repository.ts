@@ -72,6 +72,7 @@ import type {
   MemoriesAdminView,
   Memory,
   MemoryUpload,
+  MemoryPhotoSize,
 } from './types';
 
 /**
@@ -244,7 +245,7 @@ export interface Repository {
   ): Promise<Memory>;
   deleteMemory(memoryId: string): Promise<void>;
   /** The photo for the console (it needs the Bearer token, so it is fetched, not linked). */
-  fetchMemoryPhoto(eventId: string, memoryId: string, size: 'thumb' | 'full'): Promise<Blob>;
+  fetchMemoryPhoto(eventId: string, memoryId: string, size: MemoryPhotoSize): Promise<Blob>;
   /** Sends each guest (all with a phone, or these) their own link; one message credit each. */
   sendMemories(
     eventId: string,

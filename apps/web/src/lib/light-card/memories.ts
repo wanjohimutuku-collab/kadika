@@ -1,6 +1,6 @@
 import { pickMessages } from '@harusi/i18n';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
-import type { GuestMemoriesView } from '@harusi/api-client';
+import type { GuestMemoriesView, MemoryPhotoSize } from '@harusi/api-client';
 import { formatIcu } from '../icu';
 import { formatDate } from '../format';
 import {
@@ -15,8 +15,10 @@ import {
 
 export interface MemoriesOptions extends LightCardOptions {
   /** Where a photo is fetched from; the API by default (mock mode serves sample files instead). */
-  photoUrl?: (memoryId: string, size: 'thumb' | 'full') => string;
+  photoUrl?: (memoryId: string, size: MemoryPhotoSize) => string;
 }
+
+const SIZES = '(min-width: 32rem) 472px, calc(100vw - 40px)';
 
 const CSS = `
 .mem ol{list-style:none;margin:0;padding:0;display:grid;gap:24px}
@@ -49,8 +51,12 @@ export function renderMemories(view: GuestMemoriesView, o: MemoriesOptions): str
   const enc = encodeURIComponent(o.token);
   const photo =
     o.photoUrl ??
-    ((id: string, size: 'thumb' | 'full') =>
+    ((id: string, size: MemoryPhotoSize) =>
       `${o.apiUrl}/v1/c/${enc}/memories/${encodeURIComponent(id)}/${size}`);
+  // 320 px alone looked soft on 2-3× phone screens; the browser picks by screen density (the column
+  // is the card width less its 20 px padding), and the 1280 px file is only for the full view.
+  const srcset = (id: string) =>
+    `${photo(id, 'thumb')} 320w, ${photo(id, 'medium')} 640w, ${photo(id, 'full')} 1280w`;
   const items = view.memories
     .map((x) => {
       const alt = x.caption ? formatIcu(t.photoAlt!, { caption: x.caption }) : t.photoAltNoCaption!;
@@ -58,7 +64,7 @@ export function renderMemories(view: GuestMemoriesView, o: MemoriesOptions): str
         ? `<time datetime="${esc(x.takenOn)}">${esc(formatDate(x.takenOn, locale))}</time>`
         : '';
       const caption = x.caption ? `<figcaption>${esc(x.caption)}</figcaption>` : '';
-      return `<li><figure>${when}<a href="${esc(photo(x.id, 'full'))}" data-full><img src="${esc(photo(x.id, 'thumb'))}" alt="${esc(alt)}" width="${x.width}" height="${x.height}" loading="lazy" decoding="async"></a>${caption}</figure></li>`;
+      return `<li><figure>${when}<a href="${esc(photo(x.id, 'full'))}" data-full><img src="${esc(photo(x.id, 'medium'))}" srcset="${esc(srcset(x.id))}" sizes="${SIZES}" alt="${esc(alt)}" width="${x.width}" height="${x.height}" loading="lazy" decoding="async"></a>${caption}</figure></li>`;
     })
     .join('');
   const body = `<main class="card mem" data-testid="memories-page">

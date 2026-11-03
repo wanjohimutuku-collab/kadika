@@ -155,6 +155,9 @@ export const useUpdateMemory = (eventId: string) =>
       repo().updateMemory(v.id, { sortOrder: v.sortOrder, caption: v.caption, takenOn: v.takenOn }),
     () => [keys.memories(eventId)],
   );
+/** Each guest with a phone gets their own link; one message credit each (ADR 042). */
+export const useSendMemories = (eventId: string) =>
+  useMutation({ mutationFn: () => repo().sendMemories(eventId) });
 export const useDeleteMemory = (eventId: string) =>
   useInvalidating(
     (id: string) => repo().deleteMemory(id),

@@ -71,7 +71,11 @@ describe('Kumbukumbu guest page (ADR 050)', () => {
     expect(html).toContain('noindex,nofollow');
     expect(html).toContain('Tulipokutana &lt;b&gt;');
     expect(html).not.toContain('Tulipokutana <b>');
-    expect(html).toContain('src="https://api.example/v1/c/tok_abcdefghijklmnop/memories/m1/thumb"');
+    const base = 'https://api.example/v1/c/tok_abcdefghijklmnop/memories/m1';
+    expect(html).toContain(`src="${base}/medium"`);
+    // sharp on 2-3× screens: the browser picks from all three sizes
+    expect(html).toContain(`srcset="${base}/thumb 320w, ${base}/medium 640w, ${base}/full 1280w"`);
+    expect(html).toContain('sizes="(min-width: 32rem) 472px, calc(100vw - 40px)"');
     expect(html).toContain('href="https://api.example/v1/c/tok_abcdefghijklmnop/memories/m1/full"');
     expect(html).toContain('width="1280" height="853"');
     expect(html).toContain('loading="lazy"');

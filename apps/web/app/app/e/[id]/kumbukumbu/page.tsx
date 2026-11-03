@@ -18,6 +18,7 @@ import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { useQuotaToast } from '@/components/console/quota';
 import { getRepository } from '@/lib/repo';
+import { shrinkPhoto } from '@/lib/shrink-photo';
 import { qk, useSession } from '@/lib/queries';
 import { formatDate } from '@/lib/format';
 
@@ -97,7 +98,7 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
       let done = 0;
       for (const d of list) {
         try {
-          await getRepository().addMemory(id, d.file, {
+          await getRepository().addMemory(id, await shrinkPhoto(d.file), {
             caption: d.caption.trim() || undefined,
             takenOn: d.takenOn || undefined,
           });

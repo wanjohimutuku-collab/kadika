@@ -14,6 +14,7 @@ import {
 } from '../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../src/lib/i18n';
 import { formatDate } from '../../../../src/lib/format';
+import { shrinkPhoto } from '../../../../src/lib/shrink-photo';
 import { useColors } from '../../../../src/lib/theme';
 import { AppHeader } from '../../../../src/ui/header';
 import { MemoryThumb } from '../../../../src/ui/memory-thumb';
@@ -36,6 +37,8 @@ interface Draft {
   uri: string;
   name: string;
   type: string;
+  width: number;
+  height: number;
   caption: string;
   takenOn: string;
   error?: string;
@@ -98,6 +101,8 @@ export default function Memories() {
         uri: a.uri,
         name: a.fileName ?? `photo-${i + 1}.jpg`,
         type: a.mimeType ?? 'image/jpeg',
+        width: a.width,
+        height: a.height,
         caption: '',
         takenOn: '',
       })),
@@ -117,7 +122,7 @@ export default function Memories() {
     for (const d of drafts) {
       try {
         await add.mutateAsync({
-          photo: { uri: d.uri, name: d.name, type: d.type },
+          photo: await shrinkPhoto(d),
           caption: d.caption.trim() || undefined,
           takenOn: d.takenOn || undefined,
         });

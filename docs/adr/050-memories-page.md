@@ -33,6 +33,12 @@ buying cards, never reveal anything private, and load on slow phones.
    so GPS locations never leak. JPEG, PNG and WebP only, up to 8 MB (the prebuilt sharp has no HEIC; phones
    hand browsers and the image picker JPEG). Deleting a photo, the event or the owner's account (PDPA
    erasure, after its transaction commits) deletes the files.
+   **Small-VPS processing:** the web console (canvas) and the app (`expo-image-manipulator`) shrink a
+   photo to 2048 px JPEG before upload, so a 4-6 MB camera photo travels as about 0.5 MB; any failure
+   sends the original, and the server still re-encodes everything. The server decodes each photo once to
+   1280 px and cuts the 640 and 320 px copies from it, refuses images over 60 MP (`limitInputPixels`),
+   processes at most 2 photos at a time, and runs sharp with one thread and no cache so the API and the
+   gate sync keep their CPU and memory. Transparent PNGs get a white background.
 7. **Delivery:** the host shares each guest's link from their own WhatsApp (`wa.me`, free; guest detail on
    web and mobile), or sends it to every guest with a phone from the Kumbukumbu page (message kind
    `memories`, WhatsApp template `WHATSAPP_TEMPLATE_MEMORIES` with parameters hosts and link, SMS fallback).

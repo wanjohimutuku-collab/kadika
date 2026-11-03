@@ -58,6 +58,24 @@ describe('processPhoto', () => {
     ).rejects.toMatchObject({ code: 'validation', details: { reason: 'invalid_image' } });
   });
 
+  it('refuses a small file that decodes to more pixels than any camera makes', async () => {
+    const bomb = new Uint8Array(
+      await sharp({ create: { width: 8000, height: 8000, channels: 3, background: '#fff' } })
+        .png()
+        .toBuffer(),
+    );
+    expect(bomb.length).toBeLessThan(8 * 1024 * 1024);
+    await expect(processPhoto(bomb)).rejects.toMatchObject({
+      details: { reason: 'invalid_image' },
+    });
+  });
+
+  it('finishes every photo when many arrive at once', async () => {
+    const input = await jpegWithExif();
+    const outs = await Promise.all(Array.from({ length: 6 }, () => processPhoto(input)));
+    expect(outs.map((o) => o.width)).toEqual([200, 200, 200, 200, 200, 200]);
+  });
+
   it('refuses more than 8 MB before decoding', async () => {
     await expect(processPhoto(new Uint8Array(8 * 1024 * 1024 + 1))).rejects.toMatchObject({
       details: { reason: 'too_large' },

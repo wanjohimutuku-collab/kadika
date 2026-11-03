@@ -35,6 +35,18 @@ test.describe('Kumbukumbu', () => {
     page,
   }) => {
     await page.goto(`/app/e/${UPCOMING}/kumbukumbu`);
+    // Kumbukumbu unlocks with a paid card order, which the seed has none of; the mock pays at once.
+    await page.waitForFunction(() => window.__harusiMock !== undefined);
+    await page.evaluate(
+      (id) =>
+        window.__harusiMock!.orderBilling(
+          id,
+          { cards: 50, method: 'mobile', phoneE164: '+255712000001', mobileMethod: 'mpesa' },
+          'e2e-memories-unlock',
+        ),
+      UPCOMING,
+    );
+    await page.reload();
     const count = page.getByTestId('memories-count');
     await expect(count).toBeVisible();
     const before = Number((await count.innerText()).match(/\d+/)![0]);

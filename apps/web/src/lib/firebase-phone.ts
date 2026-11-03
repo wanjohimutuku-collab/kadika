@@ -145,7 +145,11 @@ export async function startPhoneSignIn(
   instance.languageCode = locale;
   try {
     verifier?.clear();
-    verifier = new auth.RecaptchaVerifier(instance, container, { size: 'invisible' });
+    // A fresh element every attempt: a cleared verifier leaves its widget behind in the old one, and
+    // rendering again there fails in the browser ("already rendered") without reaching Firebase.
+    const host = document.createElement('div');
+    container.replaceChildren(host);
+    verifier = new auth.RecaptchaVerifier(instance, host, { size: 'invisible' });
     const confirmation = await auth.signInWithPhoneNumber(instance, phone, verifier);
     pending = { phone, confirmation, signOut: () => auth.signOut(instance) };
     setSmsFallback(null);

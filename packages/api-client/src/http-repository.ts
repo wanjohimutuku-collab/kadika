@@ -98,6 +98,22 @@ export interface HttpRepositoryOptions {
   fetchImpl?: typeof fetch;
   tokens?: TokenStore;
   newKey?: () => string;
+  /**
+   * Runs a token refresh exclusively across every client sharing the token store (browser tabs share
+   * `localStorage`). Refresh tokens rotate and a reused one revokes the whole session, so two tabs
+   * refreshing at once would sign the user out; the web app passes a Web Locks implementation.
+   */
+  refreshLock?: <T>(fn: () => Promise<T>) => Promise<T>;
+}
+
+/** `refreshLock` from the Web Locks API, or undefined where it is missing (older browsers, servers). */
+export function webRefreshLock(name = 'harusi.auth.refresh'): HttpRepositoryOptions['refreshLock'] {
+  // Typed by hand: this package also builds for React Native, whose lib has no Web Locks.
+  type Locks = { request<T>(name: string, fn: () => Promise<T>): Promise<T> };
+  const locks =
+    typeof navigator !== 'undefined' ? (navigator as { locks?: Locks }).locks : undefined;
+  if (!locks) return undefined;
+  return <T>(fn: () => Promise<T>) => locks.request(name, fn);
 }
 
 interface ApiUser {
@@ -372,6 +388,7 @@ export function createHttpRepository(
   const doFetch = opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const tokens = opts.tokens ?? memoryTokenStore();
   const newKey = opts.newKey ?? (() => crypto.randomUUID());
+  const refreshLock = opts.refreshLock;
   let refreshing: Promise<boolean> | null = null;
   /** Staff sign-in: the challenge between the SMS code and the authenticator code (memory only). */
   let staffChallenge: string | null = null;
@@ -422,13 +439,21 @@ export function createHttpRepository(
     return { status: res.status, json: json as Record<string, unknown> | null };
   }
 
-  async function refreshTokens(): Promise<boolean> {
-    const t = tokens.get();
-    if (!t) return false;
-    refreshing ??= (async () => {
+  /**
+   * Swaps the refresh token for a new pair. `sentWith` is the access token the refused request carried:
+   * when the store already holds a different one, another request or tab has refreshed and we use it.
+   */
+  async function refreshTokens(sentWith?: string): Promise<boolean> {
+    if (!tokens.get()) return false;
+    refreshing ??= (refreshLock ?? ((fn: () => Promise<boolean>) => fn()))(async () => {
+      // Read inside the lock: the tab that held it before us may have rotated the tokens already.
+      const t = tokens.get();
+      if (!t) return false;
+      if (sentWith !== undefined && t.accessToken !== sentWith) return true;
       const r = await raw('POST', '/v1/auth/refresh', { refreshToken: t.refreshToken }, {}, false);
       if (r.status !== 200) {
-        tokens.set(null);
+        // Only clear the session we tried to refresh, never a newer one another tab just stored.
+        if (tokens.get()?.refreshToken === t.refreshToken) tokens.set(null);
         return false;
       }
       tokens.set({
@@ -436,7 +461,7 @@ export function createHttpRepository(
         refreshToken: r.json!.refreshToken as string,
       });
       return true;
-    })().finally(() => {
+    }).finally(() => {
       refreshing = null;
     });
     return refreshing;
@@ -449,8 +474,9 @@ export function createHttpRepository(
     body?: unknown,
     extra?: Record<string, string>,
   ): Promise<T> {
+    const sentWith = tokens.get()?.accessToken;
     let r = await raw(method, path, body, extra);
-    if (r.status === 401 && tokens.get() && (await refreshTokens()))
+    if (r.status === 401 && tokens.get() && (await refreshTokens(sentWith)))
       r = await raw(method, path, body, extra);
     if (r.status >= 400) return fail(r.status, r.json as never);
     return r.json as T;

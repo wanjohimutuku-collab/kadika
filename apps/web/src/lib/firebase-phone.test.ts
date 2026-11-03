@@ -26,8 +26,10 @@ vi.stubGlobal('sessionStorage', {
   removeItem: (k: string) => void store.delete(k),
 });
 
+vi.stubGlobal('document', { createElement: () => ({}) });
+
 const PHONE = '+255712480001';
-const container = {} as HTMLElement;
+const container = { replaceChildren: () => undefined } as unknown as HTMLElement;
 
 beforeEach(() => {
   store.clear();

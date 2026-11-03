@@ -47,9 +47,9 @@ describe('processPhoto', () => {
   });
 
   it('refuses a file that is not an image as invalid_image', async () => {
-    await expect(processPhoto(new TextEncoder().encode('not a photo at all'))).rejects.toMatchObject(
-      { code: 'validation', details: { reason: 'invalid_image' } },
-    );
+    await expect(
+      processPhoto(new TextEncoder().encode('not a photo at all')),
+    ).rejects.toMatchObject({ code: 'validation', details: { reason: 'invalid_image' } });
   });
 
   it('refuses more than 8 MB before decoding', async () => {

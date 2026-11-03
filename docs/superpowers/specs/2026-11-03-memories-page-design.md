@@ -10,15 +10,15 @@ and committee add photos.
 
 ## Decisions
 
-| Question | Decision |
-|---|---|
-| What unlocks it | Any **paid card order**: a row in `event_purchases` with `kind = 'cards'` and `status = 'paid'`. Reminder packs and staff grants do not unlock it. No new price. |
-| Who views | **Guests only.** Access is by the guest's existing card token. No new link, no login. |
-| Who uploads | Owner and committee, from the web console and the mobile app. Gate agents: no access. Guests: view only. |
-| What a memory holds | One photo, an optional caption (≤ 140 characters), an optional date (`taken_on`, day precision). |
-| How many | Up to **30** per event by default; staff can change it per event in `/ops`. |
-| How the link travels | Both: the host shares it from their own WhatsApp (free), or we send it (spends credits). |
-| Where photos live | Files on a persistent volume, behind a `PhotoStore` interface. |
+| Question             | Decision                                                                                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What unlocks it      | Any **paid card order**: a row in `event_purchases` with `kind = 'cards'` and `status = 'paid'`. Reminder packs and staff grants do not unlock it. No new price. |
+| Who views            | **Guests only.** Access is by the guest's existing card token. No new link, no login.                                                                            |
+| Who uploads          | Owner and committee, from the web console and the mobile app. Gate agents: no access. Guests: view only.                                                         |
+| What a memory holds  | One photo, an optional caption (≤ 140 characters), an optional date (`taken_on`, day precision).                                                                 |
+| How many             | Up to **30** per event by default; staff can change it per event in `/ops`.                                                                                      |
+| How the link travels | Both: the host shares it from their own WhatsApp (free), or we send it (spends credits).                                                                         |
+| Where photos live    | Files on a persistent volume, behind a `PhotoStore` interface.                                                                                                   |
 
 ## Storage
 
@@ -36,18 +36,18 @@ and committee add photos.
 
 New table `memories`:
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | uuid v7 | |
-| `event_id` | uuid, FK `events` on delete cascade | |
-| `photo_key` | text | full-size WebP |
-| `thumb_key` | text | thumbnail WebP |
-| `width`, `height` | integer | of the full-size image, so the page reserves space and does not jump |
-| `caption` | text, nullable | ≤ 140 characters |
-| `taken_on` | date, nullable | |
-| `sort_order` | integer | |
-| `created_by` | uuid, FK `users` on delete set null | |
-| `created_at`, `updated_at` | timestamptz | |
+| Column                     | Type                                | Notes                                                                |
+| -------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| `id`                       | uuid v7                             |                                                                      |
+| `event_id`                 | uuid, FK `events` on delete cascade |                                                                      |
+| `photo_key`                | text                                | full-size WebP                                                       |
+| `thumb_key`                | text                                | thumbnail WebP                                                       |
+| `width`, `height`          | integer                             | of the full-size image, so the page reserves space and does not jump |
+| `caption`                  | text, nullable                      | ≤ 140 characters                                                     |
+| `taken_on`                 | date, nullable                      |                                                                      |
+| `sort_order`               | integer                             |                                                                      |
+| `created_by`               | uuid, FK `users` on delete set null |                                                                      |
+| `created_at`, `updated_at` | timestamptz                         |                                                                      |
 
 Index `memories(event_id, sort_order)`.
 
@@ -117,7 +117,7 @@ Rules:
   with edit, delete (confirmation sheet naming the photo) and move up/down. An on/off switch for the
   page. A preview button opens the guest page as a sample guest would see it.
 - Upload shows per-photo progress and a queued state when offline (mobile); a failed upload shows
-  *Jaribu tena* for that photo only.
+  _Jaribu tena_ for that photo only.
 - Committee members see and edit everything here; nothing on this screen is financial.
 
 **Guest page**, web, `/c/<token>/kumbukumbu`:

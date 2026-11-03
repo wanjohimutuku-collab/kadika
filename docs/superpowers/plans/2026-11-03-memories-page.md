@@ -33,38 +33,40 @@
 
 ## File map
 
-| File | Responsibility |
-|---|---|
-| `packages/db/src/schema.ts` (modify) | `memories` table; `events.memories_enabled`, `events.memories_limit` |
-| `packages/db/drizzle/0026_memories.sql` (generated) | migration |
-| `apps/api/src/photos/store.ts` (create) | `PhotoStore`, `DiskPhotoStore`, `MemoryPhotoStore` |
-| `apps/api/src/photos/process.ts` (create) | `processPhoto(bytes)` via sharp |
-| `apps/api/src/services/memories.ts` (create) | unlock, limit, CRUD, guest view, purge |
-| `apps/api/src/services/cards.ts` (modify) | `resolveToken(token)` |
-| `apps/api/src/services/delivery.ts` (modify) | `sendMemories`, `memoriesLink` |
-| `apps/api/src/services/messages.ts` (modify) | `composeSms('memories', …)` |
-| `apps/api/src/app.ts` (modify) | routes |
-| `apps/api/src/config.ts`, `context.ts`, `index.ts`, `testing/test-app.ts` (modify) | `PHOTO_FILES_DIR`, `deps.photos`, template env |
-| `packages/messaging/src/index.ts`, `whatsapp-cloud.ts` (modify) | template kind `memories` |
-| `apps/api/src/memories.test.ts`, `photos.test.ts` (create) | API tests |
-| `packages/api-client/src/{types,repository,http-repository}.ts`, `mock/mock-repository.ts` (modify) | client |
-| `packages/i18n/src/{sw,en}.json` (modify) | strings |
-| `apps/web/src/lib/light-card/memories.ts` (create), `render.ts` (modify) | guest page HTML |
-| `apps/web/app/c/[token]/kumbukumbu/route.ts`, `apps/web/app/s/[code]/k/page.tsx` (create) | guest routes |
-| `apps/web/app/app/e/[id]/kumbukumbu/page.tsx` (create), `components/console/shell.tsx`, guest detail, send page (modify) | console |
-| `apps/mobile/app/(app)/event/[id]/memories.tsx` (create), guest detail (modify) | mobile |
-| `docs/adr/050-memories-page.md`, privacy page, `infra/coolify/` note (create/modify) | docs |
+| File                                                                                                                     | Responsibility                                                       |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `packages/db/src/schema.ts` (modify)                                                                                     | `memories` table; `events.memories_enabled`, `events.memories_limit` |
+| `packages/db/drizzle/0026_memories.sql` (generated)                                                                      | migration                                                            |
+| `apps/api/src/photos/store.ts` (create)                                                                                  | `PhotoStore`, `DiskPhotoStore`, `MemoryPhotoStore`                   |
+| `apps/api/src/photos/process.ts` (create)                                                                                | `processPhoto(bytes)` via sharp                                      |
+| `apps/api/src/services/memories.ts` (create)                                                                             | unlock, limit, CRUD, guest view, purge                               |
+| `apps/api/src/services/cards.ts` (modify)                                                                                | `resolveToken(token)`                                                |
+| `apps/api/src/services/delivery.ts` (modify)                                                                             | `sendMemories`, `memoriesLink`                                       |
+| `apps/api/src/services/messages.ts` (modify)                                                                             | `composeSms('memories', …)`                                          |
+| `apps/api/src/app.ts` (modify)                                                                                           | routes                                                               |
+| `apps/api/src/config.ts`, `context.ts`, `index.ts`, `testing/test-app.ts` (modify)                                       | `PHOTO_FILES_DIR`, `deps.photos`, template env                       |
+| `packages/messaging/src/index.ts`, `whatsapp-cloud.ts` (modify)                                                          | template kind `memories`                                             |
+| `apps/api/src/memories.test.ts`, `photos.test.ts` (create)                                                               | API tests                                                            |
+| `packages/api-client/src/{types,repository,http-repository}.ts`, `mock/mock-repository.ts` (modify)                      | client                                                               |
+| `packages/i18n/src/{sw,en}.json` (modify)                                                                                | strings                                                              |
+| `apps/web/src/lib/light-card/memories.ts` (create), `render.ts` (modify)                                                 | guest page HTML                                                      |
+| `apps/web/app/c/[token]/kumbukumbu/route.ts`, `apps/web/app/s/[code]/k/page.tsx` (create)                                | guest routes                                                         |
+| `apps/web/app/app/e/[id]/kumbukumbu/page.tsx` (create), `components/console/shell.tsx`, guest detail, send page (modify) | console                                                              |
+| `apps/mobile/app/(app)/event/[id]/memories.tsx` (create), guest detail (modify)                                          | mobile                                                               |
+| `docs/adr/050-memories-page.md`, privacy page, `infra/coolify/` note (create/modify)                                     | docs                                                                 |
 
 ---
 
 ### Task 1: Database: `memories` table and event columns
 
 **Files:**
+
 - Modify: `packages/db/src/schema.ts` (events table near line 126; new table at the end)
 - Create (generated): `packages/db/drizzle/0026_memories.sql` and its `meta` entries
 - Test: `apps/api/src/memories.test.ts` (first test only)
 
 **Interfaces:**
+
 - Produces: `memories` table export `memories` from `@harusi/db` with columns `id, eventId, photoKey, thumbKey, width, height, caption, takenOn (string | null, 'YYYY-MM-DD'), sortOrder, createdBy, createdAt, updatedAt`; `events.memoriesEnabled: boolean`, `events.memoriesLimit: number`.
 
 - [ ] **Step 1: Write the failing test**
@@ -179,11 +181,13 @@ git commit -m "feat(db): memories table and per-event memories switch and limit"
 ### Task 2: Photo storage and processing
 
 **Files:**
+
 - Create: `apps/api/src/photos/store.ts`, `apps/api/src/photos/process.ts`
 - Modify: `apps/api/package.json` (add `sharp`), `apps/api/tsup.config.ts` (mark `sharp` external), `apps/api/src/config.ts`, `apps/api/src/context.ts`, `apps/api/src/index.ts`, `apps/api/src/testing/test-app.ts`, `.env.example`
 - Test: `apps/api/src/photos.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `interface PhotoStore { put(key: string, bytes: Uint8Array): Promise<void>; get(key: string): Promise<Uint8Array | null>; delete(key: string): Promise<void> }`
   - `class DiskPhotoStore implements PhotoStore { constructor(root: string) }`
@@ -246,7 +250,9 @@ describe('processPhoto', () => {
   });
 
   it('refuses a file that is not an image as invalid_image', async () => {
-    await expect(processPhoto(new TextEncoder().encode('not a photo at all'))).rejects.toMatchObject({
+    await expect(
+      processPhoto(new TextEncoder().encode('not a photo at all')),
+    ).rejects.toMatchObject({
       code: 'validation',
       details: { reason: 'invalid_image' },
     });
@@ -409,8 +415,8 @@ export async function processPhoto(bytes: Uint8Array) {
 `apps/api/src/config.ts`, in the `Config` type next to `appFilesDir`:
 
 ```ts
-  /** Kumbukumbu photos (ADR 050): a persistent volume. */
-  photoFilesDir: string;
+/** Kumbukumbu photos (ADR 050): a persistent volume. */
+photoFilesDir: string;
 ```
 
 and in `loadConfig`'s returned object, after `appFilesDir`:
@@ -449,11 +455,13 @@ git commit -m "feat(api): photo store and WebP re-encoding that strips location 
 ### Task 3: MemoriesService and the organizer routes
 
 **Files:**
+
 - Create: `apps/api/src/services/memories.ts`
 - Modify: `apps/api/src/app.ts` (service construction near line 197; routes after the events routes near line 562)
 - Test: `apps/api/src/memories.test.ts`
 
 **Interfaces:**
+
 - Consumes: `photosOf`, `processPhoto` (Task 2); `EventsService.role(eventId, userId): Promise<'owner'|'committee'|'gate'>`; `recordAudit` from `./audit`.
 - Produces (`MemoriesService`, constructed as `new MemoriesService(deps, eventsSvc)`):
   - `unlocked(eventId: string): Promise<boolean>`
@@ -534,10 +542,18 @@ describe('adding and editing memories', () => {
   it('stores both sizes, returns the memory, and lists by date then order', async () => {
     const { t, evId } = await setup();
     await pay(evId);
-    const a = await upload(t, evId, await photo(), { caption: 'Tulipokutana', takenOn: '2019-03-02' });
+    const a = await upload(t, evId, await photo(), {
+      caption: 'Tulipokutana',
+      takenOn: '2019-03-02',
+    });
     expect(a.status).toBe(201);
     const m = await a.json();
-    expect(m).toMatchObject({ caption: 'Tulipokutana', takenOn: '2019-03-02', width: 64, height: 48 });
+    expect(m).toMatchObject({
+      caption: 'Tulipokutana',
+      takenOn: '2019-03-02',
+      width: 64,
+      height: 48,
+    });
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.webp`)).toBe(true);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.thumb.webp`)).toBe(true);
     await upload(t, evId, await photo(), { caption: 'Bila tarehe' });
@@ -587,7 +603,11 @@ describe('adding and editing memories', () => {
       token: t,
       body: { caption: 'Harusi ya dada', takenOn: '2021-08-14', sortOrder: 5 },
     });
-    expect(edited.body).toMatchObject({ caption: 'Harusi ya dada', takenOn: '2021-08-14', sortOrder: 5 });
+    expect(edited.body).toMatchObject({
+      caption: 'Harusi ya dada',
+      takenOn: '2021-08-14',
+      sortOrder: 5,
+    });
     expect((await api(ctx, 'DELETE', `/v1/memories/${m.id}`, { token: t })).status).toBe(204);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.webp`)).toBe(false);
     expect(ctx.photos.files.has(`events/${evId}/${m.id}.thumb.webp`)).toBe(false);
@@ -874,53 +894,53 @@ If `updatedAt` is set automatically by `timestamps` (check `packages/db/src/sche
 In `apps/api/src/app.ts`: import `MemoriesService`, and after `appReleaseSvc` add `const memoriesSvc = new MemoriesService(deps, eventsSvc);`. After the events routes:
 
 ```ts
-  // ---- Kumbukumbu (ADR 050): owner and committee manage the couple's photos
-  app.get('/v1/events/:id/memories', async (c) =>
-    c.json(await memoriesSvc.list(c.req.param('id'), c.get('userId'))),
+// ---- Kumbukumbu (ADR 050): owner and committee manage the couple's photos
+app.get('/v1/events/:id/memories', async (c) =>
+  c.json(await memoriesSvc.list(c.req.param('id'), c.get('userId'))),
+);
+app.post('/v1/events/:id/memories', async (c) => {
+  const form = await c.req.parseBody();
+  const file = form.photo;
+  if (!(file instanceof File))
+    throw new ApiError('validation', 'Choose a photo', { field: 'photo' });
+  const text = (k: string) => (typeof form[k] === 'string' ? (form[k] as string) : undefined);
+  const m = await memoriesSvc.add(
+    c.req.param('id'),
+    c.get('userId'),
+    new Uint8Array(await file.arrayBuffer()),
+    { caption: text('caption'), takenOn: text('takenOn') },
   );
-  app.post('/v1/events/:id/memories', async (c) => {
-    const form = await c.req.parseBody();
-    const file = form.photo;
-    if (!(file instanceof File))
-      throw new ApiError('validation', 'Choose a photo', { field: 'photo' });
-    const text = (k: string) => (typeof form[k] === 'string' ? (form[k] as string) : undefined);
-    const m = await memoriesSvc.add(
-      c.req.param('id'),
-      c.get('userId'),
-      new Uint8Array(await file.arrayBuffer()),
-      { caption: text('caption'), takenOn: text('takenOn') },
-    );
-    return c.json(m, 201);
+  return c.json(m, 201);
+});
+app.patch('/v1/memories/:mid', async (c) => {
+  const patch = parse(
+    z.object({
+      caption: z.string().nullable().optional(),
+      takenOn: z.string().nullable().optional(),
+      sortOrder: z.number().int().min(0).max(10_000).optional(),
+    }),
+    await body(c),
+  );
+  return c.json(await memoriesSvc.update(c.req.param('mid'), c.get('userId'), patch));
+});
+app.delete('/v1/memories/:mid', async (c) => {
+  await memoriesSvc.remove(c.req.param('mid'), c.get('userId'));
+  return c.body(null, 204);
+});
+app.get('/v1/events/:id/memories/:mid/:size{thumb|full}', async (c) => {
+  await memoriesSvc.list(c.req.param('id'), c.get('userId')); // role check
+  const bytes = await memoriesSvc.photo(
+    c.req.param('id'),
+    c.req.param('mid'),
+    c.req.param('size') as 'thumb' | 'full',
+  );
+  if (!bytes) throw new ApiError('not_found', 'Photo not found');
+  return c.body(bytes, 200, {
+    'content-type': 'image/webp',
+    'cache-control': 'private, max-age=86400',
+    'x-content-type-options': 'nosniff',
   });
-  app.patch('/v1/memories/:mid', async (c) => {
-    const patch = parse(
-      z.object({
-        caption: z.string().nullable().optional(),
-        takenOn: z.string().nullable().optional(),
-        sortOrder: z.number().int().min(0).max(10_000).optional(),
-      }),
-      await body(c),
-    );
-    return c.json(await memoriesSvc.update(c.req.param('mid'), c.get('userId'), patch));
-  });
-  app.delete('/v1/memories/:mid', async (c) => {
-    await memoriesSvc.remove(c.req.param('mid'), c.get('userId'));
-    return c.body(null, 204);
-  });
-  app.get('/v1/events/:id/memories/:mid/:size{thumb|full}', async (c) => {
-    await memoriesSvc.list(c.req.param('id'), c.get('userId')); // role check
-    const bytes = await memoriesSvc.photo(
-      c.req.param('id'),
-      c.req.param('mid'),
-      c.req.param('size') as 'thumb' | 'full',
-    );
-    if (!bytes) throw new ApiError('not_found', 'Photo not found');
-    return c.body(bytes, 200, {
-      'content-type': 'image/webp',
-      'cache-control': 'private, max-age=86400',
-      'x-content-type-options': 'nosniff',
-    });
-  });
+});
 ```
 
 Check that the body-size limit middleware (search `bodyLimit` in `app.ts`) allows 8 MB on `POST /v1/events/:id/memories`; if the global limit is lower, add an exception for this path with `maxSize: 9 * 1024 * 1024`.
@@ -944,10 +964,12 @@ git commit -m "feat(api): Kumbukumbu memories for owner and committee, unlocked 
 ### Task 4: Guest view by card token
 
 **Files:**
+
 - Modify: `apps/api/src/services/cards.ts`, `apps/api/src/services/memories.ts`, `apps/api/src/app.ts`
 - Test: `apps/api/src/memories.test.ts`
 
 **Interfaces:**
+
 - Consumes: `CardService.preview(token): Promise<CardView>` (existing).
 - Produces:
   - `CardService.resolveToken(token): Promise<{ state: 'ok'; eventId: string; guestId: string } | { state: 'reissued' | 'invalid' }>`
@@ -973,7 +995,9 @@ describe('the guest page', () => {
     const { g, m } = await withMemory();
     const r = await api(ctx, 'GET', `/v1/c/${g.cardToken}/memories`);
     expect(r.status).toBe(200);
-    expect(r.body!.memories).toEqual([expect.objectContaining({ id: m.id, caption: 'Tulipokutana' })]);
+    expect(r.body!.memories).toEqual([
+      expect.objectContaining({ id: m.id, caption: 'Tulipokutana' }),
+    ]);
     expect(r.body!.card.event.coupleNames).toBe('Asha & Juma');
     expect(r.body!.card.pledge).toBeNull();
     expect(JSON.stringify(r.body)).not.toContain('.webp'); // no storage keys leak
@@ -1104,26 +1128,26 @@ Import `type CardService` from `./cards`.
 In `apps/api/src/app.ts`, after the `/v1/c/:token/preview` route:
 
 ```ts
-  app.get('/v1/c/:token/memories', async (c) => {
-    await cardReads.check(`ip:${client(c)}`);
-    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
-    return c.json(await memoriesSvc.forGuest(c.req.param('token'), cardsSvc));
+app.get('/v1/c/:token/memories', async (c) => {
+  await cardReads.check(`ip:${client(c)}`);
+  await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+  return c.json(await memoriesSvc.forGuest(c.req.param('token'), cardsSvc));
+});
+app.get('/v1/c/:token/memories/:mid/:size{thumb|full}', async (c) => {
+  await cardReads.check(`ip:${client(c)}`);
+  const eventId = await memoriesSvc.guestEvent(c.req.param('token'), cardsSvc);
+  const bytes = await memoriesSvc.photo(
+    eventId,
+    c.req.param('mid'),
+    c.req.param('size') as 'thumb' | 'full',
+  );
+  if (!bytes) throw new ApiError('not_found', 'Photo not found');
+  return c.body(bytes, 200, {
+    'content-type': 'image/webp',
+    'cache-control': 'private, max-age=86400',
+    'x-content-type-options': 'nosniff',
   });
-  app.get('/v1/c/:token/memories/:mid/:size{thumb|full}', async (c) => {
-    await cardReads.check(`ip:${client(c)}`);
-    const eventId = await memoriesSvc.guestEvent(c.req.param('token'), cardsSvc);
-    const bytes = await memoriesSvc.photo(
-      eventId,
-      c.req.param('mid'),
-      c.req.param('size') as 'thumb' | 'full',
-    );
-    if (!bytes) throw new ApiError('not_found', 'Photo not found');
-    return c.body(bytes, 200, {
-      'content-type': 'image/webp',
-      'cache-control': 'private, max-age=86400',
-      'x-content-type-options': 'nosniff',
-    });
-  });
+});
 ```
 
 Photo requests only use the per-IP limit: a page of 30 thumbnails would otherwise use up the per-token budget. Check that `cardReadLimit` (config) is ≥ 60 per minute; if not, give photos their own limiter: `new RateLimiter(deps.now, 240, 60_000, 'memory-photo', deps.rateStore)`.
@@ -1131,13 +1155,13 @@ Photo requests only use the per-IP limit: a page of 30 thumbnails would otherwis
 Make `GET /v1/c/:token` include the flag:
 
 ```ts
-  app.get('/v1/c/:token', async (c) => {
-    await cardReads.check(`ip:${client(c)}`);
-    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
-    const v = await cardsSvc.get(c.req.param('token'));
-    const memoriesAvailable = v.event ? await memoriesSvc.availableFor(v.event.id) : false;
-    return c.json({ ...v, memoriesAvailable });
-  });
+app.get('/v1/c/:token', async (c) => {
+  await cardReads.check(`ip:${client(c)}`);
+  await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+  const v = await cardsSvc.get(c.req.param('token'));
+  const memoriesAvailable = v.event ? await memoriesSvc.availableFor(v.event.id) : false;
+  return c.json({ ...v, memoriesAvailable });
+});
 ```
 
 - [ ] **Step 7: Run all API tests that touch cards**
@@ -1157,10 +1181,12 @@ git commit -m "feat(api): guests see Kumbukumbu by their card token"
 ### Task 5: Deleting events, erasing accounts, and the staff limit
 
 **Files:**
+
 - Modify: `apps/api/src/services/events.ts` (`remove`), `apps/api/src/services/ops.ts` (`deleteAccount`), `apps/api/src/app.ts`
 - Test: `apps/api/src/memories.test.ts`
 
 **Interfaces:**
+
 - Consumes: `MemoriesService.purgeEvent(eventId)`.
 - Produces: `PATCH /v1/ops/events/:id/memories-limit` body `{ limit: number (1–200), note: string (≥ 3 chars) }` → `{ limit }`, staff permission `plan`, audit action `ops.memories_limit`.
 
@@ -1215,8 +1241,8 @@ Expected: FAIL.
 `EventsService` is constructed before `MemoriesService`, so purge inline instead of creating a cycle. At the end of `EventsService.remove`, before `recordAudit`:
 
 ```ts
-    // Kumbukumbu photos are not needed for billing or PDPA records: delete them now (ADR 050).
-    await new MemoriesService(this.deps, this).purgeEvent(eventId);
+// Kumbukumbu photos are not needed for billing or PDPA records: delete them now (ADR 050).
+await new MemoriesService(this.deps, this).purgeEvent(eventId);
 ```
 
 (import `MemoriesService` from `./memories`; `memories.ts` only imports `EventsService` as a type, so there is no runtime cycle).
@@ -1255,13 +1281,13 @@ In `MemoriesService`:
 (import `requireStaff, type StaffCaller` from `./staff-guard`). Route in `app.ts` next to the other `/v1/ops/events/:id` routes:
 
 ```ts
-  app.patch('/v1/ops/events/:id/memories-limit', async (c) => {
-    const input = parse(
-      z.object({ limit: z.number().int().min(1).max(200), note: z.string() }),
-      await body(c),
-    );
-    return c.json(await memoriesSvc.opsSetLimit(staff(c), idParam(c), input.limit, input.note));
-  });
+app.patch('/v1/ops/events/:id/memories-limit', async (c) => {
+  const input = parse(
+    z.object({ limit: z.number().int().min(1).max(200), note: z.string() }),
+    await body(c),
+  );
+  return c.json(await memoriesSvc.opsSetLimit(staff(c), idParam(c), input.limit, input.note));
+});
 ```
 
 Show and edit the limit on the staff event page: in `apps/web/app/ops/…` find the event detail that renders `opsEventBilling` (search `opsEventBilling` / `ops/billing` in `apps/web`), add a "Kumbukumbu: {count} / {limit}" line and a small form calling a new repository method `opsSetMemoriesLimit(eventId, limit, note)` (add it in Task 7).
@@ -1283,10 +1309,12 @@ git commit -m "feat(api): delete memory photos with the event or account; staff 
 ### Task 6: Sending the link (WhatsApp and SMS) and the share link
 
 **Files:**
+
 - Modify: `packages/messaging/src/index.ts` (`MessageTemplate.kind`), `packages/messaging/src/whatsapp-cloud.ts` (`TemplateNames`), `apps/api/src/config.ts` (template env), `apps/api/src/services/messages.ts` (`composeSms`), `apps/api/src/services/delivery.ts`, `apps/api/src/app.ts`, `.env.example`
 - Test: `apps/api/src/memories.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `DeliveryService.sendMemories(eventId, userId, guestIds: string[] | 'all'): Promise<{ sent: number; failed: number; skipped: number }>`
   - `DeliveryService.memoriesLink(guestId, userId): Promise<{ url: string; waUrl: string | null }>`
@@ -1371,7 +1399,7 @@ Expected: FAIL (404).
 `packages/messaging/src/index.ts`:
 
 ```ts
-  kind: 'invite' | 'reminder' | 'pledge' | 'contribution' | 'memories';
+kind: 'invite' | 'reminder' | 'pledge' | 'contribution' | 'memories';
 ```
 
 and add to the params doc: `memories (both countries): hosts, link.`
@@ -1387,12 +1415,12 @@ and add to the params doc: `memories (both countries): hosts, link.`
 In `apps/api/src/services/messages.ts` `composeSms`, widen the type to `'invite' | 'reminder' | 'contribution' | 'pledge' | 'memories'`. The `key` record needs a `TemplateKey` for each type: add `memoriesSms` to `TemplateKey` (find its definition; it is the key set of `cardContent.messages`) **or** short-circuit before the record, because hosts cannot customise this message in v1:
 
 ```ts
-  if (type === 'memories') {
-    const v = messageVars(i);
-    return i.guest.language === 'sw'
-      ? `${v.hosts} wameshiriki kumbukumbu zao nawe: ${i.link}`
-      : `${v.hosts} shared their memories with you: ${i.link}`;
-  }
+if (type === 'memories') {
+  const v = messageVars(i);
+  return i.guest.language === 'sw'
+    ? `${v.hosts} wameshiriki kumbukumbu zao nawe: ${i.link}`
+    : `${v.hosts} shared their memories with you: ${i.link}`;
+}
 ```
 
 Put this as the first statement of `composeSms` and keep the `key` record typed on the other four types (`Exclude<typeof type, 'memories'>`). Check that `messageVars` returns `hosts`; if it does not, build it with `hostNames(a, b)` as `sendPledgeReminders` does. Keep the result ≤ 160 characters for two short names and a short link; add a unit test in `apps/api/src/memories.test.ts` that composes it for `Asha & Juma` with a 40-character link and asserts `length <= 160`.
@@ -1496,18 +1524,18 @@ Imports to add: `MemoriesService` from `./memories`, `isNotNull` from `drizzle-o
 - [ ] **Step 6: Routes**
 
 ```ts
-  app.post('/v1/events/:id/memories/send', async (c) => {
-    const input = parse(
-      z.object({ guestIds: z.array(z.string().uuid()).max(5000).optional() }),
-      await body(c),
-    );
-    return c.json(
-      await deliverySvc.sendMemories(c.req.param('id'), c.get('userId'), input.guestIds ?? 'all'),
-    );
-  });
-  app.get('/v1/guests/:gid/memories-link', async (c) =>
-    c.json(await deliverySvc.memoriesLink(c.req.param('gid'), c.get('userId'))),
+app.post('/v1/events/:id/memories/send', async (c) => {
+  const input = parse(
+    z.object({ guestIds: z.array(z.string().uuid()).max(5000).optional() }),
+    await body(c),
   );
+  return c.json(
+    await deliverySvc.sendMemories(c.req.param('id'), c.get('userId'), input.guestIds ?? 'all'),
+  );
+});
+app.get('/v1/guests/:gid/memories-link', async (c) =>
+  c.json(await deliverySvc.memoriesLink(c.req.param('gid'), c.get('userId'))),
+);
 ```
 
 Make sure the request logger does not log this response body (it logs route patterns only; check `observability.ts`).
@@ -1529,10 +1557,12 @@ git commit -m "feat(api): send each guest their Kumbukumbu link by WhatsApp or S
 ### Task 7: API client (types, HTTP, mock)
 
 **Files:**
+
 - Modify: `packages/api-client/src/types.ts`, `repository.ts`, `http-repository.ts`, `mock/mock-repository.ts`, `mock/state.ts`
 - Test: `packages/api-client/src/mock/mock-repository.test.ts`
 
 **Interfaces:**
+
 - Produces (on `Repository`):
 
 ```ts
@@ -1574,7 +1604,7 @@ export interface GuestMemoriesView {
 }
 ```
 
-  and add `memoriesAvailable: boolean` to `CardView` and `memoriesEnabled: boolean` to the event type used by the console (`WeddingEvent`; map it in the HTTP event mapper with `?? true`).
+and add `memoriesAvailable: boolean` to `CardView` and `memoriesEnabled: boolean` to the event type used by the console (`WeddingEvent`; map it in the HTTP event mapper with `?? true`).
 
 - [ ] **Step 1: Write the failing mock test**
 
@@ -1663,6 +1693,7 @@ git commit -m "feat(api-client): Kumbukumbu methods for console, app and guest p
 ### Task 8: Strings
 
 **Files:**
+
 - Modify: `packages/i18n/src/sw.json`, `packages/i18n/src/en.json` (and the matching `packages/i18n/fragments/*.json` if `merge.py` builds the src files from fragments: read `packages/i18n/merge.py` first and edit the fragments, then run it)
 - Test: `packages/i18n/src/index.test.ts` (existing key-parity test)
 
@@ -1773,12 +1804,14 @@ git commit -m "feat(i18n): Kumbukumbu strings in Swahili and English"
 ### Task 9: Guest page and short link (web)
 
 **Files:**
+
 - Modify: `apps/web/src/lib/light-card/render.ts` (export `shell`, `esc`, `langChip`, `brandLogo`, `icon`, `type Msg`; add the card's Kumbukumbu button)
 - Create: `apps/web/src/lib/light-card/memories.ts`, `apps/web/src/lib/light-card/memories.test.ts`
 - Create: `apps/web/app/c/[token]/kumbukumbu/route.ts`, `apps/web/app/s/[code]/k/page.tsx`
 - Modify: `apps/web/src/lib/server-mock.ts` (`peekGuestMemoriesOnServer`), the card service worker (search `apps/web/public` for the card SW) to cache `/c/*/kumbukumbu` and thumbnails, `apps/web/app/dev/states` (add the three states)
 
 **Interfaces:**
+
 - Consumes: `GuestMemoriesView`, `CardView.memoriesAvailable` (Task 7); strings (Task 8).
 - Produces: `renderMemories(view: GuestMemoriesView, o: LightCardOptions): string`; `renderMemoriesUnavailable(o): string`.
 
@@ -1791,13 +1824,26 @@ import { describe, expect, it } from 'vitest';
 import { renderMemories, renderMemoriesUnavailable } from './memories';
 import { sampleCard } from './render.test'; // or the fixture used there
 
-const base = { token: 'tok123', locale: 'sw' as const, domain: 'kadisasa.com', mode: 'api' as const, apiUrl: 'https://api.example' };
+const base = {
+  token: 'tok123',
+  locale: 'sw' as const,
+  domain: 'kadisasa.com',
+  mode: 'api' as const,
+  apiUrl: 'https://api.example',
+};
 
 describe('renderMemories', () => {
   const view = {
     card: sampleCard(),
     memories: [
-      { id: 'm1', caption: 'Tulipokutana <b>', takenOn: '2019-03-02', sortOrder: 0, width: 1280, height: 853 },
+      {
+        id: 'm1',
+        caption: 'Tulipokutana <b>',
+        takenOn: '2019-03-02',
+        sortOrder: 0,
+        width: 1280,
+        height: 853,
+      },
       { id: 'm2', caption: null, takenOn: null, sortOrder: 1, width: 853, height: 1280 },
     ],
   };
@@ -1885,9 +1931,7 @@ export function renderMemories(view: GuestMemoriesView, o: LightCardOptions): st
     `${o.apiUrl}/v1/c/${encodeURIComponent(o.token)}/memories/${encodeURIComponent(id)}/${size}`;
   const items = view.memories
     .map((x) => {
-      const alt = x.caption
-        ? formatIcu(t.photoAlt!, { caption: x.caption })
-        : t.photoAltNoCaption!;
+      const alt = x.caption ? formatIcu(t.photoAlt!, { caption: x.caption }) : t.photoAltNoCaption!;
       return `<li><figure>${x.takenOn ? `<time datetime="${esc(x.takenOn)}">${esc(dateText(x.takenOn, o.locale))}</time>` : ''}
 <a href="${esc(photo(x.id, 'full'))}" data-full><img src="${esc(photo(x.id, 'thumb'))}" alt="${esc(alt)}" width="${x.width}" height="${x.height}" loading="lazy" decoding="async"></a>
 ${x.caption ? `<figcaption>${esc(x.caption)}</figcaption>` : ''}</figure></li>`;
@@ -1931,7 +1975,11 @@ If `shell` only accepts its own CSS, inline `CSS` through the `head` option as s
 `apps/web/app/c/[token]/kumbukumbu/route.ts` (copy `localeOf`, `html`, branding and `API_URL` from `apps/web/app/c/[token]/route.ts`; extract them into `apps/web/src/lib/light-card/route-utils.ts` and import from both so they are not duplicated):
 
 ```ts
-import { createHttpRepository, isRepositoryError, type GuestMemoriesView } from '@harusi/api-client';
+import {
+  createHttpRepository,
+  isRepositoryError,
+  type GuestMemoriesView,
+} from '@harusi/api-client';
 import { APP_DOMAIN, USE_MOCKS } from '@/lib/env';
 import { peekGuestMemoriesOnServer } from '@/lib/server-mock';
 import { renderProblem } from '@/lib/light-card/render';
@@ -1952,10 +2000,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
       : await createHttpRepository(API_URL).getGuestMemories(token);
   } catch (e) {
     const code = isRepositoryError(e) ? e.code : 'server';
-    const reason = isRepositoryError(e) ? (e.details as { reason?: string } | undefined)?.reason : undefined;
+    const reason = isRepositoryError(e)
+      ? (e.details as { reason?: string } | undefined)?.reason
+      : undefined;
     if (code === 'reissued') return html(renderProblem('reissued', base));
     if (reason === 'memories_unavailable') return html(renderMemoriesUnavailable(base), 404);
-    if (code === 'not_found' || code === 'invalid_token') return html(renderProblem('invalid', base), 404);
+    if (code === 'not_found' || code === 'invalid_token')
+      return html(renderProblem('invalid', base), 404);
     return html(renderProblem('error', base), 503);
   }
   return html(
@@ -2012,11 +2063,13 @@ git commit -m "feat(web): guest Kumbukumbu page, SMS short link and card button"
 ### Task 10: Console screen, share button and send option (web)
 
 **Files:**
+
 - Create: `apps/web/app/app/e/[id]/kumbukumbu/page.tsx`, `apps/web/src/components/console/memory-photo.tsx`
 - Modify: `apps/web/src/components/console/shell.tsx` (nav item), `apps/web/src/lib/queries.ts` (`qk.memories`), `apps/web/app/app/e/[id]/guests/[gid]/page.tsx` (share button), `apps/web/app/app/e/[id]/send/page.tsx` (Kumbukumbu option), `apps/web/app/app/e/[id]/settings/page.tsx` (on/off switch)
 - Test: `apps/web/e2e/console-memories.spec.ts`
 
 **Interfaces:**
+
 - Consumes: repository methods from Task 7, strings from Task 8.
 
 - [ ] **Step 1: Nav item**
@@ -2117,7 +2170,10 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
   const t = useTranslations('memories');
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: qk.memories(id), queryFn: () => getRepository().listMemories(id) });
+  const q = useQuery({
+    queryKey: qk.memories(id),
+    queryFn: () => getRepository().listMemories(id),
+  });
   const refresh = () => qc.invalidateQueries({ queryKey: qk.memories(id) });
   const file = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState('');
@@ -2126,7 +2182,9 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
   const [deleting, setDeleting] = useState<Memory | null>(null);
 
   const errorText = (e: unknown) => {
-    const reason = isRepositoryError(e) ? (e.details as { reason?: string } | undefined)?.reason : undefined;
+    const reason = isRepositoryError(e)
+      ? (e.details as { reason?: string } | undefined)?.reason
+      : undefined;
     if (reason === 'invalid_image') return t('invalidImage');
     if (reason === 'too_large') return t('tooLarge');
     if (reason === 'quota_exceeded') return t('full', { limit: q.data?.limit ?? 30 });
@@ -2191,8 +2249,18 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
             <div className="space-y-6">
               <Card className="space-y-4 p-4">
                 <p className="text-muted">{t('count', { count: v.count, limit: v.limit })}</p>
-                <TextField label={t('caption')} value={caption} maxLength={140} onChange={(e) => setCaption(e.target.value)} />
-                <TextField label={t('takenOn')} type="date" value={takenOn} onChange={(e) => setTakenOn(e.target.value)} />
+                <TextField
+                  label={t('caption')}
+                  value={caption}
+                  maxLength={140}
+                  onChange={(e) => setCaption(e.target.value)}
+                />
+                <TextField
+                  label={t('takenOn')}
+                  type="date"
+                  value={takenOn}
+                  onChange={(e) => setTakenOn(e.target.value)}
+                />
                 <input
                   ref={file}
                   type="file"
@@ -2211,7 +2279,9 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                 >
                   <ImagePlus aria-hidden="true" /> {add.isPending ? t('uploading') : t('add')}
                 </Button>
-                {v.count >= v.limit && <p className="text-warning">{t('full', { limit: v.limit })}</p>}
+                {v.count >= v.limit && (
+                  <p className="text-warning">{t('full', { limit: v.limit })}</p>
+                )}
               </Card>
               {v.memories.length === 0 ? (
                 <EmptyState icon={<ImagePlus aria-hidden="true" />} title={t('empty')} />
@@ -2230,10 +2300,20 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                         {m.takenOn && <p className="text-sm text-muted">{m.takenOn}</p>}
                         {m.caption && <p>{m.caption}</p>}
                         <div className="flex flex-wrap gap-2">
-                          <Button variant="ghost" aria-label={t('moveUp')} disabled={i === 0} onClick={() => move.mutate({ a: m, b: v.memories[i - 1]! })}>
+                          <Button
+                            variant="ghost"
+                            aria-label={t('moveUp')}
+                            disabled={i === 0}
+                            onClick={() => move.mutate({ a: m, b: v.memories[i - 1]! })}
+                          >
                             <ArrowUp aria-hidden="true" />
                           </Button>
-                          <Button variant="ghost" aria-label={t('moveDown')} disabled={i === v.memories.length - 1} onClick={() => move.mutate({ a: m, b: v.memories[i + 1]! })}>
+                          <Button
+                            variant="ghost"
+                            aria-label={t('moveDown')}
+                            disabled={i === v.memories.length - 1}
+                            onClick={() => move.mutate({ a: m, b: v.memories[i + 1]! })}
+                          >
                             <ArrowDown aria-hidden="true" />
                           </Button>
                           <Button variant="secondary" onClick={() => setEditing(m)}>
@@ -2245,9 +2325,25 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                         </div>
                         {editing?.id === m.id && (
                           <div className="space-y-2">
-                            <TextField label={t('caption')} value={editing.caption ?? ''} maxLength={140} onChange={(e) => setEditing({ ...editing, caption: e.target.value || null })} />
-                            <TextField label={t('takenOn')} type="date" value={editing.takenOn ?? ''} onChange={(e) => setEditing({ ...editing, takenOn: e.target.value || null })} />
-                            <Button onClick={() => save.mutate(editing)} loading={save.isPending}>{t('save')}</Button>
+                            <TextField
+                              label={t('caption')}
+                              value={editing.caption ?? ''}
+                              maxLength={140}
+                              onChange={(e) =>
+                                setEditing({ ...editing, caption: e.target.value || null })
+                              }
+                            />
+                            <TextField
+                              label={t('takenOn')}
+                              type="date"
+                              value={editing.takenOn ?? ''}
+                              onChange={(e) =>
+                                setEditing({ ...editing, takenOn: e.target.value || null })
+                              }
+                            />
+                            <Button onClick={() => save.mutate(editing)} loading={save.isPending}>
+                              {t('save')}
+                            </Button>
                           </div>
                         )}
                       </Card>
@@ -2263,7 +2359,11 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
         open={!!deleting}
         onClose={() => setDeleting(null)}
         title={t('delete')}
-        body={deleting?.caption ? t('deleteConfirm', { caption: deleting.caption }) : t('deleteConfirmNoCaption')}
+        body={
+          deleting?.caption
+            ? t('deleteConfirm', { caption: deleting.caption })
+            : t('deleteConfirmNoCaption')
+        }
         confirmLabel={t('delete')}
         tone="danger"
         loading={remove.isPending}
@@ -2307,6 +2407,7 @@ git commit -m "feat(web): Kumbukumbu in the console, WhatsApp share and send opt
 ### Task 11: Mobile app screen and share
 
 **Files:**
+
 - Create: `apps/mobile/app/(app)/event/[id]/memories.tsx`
 - Modify: `apps/mobile/package.json` (`expo-image-picker`), `apps/mobile/app.json` or `app.config.ts` (photo permission text), `apps/mobile/src/lib/queries.ts` (`useMemories`, `useAddMemory`, `useUpdateMemory`, `useDeleteMemory`), `apps/mobile/app/(app)/event/[id]/(tabs)/index.tsx` (entry row on Overview), `apps/mobile/app/(app)/event/[id]/guest/[gid].tsx` (share button), `apps/mobile/src/lib/i18n.tsx` if it picks namespaces
 - Test: `apps/mobile/src/__tests__/memories.test.tsx`
@@ -2316,7 +2417,10 @@ git commit -m "feat(web): Kumbukumbu in the console, WhatsApp share and send opt
 Run: `pnpm --filter mobile exec expo install expo-image-picker` (check the package name of the mobile app in `apps/mobile/package.json`). In the Expo config plugins add:
 
 ```json
-["expo-image-picker", { "photosPermission": "Kadi Sasa inahitaji picha zako ili uweke kumbukumbu za harusi." }]
+[
+  "expo-image-picker",
+  { "photosPermission": "Kadi Sasa inahitaji picha zako ili uweke kumbukumbu za harusi." }
+]
 ```
 
 No camera permission is needed: we only pick from the gallery.
@@ -2325,7 +2429,10 @@ No camera permission is needed: we only pick from the gallery.
 
 ```ts
 export function useMemories(eventId: string) {
-  return useQuery({ queryKey: ['memories', eventId], queryFn: () => getRepository().listMemories(eventId) });
+  return useQuery({
+    queryKey: ['memories', eventId],
+    queryFn: () => getRepository().listMemories(eventId),
+  });
 }
 export function useAddMemory(eventId: string) {
   const qc = useQueryClient();
@@ -2338,8 +2445,12 @@ export function useAddMemory(eventId: string) {
 export function useUpdateMemory(eventId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: string; caption?: string | null; takenOn?: string | null; sortOrder?: number }) =>
-      getRepository().updateMemory(v.id, v),
+    mutationFn: (v: {
+      id: string;
+      caption?: string | null;
+      takenOn?: string | null;
+      sortOrder?: number;
+    }) => getRepository().updateMemory(v.id, v),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['memories', eventId] }),
   });
 }
@@ -2364,10 +2475,24 @@ import { Image, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useGlobalSearchParams } from 'expo-router';
 import type { Memory } from '@harusi/api-client';
-import { useAddMemory, useDeleteMemory, useMemories, useUpdateMemory } from '../../../../src/lib/queries';
+import {
+  useAddMemory,
+  useDeleteMemory,
+  useMemories,
+  useUpdateMemory,
+} from '../../../../src/lib/queries';
 import { useT } from '../../../../src/lib/i18n';
 import { AppHeader } from '../../../../src/ui/header';
-import { Banner, Button, ConfirmSheet, ErrorState, Field, Screen, Skeleton, Txt } from '../../../../src/ui/kit';
+import {
+  Banner,
+  Button,
+  ConfirmSheet,
+  ErrorState,
+  Field,
+  Screen,
+  Skeleton,
+  Txt,
+} from '../../../../src/ui/kit';
 import { MemoryThumb } from '../../../../src/ui/memory-thumb';
 
 /** Kumbukumbu (ADR 050): add, caption, reorder and delete the couple's photos. */
@@ -2408,8 +2533,20 @@ export default function Memories() {
     );
   }
 
-  if (q.isLoading) return <Screen><AppHeader title={t('memories.title')} /><Skeleton height={240} /></Screen>;
-  if (q.isError || !q.data) return <Screen><AppHeader title={t('memories.title')} /><ErrorState onRetry={() => q.refetch()} /></Screen>;
+  if (q.isLoading)
+    return (
+      <Screen>
+        <AppHeader title={t('memories.title')} />
+        <Skeleton height={240} />
+      </Screen>
+    );
+  if (q.isError || !q.data)
+    return (
+      <Screen>
+        <AppHeader title={t('memories.title')} />
+        <ErrorState onRetry={() => q.refetch()} />
+      </Screen>
+    );
   const v = q.data;
   if (!v.unlocked)
     return (
@@ -2417,15 +2554,28 @@ export default function Memories() {
         <AppHeader title={t('memories.title')} />
         <Txt variant="title">{t('memories.lockedTitle')}</Txt>
         <Txt>{t('memories.lockedBody')}</Txt>
-        <Button onPress={() => router.push(`/event/${id}/karibu`)}>{t('memories.lockedCta')}</Button>
+        <Button onPress={() => router.push(`/event/${id}/karibu`)}>
+          {t('memories.lockedCta')}
+        </Button>
       </Screen>
     );
   return (
     <Screen scroll>
       <AppHeader title={t('memories.title')} />
       <Txt muted>{t('memories.count', { count: v.count, limit: v.limit })}</Txt>
-      <Field label={t('memories.caption')} value={caption} onChangeText={setCaption} maxLength={140} />
-      <Field label={t('memories.takenOn')} value={takenOn} onChangeText={setTakenOn} placeholder="2019-03-02" keyboardType="numbers-and-punctuation" />
+      <Field
+        label={t('memories.caption')}
+        value={caption}
+        onChangeText={setCaption}
+        maxLength={140}
+      />
+      <Field
+        label={t('memories.takenOn')}
+        value={takenOn}
+        onChangeText={setTakenOn}
+        placeholder="2019-03-02"
+        keyboardType="numbers-and-punctuation"
+      />
       {err && <Banner tone="danger">{err}</Banner>}
       <Button onPress={pick} loading={add.isPending} disabled={v.count >= v.limit}>
         {add.isPending ? t('memories.uploading') : t('memories.add')}
@@ -2439,11 +2589,33 @@ export default function Memories() {
             {m.takenOn ? <Txt muted>{m.takenOn}</Txt> : null}
             {m.caption ? <Txt>{m.caption}</Txt> : null}
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <Button variant="ghost" accessibilityLabel={t('memories.moveUp')} disabled={i === 0}
-                onPress={() => { const o = v.memories[i - 1]!; update.mutate({ id: m.id, sortOrder: o.sortOrder }); update.mutate({ id: o.id, sortOrder: m.sortOrder }); }}>↑</Button>
-              <Button variant="ghost" accessibilityLabel={t('memories.moveDown')} disabled={i === v.memories.length - 1}
-                onPress={() => { const o = v.memories[i + 1]!; update.mutate({ id: m.id, sortOrder: o.sortOrder }); update.mutate({ id: o.id, sortOrder: m.sortOrder }); }}>↓</Button>
-              <Button variant="danger" onPress={() => setDeleting(m)}>{t('memories.delete')}</Button>
+              <Button
+                variant="ghost"
+                accessibilityLabel={t('memories.moveUp')}
+                disabled={i === 0}
+                onPress={() => {
+                  const o = v.memories[i - 1]!;
+                  update.mutate({ id: m.id, sortOrder: o.sortOrder });
+                  update.mutate({ id: o.id, sortOrder: m.sortOrder });
+                }}
+              >
+                ↑
+              </Button>
+              <Button
+                variant="ghost"
+                accessibilityLabel={t('memories.moveDown')}
+                disabled={i === v.memories.length - 1}
+                onPress={() => {
+                  const o = v.memories[i + 1]!;
+                  update.mutate({ id: m.id, sortOrder: o.sortOrder });
+                  update.mutate({ id: o.id, sortOrder: m.sortOrder });
+                }}
+              >
+                ↓
+              </Button>
+              <Button variant="danger" onPress={() => setDeleting(m)}>
+                {t('memories.delete')}
+              </Button>
             </View>
           </View>
         ))
@@ -2451,10 +2623,16 @@ export default function Memories() {
       <ConfirmSheet
         visible={!!deleting}
         title={t('memories.delete')}
-        body={deleting?.caption ? t('memories.deleteConfirm', { caption: deleting.caption }) : t('memories.deleteConfirmNoCaption')}
+        body={
+          deleting?.caption
+            ? t('memories.deleteConfirm', { caption: deleting.caption })
+            : t('memories.deleteConfirmNoCaption')
+        }
         confirmLabel={t('memories.delete')}
         onCancel={() => setDeleting(null)}
-        onConfirm={() => deleting && del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
+        onConfirm={() =>
+          deleting && del.mutate(deleting.id, { onSuccess: () => setDeleting(null) })
+        }
       />
     </Screen>
   );
@@ -2487,6 +2665,7 @@ git commit -m "feat(mobile): Kumbukumbu screen and WhatsApp share from guest det
 ### Task 12: ADR, privacy, operations notes, full check
 
 **Files:**
+
 - Create: `docs/adr/050-memories-page.md`
 - Modify: the privacy page source (search `apps/web/app/(public)/privacy` or `apps/web/src/content` for the policy text), `infra/coolify/` deploy notes (volume and backup), `CLAUDE.md` §17.8 guest routes list (add `/c/[token]/kumbukumbu`, `/s/[code]/k`)
 

@@ -41,7 +41,8 @@ export function LanguageChip({
           type="button"
           lang={l}
           aria-pressed={l === locale}
-          aria-label={t('switchTo', { lang: t(`languageName.${l}`) })}
+          // The visible code leads the name, so speech input ("click SW") finds the button.
+          aria-label={`${l.toUpperCase()}: ${t('switchTo', { lang: t(`languageName.${l}`) })}`}
           onClick={() => choose(l)}
           className={cn(
             'min-h-10 min-w-11 rounded-full px-2.5 uppercase',

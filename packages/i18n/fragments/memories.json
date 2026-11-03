@@ -43,7 +43,16 @@
       "photoAltNoCaption": "Picha ya kumbukumbu",
       "close": "Funga",
       "limitLabel": "Kikomo cha picha",
-      "limitSaved": "Kikomo kimehifadhiwa"
+      "limitSaved": "Kikomo kimehifadhiwa",
+      "chooseMany": "Chagua picha moja au zaidi. Kisha andika maelezo na tarehe kwa kila picha kabla ya kuzipakia.",
+      "draftTitle": "Picha mpya",
+      "uploadAll": "{count, plural, one {Pakia picha #} other {Pakia picha #}}",
+      "removeDraft": "Ondoa picha hii",
+      "tooMany": "Nafasi imebaki kwa picha {count} tu, kwa hiyo picha za ziada hazikuchaguliwa.",
+      "uploadedCount": "{count, plural, one {Picha # imepakiwa} other {Picha # zimepakiwa}}",
+      "dateFormat": "Andika tarehe kama 2019-03-02",
+      "editCaption": "Badilisha maelezo",
+      "sendShort": "Tuma kwa wageni"
     }
   },
   "en": {
@@ -90,7 +99,16 @@
       "photoAltNoCaption": "Memory photo",
       "close": "Close",
       "limitLabel": "Photo limit",
-      "limitSaved": "Limit saved"
+      "limitSaved": "Limit saved",
+      "chooseMany": "Choose one or more photos. Then add a caption and date to each before uploading.",
+      "draftTitle": "New photos",
+      "uploadAll": "{count, plural, one {Upload # photo} other {Upload # photos}}",
+      "removeDraft": "Remove this photo",
+      "tooMany": "There is room for only {count} more, so the extra photos were left out.",
+      "uploadedCount": "{count, plural, one {# photo uploaded} other {# photos uploaded}}",
+      "dateFormat": "Write the date like 2019-03-02",
+      "editCaption": "Edit caption",
+      "sendShort": "Send to guests"
     }
   }
 }

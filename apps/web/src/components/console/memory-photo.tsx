@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getRepository } from '@/lib/repo';
 
-/** A Kumbukumbu thumbnail for the console: the API needs the Bearer token, so it is fetched as a blob. */
+/** A Kumbukumbu photo (640 px) for the console: the API needs the Bearer token, so it is fetched as a blob. */
 export function MemoryPhoto({
   eventId,
   memoryId,
@@ -22,7 +22,7 @@ export function MemoryPhoto({
     let url: string | null = null;
     let live = true;
     getRepository()
-      .fetchMemoryPhoto(eventId, memoryId, 'thumb')
+      .fetchMemoryPhoto(eventId, memoryId, 'medium')
       .then((b) => {
         if (!live) return;
         url = URL.createObjectURL(b);

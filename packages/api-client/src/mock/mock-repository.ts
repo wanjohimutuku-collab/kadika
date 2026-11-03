@@ -95,6 +95,7 @@ import type {
   MemoriesAdminView,
   Memory,
   MemoryUpload,
+  MemoryPhotoSize,
 } from '../types';
 import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
@@ -2391,7 +2392,7 @@ export class MockRepository implements Repository {
     });
   }
 
-  fetchMemoryPhoto(_eventId: string, memoryId: string, _size?: 'thumb' | 'full'): Promise<Blob> {
+  fetchMemoryPhoto(_eventId: string, memoryId: string, _size?: MemoryPhotoSize): Promise<Blob> {
     return this.run('read', 'memory-photo', () => {
       const blob = this.memoryBlobs.get(memoryId);
       if (blob) return blob;

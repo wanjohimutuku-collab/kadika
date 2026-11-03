@@ -407,6 +407,9 @@ export interface GuestMemoriesView {
   memories: Memory[];
 }
 
+/** 320 px for lists, 640 px shown inline (sharp on 2× screens), 1280 px for the full view. */
+export type MemoryPhotoSize = 'thumb' | 'medium' | 'full';
+
 /** A photo to upload: a Blob on the web, a file reference from the React Native image picker. */
 export type MemoryUpload = Blob | { uri: string; name: string; type: string };
 

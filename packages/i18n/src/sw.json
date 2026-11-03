@@ -2295,7 +2295,16 @@
     "photoAltNoCaption": "Picha ya kumbukumbu",
     "close": "Funga",
     "limitLabel": "Kikomo cha picha",
-    "limitSaved": "Kikomo kimehifadhiwa"
+    "limitSaved": "Kikomo kimehifadhiwa",
+    "chooseMany": "Chagua picha moja au zaidi. Kisha andika maelezo na tarehe kwa kila picha kabla ya kuzipakia.",
+    "draftTitle": "Picha mpya",
+    "uploadAll": "{count, plural, one {Pakia picha #} other {Pakia picha #}}",
+    "removeDraft": "Ondoa picha hii",
+    "tooMany": "Nafasi imebaki kwa picha {count} tu, kwa hiyo picha za ziada hazikuchaguliwa.",
+    "uploadedCount": "{count, plural, one {Picha # imepakiwa} other {Picha # zimepakiwa}}",
+    "dateFormat": "Andika tarehe kama 2019-03-02",
+    "editCaption": "Badilisha maelezo",
+    "sendShort": "Tuma kwa wageni"
   },
   "contacts": {
     "sourcesTitle": "Anwani zako ziko wapi?",

@@ -12,6 +12,10 @@ export function GET() {
 
 - [Home (Kiswahili)](${u('/')}): what Kadi Sasa does, in 10 seconds
 - [Home (English)](${u('/en')}): the same in English
+- [Digital wedding cards](${u('/kadi-ya-harusi-mtandaoni')}): what an online wedding card is and how it reaches every guest
+- [Guests without smartphones](${u('/kadi-ya-harusi-bila-smartphone')}): SMS with a short number, paper card, gate lookup by name
+- [Is a digital card safe?](${u('/usalama-wa-kadi-za-mtandaoni')}): how to tell a real card from a scam
+- [FAQ](${u('/maswali')}): cost, delivery, contributions, the gate and guest data
 - [Pricing](${u(PRICING_PATH)}): per-card prices in TZS, free cards to start
 - [Gate check-in](${u('/lango-la-harusi-qr')}): offline QR scanning at the entrance
 - [Michango](${u('/michango-ya-harusi')}): pledges vs paid per guest, treasurer report; money goes straight to the hosts

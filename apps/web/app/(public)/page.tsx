@@ -5,7 +5,7 @@ import type { Locale } from '@harusi/i18n';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { HomePage } from '@/components/site/home-page';
 import { homeCopy } from '@/content/home';
-import { SITE_URL, absoluteLocaleUrl } from '@/lib/seo';
+import { SITE_URL, absoluteLocaleUrl, ogImages } from '@/lib/seo';
 import { getPricingOnServer } from '@/lib/server-pricing';
 
 /** `/` is Swahili, `/en` English (the middleware rewrites `/en` here). */
@@ -22,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: c.description,
       locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
       url: absoluteLocaleUrl('/', locale),
+      images: ogImages(locale),
     },
   };
 }

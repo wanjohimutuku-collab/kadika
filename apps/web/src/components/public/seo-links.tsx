@@ -2,8 +2,8 @@ import type { Locale } from '@harusi/i18n';
 import { absoluteLocaleUrl, hreflangMap } from '@/lib/seo';
 
 /**
- * Canonical and hreflang links. Next's `metadata.alternates` drops query strings, and language URLs
- * here are `?lang=`, so these are rendered directly (React hoists `<link>` into the head).
+ * Canonical and hreflang links, rendered directly (React hoists `<link>` into the head) so every page
+ * builds them the same way from its route path.
  */
 export function SeoLinks({
   path,

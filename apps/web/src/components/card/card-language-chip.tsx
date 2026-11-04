@@ -33,10 +33,10 @@ export function CardLanguageChip() {
           type="button"
           lang={l}
           aria-pressed={l === locale}
-          aria-label={t('switchTo', { lang: t(`languageName.${l}`) })}
+          aria-label={`${l.toUpperCase()}, ${t('switchTo', { lang: t(`languageName.${l}`) })}`}
           onClick={() => choose(l)}
           className={cn(
-            'min-h-10 min-w-11 rounded-full px-2.5 uppercase',
+            'min-h-11 min-w-11 rounded-full px-2.5 uppercase',
             l === locale ? 'bg-primary text-on-primary' : 'text-muted hover:text-ink',
           )}
         >

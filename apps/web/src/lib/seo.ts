@@ -1,5 +1,6 @@
-import { defaultLocale, type Locale } from '@harusi/i18n';
+import type { Locale } from '@harusi/i18n';
 import { APP_DOMAIN } from './env';
+import { enPath } from './site-locale';
 
 /** Public origin used for canonical URLs, hreflang, the sitemap and structured data. */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${APP_DOMAIN}`).replace(
@@ -14,41 +15,45 @@ export function marketOfPath(path: string): Market {
   return path === '/ke' || path.startsWith('/ke/') ? 'ke' : 'tz';
 }
 
-/** English is the default everywhere; Swahili is one tap away. */
-export function defaultLocaleFor(_market: Market): Locale {
-  return defaultLocale;
+/** Swahili on Tanzania pages (the root), English on Kenya pages (kit sitemap.md). */
+export function defaultLocaleFor(market: Market): Locale {
+  return market === 'ke' ? 'en' : 'sw';
 }
 
-/** The default language has the clean URL; the other one is `?lang=`. */
+/** Kenya pages are English only; Swahili may not be served there. */
+export function localesFor(market: Market): readonly Locale[] {
+  return market === 'ke' ? ['en'] : ['sw', 'en'];
+}
+
+/**
+ * The URL of a site page in a language. Tanzania: Swahili at the plain path, English under `/en`.
+ * Kenya: always the plain `/ke` path.
+ */
 export function localeUrl(path: string, locale: Locale): string {
-  return locale === defaultLocaleFor(marketOfPath(path)) ? path : `${path}?lang=${locale}`;
+  if (marketOfPath(path) === 'ke' || locale === 'sw') return path;
+  return enPath(path);
 }
 
-/** Absolute form for metadata: relative URLs lose their query string when Next resolves them. */
 export function absoluteLocaleUrl(path: string, locale: Locale): string {
   return `${SITE_URL}${localeUrl(path, locale)}`;
 }
 
 /**
- * hreflang for one page. Pages with a counterpart in the other market get region-specific codes
- * (sw-TZ, en-TZ, sw-KE, en-KE); Tanzania-only pages use plain sw and en; Kenya-only pages use
- * en-KE and sw-KE.
+ * hreflang for one page: `sw-TZ` and `en-TZ` for a Tanzania page, `en-KE` for a Kenya page, both
+ * markets when the page has a same-topic counterpart. `x-default` is the Tanzania Swahili page, or
+ * the Kenya page when there is no Tanzania one.
  */
 export function hreflangMap(path: string, counterpartPath?: string): Record<string, string> {
   const abs = absoluteLocaleUrl;
   const market = marketOfPath(path);
-  if (!counterpartPath) {
-    return market === 'tz'
-      ? { sw: abs(path, 'sw'), en: abs(path, 'en'), 'x-default': abs(path, 'en') }
-      : { 'en-KE': abs(path, 'en'), 'sw-KE': abs(path, 'sw'), 'x-default': abs(path, 'en') };
-  }
   const tz = market === 'tz' ? path : counterpartPath;
   const ke = market === 'ke' ? path : counterpartPath;
-  return {
-    'sw-TZ': abs(tz, 'sw'),
-    'en-TZ': abs(tz, 'en'),
-    'sw-KE': abs(ke, 'sw'),
-    'en-KE': abs(ke, 'en'),
-    'x-default': abs(tz, 'en'),
-  };
+  const map: Record<string, string> = {};
+  if (tz) {
+    map['sw-TZ'] = abs(tz, 'sw');
+    map['en-TZ'] = abs(tz, 'en');
+  }
+  if (ke) map['en-KE'] = abs(ke, 'en');
+  map['x-default'] = tz ? abs(tz, 'sw') : abs(ke!, 'en');
+  return map;
 }

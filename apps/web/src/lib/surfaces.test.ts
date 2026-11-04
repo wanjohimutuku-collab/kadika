@@ -199,7 +199,7 @@ describe('middleware with a root domain set', () => {
     );
   });
 
-  it('does not redirect what a host serves, and still handles ?lang= and /ke', async () => {
+  it('does not redirect what a host serves, and handles /en, the old ?lang= and /ke', async () => {
     const mw = await load(ROOT);
     for (const [host, path] of [
       ['kadisasa.com', '/'],
@@ -208,8 +208,14 @@ describe('middleware with a root domain set', () => {
       ['my.kadisasa.com', '/ops'],
     ] as const)
       expect(mw(req(host, path)).headers.get('location'), `${host}${path}`).toBeNull();
-    const lang = mw(req('kadisasa.com', '/?lang=en'));
-    expect(lang.headers.get('x-middleware-request-x-hp-lang')).toBe('en');
+    const legacy = mw(req('kadisasa.com', '/?lang=en'));
+    expect(legacy.status).toBe(301);
+    expect(legacy.headers.get('location')).toBe('https://kadisasa.com/en');
+    const en = mw(req('kadisasa.com', '/en/bei'));
+    expect(en.headers.get('x-middleware-request-x-hp-lang')).toBe('en');
+    expect(en.headers.get('x-middleware-rewrite')).toMatch(/\/bei$/);
+    const sw = mw(req('kadisasa.com', '/bei'));
+    expect(sw.headers.get('x-middleware-request-x-hp-lang')).toBe('sw');
     const ke = mw(req('kadisasa.com', '/ke/harusi'));
     expect(ke.headers.get('x-middleware-request-x-hp-market')).toBe('ke');
   });

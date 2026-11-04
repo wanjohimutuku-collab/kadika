@@ -107,7 +107,7 @@ h2{font-size:18px;font-weight:600}
 .btn.block{width:100%}
 .btn.primary{background:var(--hp-primary);border-color:var(--hp-primary);color:var(--hp-on-primary)}
 .btn.accent{background:var(--surface);border:2px solid var(--hp-primary);color:var(--hp-primary)}
-.btn.ghost{border-color:transparent;min-height:40px}
+.btn.ghost{border-color:transparent;min-height:44px}
 .btn.lg{min-height:56px;font-size:18px}
 .btn:focus-visible,a:focus-visible{outline:3px solid var(--info);outline-offset:2px}
 .row{display:flex;align-items:flex-start;gap:12px}
@@ -138,10 +138,10 @@ h2{font-size:18px;font-weight:600}
 .problem h1{font-size:24px}
 footer{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 20px;font-size:14px;background:var(--bg)}
 footer nav{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center}
-footer nav a{min-height:40px;display:inline-flex;align-items:center}
+footer nav a{min-height:44px;display:inline-flex;align-items:center}
 .brand{display:inline-flex;align-items:center;min-height:40px;margin-bottom:4px}
 .lang{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
-.lang button{min-height:40px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
+.lang button{min-height:44px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
 .lang button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
 .msg{display:flex;flex-direction:column;gap:8px}
 .prog{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
@@ -187,7 +187,7 @@ export function langChip(locale: Locale): string {
   const common = messages[locale].common as unknown as Record<string, unknown>;
   const names = common.languageName as Record<Locale, string>;
   const b = (l: Locale) =>
-    `<button type="button" data-lang="${l}" aria-pressed="${locale === l}" lang="${l}" aria-label="${esc(fmt(String(common.switchTo), { lang: names[l] }))}">${l.toUpperCase()}</button>`;
+    `<button type="button" data-lang="${l}" aria-pressed="${locale === l}" lang="${l}" aria-label="${l.toUpperCase()}, ${esc(fmt(String(common.switchTo), { lang: names[l] }))}">${l.toUpperCase()}</button>`;
   return `<div class="lang no-print" role="group" aria-label="${esc(String(common.language))}">${b('sw')}${b('en')}</div>`;
 }
 

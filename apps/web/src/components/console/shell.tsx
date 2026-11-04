@@ -39,7 +39,7 @@ import { BottomSheet } from '@/components/ui/overlay';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Avatar } from '@/components/ui/display';
-import { formatRelative } from '@/lib/format';
+import { formatRelative, initials } from '@/lib/format';
 import type { Locale } from '@harusi/i18n';
 
 type NavKey =
@@ -158,7 +158,7 @@ export function SyncIndicator() {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'inline-flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium',
+          'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-medium md:min-h-10',
           !net.online
             ? 'bg-ink text-white'
             : net.pending
@@ -246,7 +246,7 @@ function EventSwitcher({ current }: { current?: WeddingEvent }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className="inline-flex min-h-12 min-w-0 max-w-[52vw] items-center gap-1.5 rounded-input px-2 text-left font-semibold hover:bg-ink/6 md:max-w-xs"
-        aria-label={current ? t('currentEvent', { name: current.coupleNames }) : t('switchEvent')}
+        aria-label={`${current?.coupleNames ?? t('events')}, ${t('switchEvent')}`}
       >
         <span className="truncate text-lg">{current?.coupleNames ?? t('events')}</span>
         <ChevronDown className="size-4 shrink-0" aria-hidden="true" />
@@ -307,7 +307,8 @@ function UserMenu() {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className="inline-flex size-12 items-center justify-center rounded-full hover:bg-ink/6"
-        aria-label={t('userMenu')}
+        // Starts with the initials the avatar shows, so voice control ("click JM") reaches it.
+        aria-label={name ? `${initials(name)}, ${t('userMenu')}` : t('userMenu')}
       >
         {name ? (
           <Avatar name={name} size={34} />
@@ -369,7 +370,11 @@ export function ConsoleHeader({ event, onMore }: { event?: WeddingEvent; onMore?
   const t = useTranslations('nav');
   return (
     <header className="no-print sticky top-0 z-30 flex min-h-16 items-center gap-1 border-b border-border bg-surface/95 px-2 backdrop-blur md:px-4">
-      <Link href="/app" className="shrink-0 px-1 md:hidden" aria-label={t('events')}>
+      <Link
+        href="/app"
+        className="inline-flex min-h-11 shrink-0 items-center px-1 md:hidden"
+        aria-label={t('events')}
+      >
         <BrandMark logoOnly logoClassName="h-8 max-w-20" />
       </Link>
       <EventSwitcher current={event} />

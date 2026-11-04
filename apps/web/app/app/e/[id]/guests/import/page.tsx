@@ -211,7 +211,7 @@ function ImportInner({ id }: { id: string }) {
         back={
           <Link
             href={`/app/e/${id}/guests`}
-            className="inline-flex min-h-10 items-center gap-1.5 self-start font-semibold text-primary"
+            className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-primary"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
             {tg('back')}
@@ -397,7 +397,7 @@ function ImportInner({ id }: { id: string }) {
           </div>
           {mapping.length > 1 ? (
             <details className="rounded-card border border-border bg-surface p-4" open={hasHeader}>
-              <summary className="min-h-10 cursor-pointer font-semibold">{t('mapping')}</summary>
+              <summary className="min-h-11 cursor-pointer font-semibold">{t('mapping')}</summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {mapping.map((m, i) => (
                   <label key={i} className="flex flex-col gap-1 text-sm font-semibold">

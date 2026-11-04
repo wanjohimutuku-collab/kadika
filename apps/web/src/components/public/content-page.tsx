@@ -215,7 +215,10 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
-            <Link href={localeUrl('/', locale)} className="underline">
+            <Link
+              href={localeUrl('/', locale)}
+              className="inline-flex min-h-11 items-center underline"
+            >
               {ui.home}
             </Link>
           </li>
@@ -223,7 +226,10 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
           {market === 'ke' && page.slug ? (
             <>
               <li>
-                <Link href={localeUrl('/ke', locale)} className="underline">
+                <Link
+                  href={localeUrl('/ke', locale)}
+                  className="inline-flex min-h-11 items-center underline"
+                >
                   {ui.kenya}
                 </Link>
               </li>
@@ -261,7 +267,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
           <ul className="grid gap-1 text-sm sm:grid-cols-2">
             {t.sections.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className="inline-flex min-h-8 items-center underline">
+                <a href={`#${s.id}`} className="inline-flex min-h-11 items-center underline">
                   {s.h2}
                 </a>
               </li>

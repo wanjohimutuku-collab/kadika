@@ -191,7 +191,7 @@ export default function NewEventPage() {
         back={
           <Link
             href="/app"
-            className="inline-flex min-h-10 items-center gap-1.5 self-start font-semibold text-primary"
+            className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-primary"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
             {tc('back')}

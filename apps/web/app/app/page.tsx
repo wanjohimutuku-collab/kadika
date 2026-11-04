@@ -52,7 +52,6 @@ export default function EventsPage() {
                 <li key={e.id}>
                   <Link
                     href={`/app/e/${e.id}`}
-                    aria-label={t('open', { name: e.coupleNames })}
                     className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface transition-shadow hover:shadow-md"
                     style={themeStyle(e.themeId, e.palette)}
                   >
@@ -88,15 +87,15 @@ export default function EventsPage() {
                       </div>
                       <dl className="grid grid-cols-3 gap-2 text-center">
                         <div className="rounded-input bg-bg p-2">
-                          <dt className="text-xs text-muted">{t('statInvited')}</dt>
+                          <dt className="text-sm text-muted">{t('statInvited')}</dt>
                           <dd className="tabular text-lg font-bold">{e.stats.invited}</dd>
                         </div>
                         <div className="rounded-input bg-bg p-2">
-                          <dt className="text-xs text-muted">{t('statConfirmed')}</dt>
+                          <dt className="text-sm text-muted">{t('statConfirmed')}</dt>
                           <dd className="tabular text-lg font-bold">{e.stats.confirmed}</dd>
                         </div>
                         <div className="rounded-input bg-bg p-2">
-                          <dt className="text-xs text-muted">{t('statCollected')}</dt>
+                          <dt className="text-sm text-muted">{t('statCollected')}</dt>
                           <dd className="tabular text-lg font-bold">
                             {formatMoneyCompact(e.stats.collected, e.currency).replace(
                               `${e.currency} `,

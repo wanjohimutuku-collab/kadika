@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { buttonClasses } from '@/components/ui/button';
-import { LanguageChip } from '@/components/ui/language-chip';
 
 export interface NavLink {
   href: string;
@@ -26,6 +25,8 @@ export interface SiteNavProps {
   brand: ReactNode;
   cta: NavLink;
   cardLink: NavLink;
+  /** Language and market switch, shown beside the menu on every width. */
+  localeSwitch?: ReactNode;
   labels: { menu: string; close: string; main: string };
 }
 
@@ -37,7 +38,15 @@ const linkBase =
  * Server-rendered content stays crawlable: every link is a real anchor, also while closed on mobile
  * (the sheet is only mounted when open, the desktop row is always in the DOM).
  */
-export function SiteNav({ groups, links, brand, cta, cardLink, labels }: SiteNavProps) {
+export function SiteNav({
+  groups,
+  links,
+  brand,
+  cta,
+  cardLink,
+  localeSwitch,
+  labels,
+}: SiteNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState<string | null>(null);
   const [sheet, setSheet] = useState(false);
@@ -153,14 +162,14 @@ export function SiteNav({ groups, links, brand, cta, cardLink, labels }: SiteNav
             <Link href={cardLink.href} className={linkBase}>
               {cardLink.label}
             </Link>
-            <LanguageChip />
+            {localeSwitch}
             <Link href={cta.href} className={buttonClasses('primary', 'md')}>
               {cta.label}
             </Link>
           </div>
 
           <div className="ml-auto flex items-center gap-2 lg:hidden">
-            <LanguageChip />
+            {localeSwitch}
             <button
               type="button"
               className="inline-flex size-12 items-center justify-center rounded-input border border-border bg-surface"

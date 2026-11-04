@@ -287,7 +287,7 @@ export function Chip({
       aria-pressed={pressed}
       onClick={onClick}
       className={cn(
-        'inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
+        'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors md:min-h-10',
         pressed
           ? 'border-primary bg-primary text-on-primary'
           : 'border-border bg-surface text-ink hover:bg-bg',

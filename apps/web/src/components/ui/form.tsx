@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useEffect,
   useId,
   useRef,
   useState,
@@ -348,33 +349,67 @@ export function PhoneField({
 
 // ------------------------------------------------------------------ OtpField
 
+/** Visual state of the cells: checking (wave), accepted (green pop), rejected (red shake). */
+export type OtpStatus = 'idle' | 'busy' | 'success' | 'error';
+
 export interface OtpFieldProps {
   length?: number;
   value: string;
   onChange: (value: string) => void;
   onComplete?: (value: string) => void;
   label: string;
+  /** Hide the legend visually (it stays for screen readers) when the screen heading says it. */
+  hideLabel?: boolean;
   cellLabel: (index: number) => string;
   error?: ReactNode;
   disabled?: boolean;
+  /** Defaults to `error` when an error is shown, else `idle`. */
+  status?: OtpStatus;
+  autoFocus?: boolean;
 }
 
-/** 6 cells, auto-advance, paste-to-fill and SMS autofill (`autocomplete="one-time-code"`). */
+/**
+ * 6 cells, auto-advance, paste-to-fill and SMS autofill (`autocomplete="one-time-code"`). Typed digits
+ * pop in, the active empty cell shows a caret, and `status` drives the checking/accepted/rejected
+ * feedback. All motion collapses under `prefers-reduced-motion` (globals.css).
+ */
 export function OtpField({
   length = 6,
   value,
   onChange,
   onComplete,
   label,
+  hideLabel,
   cellLabel,
   error,
   disabled,
+  status,
+  autoFocus,
 }: OtpFieldProps) {
   const refs = useRef<(HTMLInputElement | null)[]>([]);
   const id = useId();
+  const [focused, setFocused] = useState<number | null>(null);
+  const [shaking, setShaking] = useState(false);
+  const state: OtpStatus = status ?? (error ? 'error' : 'idle');
+  const prev = useRef(state);
+  useEffect(() => {
+    // A fresh rejection shakes the row and puts the cursor back on the first cell.
+    if (state === 'error' && prev.current !== 'error') {
+      setShaking(true);
+      if (!disabled) refs.current[0]?.focus();
+    }
+    prev.current = state;
+  }, [state, disabled]);
+  useEffect(() => {
+    if (autoFocus) refs.current[0]?.focus();
+  }, [autoFocus]);
   const digits = Array.from({ length }, (_, i) => value[i] ?? '');
+  /** The value as of the last keystroke: focus moves before the parent re-renders with it. */
+  const latest = useRef(value);
+  latest.current = value;
   const set = (next: string) => {
     const clean = next.replace(/\D/g, '').slice(0, length);
+    latest.current = clean;
     onChange(clean);
     if (clean.length === length) onComplete?.(clean);
   };
@@ -404,36 +439,102 @@ export function OtpField({
   };
   const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    set(e.clipboardData.getData('text'));
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '');
+    set(pasted);
+    refs.current[Math.min(pasted.length, length - 1)]?.focus();
   };
   return (
     <fieldset className="flex flex-col gap-2" aria-describedby={error ? `${id}-e` : undefined}>
-      <legend className="mb-1 text-sm font-semibold">{label}</legend>
-      <div className="flex gap-2">
-        {digits.map((d, i) => (
-          <input
-            key={i}
-            ref={(el) => {
-              refs.current[i] = el;
-            }}
-            value={d}
-            onChange={(e) => onInput(i, e)}
-            onKeyDown={(e) => onKey(i, e)}
-            onPaste={onPaste}
-            onFocus={(e) => e.target.select()}
-            inputMode="numeric"
-            autoComplete={i === 0 ? 'one-time-code' : 'off'}
-            pattern="[0-9]*"
-            maxLength={length}
-            disabled={disabled}
-            aria-label={cellLabel(i)}
-            aria-invalid={error ? true : undefined}
-            className={cn(
-              'tabular h-14 w-full min-w-0 max-w-14 rounded-input border bg-surface text-center text-2xl font-semibold',
-              error ? 'border-danger' : 'border-border',
-            )}
-          />
-        ))}
+      <legend className={cn('mb-1 text-sm font-semibold', hideLabel && 'sr-only')}>{label}</legend>
+      <div
+        className={cn('flex gap-2 sm:gap-2.5', shaking && 'otp-shake')}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget) setShaking(false);
+        }}
+      >
+        {digits.map((d, i) => {
+          const active = focused === i && !disabled;
+          return (
+            <div
+              key={i}
+              className={cn(
+                'relative h-14 min-w-0 flex-1 sm:h-16',
+                state === 'success' && 'otp-done',
+              )}
+              style={state === 'success' ? { animationDelay: `${i * 45}ms` } : undefined}
+            >
+              <input
+                ref={(el) => {
+                  refs.current[i] = el;
+                }}
+                value={d}
+                onChange={(e) => onInput(i, e)}
+                onKeyDown={(e) => onKey(i, e)}
+                onPaste={onPaste}
+                onFocus={(e) => {
+                  // Cells fill left to right: a tap past the last digit lands on the next empty cell.
+                  const filled = latest.current.length;
+                  if (i > filled) refs.current[filled]?.focus();
+                  else {
+                    setFocused(i);
+                    e.target.select();
+                  }
+                }}
+                onBlur={() => setFocused((f) => (f === i ? null : f))}
+                inputMode="numeric"
+                autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                pattern="[0-9]*"
+                maxLength={length}
+                disabled={disabled}
+                aria-label={cellLabel(i)}
+                aria-invalid={state === 'error' ? true : undefined}
+                className={cn(
+                  // The digit is drawn by the overlay so it can animate; the input keeps the value.
+                  'tabular absolute inset-0 size-full rounded-input border-2 bg-surface text-center text-2xl font-semibold text-transparent caret-transparent outline-none transition-[border-color,box-shadow,background-color] duration-150 ease-out selection:bg-transparent focus-visible:outline-none disabled:cursor-default',
+                  state === 'error'
+                    ? 'border-danger bg-danger/5'
+                    : state === 'success'
+                      ? 'border-success bg-success/10'
+                      : state === 'busy'
+                        ? 'border-primary/50'
+                        : active
+                          ? 'border-primary shadow-[0_0_0_4px_color-mix(in_srgb,var(--hp-primary)_15%,transparent)]'
+                          : d
+                            ? 'border-ink/30'
+                            : 'border-border hover:border-ink/25',
+                )}
+              />
+              {state === 'busy' ? (
+                <span
+                  aria-hidden="true"
+                  className="otp-wave pointer-events-none absolute inset-0 rounded-input"
+                  style={{ animationDelay: `${i * 90}ms` }}
+                />
+              ) : null}
+              {d ? (
+                <span
+                  key={d}
+                  aria-hidden="true"
+                  className={cn(
+                    'otp-pop tabular pointer-events-none absolute inset-0 grid place-items-center text-2xl font-semibold sm:text-[1.75rem]',
+                    state === 'success'
+                      ? 'text-success'
+                      : state === 'error'
+                        ? 'text-danger'
+                        : 'text-ink',
+                  )}
+                >
+                  {d}
+                </span>
+              ) : active ? (
+                <span
+                  aria-hidden="true"
+                  className="otp-caret pointer-events-none absolute left-1/2 top-1/2 h-7 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
+                />
+              ) : null}
+            </div>
+          );
+        })}
       </div>
       {error ? (
         <p id={`${id}-e`} role="alert" className="text-sm font-medium text-danger">

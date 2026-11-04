@@ -6,16 +6,16 @@ Not measured: Core Web Vitals (the PageSpeed API returned 429 without a key; no 
 
 ## SEO Health Score
 
-| Category | Weight | Live site | After the fixes below ship |
-|---|---|---|---|
-| Technical SEO | 22% | 35 | 78 |
-| Content quality | 23% | 62 | 62 |
-| On-page SEO | 20% | 82 | 84 |
-| Schema | 10% | 60 | 80 |
-| Performance (not measured, TTFB only) | 10% | 65 | 65 |
-| AI search readiness | 10% | 48 | 62 |
-| Images | 5% | 30 | 60 |
-| **Total** | | **57/100** | **72/100** |
+| Category                              | Weight | Live site  | After the fixes below ship |
+| ------------------------------------- | ------ | ---------- | -------------------------- |
+| Technical SEO                         | 22%    | 35         | 78                         |
+| Content quality                       | 23%    | 62         | 62                         |
+| On-page SEO                           | 20%    | 82         | 84                         |
+| Schema                                | 10%    | 60         | 80                         |
+| Performance (not measured, TTFB only) | 10%    | 65         | 65                         |
+| AI search readiness                   | 10%    | 48         | 62                         |
+| Images                                | 5%     | 30         | 60                         |
+| **Total**                             |        | **57/100** | **72/100**                 |
 
 The fixes are in the working tree on `feat/kadisasa-site`, not deployed. The live site keeps its current score until they ship.
 
@@ -32,6 +32,7 @@ The fixes are in the working tree on `feat/kadisasa-site`, not deployed. The liv
 
 **1. robots.txt blocked 34 of 64 sitemap URLs. Fixed.**
 `Disallow: /k` is a prefix rule, so it blocked `/ke`, every `/kadi-…` and `/ku…` page, and the main product page `/kadi-ya-harusi-mtandaoni`; `Disallow: /en/k` did the same in English. Every crawler was affected, including Googlebot.
+
 - Change: [robots.ts](../../apps/web/app/robots.ts) now uses `/k$` and `/en/k$` (exact page only). `/k` also keeps its `noindex`.
 - Guard: [robots.test.ts](../../apps/web/src/lib/robots.test.ts) parses the generated rules the way Google does (longest match wins) and asserts every sitemap URL is crawlable for every named bot, and that `/app`, `/ops`, `/c/`, `/s/`, `/k`, `/login`, `/api/` stay blocked. It fails against the old rules.
 - How we would know it failed: Search Console "Blocked by robots.txt" count for these URLs stays above 0 two weeks after deploy.
@@ -42,6 +43,7 @@ The fixes are in the working tree on `feat/kadisasa-site`, not deployed. The liv
 **2. Organization logo blocked by robots.txt. Fixed.** `Disallow: /icons/` blocked `/icons/512.png`, the logo every page's schema names. The rule is removed (the folder only holds app icons).
 
 **3. No link-preview image on any page. Fixed.** No `og:image`, and the Twitter card was `summary`. WhatsApp shares, which is how these pages travel, showed no picture.
+
 - Change: new build-time route [app/og/[file]/route.tsx](../../apps/web/app/og/[file]/route.tsx) renders `/og/sw.png`, `/og/en.png`, `/og/ke.png` (1200×630: brand, headline, a sample card with a QR-like pattern that encodes nothing). `ogImages()` in [seo.ts](../../apps/web/src/lib/seo.ts) is added to every public page's metadata, including privacy and terms, which now use the shared metadata builder. The Twitter card becomes `summary_large_image` automatically.
 - How we would know it failed: a WhatsApp or Facebook Sharing Debugger preview of `https://kadisasa.com/` still shows no image after deploy.
 
@@ -54,6 +56,7 @@ The fixes are in the working tree on `feat/kadisasa-site`, not deployed. The liv
 ### Medium
 
 **7. Structured data improved. Fixed.**
+
 - One shared Organization entity (`#org`) with logo size, `areaServed` and a `contactPoint` (the public `faragha@kadisasa.com` address) on every page, instead of an anonymous copy per guide. Articles now reference it as author and publisher.
 - `/bei`: `Service` schema, plus an `AggregateOffer` with one `Offer` per price tier (TZS, quantity range) from the live price catalogue, **only when charging is switched on**, so the markup never quotes prices that don't apply.
 - `/programu`: `SoftwareApplication` (Android, free), **only when a download exists**.

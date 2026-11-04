@@ -12,25 +12,25 @@ Framing (Google AI optimization guide): optimising for AI search surfaces is SEO
 
 ## 1. GEO Readiness Score: 48/100
 
-| Dimension | Weight | Score | Why |
-|---|---|---|---|
-| Citability | 25 | 17 | Every guide opens with a "Jibu fupi" (short answer) of 40 to 60 words, which suits AI quoting. Pages are short (about 340 to 600 words in `<main>`), there is almost no specific data or cited source, and the home page's first 60 words are mostly demo-card text. |
-| Structural readability | 20 | 16 | Clean H1 to H2 to H3, question-style headings, contents lists, breadcrumbs and an FAQ on every guide. `/maswali` repeats its H1 as its only H2, and its 18 questions sit in `<details>` without headings. |
-| Multi-modal | 15 | 4 | The only image on any page is the logo. No `og:image`, no screenshots of the card or gate, no video, no diagram. |
-| Authority and brand | 20 | 5 | Dates are shown and marked up, but `datePublished` always equals `dateModified`. The author is always the organisation, never a named person. The Organization schema has no `sameAs` or contact. No off-site mentions were found. |
-| Technical accessibility | 20 | 6 | Full server-side rendering and AI search bots named explicitly, **but `robots.txt` blocks 34 of the 64 sitemap URLs** (see §3) and the logo the schema points to. |
+| Dimension               | Weight | Score | Why                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Citability              | 25     | 17    | Every guide opens with a "Jibu fupi" (short answer) of 40 to 60 words, which suits AI quoting. Pages are short (about 340 to 600 words in `<main>`), there is almost no specific data or cited source, and the home page's first 60 words are mostly demo-card text. |
+| Structural readability  | 20     | 16    | Clean H1 to H2 to H3, question-style headings, contents lists, breadcrumbs and an FAQ on every guide. `/maswali` repeats its H1 as its only H2, and its 18 questions sit in `<details>` without headings.                                                            |
+| Multi-modal             | 15     | 4     | The only image on any page is the logo. No `og:image`, no screenshots of the card or gate, no video, no diagram.                                                                                                                                                     |
+| Authority and brand     | 20     | 5     | Dates are shown and marked up, but `datePublished` always equals `dateModified`. The author is always the organisation, never a named person. The Organization schema has no `sameAs` or contact. No off-site mentions were found.                                   |
+| Technical accessibility | 20     | 6     | Full server-side rendering and AI search bots named explicitly, **but `robots.txt` blocks 34 of the 64 sitemap URLs** (see §3) and the logo the schema points to.                                                                                                    |
 
 Fixing the `robots.txt` rule alone raises Technical to about 17 and the total to about **59**.
 
 ## 2. Platform breakdown (qualitative, not measured)
 
-| Platform | Readiness | Main blocker |
-|---|---|---|
-| Google AI Overviews | Low for now | AIO cites pages that rank. The product page `/kadi-ya-harusi-mtandaoni`, `/kuhusu` and every Kenya page cannot be crawled. |
-| Google AI Mode | Low | Same block, plus thin entity signals (no `sameAs`, no off-site mentions), which matter more here than raw rank. |
-| ChatGPT Search | Low to medium | `OAI-SearchBot` is allowed, but the same 34 URLs are blocked. No Wikipedia or forum presence for ChatGPT to corroborate. |
-| Perplexity | Low to medium | Same block. Perplexity leans on community sources; none mention the brand. |
-| Bing Copilot | Low to medium | Same block. No IndexNow. |
+| Platform            | Readiness     | Main blocker                                                                                                               |
+| ------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Google AI Overviews | Low for now   | AIO cites pages that rank. The product page `/kadi-ya-harusi-mtandaoni`, `/kuhusu` and every Kenya page cannot be crawled. |
+| Google AI Mode      | Low           | Same block, plus thin entity signals (no `sameAs`, no off-site mentions), which matter more here than raw rank.            |
+| ChatGPT Search      | Low to medium | `OAI-SearchBot` is allowed, but the same 34 URLs are blocked. No Wikipedia or forum presence for ChatGPT to corroborate.   |
+| Perplexity          | Low to medium | Same block. Perplexity leans on community sources; none mention the brand.                                                 |
+| Bing Copilot        | Low to medium | Same block. No IndexNow.                                                                                                   |
 
 ## 3. AI crawler access status
 
@@ -50,27 +50,27 @@ Each crawler, with the capability it governs (status applies to the 30 public UR
 
 **Search and answer citability**
 
-| User agent | Governs | Status |
-|---|---|---|
-| `Googlebot` | Google Search, AI Overviews, AI Mode | Named. Allowed, minus the 34 blocked URLs |
-| `Bingbot` | Bing, Copilot | Named. Allowed, minus the 34 |
-| `OAI-SearchBot` | ChatGPT Search citations | Named. Allowed, minus the 34 |
-| `ChatGPT-User` | ChatGPT browsing for a user (robots "may not apply" per OpenAI) | Named. Allowed, minus the 34 |
-| `PerplexityBot` | Perplexity search | Named. Allowed, minus the 34 |
-| `Claude-SearchBot` | Claude search citations | Named. Allowed, minus the 34 |
-| `Claude-User` | Claude fetching for a user (honours robots) | Named. Allowed, minus the 34 |
-| `Applebot` | Siri, Spotlight, Safari | Not named, falls under `*`. Allowed, minus the 34 |
+| User agent         | Governs                                                         | Status                                            |
+| ------------------ | --------------------------------------------------------------- | ------------------------------------------------- |
+| `Googlebot`        | Google Search, AI Overviews, AI Mode                            | Named. Allowed, minus the 34 blocked URLs         |
+| `Bingbot`          | Bing, Copilot                                                   | Named. Allowed, minus the 34                      |
+| `OAI-SearchBot`    | ChatGPT Search citations                                        | Named. Allowed, minus the 34                      |
+| `ChatGPT-User`     | ChatGPT browsing for a user (robots "may not apply" per OpenAI) | Named. Allowed, minus the 34                      |
+| `PerplexityBot`    | Perplexity search                                               | Named. Allowed, minus the 34                      |
+| `Claude-SearchBot` | Claude search citations                                         | Named. Allowed, minus the 34                      |
+| `Claude-User`      | Claude fetching for a user (honours robots)                     | Named. Allowed, minus the 34                      |
+| `Applebot`         | Siri, Spotlight, Safari                                         | Not named, falls under `*`. Allowed, minus the 34 |
 
 **Training only** (no effect on search visibility; a licensing choice)
 
-| User agent | Governs | Status |
-|---|---|---|
-| `GPTBot` | OpenAI model training | Not named, falls under `*`: allowed |
-| `ClaudeBot` | Anthropic model training | Not named, falls under `*`: allowed |
-| `Google-Extended` | Gemini and Vertex training and grounding (not Google Search or AIO) | Not named, falls under `*`: allowed |
-| `CCBot` | Common Crawl | Not named, falls under `*`: allowed |
-| `Applebot-Extended` | Apple Intelligence training opt-out | Not named, falls under `*`: allowed |
-| `Bytespider` | ByteDance | Not named, falls under `*`: allowed |
+| User agent          | Governs                                                             | Status                              |
+| ------------------- | ------------------------------------------------------------------- | ----------------------------------- |
+| `GPTBot`            | OpenAI model training                                               | Not named, falls under `*`: allowed |
+| `ClaudeBot`         | Anthropic model training                                            | Not named, falls under `*`: allowed |
+| `Google-Extended`   | Gemini and Vertex training and grounding (not Google Search or AIO) | Not named, falls under `*`: allowed |
+| `CCBot`             | Common Crawl                                                        | Not named, falls under `*`: allowed |
+| `Applebot-Extended` | Apple Intelligence training opt-out                                 | Not named, falls under `*`: allowed |
+| `Bytespider`        | ByteDance                                                           | Not named, falls under `*`: allowed |
 
 `robots.ts` notes that the training decision is the owner's; it is still open.
 
@@ -88,13 +88,13 @@ Present at `/llms.txt`: title, a clear one-paragraph description, 6 links and a 
 
 ## 5. Brand mention analysis
 
-| Surface | Found |
-|---|---|
-| Wikipedia / Wikidata | None (not expected for a new brand) |
-| Reddit | None |
-| YouTube | None |
-| LinkedIn | None |
-| Tanzanian press or directories | None |
+| Surface                        | Found                               |
+| ------------------------------ | ----------------------------------- |
+| Wikipedia / Wikidata           | None (not expected for a new brand) |
+| Reddit                         | None                                |
+| YouTube                        | None                                |
+| LinkedIn                       | None                                |
+| Tanzanian press or directories | None                                |
 
 Caveat: one general web search (US index), so local Swahili coverage could be missed. The same search did surface a direct competitor, **M-Kadi** (digital wedding invitations, pledges and contributions in Tanzania), profiled by [HiPipo](https://money.hipipo.com/?p=7253). For "kadi ya harusi" searches, AI answers currently have M-Kadi and print sellers on [Jiji](https://jiji.co.tz/sw/printing-services/card) to cite, and nothing about Kadi Sasa.
 
@@ -111,7 +111,7 @@ Strong blocks already in place (quote-ready, self-contained):
 
 Weak spots:
 
-- **Home**: the H1 is a slogan; the first 60 words are slogan, buttons, then demo-card text ("Asha & Juma… Bi. Mwanaidi Salim… KH-4826"). AI systems weight the first 30% of a page; nothing there says what Kadi Sasa *is*.
+- **Home**: the H1 is a slogan; the first 60 words are slogan, buttons, then demo-card text ("Asha & Juma… Bi. Mwanaidi Salim… KH-4826"). AI systems weight the first 30% of a page; nothing there says what Kadi Sasa _is_.
 - **Guides are short** (336 to 405 words). Each answers one question well but has few specifics an answer engine can't get elsewhere.
 - **No figures or sources**: no numbers on feature-phone share, gate time or delivery rates, and no links to primary sources (TCRA, the Personal Data Protection Act).
 - **`/bei`**: no short answer, no date, no schema; prices are in cards only.

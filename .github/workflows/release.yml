@@ -1,0 +1,62 @@
+# Ships every green merge to main: once CI passes on a push to main, tag the next patch version
+# (v0.7.6 -> v0.7.7) on that commit and start "Build and push images" on the tag, which builds,
+# smoke-tests, promotes :production and waits until the site reports the commit (ADR 053).
+#
+# A tag pushed with GITHUB_TOKEN does not start other workflows, but a workflow_dispatch does, so the
+# release runs without any extra token. Merges that touch no shipped code (docs, tests' snapshots) are
+# skipped. Tag by hand as before to cut a minor or major version; this workflow then sees the commit is
+# already tagged and does nothing.
+name: Release main
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+# One release at a time, in merge order.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write # pushes the version tag
+  actions: write # starts the build-push workflow
+
+jobs:
+  release:
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag the commit and start the release
+        run: |
+          git fetch --tags --force --quiet
+          if tag=$(git describe --tags --exact-match --match 'v*.*.*' "$SHA" 2>/dev/null); then
+            echo "${SHA::7} is already released as $tag." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          last=$(git tag --list 'v*.*.*' --sort=-v:refname | head -n1)
+          last=${last:-v0.0.0}
+          # Only code that ends up in the images or the deploy needs a release.
+          shipped=$(git diff --name-only "$last" "$SHA" -- apps packages infra package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json \
+            ':!**/*.md' ':!**/*.test.ts' ':!**/*.test.tsx' ':!**/*.stories.tsx' ':!apps/web/e2e' ':!apps/mobile' | wc -l)
+          if [ "$shipped" -eq 0 ]; then
+            echo "Nothing shipped changed since $last; no release for ${SHA::7}." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          IFS=. read -r major minor patch <<< "${last#v}"
+          next="v$major.$minor.$((patch + 1))"
+          git push origin "$SHA:refs/tags/$next"
+          gh workflow run build-push.yml --ref "$next" -f deploy=true
+          echo "Released ${SHA::7} as $next; build-push started." | tee -a "$GITHUB_STEP_SUMMARY"

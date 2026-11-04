@@ -1,38 +1,24 @@
-import { ALL_PAGES, marketOf, pagePath, textOf } from '@/content';
-import { SITE_URL, absoluteLocaleUrl } from '@/lib/seo';
+import { SITE_URL } from '@/lib/seo';
+import { PRICING_PATH } from '@/lib/server-pricing';
 
 export const dynamic = 'force-static';
 
-/** Plain-text guide to the site for AI assistants (an emerging convention, harmless if ignored). */
+/** Short plain-text guide for AI assistants (kit sitemap.md: about 15 lines). */
 export function GET() {
-  const line = (p: (typeof ALL_PAGES)[number]) =>
-    `- [${textOf(p, 'en').nav}](${absoluteLocaleUrl(pagePath(p), 'en')}): ${textOf(p, 'en').description}`;
-  const by = (g: string) =>
-    ALL_PAGES.filter((p) => p.group === g && marketOf(p) === 'tz').map(line);
-  const kenya = ALL_PAGES.filter((p) => marketOf(p) === 'ke').map(line);
+  const u = (p: string) => `${SITE_URL}${p}`;
   const body = `# Kadi Sasa
 
-> Kadi Sasa is a Tanzanian service for online invitations to weddings, send-offs, engagements and other private celebrations. Each guest gets their own card by WhatsApp, SMS or paper with a QR and a short number; hosts track replies and contributions (michango) and admit guests at the gate by QR, number or name, even offline. Swahili first, English available at ?lang=en. Free during the pilot.
+> Kadi Sasa is a Tanzanian service for digital invitation cards, michango (contributions) and offline QR gate check-in for weddings and other events in Tanzania, with Kenya support being tested. Each guest gets their own card with a QR code and a short number by WhatsApp, SMS or paper; the committee tracks replies and pledges, and the gate app admits guests even without network.
 
-Facts: operates in Tanzania; contributions paid by M-Pesa, Mixx by Yas, Airtel Money and HaloPesa; guests need no account or app; the gate app verifies QR codes offline.
+- [Home (Kiswahili)](${u('/')}): what Kadi Sasa does, in 10 seconds
+- [Home (English)](${u('/en')}): the same in English
+- [Pricing](${u(PRICING_PATH)}): per-card prices in TZS, free cards to start
+- [Gate check-in](${u('/lango-la-harusi-qr')}): offline QR scanning at the entrance
+- [Michango](${u('/michango-ya-harusi')}): pledges vs paid per guest, treasurer report; money goes straight to the hosts
+- [Kenya](${u('/ke')}): WhatsApp invites, harambee and the gate for Kenyan committees
 
-## Services
-${by('product').join('\n')}
-
-## Guides
-${by('guide').join('\n')}
-
-## Company
-${by('company').join('\n')}
-
-## Kenya (guides and legal drafts; Kenya support is built and being tested but is not open yet)
-${kenya.join('\n')}
-
-## Legal (drafts until reviewed by a lawyer)
-${by('legal').join('\n')}
-
-Site: ${SITE_URL}
-Contact: faragha@kadisasa.com
+Guests need no account or app. Kadi Sasa never asks guests for a PIN or password.
+Sitemap: ${u('/sitemap.xml')}
 `;
   return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
 }

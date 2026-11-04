@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { connection } from 'next/server';
 import { getLocale, getTranslations } from 'next-intl/server';
 import {

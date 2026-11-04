@@ -79,7 +79,7 @@ export function ToastProvider({
                 <button
                   type="button"
                   onClick={t.action.onClick}
-                  className="min-h-10 shrink-0 rounded-input px-3 font-semibold text-[#D9B26A] underline-offset-2 hover:underline"
+                  className="min-h-11 shrink-0 rounded-input px-3 font-semibold text-[#D9B26A] underline-offset-2 hover:underline"
                 >
                   {t.action.label}
                 </button>

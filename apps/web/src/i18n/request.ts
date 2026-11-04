@@ -2,7 +2,7 @@ import { cookies, headers } from 'next/headers';
 import { getRequestConfig } from 'next-intl/server';
 import { defaultLocale, isLocale, LOCALE_COOKIE, messages, type Locale } from '@harusi/i18n';
 
-/** `?lang=` (via middleware), else the cookie set by the language chip, else English (§10, ADR 008). */
+/** The site path (via middleware: `/` sw, `/en` and `/ke` en), else the language-chip cookie, else English. */
 export async function resolveLocale(): Promise<Locale> {
   const fromUrl = (await headers()).get('x-hp-lang');
   if (isLocale(fromUrl)) return fromUrl;

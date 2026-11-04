@@ -147,7 +147,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
               }
             />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-              <div className="flex flex-col gap-5">
+              <div className="flex min-w-0 flex-col gap-5">
                 <Card title={t('themes')} titleId="th-h">
                   <div
                     className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
@@ -162,7 +162,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                         <label
                           key={tid}
                           className={cn(
-                            'flex w-44 shrink-0 snap-start cursor-pointer flex-col gap-2 rounded-card border-2 p-3',
+                            'relative flex w-44 shrink-0 snap-start cursor-pointer flex-col gap-2 rounded-card border-2 p-3',
                             themeId === tid ? 'border-primary' : 'border-border',
                           )}
                         >
@@ -355,7 +355,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                 </Card>
               </div>
 
-              <aside className="flex flex-col items-center gap-3 lg:sticky lg:top-20 lg:self-start">
+              <aside className="flex w-full min-w-0 flex-col items-center gap-3 lg:sticky lg:top-20 lg:self-start">
                 <SegmentedControl<'phone' | 'print'>
                   label={t('title')}
                   value={view}

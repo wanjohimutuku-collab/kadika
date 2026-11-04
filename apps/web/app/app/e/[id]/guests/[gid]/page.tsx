@@ -215,7 +215,7 @@ export default function GuestDetailPage({
   const back = (
     <Link
       href={`/app/e/${id}/guests`}
-      className="inline-flex min-h-10 items-center gap-1.5 self-start font-semibold text-primary"
+      className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-primary"
     >
       <ArrowLeft className="size-5" aria-hidden="true" />
       {t('back')}

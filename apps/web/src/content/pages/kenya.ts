@@ -11,7 +11,6 @@ const UPDATED = '2026-10-15';
 export const KENYA_PAGES: ContentPageDef[] = [
   {
     market: 'ke',
-    counterpart: { market: 'tz', slug: 'kadi-ya-harusi-mtandaoni' },
     slug: '',
     group: 'product',
     schema: 'WebPage',

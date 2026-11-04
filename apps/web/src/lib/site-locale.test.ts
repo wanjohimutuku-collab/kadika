@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { routeSiteLocale, stripEnPrefix } from './site-locale';
+import { editionOfPath, routeSiteLocale, stripEnPrefix } from './site-locale';
 import { hreflangMap, localeUrl } from './seo';
 
 const SITE = 'https://kadisasa.com';
@@ -101,5 +101,17 @@ describe('localeUrl and hreflang', () => {
       'en-KE': `${SITE}/ke/pricing`,
       'x-default': `${SITE}/ke/pricing`,
     });
+  });
+});
+
+describe('editionOfPath', () => {
+  it('tells the three editions apart, ignoring query and hash', () => {
+    expect(editionOfPath('/')).toBe('sw');
+    expect(editionOfPath('/bei?x=1')).toBe('sw');
+    expect(editionOfPath('/en')).toBe('en');
+    expect(editionOfPath('/en/bei#faq')).toBe('en');
+    expect(editionOfPath('/english')).toBe('sw');
+    expect(editionOfPath('/ke/pricing')).toBe('ke');
+    expect(editionOfPath('/en/ke')).toBe('ke');
   });
 });

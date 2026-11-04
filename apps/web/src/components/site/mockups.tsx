@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { Check, CircleAlert, ShieldCheck, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/format';

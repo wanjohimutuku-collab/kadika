@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import type { SiteMarket } from '@/lib/site-locale';
 import type { SiteLink } from './blocks';
 

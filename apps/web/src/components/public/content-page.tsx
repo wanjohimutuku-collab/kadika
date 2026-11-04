@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import type { Locale } from '@harusi/i18n';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { buttonClasses } from '@/components/ui/button';

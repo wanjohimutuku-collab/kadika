@@ -1,6 +1,6 @@
 import { BrandMark } from '@/components/brand/brand-provider';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';

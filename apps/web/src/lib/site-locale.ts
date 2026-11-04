@@ -64,3 +64,11 @@ export function routeSiteLocale(pathname: string, search: string): LocaleRoute |
 export function enPath(path: string): string {
   return path === '/' ? '/en' : `/en${path}`;
 }
+
+/** Which site edition a path (or href with query/hash) belongs to: `ke`, `en` (under `/en`) or `sw`. */
+export function editionOfPath(href: string): 'sw' | 'en' | 'ke' {
+  const path = href.replace(/[?#].*$/, '');
+  const market = stripEnPrefix(path);
+  if (isUnder(market, '/ke')) return 'ke';
+  return path === '/en' || path.startsWith('/en/') ? 'en' : 'sw';
+}

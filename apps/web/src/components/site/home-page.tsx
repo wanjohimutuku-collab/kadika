@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { Check } from 'lucide-react';
 import type { PricingCatalog } from '@harusi/schemas/billing';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';

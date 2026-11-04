@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from 'react';
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { JsonLd } from './json-ld';

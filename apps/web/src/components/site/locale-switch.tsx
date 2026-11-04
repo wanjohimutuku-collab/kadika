@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { Check, ChevronDown, Globe } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import type { SiteEdition } from '@/lib/site-nav';

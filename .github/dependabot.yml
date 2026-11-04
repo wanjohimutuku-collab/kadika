@@ -4,6 +4,10 @@
 # Major versions are ignored everywhere: Expo SDK, Storybook, Node, Postgres and similar upgrades
 # break things and are planned by hand. The base image digests in infra/docker and
 # docker-compose.coolify.yml are kept current by the infrastructure PR.
+# The packages the Expo SDK pins (React, React Native and its native modules) are ignored at every
+# version: they move only with an Expo SDK upgrade (`npx expo install --fix`), and a lone bump
+# (react-native 0.79 -> 0.88) breaks the app. The web app shares React, so React DOM and the React
+# types wait for that upgrade too.
 version: 2
 
 multi-ecosystem-groups:
@@ -20,6 +24,21 @@ updates:
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      - dependency-name: 'expo'
+      - dependency-name: 'expo-*'
+      - dependency-name: '@expo/*'
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: '@types/react'
+      - dependency-name: '@types/react-dom'
+      - dependency-name: 'react-native'
+      - dependency-name: 'react-native-*'
+      - dependency-name: '@react-native-async-storage/*'
+      - dependency-name: '@react-native-community/*'
+      - dependency-name: '@react-native-firebase/*'
+      # 0.5.14 hangs the API test database setup (Nov 2026); pinned to 0.5.9 until a fixed release.
+      - dependency-name: '@electric-sql/pglite'
+        versions: ['>0.5.9']
 
   - package-ecosystem: github-actions
     directory: /

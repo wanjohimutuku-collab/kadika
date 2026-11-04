@@ -17,7 +17,8 @@ import type { Locale } from '@harusi/i18n';
 import { SeoLinks } from '@/components/public/seo-links';
 import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
-import { absoluteLocaleUrl, localeUrl } from '@/lib/seo';
+import { JsonLd } from '@/components/site/json-ld';
+import { ORG_ID, absoluteLocaleUrl, localeUrl, ogImages, organizationNode } from '@/lib/seo';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import { APP_APK_PATH, APP_DOWNLOAD_PATH, appLinksFrom, hostOf } from '@/lib/app-download';
 import { getAndroidReleaseOnServer } from '@/lib/server-app-release';
@@ -43,6 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: t('metaDescription', { brand }),
       locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
       url: absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale),
+      images: ogImages(locale),
     },
   };
 }
@@ -70,6 +72,27 @@ export default async function AppDownloadPage() {
   return (
     <main data-testid="app-download" data-state={available ? 'available' : 'soon'}>
       <SeoLinks path={APP_DOWNLOAD_PATH} locale={locale} />
+      {/* Describes the app only once there is something to download. */}
+      {available ? (
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@graph': [
+              organizationNode(),
+              {
+                '@type': 'SoftwareApplication',
+                name: brand,
+                url: absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale),
+                description: t('metaDescription', { brand }),
+                operatingSystem: 'Android',
+                applicationCategory: 'LifestyleApplication',
+                publisher: { '@id': ORG_ID },
+                offers: { '@type': 'Offer', price: 0, priceCurrency: 'TZS' },
+              },
+            ],
+          }}
+        />
+      ) : null}
       <section className="bg-primary text-on-primary">
         <div className="mx-auto grid max-w-5xl gap-10 px-4 py-12 md:grid-cols-[1fr_auto] md:items-center md:py-20">
           <div className="flex flex-col gap-5">

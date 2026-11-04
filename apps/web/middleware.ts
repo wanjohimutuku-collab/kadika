@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { decide, hostFor, surfaceOf } from '@/lib/surfaces';
+import { canonicalHostFor, decide, hostFor, surfaceOf } from '@/lib/surfaces';
 import { routeSiteLocale } from '@/lib/site-locale';
 
 /**
@@ -54,6 +54,16 @@ export function middleware(req: NextRequest) {
       if (req.headers.get('sec-fetch-dest') === 'empty')
         return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
       return redirect(req, hostFor(d.surface, ROOT_DOMAIN));
+    }
+    // One public host for search: www gets a permanent redirect to the bare domain, path and query kept.
+    // After the surface rules, so a www request for another surface goes there in one hop.
+    const apex = canonicalHostFor(req.headers.get('host'), ROOT_DOMAIN);
+    if (apex) {
+      const url = req.nextUrl.clone();
+      url.protocol = 'https:';
+      url.port = '';
+      url.host = apex;
+      return NextResponse.redirect(url, 308);
     }
   }
 

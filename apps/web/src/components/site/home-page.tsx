@@ -5,7 +5,7 @@ import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { ALL_PAGES, getPage, marketOf, pagePath, textOf } from '@/content';
 import { homeCopy } from '@/content/home';
 import { SeoLinks } from '@/components/public/seo-links';
-import { SITE_URL, localeUrl } from '@/lib/seo';
+import { ORG_ID, SITE_URL, localeUrl, organizationNode } from '@/lib/seo';
 import type { SiteEdition } from '@/lib/site-nav';
 import {
   AnswerBlock,
@@ -70,28 +70,20 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         data={{
           '@context': 'https://schema.org',
           '@graph': [
-            {
-              '@type': 'Organization',
-              '@id': `${SITE_URL}/#org`,
-              name,
-              url: SITE_URL,
-              logo: `${SITE_URL}/icons/512.png`,
-              description: c.answer,
-              areaServed: ['TZ', 'KE'],
-            },
+            organizationNode(c.answer),
             {
               '@type': 'WebSite',
               '@id': `${SITE_URL}/#site`,
               name,
               url: SITE_URL,
               inLanguage: ['sw-TZ', 'en-TZ', 'en-KE'],
-              publisher: { '@id': `${SITE_URL}/#org` },
+              publisher: { '@id': ORG_ID },
             },
             {
               '@type': 'Service',
               name: c.title.split(' | ')[0],
               serviceType: 'Digital invitations and guest check-in',
-              provider: { '@id': `${SITE_URL}/#org` },
+              provider: { '@id': ORG_ID },
               areaServed: market === 'ke' ? 'KE' : 'TZ',
               description: c.description,
             },

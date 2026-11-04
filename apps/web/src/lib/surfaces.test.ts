@@ -148,6 +148,14 @@ describe('middleware with a root domain set', () => {
     expect(res.headers.get('location')).toBe('https://my.kadisasa.com/ops/payments?x=1');
   });
 
+  it('sends www to the bare domain for good, keeping path and query', async () => {
+    const mw = await load(ROOT);
+    const res = mw(req('www.kadisasa.com', '/en/bei?ref=wa'));
+    expect(res.status).toBe(308);
+    expect(res.headers.get('location')).toBe('https://kadisasa.com/en/bei?ref=wa');
+    expect(mw(req('kadisasa.com', '/bei')).headers.get('location')).toBeNull();
+  });
+
   it('sends sign-in on the public host to the console host', async () => {
     const mw = await load(ROOT);
     const res = mw(req('www.kadisasa.com', '/login?next=/app'));

@@ -385,7 +385,15 @@
     "enrolLoading": "Tunaandaa msimbo wako wa uthibitisho…",
     "staffLocked": "Namba zisizo sahihi zimezidi. Kwa usalama wako, subiri hadi {time} kisha ujaribu tena.",
     "staffWrongCode": "Namba si sahihi. {attempts, plural, one {Jaribio # limebaki} other {Majaribio # yamebaki}}.",
-    "staffExpired": "Muda wa kuingia umeisha. Ingia tena kwa namba mpya ya SMS."
+    "staffExpired": "Muda wa kuingia umeisha. Ingia tena kwa namba mpya ya SMS.",
+    "otpHeading": "Thibitisha simu yako",
+    "otpSentTo": "Namba ya tarakimu 6 imetumwa kwa <b>{phone}</b>",
+    "otpEdit": "Badilisha",
+    "otpVerified": "Imethibitishwa",
+    "otpNoCode": "Hukupata namba?",
+    "otpResendTimer": "Tuma tena baada ya {time}",
+    "otpTrust": "Usimpe mtu namba hii. Hatutakuomba kamwe.",
+    "otpSecure": "Muunganisho salama · {host}"
   },
   "landing": {
     "metaTitle": "Kadi za Mwaliko Mtandaoni Tanzania | {brand}",

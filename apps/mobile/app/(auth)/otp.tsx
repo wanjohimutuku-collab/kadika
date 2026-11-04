@@ -69,12 +69,12 @@ export default function Otp() {
     }
   };
 
-  const verify = async () => {
-    if (!/^\d{6}$/.test(code)) return setError(t('validation.otp.invalid'));
+  const verify = async (value = code) => {
+    if (!/^\d{6}$/.test(value)) return setError(t('validation.otp.invalid'));
     await complete(async () =>
       firebase
-        ? getRepository().signInWithFirebase(await confirmPhoneCode(code))
-        : getRepository().verifyOtp(phone!, code),
+        ? getRepository().signInWithFirebase(await confirmPhoneCode(value))
+        : getRepository().verifyOtp(phone!, value),
     );
   };
 
@@ -128,7 +128,7 @@ export default function Otp() {
         <Button
           label={busy ? t('auth.verifying') : t('auth.verify')}
           loading={busy}
-          onPress={verify}
+          onPress={() => void verify()}
         />
       }
     >
@@ -139,13 +139,18 @@ export default function Otp() {
       <Field
         label={t('auth.otpLabel')}
         value={code}
-        onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+        onChangeText={(v) => {
+          const next = v.replace(/\D/g, '').slice(0, 6);
+          setCode(next);
+          // Checks itself on the sixth digit, typed or filled from the SMS.
+          if (next.length === 6 && next !== code) void verify(next);
+        }}
         keyboardType="number-pad"
         autoComplete="sms-otp"
         textContentType="oneTimeCode"
         maxLength={6}
         error={error}
-        onSubmitEditing={verify}
+        onSubmitEditing={() => void verify()}
       />
       <Button
         variant="ghost"

@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
 import type { Locale } from '@harusi/i18n';
 import { ContentPage } from '@/components/public/content-page';
-import { getPage, textOf } from '@/content';
+import { getPage } from '@/content';
+import { pageMetadata } from '@/content/metadata';
 
 const page = getPage('privacy')!;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = textOf(page, (await getLocale()) as Locale);
-  return { title: { absolute: t.title }, description: t.description };
+  return pageMetadata(page, (await getLocale()) as Locale);
 }
 
 export default async function PrivacyPage() {

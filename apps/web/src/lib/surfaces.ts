@@ -69,6 +69,18 @@ export function surfaceOf(
   return null;
 }
 
+/**
+ * `www.<root>` serves the same public site as the bare domain, so search engines would see two copies.
+ * Returns the bare domain to send it to, or null when the host is not the www alias.
+ */
+export function canonicalHostFor(
+  host: string | null | undefined,
+  root: string | undefined,
+): string | null {
+  const r = rootDomain(root);
+  return r && bareHost(host) === `www.${r}` ? r : null;
+}
+
 export function hostFor(surface: Surface, root: string): string {
   const r = rootDomain(root);
   return surface === 'public' ? r : `${SURFACE_LABEL[surface]}.${r}`;

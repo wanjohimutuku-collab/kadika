@@ -4,7 +4,7 @@ import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { buttonClasses } from '@/components/ui/button';
 import { SeoLinks } from '@/components/public/seo-links';
 import { formatDate } from '@/lib/format';
-import { SITE_URL, absoluteLocaleUrl, localeUrl } from '@/lib/seo';
+import { ORG_ID, SITE_URL, absoluteLocaleUrl, localeUrl, organizationNode } from '@/lib/seo';
 import { ALL_PAGES, counterpartOf, marketOf, pagePath, resolveRelated, textOf } from '@/content';
 import type { Block, ContentPageDef } from '@/content/types';
 
@@ -129,8 +129,9 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
   const market = marketOf(page);
   const url = absoluteLocaleUrl(path, locale);
   const name = DEFAULT_BRANDING.businessName;
-  const org = { '@type': 'Organization', name, url: SITE_URL };
+  const org = { '@id': ORG_ID };
   const graph: Record<string, unknown>[] = [
+    organizationNode(),
     {
       '@type': page.schema,
       '@id': `${url}#page`,
@@ -141,12 +142,9 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       inLanguage: `${locale}-${market.toUpperCase()}`,
       dateModified: page.updated,
       datePublished: page.updated,
-      isPartOf: { '@type': 'WebSite', name, url: SITE_URL },
+      isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#site`, name, url: SITE_URL },
       author: org,
-      publisher: {
-        ...org,
-        logo: { '@type': 'ImageObject', url: `${SITE_URL}/icons/512.png` },
-      },
+      publisher: org,
     },
     {
       '@type': 'BreadcrumbList',
@@ -282,15 +280,22 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
         </section>
       ))}
       {t.faq?.length ? (
-        <section aria-labelledby="faq" className="flex flex-col gap-3">
-          <h2 id="faq" className="text-2xl font-semibold">
-            {ui.faq}
-          </h2>
+        <section
+          aria-labelledby={t.h1 === ui.faq ? undefined : 'faq'}
+          aria-label={t.h1 === ui.faq ? ui.faq : undefined}
+          className="flex flex-col gap-3"
+        >
+          {/* The FAQ page's own H1 already says this; a second identical heading adds nothing. */}
+          {t.h1 === ui.faq ? null : (
+            <h2 id="faq" className="text-2xl font-semibold">
+              {ui.faq}
+            </h2>
+          )}
           <div className="divide-y divide-border rounded-card border border-border bg-surface">
             {t.faq.map((f) => (
               <details key={f.q} className="group px-4">
                 <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 py-2 font-semibold">
-                  {f.q}
+                  <h3 className="text-base font-semibold">{f.q}</h3>
                   <span
                     aria-hidden="true"
                     className="text-muted transition-transform group-open:rotate-45"

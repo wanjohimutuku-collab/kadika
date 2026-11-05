@@ -258,7 +258,8 @@ function PledgesInner({ id }: { id: string }) {
                               <div className="min-w-0 flex-1">
                                 <Link
                                   href={`/app/e/${id}/guests/${g.id}`}
-                                  className="block truncate font-medium hover:underline"
+                                  // Padding with matching negative margin: a 44 px tap area without taller rows.
+                                  className="-my-2.5 block truncate py-2.5 font-medium hover:underline"
                                 >
                                   {g.displayName}
                                 </Link>
@@ -274,7 +275,7 @@ function PledgesInner({ id }: { id: string }) {
                                 {g.pledge!.balance > 0 ? (
                                   <button
                                     type="button"
-                                    className="min-h-10 text-sm font-semibold text-primary underline-offset-2 hover:underline"
+                                    className="min-h-11 text-sm font-semibold text-primary underline-offset-2 hover:underline"
                                     onClick={() => {
                                       setPayFor(g);
                                       setPayOpen(true);

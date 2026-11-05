@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { formatPhone } from '@harusi/schemas/phone';
 import {
   useDeleteGuest,
   useGuest,
+  useMemories,
   useReissue,
   useUpdateGuest,
 } from '../../../../../src/lib/queries';
+import { getRepository } from '../../../../../src/lib/repo';
 import { useT } from '../../../../../src/lib/i18n';
 import { useEventLocale } from '../../../../../src/lib/country';
 import { statusKey } from '../../../../../src/lib/format';
@@ -49,6 +51,21 @@ export default function GuestDetail() {
   const update = useUpdateGuest(id);
   const [confirm, setConfirm] = useState<'reissue' | 'delete' | 'cardKind' | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  // Kumbukumbu (ADR 050): the host shares the guest's own link from their WhatsApp (free).
+  const memories = useMemories(id);
+  const canShare = !!memories.data?.unlocked && !!memories.data.enabled && memories.data.count > 0;
+  const [sharing, setSharing] = useState(false);
+  const shareMemories = async () => {
+    setSharing(true);
+    try {
+      const r = await getRepository().getMemoriesLink(gid);
+      if (r.waUrl) await Linking.openURL(r.waUrl);
+    } catch {
+      setMsg(t('memories.shareUnavailable'));
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const g = q.data;
   const reached = g ? (ORDER[g.status] ?? 0) : 0;
@@ -122,6 +139,15 @@ export default function GuestDetail() {
                 <Pill label={t('status.failed')} tone="danger" />
               ) : null}
             </Card>
+            {canShare && g!.phoneE164 ? (
+              <Button
+                variant="secondary"
+                icon="memories"
+                label={t('memories.share')}
+                loading={sharing}
+                onPress={() => void shareMemories()}
+              />
+            ) : null}
             <Button
               variant="secondary"
               label={t('guestDetail.changeCardKind')}

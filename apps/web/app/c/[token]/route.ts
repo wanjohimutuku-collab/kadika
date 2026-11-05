@@ -1,10 +1,8 @@
 import { createHttpRepository, isRepositoryError, type CardView } from '@harusi/api-client';
-import { defaultLocale, isLocale, LOCALE_COOKIE, type Locale } from '@harusi/i18n';
 import { APP_DOMAIN, USE_MOCKS } from '@/lib/env';
 import { peekCardOnServer } from '@/lib/server-mock';
 import { renderCard, renderProblem } from '@/lib/light-card/render';
-import { resolveLogoSrc } from '@/lib/branding';
-import { getBrandingOnServer } from '@/lib/server-branding';
+import { API_URL, brandOf, html, localeOf } from '@/lib/light-card/route-utils';
 
 /**
  * Guest card (§7.3, §17.6) as a plain HTML route handler: no React runtime on the page, so the
@@ -13,27 +11,12 @@ import { getBrandingOnServer } from '@/lib/server-branding';
  */
 export const dynamic = 'force-dynamic';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
-
-function localeOf(req: Request): Locale {
-  const m = new RegExp(`(?:^|;\\s*)${LOCALE_COOKIE}=([^;]+)`).exec(req.headers.get('cookie') ?? '');
-  return isLocale(m?.[1]) ? m![1] : defaultLocale;
-}
-
-function html(body: string, status = 200): Response {
-  return new Response(body, {
-    status,
-    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
-  });
-}
-
 export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const locale = localeOf(req);
   // The business logo goes in the footer and on the problem pages (ADR 036). Never fatal: with the API
   // down this is the built-in brand.
-  const b = await getBrandingOnServer();
-  const brand = { name: b.businessName, logoSrc: resolveLogoSrc(b.logoUrl) };
+  const brand = await brandOf();
   const base = { locale, domain: APP_DOMAIN, brand };
   if (new URL(req.url).searchParams.get('state') === 'reissued')
     return html(renderProblem('reissued', base));

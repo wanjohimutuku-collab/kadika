@@ -178,6 +178,11 @@ export default function Overview() {
         />
       </Card>
 
+      {role !== 'gate' ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          <Tile icon="memories" label={t('nav.memories')} onPress={go('memories')} />
+        </View>
+      ) : null}
       {role === 'owner' ? (
         <>
           <SectionTitle>{t('nav.more')}</SectionTitle>

@@ -183,6 +183,20 @@
       "when": 1793230330347,
       "tag": "0025_signin_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793658564498,
+      "tag": "0026_memories",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793879255264,
+      "tag": "0027_sms_reminder_product",
+      "breakpoints": true
     }
   ]
 }

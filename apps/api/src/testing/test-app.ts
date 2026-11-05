@@ -12,6 +12,7 @@ import { createApp } from '../app';
 import { parsePhone } from '../auth/service';
 import { base32Decode, hotp, totpStep } from '../auth/totp';
 import { loadConfig } from '../config';
+import { MemoryPhotoStore } from '../photos/store';
 import type { Deps } from '../context';
 
 export const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
@@ -73,8 +74,10 @@ export async function createTestContext(
     return (t ^ (t >>> 14)) >>> 0;
   };
   const clock = { now: new Date('2026-10-14T09:00:00Z').getTime() };
+  const photos = new MemoryPhotoStore();
   const deps: Deps = {
     db,
+    photos,
     sms,
     smsByCountry: { KE: smsKe },
     whatsapp,
@@ -113,6 +116,7 @@ export async function createTestContext(
     whatsapp,
     payments,
     paymentsKe,
+    photos,
     fail,
     clock,
     db,

@@ -4,6 +4,7 @@ import { API_URL } from '../../src/lib/repo';
 import { getDeviceId, gateLabel } from '../../src/gate/device';
 import { applyMaskedInput, mask } from '../../src/gate/mask';
 import { saveGateSession } from '../../src/gate/gate-session';
+import { gateCodeFrom } from '../../src/gate/join-code';
 import { useT } from '../../src/lib/i18n';
 import { Banner, Button, Field, Screen, Txt } from '../../src/ui/kit';
 
@@ -11,11 +12,11 @@ import { Banner, Button, Field, Screen, Txt } from '../../src/ui/kit';
 export default function GateJoin() {
   const { code: param } = useLocalSearchParams<{ code: string }>();
   const t = useT();
-  const [code, setCode] = useState(String(param ?? '').toUpperCase());
+  const [code, setCode] = useState(gateCodeFrom(String(param ?? '')));
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => setCode(String(param ?? '').toUpperCase()), [param]);
+  useEffect(() => setCode(gateCodeFrom(String(param ?? ''))), [param]);
 
   const join = async () => {
     setBusy(true);
@@ -64,7 +65,7 @@ export default function GateJoin() {
         <Button
           label={t('gateApp.joinGo')}
           loading={busy}
-          disabled={pin.length < 4}
+          disabled={pin.length < 4 || code.length < 4}
           onPress={join}
         />
       }
@@ -74,9 +75,9 @@ export default function GateJoin() {
       </Txt>
       <Txt>{t('gateApp.joinBody')}</Txt>
       <Field
-        label={t('gateApp.linkCode')}
+        label={t('gateApp.codeOrLink')}
         value={code}
-        onChangeText={(v) => setCode(v.toUpperCase())}
+        onChangeText={(v) => setCode(gateCodeFrom(v))}
         autoCapitalize="characters"
         autoCorrect={false}
       />

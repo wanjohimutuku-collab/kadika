@@ -134,8 +134,250 @@
   }
 }
 
+/* OtpField feedback: digit pop-in, caret, checking wave, accepted pop, rejected shake. */
+.otp-pop {
+  animation: otp-pop 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+.otp-caret {
+  animation: otp-caret 1s steps(1) infinite;
+}
+.otp-wave {
+  animation: otp-wave 900ms ease-in-out infinite;
+}
+.otp-done {
+  animation: otp-done 280ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+.otp-shake {
+  animation: otp-shake 300ms ease-out;
+}
+@keyframes otp-pop {
+  from {
+    transform: translateY(6px) scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes otp-caret {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes otp-wave {
+  0%,
+  100% {
+    background: transparent;
+  }
+  50% {
+    background: color-mix(in srgb, var(--hp-primary) 12%, transparent);
+  }
+}
+@keyframes otp-done {
+  40% {
+    transform: translateY(-3px) scale(1.06);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes otp-shake {
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
 @media print {
   .no-print {
     display: none !important;
+  }
+}
+
+/*
+ * Kadi Sasa marketing site (kit brand.md). Scoped to `.ks` on the public layout, so the console, guest card,
+ * gate and staff panel keep the §17.2 tokens. Utilities: bg-ks-paper, text-ks-green-700, border-ks-line, ….
+ * Light only, like the rest of the web app.
+ */
+@theme inline {
+  --color-ks-green-900: var(--ks-green-900);
+  --color-ks-green-700: var(--ks-green-700);
+  --color-ks-green-100: var(--ks-green-100);
+  --color-ks-gold-500: var(--ks-gold-500);
+  --color-ks-gold-100: var(--ks-gold-100);
+  --color-ks-ink: var(--ks-ink);
+  --color-ks-muted: var(--ks-muted);
+  --color-ks-paper: var(--ks-paper);
+  --color-ks-line: var(--ks-line);
+  --color-ks-ok: var(--ks-ok);
+  --color-ks-warn: var(--ks-warn);
+  --color-ks-error: var(--ks-error);
+  --radius-ks: 12px;
+  --font-ks-names: var(--font-fraunces), Georgia, serif;
+}
+
+.ks {
+  --ks-green-900: #0a3f35;
+  --ks-green-700: #0f5c4d;
+  --ks-green-100: #e3f0ec;
+  --ks-gold-500: #d9a441;
+  --ks-gold-100: #fbf1dc;
+  --ks-ink: #1a1f1d;
+  --ks-muted: #5b6662;
+  --ks-paper: #fbfaf7;
+  --ks-line: #e4e1da;
+  --ks-ok: #1e8a5a;
+  --ks-warn: #b7791f;
+  --ks-error: #b42318;
+  /* Shared components that read the app tokens (buttons, focus ring) follow the site palette here. */
+  --hp-primary: var(--ks-green-700);
+  --hp-bg: var(--ks-paper);
+  --hp-ink: var(--ks-ink);
+  --hp-muted: var(--ks-muted);
+  --hp-border: var(--ks-line);
+  background: var(--ks-paper);
+  color: var(--ks-ink);
+  font-family:
+    var(--font-figtree),
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+.ks h1,
+.ks h2,
+.ks h3 {
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.ks .tabular {
+  font-variant-numeric: tabular-nums;
+}
+/* Thin geometric border for card mock-ups and dividers: zig-zag triangles, one gold fill (not a real kanga). */
+.ks-kanga {
+  background-color: var(--ks-green-900);
+  background-image:
+    linear-gradient(135deg, var(--ks-gold-500) 25%, transparent 25%),
+    linear-gradient(225deg, var(--ks-gold-500) 25%, transparent 25%);
+  background-size: 12px 12px;
+  background-position:
+    0 0,
+    6px 0;
+}
+
+/*
+ * Kadi Sasa site, 2026-11 redesign: editorial paper, nested "bezel" cards, pill buttons and scroll reveals.
+ * Everything animates transform and opacity only, and every motion is off under prefers-reduced-motion.
+ */
+.ks {
+  --ks-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Paper grain: one fixed, non-interactive layer, so scrolling never repaints it. */
+.ks-grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Soft emerald and gold light behind the hero; static gradients, no blur filter. */
+.ks-mesh {
+  background:
+    radial-gradient(60% 55% at 85% 10%, rgb(217 164 65 / 0.16), transparent 70%),
+    radial-gradient(55% 60% at 5% 30%, rgb(15 92 77 / 0.14), transparent 70%), var(--ks-paper);
+}
+.ks-mesh-dark {
+  background:
+    radial-gradient(50% 70% at 90% 0%, rgb(217 164 65 / 0.22), transparent 70%),
+    radial-gradient(60% 80% at 0% 100%, rgb(76 194 166 / 0.18), transparent 70%),
+    var(--ks-green-900);
+}
+/* Outer shell of a nested card: a tray with a hairline, holding the inner core. */
+.ks-bezel {
+  border-radius: 2rem;
+  padding: 0.375rem;
+  background: rgb(15 92 77 / 0.045);
+  box-shadow:
+    inset 0 0 0 1px rgb(26 31 29 / 0.06),
+    0 24px 48px -32px rgb(10 63 53 / 0.28);
+}
+.ks-core {
+  border-radius: calc(2rem - 0.375rem);
+  background: #fff;
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.9),
+    0 0 0 1px rgb(26 31 29 / 0.05);
+}
+.ks-bezel-dark {
+  border-radius: 2rem;
+  padding: 0.375rem;
+  background: rgb(255 255 255 / 0.06);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.ks-core-dark {
+  border-radius: calc(2rem - 0.375rem);
+  background: rgb(255 255 255 / 0.04);
+  box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.12);
+}
+.ks-ease {
+  transition-timing-function: var(--ks-ease);
+}
+/* Scroll reveal with the CSS view timeline: no JavaScript, and browsers without it show content as is. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .ks-reveal {
+      animation: ks-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 40%;
+    }
+  }
+  .ks-enter {
+    animation: ks-rise 0.9s var(--ks-ease) both;
+  }
+  .ks-enter-2 {
+    animation: ks-rise 0.9s 0.12s var(--ks-ease) both;
+  }
+  .ks-enter-3 {
+    animation: ks-rise 0.9s 0.24s var(--ks-ease) both;
+  }
+  .ks-stagger > * {
+    animation: ks-rise 0.6s var(--ks-ease) both;
+  }
+  .ks-stagger > :nth-child(2) {
+    animation-delay: 0.05s;
+  }
+  .ks-stagger > :nth-child(3) {
+    animation-delay: 0.1s;
+  }
+  .ks-stagger > :nth-child(4) {
+    animation-delay: 0.15s;
+  }
+  .ks-stagger > :nth-child(5) {
+    animation-delay: 0.2s;
+  }
+  .ks-stagger > :nth-child(n + 6) {
+    animation-delay: 0.25s;
+  }
+}
+@keyframes ks-rise {
+  from {
+    opacity: 0;
+    transform: translateY(2.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

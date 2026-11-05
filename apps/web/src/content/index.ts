@@ -7,18 +7,33 @@ import { LEGAL_PAGES } from './pages/legal';
 import { PRODUCT_PAGES } from './pages/products';
 import { OCCASION_PAGES } from './pages/occasions';
 import { ARTICLE_PAGES } from './pages/articles';
+import { GEO_PAGES } from './pages/geo';
+import { EXPANSIONS } from './pages/expansions';
 import type { ContentPageDef, Market, PageGroup, PageText } from './types';
+
+/** Appends the worked examples and extra answers from `pages/expansions` to Tanzania pages. */
+function withExpansions(p: ContentPageDef): ContentPageDef {
+  const x = p.market === 'ke' ? undefined : EXPANSIONS[p.slug];
+  if (!x) return p;
+  const merge = (t: PageText, add: (typeof x)['sw']): PageText => ({
+    ...t,
+    sections: [...t.sections, ...add.sections],
+    faq: [...(t.faq ?? []), ...add.faq],
+  });
+  return { ...p, updated: x.updated, sw: merge(p.sw, x.sw), en: merge(p.en, x.en) };
+}
 
 export const ALL_PAGES: ContentPageDef[] = [
   ...PRODUCT_PAGES,
   ...OCCASION_PAGES,
+  ...GEO_PAGES,
   ...GUIDE_PAGES,
   ...ARTICLE_PAGES,
   ...COMPANY_PAGES,
   ...LEGAL_PAGES,
   ...KENYA_PAGES,
   ...KENYA_LEGAL_PAGES,
-];
+].map(withExpansions);
 
 export const marketOf = (p: ContentPageDef): Market => p.market ?? 'tz';
 

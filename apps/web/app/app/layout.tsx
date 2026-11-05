@@ -24,17 +24,21 @@ const CONSOLE_NAMESPACES = [
   'guests',
   'guestForm',
   'import',
+  'contacts',
   'guestDetail',
   'send',
   'cards',
   'card',
   'pledges',
+  'memories',
   'gate',
   'team',
   'reports',
   'settings',
   'account',
   'devStates',
+  // SMS-reminders-only console (ADR 055)
+  'sms',
 ] as const;
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };

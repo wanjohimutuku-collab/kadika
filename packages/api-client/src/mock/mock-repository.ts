@@ -35,6 +35,19 @@ import {
   type PurchaseView,
 } from '@harusi/schemas/billing';
 import { defaultSender, type CardKind } from '@harusi/schemas';
+import { maskPhone } from '@harusi/schemas/phone';
+import {
+  SMS_MAX_PENDING,
+  SMS_MAX_SEGMENTS,
+  smsEventInputSchema,
+  smsSegments,
+  type OpsSmsCustomer,
+  type SmsCampaignInput,
+  type SmsCampaignPreview,
+  type SmsCampaignView,
+  type SmsEventInput,
+  type SmsTarget,
+} from '@harusi/schemas/sms';
 import {
   paletteContrastIssues,
   resolvePalette,
@@ -91,6 +104,11 @@ import type {
   OpsOverview,
   OpsUsage,
   StaffPermission,
+  GuestMemoriesView,
+  MemoriesAdminView,
+  Memory,
+  MemoryUpload,
+  MemoryPhotoSize,
 } from '../types';
 import { STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
@@ -2057,6 +2075,7 @@ export class MockRepository implements Repository {
         g.status !== 'checked_in' &&
         e.status !== 'archived',
       eventPassed,
+      memoriesAvailable: this.memoriesAvailable(e.id),
       isMock: true,
     };
   }
@@ -2225,13 +2244,16 @@ export class MockRepository implements Repository {
     const allowance = addAllowance(c.free, bought);
     const used: Allowance = {
       cards: this.state.guests.filter((g) => g.eventId === eventId && this.isGenerated(g)).length,
-      messages: this.state.messages.filter(
-        (m) =>
-          m.eventId === eventId &&
-          m.status !== 'failed' &&
-          m.channel !== 'print' &&
-          !(CARD_DELIVERY_KINDS as readonly string[]).includes(m.kind),
-      ).length,
+      // one credit per SMS part (ADR 055)
+      messages: this.state.messages
+        .filter(
+          (m) =>
+            m.eventId === eventId &&
+            m.status !== 'failed' &&
+            m.channel !== 'print' &&
+            !(CARD_DELIVERY_KINDS as readonly string[]).includes(m.kind),
+        )
+        .reduce((n, m) => n + (m.segments ?? 1), 0),
     };
     return { enforced: c.enforced, allowance, used, remaining: remainingOf(allowance, used) };
   }
@@ -2259,6 +2281,528 @@ export class MockRepository implements Repository {
       const list = this.guestsOf(eventId).filter((g) => guestIds.includes(g.id));
       for (const g of list) g.printCard = printCard;
       return { updated: list.length };
+    });
+  }
+
+  // ---------------------------------------------------------------- Kumbukumbu (ADR 050)
+
+  /** Photos are kept in memory only: localStorage cannot hold them, so a reload shows placeholders. */
+  private memoryBlobs = new Map<string, Blob>();
+
+  private memoriesUnlocked(eventId: string): boolean {
+    return (this.state.purchases ?? []).some(
+      (p) => p.eventId === eventId && p.kind === 'cards' && p.status === 'paid',
+    );
+  }
+
+  private memoriesOf(eventId: string): Memory[] {
+    return [...(this.state.memories?.[eventId] ?? [])].sort(
+      (a, b) =>
+        (a.takenOn === null ? 1 : 0) - (b.takenOn === null ? 1 : 0) ||
+        (a.takenOn ?? '').localeCompare(b.takenOn ?? '') ||
+        a.sortOrder - b.sortOrder,
+    );
+  }
+
+  private memoriesAvailable(eventId: string): boolean {
+    const e = this.state.events.find((x) => x.id === eventId);
+    return (
+      e?.memoriesEnabled !== false &&
+      this.memoriesUnlocked(eventId) &&
+      this.memoriesOf(eventId).length > 0
+    );
+  }
+
+  private memoryEvent(memoryId: string): string {
+    for (const [eventId, list] of Object.entries(this.state.memories ?? {}))
+      if (list.some((m) => m.id === memoryId)) return eventId;
+    throw new RepositoryError('not_found', 'Memory not found');
+  }
+
+  private checkMemoryFields(caption?: string | null, takenOn?: string | null) {
+    if (caption && caption.trim().length > 140)
+      throw new RepositoryError('validation', 'Caption is at most 140 characters', {
+        field: 'caption',
+      });
+    if (takenOn && !/^\d{4}-\d{2}-\d{2}$/.test(takenOn))
+      throw new RepositoryError('validation', 'Date must look like 2019-03-02', {
+        field: 'takenOn',
+      });
+  }
+
+  listMemories(eventId: string): Promise<MemoriesAdminView> {
+    return this.run('read', 'memories', () => {
+      this.requireSession();
+      const e = this.event(eventId);
+      const memories = this.memoriesOf(eventId);
+      return {
+        unlocked: this.memoriesUnlocked(eventId),
+        enabled: e.memoriesEnabled !== false,
+        limit: this.state.memoriesLimit?.[eventId] ?? 30,
+        count: memories.length,
+        memories,
+      };
+    });
+  }
+
+  addMemory(
+    eventId: string,
+    photo: MemoryUpload,
+    input: { caption?: string; takenOn?: string },
+  ): Promise<Memory> {
+    return this.run('online-only', 'Kumbukumbu', () => {
+      this.requireSession();
+      this.event(eventId);
+      this.checkMemoryFields(input.caption, input.takenOn);
+      if (!this.memoriesUnlocked(eventId))
+        throw new RepositoryError('payment_required', 'Buy cards to unlock memories', {
+          reason: 'feature_locked',
+          feature: 'memories',
+        });
+      const list = ((this.state.memories ??= {})[eventId] ??= []);
+      if (list.length >= (this.state.memoriesLimit?.[eventId] ?? 30))
+        throw new RepositoryError('payment_required', 'Memories limit reached', {
+          reason: 'quota_exceeded',
+          resource: 'memories',
+          remaining: 0,
+          needed: 1,
+        });
+      const m: Memory = {
+        id: this.rng.uuid(),
+        caption: input.caption?.trim() || null,
+        takenOn: input.takenOn || null,
+        sortOrder: list.length,
+        width: 1280,
+        height: 853,
+      };
+      list.push(m);
+      if (photo instanceof Blob) this.memoryBlobs.set(m.id, photo);
+      this.persist();
+      return { ...m };
+    });
+  }
+
+  updateMemory(
+    memoryId: string,
+    patch: { caption?: string | null; takenOn?: string | null; sortOrder?: number },
+  ): Promise<Memory> {
+    return this.run('write', 'Kumbukumbu', () => {
+      this.requireSession();
+      this.checkMemoryFields(patch.caption, patch.takenOn);
+      const m = this.state.memories![this.memoryEvent(memoryId)]!.find((x) => x.id === memoryId)!;
+      if (patch.caption !== undefined) m.caption = patch.caption?.trim() || null;
+      if (patch.takenOn !== undefined) m.takenOn = patch.takenOn || null;
+      if (patch.sortOrder !== undefined) m.sortOrder = patch.sortOrder;
+      return { ...m };
+    });
+  }
+
+  deleteMemory(memoryId: string): Promise<void> {
+    return this.run('write', 'Kumbukumbu', () => {
+      this.requireSession();
+      const eventId = this.memoryEvent(memoryId);
+      this.state.memories![eventId] = this.state.memories![eventId]!.filter(
+        (x) => x.id !== memoryId,
+      );
+      this.memoryBlobs.delete(memoryId);
+    });
+  }
+
+  fetchMemoryPhoto(_eventId: string, memoryId: string, _size?: MemoryPhotoSize): Promise<Blob> {
+    return this.run('read', 'memory-photo', () => {
+      const blob = this.memoryBlobs.get(memoryId);
+      if (blob) return blob;
+      // After a reload: a soft placeholder the size of the photo.
+      return new Blob(
+        [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 853"><rect width="1280" height="853" fill="#E6DFD3"/><circle cx="640" cy="426" r="120" fill="#B8893B" opacity=".5"/></svg>',
+        ],
+        { type: 'image/svg+xml' },
+      );
+    });
+  }
+
+  sendMemories(
+    eventId: string,
+    guestIds?: string[],
+  ): Promise<{ sent: number; failed: number; skipped: number }> {
+    return this.run('send', 'Kumbukumbu', () => {
+      this.requireSession();
+      if (!this.memoriesUnlocked(eventId))
+        throw new RepositoryError('payment_required', 'Buy cards to unlock memories', {
+          reason: 'feature_locked',
+          feature: 'memories',
+        });
+      if (!this.memoriesAvailable(eventId))
+        throw new RepositoryError('validation', 'Add photos first', { reason: 'no_memories' });
+      const picked = this.guestsOf(eventId).filter((g) => !guestIds || guestIds.includes(g.id));
+      let sent = 0;
+      for (const g of picked) {
+        if (!g.phoneE164) continue;
+        this.state.messages.push({
+          id: this.rng.uuid(),
+          eventId,
+          guestId: g.id,
+          channel: g.hasSmartphone ? 'whatsapp' : 'sms',
+          provider: g.hasSmartphone ? 'whatsapp-cloud' : 'fake-sms',
+          kind: 'memories',
+          status: 'sent',
+          error: null,
+          cost: g.hasSmartphone ? 0 : 25,
+          createdAt: iso(this.now()),
+        });
+        sent++;
+      }
+      this.persist();
+      return { sent, failed: 0, skipped: picked.length - sent };
+    });
+  }
+
+  getMemoriesLink(guestId: string): Promise<{ url: string; waUrl: string | null }> {
+    return this.run('read', 'memories-link', () => {
+      this.requireSession();
+      const g = this.guestRecord(guestId);
+      const e = this.event(g.eventId);
+      const url = `${this.baseUrl}/s/${g.token}/k`;
+      const text = `${e.coupleNames} wameshiriki kumbukumbu zao nawe: ${url}`;
+      return {
+        url,
+        waUrl: g.phoneE164
+          ? `https://wa.me/${g.phoneE164.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`
+          : null,
+      };
+    });
+  }
+
+  getGuestMemories(token: string): Promise<GuestMemoriesView> {
+    return this.run('card-read', 'memories', () => this.peekGuestMemories(token));
+  }
+
+  /** The guest page without latency or side effects, for server rendering in mock mode. */
+  peekGuestMemories(token: string): GuestMemoriesView {
+    const card = this.cardView(token);
+    if (card.state === 'reissued') throw new RepositoryError('reissued');
+    if (card.state !== 'ok' || !card.event) throw new RepositoryError('not_found', 'Invalid link');
+    if (!this.memoriesAvailable(card.event.id))
+      throw new RepositoryError('not_found', 'Memories are not available', {
+        reason: 'memories_unavailable',
+      });
+    return {
+      card: { ...card, pledge: null, qrPayload: '' },
+      memories: this.memoriesOf(card.event.id),
+    };
+  }
+
+  opsSetMemoriesLimit(eventId: string, limit: number, note: string): Promise<{ limit: number }> {
+    return this.run('write', 'ops', () => {
+      this.requireStaff('plan');
+      if (note.trim().length < 3)
+        throw new RepositoryError('validation', 'reason_required', { field: 'note' });
+      this.event(eventId);
+      (this.state.memoriesLimit ??= {})[eventId] = limit;
+      return { limit };
+    });
+  }
+
+  // ---------------------------------------------------------------- SMS reminders only (ADR 055)
+
+  createSmsEvent(input: SmsEventInput): Promise<WeddingEvent> {
+    return this.run('write', 'SMS mpya', () => {
+      const u = this.requireSession();
+      const parsed = smsEventInputSchema.safeParse(input);
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0];
+        throw new RepositoryError('validation', issue?.message ?? 'Invalid input', {
+          field: String(issue?.path[0] ?? ''),
+        });
+      }
+      const v = parsed.data;
+      if (v.country !== 'TZ')
+        throw new RepositoryError('validation', 'Country is not available', { field: 'country' });
+      const now = iso(this.now());
+      const e: EventRecord = {
+        id: this.rng.uuid(),
+        title: v.title,
+        cardContent: { sender: { kind: 'family' } },
+        eventKind: '',
+        partnerA: v.title,
+        partnerB: '',
+        coupleNames: v.title,
+        dateStart: new Date(v.dateStart).toISOString(),
+        venueName: '',
+        venueMapUrl: '',
+        dressCode: '',
+        languageDefault: v.languageDefault,
+        country: 'TZ',
+        currency: 'TZS',
+        timezone: 'Africa/Dar_es_Salaam',
+        status: 'active',
+        themeId: 'emerald-gold',
+        coverGradient: '',
+        palette: {},
+        rsvpDeadline: null,
+        contributionTarget: 0,
+        senderName: v.senderName || v.title,
+        committeePhone: u.phoneE164,
+        pledgesEnabled: false,
+        memoriesEnabled: false,
+        requirePledgeBeforeCard: false,
+        greeting: '',
+        extraNote: '',
+        reminders: { t14: false, t7: false, t1: false },
+        whatsappFallbackHours: 6,
+        plan: 'free',
+        product: 'sms',
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      this.state.events.push(e);
+      this.state.members[e.id] = [
+        {
+          id: `m-${u.id}-${e.id.slice(0, 4)}`,
+          userId: u.id,
+          name: u.name,
+          phoneE164: u.phoneE164,
+          role: 'owner',
+          status: 'active',
+          lastActiveAt: now,
+        },
+      ];
+      return this.toEvent(e);
+    });
+  }
+
+  private smsEvent(eventId: string): EventRecord {
+    this.requireSession();
+    const e = this.event(eventId);
+    if (e.product !== 'sms')
+      throw new RepositoryError('conflict', 'Custom SMS sends are for SMS reminder accounts', {
+        reason: 'not_sms_product',
+      });
+    return e;
+  }
+
+  private smsAudience(eventId: string, target: SmsTarget) {
+    const rows = this.guestsOf(eventId).filter((g) =>
+      target === 'all'
+        ? true
+        : 'group' in target
+          ? g.groupLabel === target.group
+          : target.guestIds.includes(g.id),
+    );
+    const reachable = rows.filter((g) => g.phoneE164);
+    return { reachable, skipped: rows.length - reachable.length };
+  }
+
+  private smsCampaignsOf(eventId: string): SmsCampaignView[] {
+    return (this.state.smsCampaigns ??= []).filter((c) => c.eventId === eventId);
+  }
+
+  /** Sends one campaign now and logs every SMS; failed ones spend no credit. */
+  private executeSms(c: SmsCampaignView): void {
+    const { reachable, skipped } = this.smsAudience(c.eventId, c.target);
+    const billing = this.billingNumbers(c.eventId);
+    let left = billing.enforced ? billing.remaining.messages : Infinity;
+    const failureRate = 0.02 + this.controls.get().failureRate;
+    let sent = 0;
+    let failed = 0;
+    let error: string | null = null;
+    for (const g of reachable) {
+      if (left < c.segments) {
+        error = 'quota_exceeded';
+        break;
+      }
+      const fails = this.random() < failureRate;
+      this.state.messages.push({
+        id: this.rng.uuid(),
+        eventId: c.eventId,
+        guestId: g.id,
+        channel: 'sms',
+        provider: 'fake-sms',
+        kind: 'sms_campaign',
+        status: fails ? 'failed' : 'sent',
+        error: fails ? 'Namba haipatikani' : null,
+        cost: fails ? 0 : 25 * c.segments,
+        segments: c.segments,
+        createdAt: iso(this.now()),
+      });
+      if (fails) failed++;
+      else {
+        sent++;
+        left -= c.segments;
+      }
+    }
+    Object.assign(c, {
+      status: 'done',
+      recipientCount: reachable.length,
+      sent,
+      failed,
+      skipped: skipped + (reachable.length - sent - failed),
+      credits: sent * c.segments,
+      error,
+      finishedAt: iso(this.now()),
+    } satisfies Partial<SmsCampaignView>);
+  }
+
+  /** Scheduled texts whose time has come run when the list is next read (the mock has no worker). */
+  private runDueSms(eventId: string): void {
+    const now = this.now();
+    for (const c of this.smsCampaignsOf(eventId)) {
+      if (c.status === 'scheduled' && c.scheduledFor && Date.parse(c.scheduledFor) <= now)
+        this.executeSms(c);
+    }
+  }
+
+  previewSmsCampaign(
+    eventId: string,
+    input: { body: string; target: SmsTarget },
+  ): Promise<SmsCampaignPreview> {
+    return this.run('read', 'sms-preview', () => {
+      this.smsEvent(eventId);
+      const seg = smsSegments(input.body || ' ');
+      const { reachable, skipped } = this.smsAudience(eventId, input.target);
+      const b = this.billingNumbers(eventId);
+      return {
+        recipients: reachable.length,
+        withoutPhone: skipped,
+        segments: seg.segments,
+        encoding: seg.encoding,
+        credits: reachable.length * seg.segments,
+        remaining: b.enforced ? b.remaining.messages : null,
+      };
+    });
+  }
+
+  sendSmsCampaign(
+    eventId: string,
+    input: SmsCampaignInput,
+    idempotencyKey: string,
+  ): Promise<SmsCampaignView> {
+    return this.run('send', 'Tuma SMS', () => {
+      this.smsEvent(eventId);
+      const known = this.state.idempotency[`sms:${idempotencyKey}`];
+      const seen = known ? this.smsCampaignsOf(eventId).find((c) => c.id === known) : undefined;
+      if (seen) return { ...seen };
+      const body = input.body.trim();
+      const seg = smsSegments(body);
+      if (body.length < 2)
+        throw new RepositoryError('validation', 'body.required', { field: 'body' });
+      if (seg.segments > SMS_MAX_SEGMENTS)
+        throw new RepositoryError('validation', 'body.tooLong', { field: 'body' });
+      const now = this.now();
+      if (input.scheduleAt) {
+        const at = Date.parse(input.scheduleAt);
+        if (!(at >= now + 60_000))
+          throw new RepositoryError('validation', 'Pick a time at least a minute from now', {
+            field: 'scheduleAt',
+          });
+        const pending = this.smsCampaignsOf(eventId).filter((c) => c.status === 'scheduled');
+        if (pending.length >= SMS_MAX_PENDING)
+          throw new RepositoryError('conflict', `At most ${SMS_MAX_PENDING} sends can wait`);
+      }
+      const { reachable, skipped } = this.smsAudience(eventId, input.target);
+      if (!reachable.length)
+        throw new RepositoryError('validation', 'No contact with a phone number matches', {
+          field: 'target',
+          reason: 'no_recipients',
+        });
+      const needed = reachable.length * seg.segments;
+      const b = this.billingNumbers(eventId);
+      if (b.enforced && needed > b.remaining.messages)
+        throw new RepositoryError('payment_required', 'Reminder credits used up', {
+          reason: 'quota_exceeded',
+          resource: 'messages',
+          remaining: b.remaining.messages,
+          needed,
+        });
+      const c: SmsCampaignView = {
+        id: this.rng.uuid(),
+        eventId,
+        body,
+        target: input.target,
+        status: input.scheduleAt ? 'scheduled' : 'running',
+        scheduledFor: input.scheduleAt ? new Date(input.scheduleAt).toISOString() : null,
+        segments: seg.segments,
+        recipientCount: reachable.length,
+        sent: 0,
+        failed: 0,
+        skipped,
+        credits: needed,
+        error: null,
+        createdAt: iso(now),
+        finishedAt: null,
+      };
+      (this.state.smsCampaigns ??= []).push(c);
+      this.state.idempotency[`sms:${idempotencyKey}`] = c.id;
+      if (!input.scheduleAt) this.executeSms(c);
+      this.persist();
+      return { ...c };
+    });
+  }
+
+  listSmsCampaigns(eventId: string): Promise<SmsCampaignView[]> {
+    return this.run('read', 'sms-campaigns', () => {
+      this.smsEvent(eventId);
+      this.runDueSms(eventId);
+      this.persist();
+      return this.smsCampaignsOf(eventId)
+        .map((c) => ({ ...c }))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    });
+  }
+
+  cancelSmsCampaign(eventId: string, campaignId: string): Promise<SmsCampaignView> {
+    return this.run('write', 'Sitisha SMS', () => {
+      this.smsEvent(eventId);
+      const c = this.smsCampaignsOf(eventId).find((x) => x.id === campaignId);
+      if (!c) throw new RepositoryError('not_found', 'Send not found');
+      if (c.status !== 'scheduled')
+        throw new RepositoryError('conflict', 'This send has already started or finished');
+      c.status = 'cancelled';
+      c.finishedAt = iso(this.now());
+      return { ...c };
+    });
+  }
+
+  opsListSmsCustomers(): Promise<OpsSmsCustomer[]> {
+    return this.run('read', 'ops-sms', () => {
+      this.requireStaff();
+      const since = this.now() - 30 * 86_400_000;
+      return this.state.events
+        .filter((e) => e.product === 'sms' && !e.deletedAt)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((e): OpsSmsCustomer => {
+          const owner = this.ownerOf(e.id);
+          const msgs = this.state.messages.filter(
+            (m) => m.eventId === e.id && m.status !== 'failed' && m.channel === 'sms',
+          );
+          const parts = (list: typeof msgs) => list.reduce((n, m) => n + (m.segments ?? 1), 0);
+          const camps = this.smsCampaignsOf(e.id);
+          const b = this.billingNumbers(e.id);
+          return {
+            eventId: e.id,
+            title: e.title,
+            ownerName: owner?.name || '—',
+            ownerPhone: owner ? maskPhone(owner.phoneE164) : '—',
+            country: e.country,
+            status: e.status,
+            contacts: this.guestsOf(e.id).length,
+            campaigns: camps.length,
+            scheduled: camps.filter((c) => c.status === 'scheduled').length,
+            smsSent: parts(msgs),
+            smsSent30d: parts(msgs.filter((m) => Date.parse(m.createdAt) >= since)),
+            lastSentAt:
+              msgs
+                .map((m) => m.createdAt)
+                .sort()
+                .at(-1) ?? null,
+            allowance: b.allowance.messages,
+            used: b.used.messages,
+            remaining: b.remaining.messages,
+            createdAt: e.createdAt,
+          };
+        });
     });
   }
 
@@ -2529,6 +3073,7 @@ export class MockRepository implements Repository {
       dateStart: e.dateStart,
       status: e.status,
       plan: e.plan,
+      product: e.product ?? 'cards',
       ownerId: this.ownerOf(e.id)?.id ?? '',
       ownerName: this.ownerOf(e.id)?.name ?? '—',
       guests: guests.length,

@@ -4,7 +4,7 @@
 # The run then waits until the live API and web app report the new commit on /health, so a red run
 # means the deploy did not land, and GitHub emails whoever pushed (ADR 035).
 #
-#   push to main    ->  :staging       (+ :main, :sha-<short>)    moves deploy/staging
+#   green main      ->  release.yml tags the next patch version and starts this workflow on that tag
 #   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   moves deploy/production
 #   manual run      ->  :sha-<short> and :<branch> (+ :staging on main); moves deploy/staging only
 #                       when run on main with "deploy" ticked
@@ -16,7 +16,7 @@
 name: Build and push images
 
 on:
-  # Only releases (v* tags) and manual runs, to spend few Actions minutes. Pushes to main do not build.
+  # Releases (v* tags, pushed by hand or by release.yml after a green merge to main) and manual runs.
   push:
     tags: ['v*.*.*']
   workflow_dispatch:
@@ -291,7 +291,9 @@ jobs:
           DEPLOY_BRANCH: deploy/${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
         run: |
           # A manual run on another branch has no :staging image, so the stack would redeploy the old one.
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+          # A run on a version tag (started by release.yml) deploys to production like a tag push.
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ] &&
+            [[ "$GITHUB_REF" != refs/tags/v* ]]; then
             echo "::warning::Deploys only run from main. The images are pushed as :sha-${GITHUB_SHA::7}; nothing was deployed."
             exit 0
           fi

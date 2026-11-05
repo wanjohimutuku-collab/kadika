@@ -1,6 +1,7 @@
 import type { MessagingRoute, MessagingSettingsView } from '@harusi/schemas/messaging-settings';
 import type { PaymentSettingsView } from '@harusi/schemas/payment-settings';
 import type { SignInSettingsView, SignInTestResult } from '@harusi/schemas/signin-settings';
+import type { OpsSmsCustomer, SmsCampaignPreview, SmsCampaignView } from '@harusi/schemas/sms';
 import type { BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import type {
   EventBillingView,
@@ -58,6 +59,7 @@ import type {
   AuthConfig,
   StaffRole,
   WeddingEvent,
+  Memory,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
 
@@ -97,6 +99,22 @@ export interface HttpRepositoryOptions {
   fetchImpl?: typeof fetch;
   tokens?: TokenStore;
   newKey?: () => string;
+  /**
+   * Runs a token refresh exclusively across every client sharing the token store (browser tabs share
+   * `localStorage`). Refresh tokens rotate and a reused one revokes the whole session, so two tabs
+   * refreshing at once would sign the user out; the web app passes a Web Locks implementation.
+   */
+  refreshLock?: <T>(fn: () => Promise<T>) => Promise<T>;
+}
+
+/** `refreshLock` from the Web Locks API, or undefined where it is missing (older browsers, servers). */
+export function webRefreshLock(name = 'harusi.auth.refresh'): HttpRepositoryOptions['refreshLock'] {
+  // Typed by hand: this package also builds for React Native, whose lib has no Web Locks.
+  type Locks = { request<T>(name: string, fn: () => Promise<T>): Promise<T> };
+  const locks =
+    typeof navigator !== 'undefined' ? (navigator as { locks?: Locks }).locks : undefined;
+  if (!locks) return undefined;
+  return <T>(fn: () => Promise<T>) => locks.request(name, fn);
 }
 
 interface ApiUser {
@@ -119,6 +137,7 @@ interface ApiEvent {
   dressCode: string | null;
   committeePhone?: string | null;
   pledgesEnabled?: boolean;
+  memoriesEnabled?: boolean;
   senderName?: string | null;
   greeting?: string | null;
   languageDefault: 'sw' | 'en';
@@ -129,6 +148,7 @@ interface ApiEvent {
   rsvpDeadline: string | null;
   contributionTarget: number | null;
   plan: 'free' | 'paid';
+  product?: 'cards' | 'sms';
   brandTheme: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
@@ -228,12 +248,14 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
       e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
+    memoriesEnabled: e.memoriesEnabled ?? true,
     requirePledgeBeforeCard: false,
     greeting: e.greeting ?? '',
     extraNote: '',
     reminders: { t14: true, t7: true, t1: true },
     whatsappFallbackHours: 6,
     plan: e.plan,
+    product: e.product ?? 'cards',
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
     stats: empty,
@@ -256,7 +278,11 @@ interface ApiCard {
   rsvp: CardView['rsvp'];
   rsvpOpen: boolean;
   eventPassed: boolean;
+  memoriesAvailable?: boolean;
 }
+
+/** FormData exists in browsers, React Native and Node 18+; checked by name so no global is needed. */
+const isForm = (b: unknown): boolean => typeof FormData !== 'undefined' && b instanceof FormData;
 
 function mapCard(token: string, c: ApiCard): CardView {
   const e = c.event;
@@ -307,6 +333,7 @@ function mapCard(token: string, c: ApiCard): CardView {
     pledge: c.pledge ?? null,
     rsvpOpen: c.rsvpOpen,
     eventPassed: c.eventPassed,
+    memoriesAvailable: c.memoriesAvailable ?? false,
     isMock: false,
   };
 }
@@ -364,6 +391,7 @@ export function createHttpRepository(
   const doFetch = opts.fetchImpl ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const tokens = opts.tokens ?? memoryTokenStore();
   const newKey = opts.newKey ?? (() => crypto.randomUUID());
+  const refreshLock = opts.refreshLock;
   let refreshing: Promise<boolean> | null = null;
   /** Staff sign-in: the challenge between the SMS code and the authenticator code (memory only). */
   let staffChallenge: string | null = null;
@@ -389,12 +417,23 @@ export function createHttpRepository(
       res = await doFetch(`${baseUrl}${path}`, {
         method,
         headers: {
-          // a Blob (the APK upload) goes as raw bytes; everything else is JSON
-          'content-type': body instanceof Blob ? 'application/octet-stream' : 'application/json',
+          // a Blob (the APK upload) goes as raw bytes; FormData (a Kumbukumbu photo) sets its own
+          // multipart boundary; everything else is JSON
+          ...(isForm(body)
+            ? {}
+            : {
+                'content-type':
+                  body instanceof Blob ? 'application/octet-stream' : 'application/json',
+              }),
           ...(auth && tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
           ...extra,
         },
-        body: body === undefined ? undefined : body instanceof Blob ? body : JSON.stringify(body),
+        body:
+          body === undefined
+            ? undefined
+            : body instanceof Blob || isForm(body)
+              ? (body as Blob | FormData)
+              : JSON.stringify(body),
       });
     } catch {
       throw new RepositoryError('offline', 'No network');
@@ -403,13 +442,21 @@ export function createHttpRepository(
     return { status: res.status, json: json as Record<string, unknown> | null };
   }
 
-  async function refreshTokens(): Promise<boolean> {
-    const t = tokens.get();
-    if (!t) return false;
-    refreshing ??= (async () => {
+  /**
+   * Swaps the refresh token for a new pair. `sentWith` is the access token the refused request carried:
+   * when the store already holds a different one, another request or tab has refreshed and we use it.
+   */
+  async function refreshTokens(sentWith?: string): Promise<boolean> {
+    if (!tokens.get()) return false;
+    refreshing ??= (refreshLock ?? ((fn: () => Promise<boolean>) => fn()))(async () => {
+      // Read inside the lock: the tab that held it before us may have rotated the tokens already.
+      const t = tokens.get();
+      if (!t) return false;
+      if (sentWith !== undefined && t.accessToken !== sentWith) return true;
       const r = await raw('POST', '/v1/auth/refresh', { refreshToken: t.refreshToken }, {}, false);
       if (r.status !== 200) {
-        tokens.set(null);
+        // Only clear the session we tried to refresh, never a newer one another tab just stored.
+        if (tokens.get()?.refreshToken === t.refreshToken) tokens.set(null);
         return false;
       }
       tokens.set({
@@ -417,7 +464,7 @@ export function createHttpRepository(
         refreshToken: r.json!.refreshToken as string,
       });
       return true;
-    })().finally(() => {
+    }).finally(() => {
       refreshing = null;
     });
     return refreshing;
@@ -430,8 +477,9 @@ export function createHttpRepository(
     body?: unknown,
     extra?: Record<string, string>,
   ): Promise<T> {
+    const sentWith = tokens.get()?.accessToken;
     let r = await raw(method, path, body, extra);
-    if (r.status === 401 && tokens.get() && (await refreshTokens()))
+    if (r.status === 401 && tokens.get() && (await refreshTokens(sentWith)))
       r = await raw(method, path, body, extra);
     if (r.status >= 400) return fail(r.status, r.json as never);
     return r.json as T;
@@ -478,8 +526,18 @@ export function createHttpRepository(
   };
 
   const impl: Partial<Repository> = {
-    async requestOtp(phone) {
-      const r = await raw('POST', '/v1/auth/otp/request', { phone }, {}, false);
+    async requestOtp(phone, opts) {
+      const r = await raw(
+        'POST',
+        '/v1/auth/otp/request',
+        {
+          phone,
+          ...(opts?.fallback ? { fallback: true } : {}),
+          ...(opts?.language ? { language: opts.language } : {}),
+        },
+        {},
+        false,
+      );
       if (r.status >= 400) return fail(r.status, r.json as never);
       return { resendAfterSeconds: Number(r.json!.resendAfterSeconds ?? 30) };
     },
@@ -819,6 +877,7 @@ export function createHttpRepository(
       if (patch.contributionTarget !== undefined)
         body.contributionTarget = patch.contributionTarget;
       if (patch.pledgesEnabled !== undefined) body.pledgesEnabled = patch.pledgesEnabled;
+      if (patch.memoriesEnabled !== undefined) body.memoriesEnabled = patch.memoriesEnabled;
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;
       if (patch.senderName !== undefined) body.senderName = patch.senderName || null;
@@ -1302,6 +1361,57 @@ export function createHttpRepository(
     if (r.status >= 400) return fail(r.status, r.json as never);
     return r.json as unknown as PaymentStatusView;
   };
+  // ---- Kumbukumbu (ADR 050)
+  const ev = (id: string) => `/v1/events/${encodeURIComponent(id)}`;
+  impl.listMemories = (eventId) => call('GET', `${ev(eventId)}/memories`);
+  impl.addMemory = (eventId, photo, input) => {
+    const form = new FormData();
+    // React Native's FormData takes `{ uri, name, type }` for a file; the web takes a Blob.
+    form.append('photo', photo as unknown as Blob, 'name' in photo ? photo.name : 'photo');
+    if (input.caption) form.append('caption', input.caption);
+    if (input.takenOn) form.append('takenOn', input.takenOn);
+    return call('POST', `${ev(eventId)}/memories`, form);
+  };
+  impl.updateMemory = (memoryId, patch) =>
+    call('PATCH', `/v1/memories/${encodeURIComponent(memoryId)}`, patch);
+  impl.deleteMemory = async (memoryId) => {
+    await call('DELETE', `/v1/memories/${encodeURIComponent(memoryId)}`);
+  };
+  impl.fetchMemoryPhoto = async (eventId, memoryId, size) => {
+    const send = () =>
+      doFetch(`${baseUrl}${ev(eventId)}/memories/${encodeURIComponent(memoryId)}/${size}`, {
+        headers: tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {},
+      });
+    let res: Response;
+    try {
+      res = await send();
+      if (res.status === 401 && tokens.get() && (await refreshTokens())) res = await send();
+    } catch {
+      throw new RepositoryError('offline', 'No network');
+    }
+    if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
+    return res.blob();
+  };
+  impl.sendMemories = (eventId, guestIds) =>
+    call('POST', `${ev(eventId)}/memories/send`, guestIds ? { guestIds } : {});
+  impl.getMemoriesLink = (guestId) =>
+    call('GET', `/v1/guests/${encodeURIComponent(guestId)}/memories-link`);
+  impl.getGuestMemories = async (token) => {
+    const r = await raw('GET', `/v1/c/${encodeURIComponent(token)}/memories`, undefined, {}, false);
+    if (r.status >= 400) {
+      const err = (r.json as { error?: { details?: { reason?: string } } } | null)?.error;
+      if (r.status === 409 && err?.details?.reason === 'reissued')
+        throw new RepositoryError('reissued', 'This card was replaced');
+      return fail(r.status, r.json as never);
+    }
+    const j = r.json as unknown as { card: ApiCard; memories: Memory[] };
+    return { card: mapCard(token, j.card), memories: j.memories };
+  };
+  impl.opsSetMemoriesLimit = (eventId, limit, note) =>
+    call('PATCH', `/v1/ops/events/${encodeURIComponent(eventId)}/memories-limit`, {
+      limit,
+      note,
+    });
   impl.exportCsv = async (eventId, kind) => {
     if (kind !== 'pledges' && kind !== 'payments')
       throw new RepositoryError('not_implemented', 'That export is not available yet');
@@ -1347,6 +1457,32 @@ export function createHttpRepository(
     if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
     return res.blob();
   };
+
+  // ---- SMS reminders only (ADR 055)
+  impl.createSmsEvent = async (input) => {
+    const created = await call<ApiEvent>('POST', '/v1/events', {
+      title: input.title,
+      coupleNames: input.title,
+      senderName: input.senderName || null,
+      dateStart: input.dateStart,
+      languageDefault: input.languageDefault,
+      country: input.country,
+      product: 'sms',
+    });
+    return mapEvent(created);
+  };
+  const smsPath = (eventId: string) => `/v1/events/${encodeURIComponent(eventId)}/sms`;
+  impl.previewSmsCampaign = (eventId, input) =>
+    call<SmsCampaignPreview>('POST', `${smsPath(eventId)}/preview`, input);
+  impl.sendSmsCampaign = (eventId, input, idempotencyKey) =>
+    call<SmsCampaignView>('POST', `${smsPath(eventId)}/campaigns`, input, {
+      'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey(),
+    });
+  impl.listSmsCampaigns = async (eventId) =>
+    (await call<{ items: SmsCampaignView[] }>('GET', `${smsPath(eventId)}/campaigns`)).items;
+  impl.cancelSmsCampaign = (eventId, id) =>
+    call<SmsCampaignView>('DELETE', `${smsPath(eventId)}/campaigns/${encodeURIComponent(id)}`);
+  impl.opsListSmsCustomers = () => call<OpsSmsCustomer[]>('GET', '/v1/ops/sms-customers');
 
   // Anything the API does not provide yet rejects with `not_implemented`.
   return new Proxy(impl as Repository, {

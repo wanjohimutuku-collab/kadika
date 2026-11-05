@@ -31,6 +31,7 @@ export class PrintService {
   ): Promise<{ bytes: Uint8Array; filename: string }> {
     const role = await this.eventsSvc.role(eventId, userId);
     if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot print cards');
+    await this.eventsSvc.assertCardsProduct(eventId);
     const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
     if (!event) throw new ApiError('not_found', 'Event not found');
     const slug =

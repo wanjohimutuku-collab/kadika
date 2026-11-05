@@ -506,7 +506,7 @@ function GuestsInner({ id }: { id: string }) {
             <select
               value={group}
               onChange={(e) => setGroup(e.target.value)}
-              className="min-h-11 w-full min-w-0 rounded-input border border-border bg-surface px-2 text-sm sm:w-auto"
+              className="min-h-11 w-full min-w-0 rounded-input border border-border bg-surface px-2 text-base sm:w-auto"
             >
               <option value="">{t('allGroups')}</option>
               {(groups.data ?? []).map((g) => (
@@ -522,7 +522,7 @@ function GuestsInner({ id }: { id: string }) {
             <select
               value={sort.by}
               onChange={(e) => setSort({ by: e.target.value as SortBy, dir: 'asc' })}
-              className="min-h-11 w-full min-w-0 rounded-input border border-border bg-surface px-2 text-sm"
+              className="min-h-11 w-full min-w-0 rounded-input border border-border bg-surface px-2 text-base"
             >
               {(['name', 'status', 'group', 'updated', 'balance'] as const).map((s) => (
                 <option key={s} value={s}>
@@ -561,7 +561,7 @@ function GuestsInner({ id }: { id: string }) {
             >
               <button
                 type="button"
-                className="min-h-10 px-3 text-sm font-medium"
+                className="min-h-11 px-3 text-sm font-medium"
                 onClick={() => {
                   setFilter(sf.filter);
                   setGroup(sf.group);
@@ -659,7 +659,7 @@ function GuestsInner({ id }: { id: string }) {
                                 <button
                                   type="button"
                                   onClick={() => toggleSort(sb)}
-                                  className="inline-flex min-h-10 items-center gap-1 hover:text-ink"
+                                  className="inline-flex min-h-11 items-center gap-1 hover:text-ink"
                                 >
                                   {flexRender(h.column.columnDef.header, h.getContext())}
                                   <ArrowDownUp

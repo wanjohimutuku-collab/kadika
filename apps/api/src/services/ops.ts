@@ -18,6 +18,7 @@ import { ApiError } from '../errors';
 import { recordAudit } from './audit';
 import { BillingService } from './billing';
 import { EventService } from './events';
+import { purgeEventMemories } from './memories';
 import { requireStaff, type StaffCaller } from './staff-guard';
 
 type Db = Deps['db'];
@@ -184,6 +185,7 @@ export class OpsService {
         dateStart: e.dateStart.toISOString(),
         status: e.status,
         plan: e.plan,
+        product: e.product,
         ownerId: e.ownerId,
         ownerName: ownerName || '—',
         guests: gs.find((r) => r.id === e.id)?.n ?? 0,
@@ -646,6 +648,15 @@ export class OpsService {
         tx as Db,
       );
     });
+    // The couple's Kumbukumbu photos go with the account (ADR 050). Files cannot be rolled back, so
+    // this runs once the erasure above has committed.
+    if (status === 'done' && r.kind === 'deletion') {
+      const owned = await this.db
+        .select({ id: events.id })
+        .from(events)
+        .where(eq(events.ownerId, r.userId));
+      for (const e of owned) await purgeEventMemories(this.deps, e.id);
+    }
     const [after] = await this.db.select().from(dataRequests).where(eq(dataRequests.id, r.id));
     return this.requestRow(after!, staff.name);
   }

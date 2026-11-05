@@ -17,7 +17,7 @@ export default function Otp() {
   const t = useT();
   const { phone, via } = useLocalSearchParams<{ phone: string; via?: string }>();
   /** Firebase sent the code (ADR 048): it checks it, then the API trades the ID token. */
-  const firebase = via === 'firebase';
+  const [firebase, setFirebase] = useState(via === 'firebase');
   const { locale } = useLocale();
   const signingIn = useRef(false);
   const { refresh } = useSession();
@@ -69,12 +69,12 @@ export default function Otp() {
     }
   };
 
-  const verify = async () => {
-    if (!/^\d{6}$/.test(code)) return setError(t('validation.otp.invalid'));
+  const verify = async (value = code) => {
+    if (!/^\d{6}$/.test(value)) return setError(t('validation.otp.invalid'));
     await complete(async () =>
       firebase
-        ? getRepository().signInWithFirebase(await confirmPhoneCode(code))
-        : getRepository().verifyOtp(phone!, code),
+        ? getRepository().signInWithFirebase(await confirmPhoneCode(value))
+        : getRepository().verifyOtp(phone!, value),
     );
   };
 
@@ -128,7 +128,7 @@ export default function Otp() {
         <Button
           label={busy ? t('auth.verifying') : t('auth.verify')}
           loading={busy}
-          onPress={verify}
+          onPress={() => void verify()}
         />
       }
     >
@@ -139,23 +139,34 @@ export default function Otp() {
       <Field
         label={t('auth.otpLabel')}
         value={code}
-        onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+        onChangeText={(v) => {
+          const next = v.replace(/\D/g, '').slice(0, 6);
+          setCode(next);
+          // Checks itself on the sixth digit, typed or filled from the SMS.
+          if (next.length === 6 && next !== code) void verify(next);
+        }}
         keyboardType="number-pad"
         autoComplete="sms-otp"
         textContentType="oneTimeCode"
         maxLength={6}
         error={error}
-        onSubmitEditing={verify}
+        onSubmitEditing={() => void verify()}
       />
       <Button
         variant="ghost"
         label={wait > 0 ? t('auth.resendIn', { seconds: wait }) : t('auth.resend')}
         disabled={wait > 0}
         onPress={async () => {
-          if (firebase) await startPhoneSignIn(phone!, locale, true).catch(() => undefined);
+          if (firebase)
+            await startPhoneSignIn(phone!, locale, true).then(
+              (via) => setFirebase(via === 'firebase'),
+              () => undefined,
+            );
+          // Our own SMS code: the SMS flow, or Firebase refused earlier (fallback, else the API
+          // answers use_firebase); the flag changes nothing in the SMS flow.
           else
             await getRepository()
-              .requestOtp(phone!)
+              .requestOtp(phone!, { fallback: true, language: locale })
               .catch(() => undefined);
           setWait(30);
         }}

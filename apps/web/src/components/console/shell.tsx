@@ -14,10 +14,15 @@ import {
   CloudOff,
   Cloud,
   CreditCard,
+  Images,
   HandCoins,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  MessageSquareText,
+  History,
+  Package,
+  ContactRound,
   ShieldCheck,
   Plus,
   RefreshCw,
@@ -38,7 +43,7 @@ import { BottomSheet } from '@/components/ui/overlay';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
 import { Avatar } from '@/components/ui/display';
-import { formatRelative } from '@/lib/format';
+import { formatRelative, initials } from '@/lib/format';
 import type { Locale } from '@harusi/i18n';
 
 type NavKey =
@@ -48,10 +53,15 @@ type NavKey =
   | 'gate'
   | 'pledges'
   | 'cards'
+  | 'memories'
   | 'team'
   | 'reports'
   | 'billing'
-  | 'settings';
+  | 'settings'
+  | 'contacts'
+  | 'compose'
+  | 'history'
+  | 'credits';
 
 interface NavItem {
   key: NavKey;
@@ -60,7 +70,64 @@ interface NavItem {
   ownerOnly?: boolean;
 }
 
-export function navItems(eventId: string): { primary: NavItem[]; secondary: NavItem[] } {
+/**
+ * SMS-reminders-only customers (ADR 055) get their own, smaller console: contacts, compose, history and
+ * SMS packages. Nothing about cards, RSVP, gate or contributions.
+ */
+function smsNavItems(eventId: string): { primary: NavItem[]; secondary: NavItem[] } {
+  const base = `/app/e/${eventId}`;
+  const i = 'size-6';
+  return {
+    primary: [
+      { key: 'overview', href: base, icon: <LayoutDashboard className={i} aria-hidden="true" /> },
+      {
+        key: 'contacts',
+        href: `${base}/sms/contacts`,
+        icon: <ContactRound className={i} aria-hidden="true" />,
+      },
+      {
+        key: 'compose',
+        href: `${base}/sms/compose`,
+        icon: <MessageSquareText className={i} aria-hidden="true" />,
+      },
+      {
+        key: 'history',
+        href: `${base}/sms/history`,
+        icon: <History className={i} aria-hidden="true" />,
+      },
+      {
+        key: 'credits',
+        href: `${base}/billing`,
+        icon: <Package className={i} aria-hidden="true" />,
+      },
+    ],
+    secondary: [
+      {
+        key: 'settings',
+        href: `${base}/settings`,
+        icon: <Settings className={i} aria-hidden="true" />,
+        ownerOnly: true,
+      },
+    ],
+  };
+}
+
+/** Routes an SMS-only event may open; anything else (cards, gate, guests…) sends it to its overview. */
+export function smsRouteAllowed(eventId: string, pathname: string): boolean {
+  const base = `/app/e/${eventId}`;
+  return (
+    pathname === base ||
+    pathname.startsWith(`${base}/sms/`) ||
+    pathname === `${base}/billing` ||
+    pathname === `${base}/settings`
+  );
+}
+
+export function navItems(
+  eventId: string,
+  product: WeddingEvent['product'] = 'cards',
+): { primary: NavItem[]; secondary: NavItem[] } {
+  if (product === 'sms') return smsNavItems(eventId);
   const base = `/app/e/${eventId}`;
   const i = 'size-6';
   return {
@@ -80,6 +147,12 @@ export function navItems(eventId: string): { primary: NavItem[]; secondary: NavI
         key: 'cards',
         href: `${base}/cards`,
         icon: <CreditCard className={i} aria-hidden="true" />,
+      },
+      // ADR 050: the couple's photos for their guests (owner and committee).
+      {
+        key: 'memories',
+        href: `${base}/kumbukumbu`,
+        icon: <Images className={i} aria-hidden="true" />,
       },
       // §17.3: committee members do not manage members or event settings.
       {
@@ -150,7 +223,7 @@ export function SyncIndicator() {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'inline-flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium',
+          'inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-medium md:min-h-10',
           !net.online
             ? 'bg-ink text-white'
             : net.pending
@@ -238,7 +311,7 @@ function EventSwitcher({ current }: { current?: WeddingEvent }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className="inline-flex min-h-12 min-w-0 max-w-[52vw] items-center gap-1.5 rounded-input px-2 text-left font-semibold hover:bg-ink/6 md:max-w-xs"
-        aria-label={current ? t('currentEvent', { name: current.coupleNames }) : t('switchEvent')}
+        aria-label={`${current?.coupleNames ?? t('events')}, ${t('switchEvent')}`}
       >
         <span className="truncate text-lg">{current?.coupleNames ?? t('events')}</span>
         <ChevronDown className="size-4 shrink-0" aria-hidden="true" />
@@ -299,7 +372,8 @@ function UserMenu() {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className="inline-flex size-12 items-center justify-center rounded-full hover:bg-ink/6"
-        aria-label={t('userMenu')}
+        // Starts with the initials the avatar shows, so voice control ("click JM") reaches it.
+        aria-label={name ? `${initials(name)}, ${t('userMenu')}` : t('userMenu')}
       >
         {name ? (
           <Avatar name={name} size={34} />
@@ -361,7 +435,11 @@ export function ConsoleHeader({ event, onMore }: { event?: WeddingEvent; onMore?
   const t = useTranslations('nav');
   return (
     <header className="no-print sticky top-0 z-30 flex min-h-16 items-center gap-1 border-b border-border bg-surface/95 px-2 backdrop-blur md:px-4">
-      <Link href="/app" className="shrink-0 px-1 md:hidden" aria-label={t('events')}>
+      <Link
+        href="/app"
+        className="inline-flex min-h-11 shrink-0 items-center px-1 md:hidden"
+        aria-label={t('events')}
+      >
         <BrandMark logoOnly logoClassName="h-8 max-w-20" />
       </Link>
       <EventSwitcher current={event} />
@@ -402,7 +480,7 @@ export function ConsoleShell({
   const session = useSession();
   const [moreOpen, setMoreOpen] = useState(false);
   const isOwner = session.data?.role === 'owner';
-  const nav = eventId ? navItems(eventId) : null;
+  const nav = eventId ? navItems(eventId, event?.product) : null;
   const visibleSecondary = nav?.secondary.filter((n) => isOwner || !n.ownerOnly) ?? [];
   const all = nav ? [...nav.primary, ...visibleSecondary] : [];
 

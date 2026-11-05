@@ -42,7 +42,7 @@ export interface ContentPageDef {
   market?: Market;
   /** Same-topic page in the other market, for cross-market hreflang. */
   counterpart?: { market: Market; slug: string };
-  /** URL slug, used for both languages (`?lang=sw` switches). Empty for the market home. */
+  /** URL slug, the same in both languages (English under `/en`). Empty for the market home. */
   slug: string;
   group: PageGroup;
   schema: 'Article' | 'WebPage';

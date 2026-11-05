@@ -1,3 +1,4 @@
+import type { SmsCampaignView } from '@harusi/schemas/sms';
 import type { PricingCatalog, PurchaseView } from '@harusi/schemas/billing';
 import type { BrandingInput } from '@harusi/schemas/branding';
 import {
@@ -19,6 +20,7 @@ import type {
   SendJob,
   User,
   WeddingEvent,
+  Memory,
 } from '../types';
 import { STATUS_RANK } from '../domain/funnel';
 import { mulberry32, Rng } from './prng';
@@ -160,6 +162,12 @@ export interface MockState {
   pricing?: { catalog: PricingCatalog; updatedAt: string; updatedBy: string };
   /** Card bundles, message packs and staff grants per event (ADR 042). */
   purchases?: (PurchaseView & { eventId: string; phone: string | null })[];
+  /** Kumbukumbu photos per event (ADR 050); the image bytes live in memory only. */
+  memories?: Record<string, Memory[]>;
+  /** Staff-changed photo limits per event; 30 otherwise. */
+  memoriesLimit?: Record<string, number>;
+  /** Texts SMS-only customers sent or scheduled (ADR 055). */
+  smsCampaigns?: SmsCampaignView[];
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */

@@ -20,7 +20,7 @@ import type { HealthResponse } from '@harusi/schemas';
 import type { Deps } from './context';
 import { ApiError } from './errors';
 import { AuthService, parsePhone } from './auth/service';
-import { allowedCountries } from '@harusi/schemas/country';
+import { SIGN_IN_COUNTRIES } from '@harusi/schemas/country';
 import { verifyAccessToken, verifyGateToken, type GateClaims } from './auth/tokens';
 import { EventService } from './services/events';
 import { GuestService } from './services/guests';
@@ -42,6 +42,7 @@ import { PaymentSettingsService } from './services/payment-settings';
 import { SignInSettingsService, signInOf } from './services/signin-settings';
 import { BrandingService } from './services/branding';
 import { AppReleaseService } from './services/app-release';
+import { MemoriesService, type MemoryPhotoSize } from './services/memories';
 import { Readable } from 'node:stream';
 import { MESSAGING_ROUTES } from '@harusi/schemas/messaging-settings';
 import { PAYMENT_ROUTES } from '@harusi/schemas/payment-settings';
@@ -52,8 +53,17 @@ import { clientIp, RateLimiter } from './rate-limit';
 import { ReportService } from './services/reports';
 import { safeErrorMessage } from './observability';
 import { BillingService } from './services/billing';
+import { SmsCampaignService } from './services/sms-campaigns';
+import { smsTargetSchema } from '@harusi/schemas/sms';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
+
+/** Kumbukumbu photos (ADR 050): never cached by shared caches, never sniffed as anything but WebP. */
+const PHOTO_HEADERS = {
+  'content-type': 'image/webp',
+  'cache-control': 'private, max-age=86400',
+  'x-content-type-options': 'nosniff',
+};
 
 function parse<T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> {
   const r = schema.safeParse(data);
@@ -95,8 +105,11 @@ const eventBase = z.object({
   rsvpDeadline: optionalDate,
   contributionTarget: z.number().int().min(0).nullish(),
   pledgesEnabled: z.boolean().optional(),
+  memoriesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
   cardContent: cardContentSchema.optional(),
+  /** ADR 055: `sms` = SMS reminders only. Set on create; the PATCH schema drops it. */
+  product: z.enum(['cards', 'sms']).optional(),
 });
 /** Who a send goes to (ADR 030); whether the audience fits the kind is checked by the service. */
 const sendTargetSchema = z.union([
@@ -148,9 +161,25 @@ export function createApp(deps: Deps) {
     referrerPolicy: 'no-referrer',
     xFrameOptions: 'DENY',
   });
+  // Kumbukumbu photos (ADR 050) are shown on the guest page, another origin, with <img>: the default
+  // `same-origin` resource policy would make every browser block them.
+  const securePhoto = secureHeaders({
+    strictTransportSecurity: 'max-age=63072000; includeSubDomains',
+    contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+    referrerPolicy: 'no-referrer',
+    xFrameOptions: 'DENY',
+    crossOriginResourcePolicy: 'cross-origin',
+  });
+  const guestPhoto = /^\/v1\/c\/[^/]+\/memories\/[^/]+\/(thumb|medium|full)$/;
   // The public logo route sets its own, stricter set (it serves an image, so it also needs `sandbox`
   // and an inline-style allowance); the global middleware would overwrite it after the handler runs.
-  app.use('*', (c, next) => (c.req.path === '/v1/branding/logo' ? next() : secure(c, next)));
+  app.use('*', (c, next) =>
+    c.req.path === '/v1/branding/logo'
+      ? next()
+      : guestPhoto.test(c.req.path)
+        ? securePhoto(c, next)
+        : secure(c, next),
+  );
   // One JSON line per request, never with a card token, PIN, OTP or phone number in it: the route
   // pattern (`/v1/c/:token/pay`) is logged, not the real path (§12).
   app.use('*', async (c, next) => {
@@ -180,7 +209,7 @@ export function createApp(deps: Deps) {
     }),
   );
   // No body is read whole without a ceiling (§9): public routes and webhooks would otherwise buffer
-  // whatever the edge lets through. Only the guest import and the staff APK upload need more than 1 MB.
+  // whatever the edge lets through. Only guest import, Kumbukumbu photos and the staff APK need more than 1 MB.
   const MB = 1024 * 1024;
   const limited = (maxSize: number) =>
     bodyLimit({
@@ -194,11 +223,13 @@ export function createApp(deps: Deps) {
           413,
         ),
     });
-  const bodyLimits = { default: limited(MB), import: limited(10 * MB), apk: limited(160 * MB) };
+  const bodyLimits = { default: limited(MB), upload: limited(10 * MB), apk: limited(160 * MB) };
   app.use('/v1/*', (c, next) => {
     const p = c.req.path;
     if (c.req.method === 'PUT' && p === '/v1/ops/app/android') return bodyLimits.apk(c, next);
-    if (/^\/v1\/events\/[^/]+\/guests\/import$/.test(p)) return bodyLimits.import(c, next);
+    // a photo may be 8 MB (MAX_PHOTO_BYTES) plus its multipart wrapping
+    if (/^\/v1\/events\/[^/]+\/(guests\/import|memories)$/.test(p))
+      return bodyLimits.upload(c, next);
     return bodyLimits.default(c, next);
   });
   const auth = new AuthService(deps);
@@ -208,6 +239,7 @@ export function createApp(deps: Deps) {
   const cardsSvc = new CardService(deps);
   const deliverySvc = new DeliveryService(deps, eventsSvc);
   const scheduledSvc = new ScheduledSendService(deps, eventsSvc, deliverySvc);
+  const smsSvc = new SmsCampaignService(deps, eventsSvc);
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
@@ -219,6 +251,7 @@ export function createApp(deps: Deps) {
   const signInSettingsSvc = deps.signInSettings ?? new SignInSettingsService(deps);
   const brandingSvc = new BrandingService(deps);
   const appReleaseSvc = new AppReleaseService(deps);
+  const memoriesSvc = new MemoriesService(deps, eventsSvc);
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const reportSvc = new ReportService(deps, eventsSvc, deliverySvc, pledgeSvc, gateSvc);
@@ -236,6 +269,8 @@ export function createApp(deps: Deps) {
     deps.rateStore,
   );
   const cardWrites = new RateLimiter(deps.now, 20, 60_000, 'card-write', deps.rateStore);
+  // A Kumbukumbu page loads up to 30 thumbnails at once; photos get their own, larger budget.
+  const memoryPhotos = new RateLimiter(deps.now, 600, 60_000, 'memory-photo', deps.rateStore);
   // a test message goes to the caller's own phone and costs us a send: a few per ten minutes
   const testSends = new RateLimiter(deps.now, 5, 600_000, 'test-send', deps.rateStore);
   const client = (c: Context) => clientIp((h) => c.req.header(h), deps.config.clientIpHeader);
@@ -335,9 +370,20 @@ export function createApp(deps: Deps) {
     }
   };
   app.post('/v1/auth/otp/request', async (c) => {
-    const { phone: p } = parse(z.object({ phone }), await body(c));
+    const {
+      phone: p,
+      fallback,
+      language,
+    } = parse(
+      z.object({
+        phone,
+        fallback: z.boolean().optional(),
+        language: z.enum(['sw', 'en']).optional(),
+      }),
+      await body(c),
+    );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p));
+    return c.json(await auth.requestOtp(p, fallback, language));
   });
   app.post('/v1/auth/otp/verify', async (c) => {
     const { phone: p, code } = parse(
@@ -368,7 +414,7 @@ export function createApp(deps: Deps) {
   // to Firebase directly is stopped by Firebase's own settings (SMS region policy, App Check).
   app.post('/v1/auth/firebase/start', async (c) => {
     const { phone: p } = parse(z.object({ phone }), await body(c));
-    const e164 = parsePhone(p, 'TZ', allowedCountries(deps.config.kenyaEnabled));
+    const e164 = parsePhone(p, 'TZ', SIGN_IN_COUNTRIES);
     await codeBudget(c);
     await firebaseCodes.check(`p:${e164}`);
     return c.json({ phone: e164 });
@@ -423,6 +469,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/guests/:id/reissue', once);
   app.post('/v1/events/:id/invitations/send', once);
   app.post('/v1/events/:id/scheduled-sends', once);
+  app.post('/v1/events/:id/sms/campaigns', once);
   app.post('/v1/payments/manual', once);
 
   app.get('/v1/me', async (c) => {
@@ -453,13 +500,32 @@ export function createApp(deps: Deps) {
   app.get('/v1/c/:token', async (c) => {
     await cardReads.check(`ip:${client(c)}`);
     await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
-    return c.json(await cardsSvc.get(c.req.param('token')));
+    const v = await cardsSvc.get(c.req.param('token'));
+    // The card shows a Kumbukumbu button only when the page has something to show (ADR 050).
+    const memoriesAvailable = v.event ? await memoriesSvc.availableFor(v.event.id) : false;
+    return c.json({ ...v, memoriesAvailable });
   });
   app.get('/v1/c/:token/preview', async (c) => {
     await cardReads.check(`ip:${client(c)}`);
     await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
     const v = await cardsSvc.preview(c.req.param('token'));
     return c.json({ ...v, qrPayload: null });
+  });
+  app.get('/v1/c/:token/memories', async (c) => {
+    await cardReads.check(`ip:${client(c)}`);
+    await cardReads.check(`t:${c.req.param('token').slice(0, 8)}`);
+    return c.json(await memoriesSvc.forGuest(c.req.param('token'), cardsSvc));
+  });
+  app.get('/v1/c/:token/memories/:mid/:size{thumb|medium|full}', async (c) => {
+    await memoryPhotos.check(`ip:${client(c)}`);
+    const eventId = await memoriesSvc.guestEvent(c.req.param('token'), cardsSvc);
+    const bytes = await memoriesSvc.photo(
+      eventId,
+      c.req.param('mid'),
+      c.req.param('size') as MemoryPhotoSize,
+    );
+    if (!bytes) throw new ApiError('not_found', 'Photo not found');
+    return c.body(bytes, 200, PHOTO_HEADERS);
   });
   app.post('/v1/c/:token/reminders/opt-out', async (c) => {
     await cardWrites.check(`ip:${client(c)}`);
@@ -573,7 +639,7 @@ export function createApp(deps: Deps) {
   app.patch('/v1/events/:id', async (c) => {
     const patch = parse(
       eventBase
-        .omit({ country: true })
+        .omit({ country: true, product: true })
         .partial()
         .extend({ status: z.enum(['draft', 'active', 'completed', 'archived']).optional() }),
       await body(c),
@@ -583,6 +649,62 @@ export function createApp(deps: Deps) {
   app.delete('/v1/events/:id', async (c) => {
     await eventsSvc.remove(c.req.param('id'), c.get('userId'));
     return c.body(null, 204);
+  });
+  // ---- Kumbukumbu (ADR 050): owner and committee manage the couple's photos
+  app.get('/v1/events/:id/memories', async (c) =>
+    c.json(await memoriesSvc.list(c.req.param('id'), c.get('userId'))),
+  );
+  app.post('/v1/events/:id/memories', async (c) => {
+    const form = await c.req.parseBody();
+    const file = form.photo;
+    if (!(file instanceof File))
+      throw new ApiError('validation', 'Choose a photo', { field: 'photo' });
+    const text = (k: string) => (typeof form[k] === 'string' ? (form[k] as string) : undefined);
+    const m = await memoriesSvc.add(
+      c.req.param('id'),
+      c.get('userId'),
+      new Uint8Array(await file.arrayBuffer()),
+      { caption: text('caption'), takenOn: text('takenOn') },
+    );
+    return c.json(m, 201);
+  });
+  app.patch('/v1/memories/:mid', async (c) => {
+    const patch = parse(
+      z.object({
+        caption: z.string().nullable().optional(),
+        takenOn: z.string().nullable().optional(),
+        sortOrder: z.number().int().min(0).max(10_000).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(await memoriesSvc.update(c.req.param('mid'), c.get('userId'), patch));
+  });
+  app.post('/v1/events/:id/memories/send', async (c) => {
+    const input = parse(
+      z.object({ guestIds: z.array(z.string().uuid()).max(5000).optional() }),
+      await body(c),
+    );
+    return c.json(
+      await deliverySvc.sendMemories(c.req.param('id'), c.get('userId'), input.guestIds ?? 'all'),
+    );
+  });
+  // The response carries the guest's link: it is never logged (routes are logged, not bodies).
+  app.get('/v1/guests/:gid/memories-link', async (c) =>
+    c.json(await deliverySvc.memoriesLink(c.req.param('gid'), c.get('userId'))),
+  );
+  app.delete('/v1/memories/:mid', async (c) => {
+    await memoriesSvc.remove(c.req.param('mid'), c.get('userId'));
+    return c.body(null, 204);
+  });
+  app.get('/v1/events/:id/memories/:mid/:size{thumb|medium|full}', async (c) => {
+    await memoriesSvc.assertStaff(c.req.param('id'), c.get('userId'));
+    const bytes = await memoriesSvc.photo(
+      c.req.param('id'),
+      c.req.param('mid'),
+      c.req.param('size') as MemoryPhotoSize,
+    );
+    if (!bytes) throw new ApiError('not_found', 'Photo not found');
+    return c.body(bytes, 200, PHOTO_HEADERS);
   });
   // ---- the console's activity feed, reports and test message (§7.7, §17.8)
   app.get('/v1/events/:id/activity', async (c) =>
@@ -824,6 +946,45 @@ export function createApp(deps: Deps) {
   app.delete('/v1/events/:id/scheduled-sends/:sid', async (c) =>
     c.json(await scheduledSvc.cancel(c.req.param('id'), c.req.param('sid'), c.get('userId'))),
   );
+  // ---- SMS reminders only (ADR 055): the customer's own text to their contacts, now or later
+  const smsBody = z.string().max(1000);
+  app.post('/v1/events/:id/sms/preview', async (c) => {
+    const input = parse(
+      z.object({ body: smsBody.optional().default(''), target: smsTargetSchema }),
+      await body(c),
+    );
+    return c.json(await smsSvc.preview(c.req.param('id'), c.get('userId'), input));
+  });
+  app.post('/v1/events/:id/sms/campaigns', async (c) => {
+    const input = parse(
+      z.object({
+        body: smsBody,
+        target: smsTargetSchema,
+        scheduleAt: z.string().datetime({ offset: true }).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(
+      await smsSvc.create(c.req.param('id'), c.get('userId'), {
+        body: input.body,
+        target: input.target,
+        scheduleAt: input.scheduleAt ? new Date(input.scheduleAt) : undefined,
+      }),
+      201,
+    );
+  });
+  app.get('/v1/events/:id/sms/campaigns', async (c) =>
+    c.json({ items: await smsSvc.list(c.req.param('id'), c.get('userId')) }),
+  );
+  app.delete('/v1/events/:id/sms/campaigns/:cid', async (c) =>
+    c.json(
+      await smsSvc.cancel(
+        c.req.param('id'),
+        parse(z.string().uuid(), c.req.param('cid')),
+        c.get('userId'),
+      ),
+    ),
+  );
   app.post('/v1/events/:id/cards/pdf', async (c) => {
     const input = parse(
       z.object({
@@ -1008,6 +1169,7 @@ export function createApp(deps: Deps) {
     return c.json(await opsSvc.setEventPlan(staff(c), idParam(c), plan));
   });
   app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(staff(c))));
+  app.get('/v1/ops/sms-customers', async (c) => c.json(await smsSvc.opsCustomers(staff(c))));
   app.get('/v1/ops/pricing', async (c) => c.json(await billingSvc.opsCatalog(staff(c))));
   app.put('/v1/ops/pricing', async (c) =>
     c.json(await billingSvc.saveCatalog(staff(c), await body(c))),
@@ -1033,6 +1195,14 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await billingSvc.opsGrant(staff(c), idParam(c), input), 201);
+  });
+  // Kumbukumbu (ADR 050): how many photos an event may hold
+  app.patch('/v1/ops/events/:id/memories-limit', async (c) => {
+    const input = parse(
+      z.object({ limit: z.number().int().min(1).max(200), note: z.string().max(500) }),
+      await body(c),
+    );
+    return c.json(await memoriesSvc.opsSetLimit(staff(c), idParam(c), input.limit, input.note));
   });
   app.get('/v1/ops/lookup', async (c) => {
     const { q } = parse(z.object({ q: z.string().max(100) }), c.req.query());

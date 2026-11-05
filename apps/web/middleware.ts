@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isLocale } from '@harusi/i18n';
-import { areaOf, decide, hostFor, surfaceOf } from '@/lib/surfaces';
+import { canonicalHostFor, decide, hostFor, surfaceOf } from '@/lib/surfaces';
+import { routeSiteLocale } from '@/lib/site-locale';
 
 /**
  * Inlined at build time. Unset (local development, tests, staging) means no host rules at all.
@@ -25,9 +25,19 @@ function redirect(req: NextRequest, host: string, path?: string) {
 }
 
 /**
- * `?lang=sw|en` selects the language for that request, so each language has its own crawlable URL
- * (hreflang). `/ke` pages default to English; the language cookie still decides when the parameter is
- * absent.
+ * An absolute URL on the host the visitor used. Next needs an absolute Location, and `req.nextUrl` behind the
+ * proxy can carry the server's listen address, so the origin comes from the forwarded or Host header.
+ */
+function publicUrl(req: NextRequest, pathAndQuery: string): URL {
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? req.nextUrl.host;
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host);
+  const proto = req.headers.get('x-forwarded-proto') ?? (local ? 'http' : 'https');
+  return new URL(pathAndQuery, `${proto.split(',')[0]!.trim()}://${host}`);
+}
+
+/**
+ * The public site takes its language from the path: `/` Swahili, `/en/...` English (rewritten to the same
+ * route), `/ke/...` English Kenya. Old `?lang=` URLs get a permanent redirect to the new ones.
  */
 export function middleware(req: NextRequest) {
   const p = req.nextUrl.pathname;
@@ -45,15 +55,33 @@ export function middleware(req: NextRequest) {
         return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
       return redirect(req, hostFor(d.surface, ROOT_DOMAIN));
     }
+    // One public host for search: www gets a permanent redirect to the bare domain, path and query kept.
+    // After the surface rules, so a www request for another surface goes there in one hop.
+    const apex = canonicalHostFor(req.headers.get('host'), ROOT_DOMAIN);
+    if (apex) {
+      const url = req.nextUrl.clone();
+      url.protocol = 'https:';
+      url.port = '';
+      url.host = apex;
+      return NextResponse.redirect(url, 308);
+    }
   }
 
-  // Language and market only matter for the public content pages.
-  const isPublicContent = areaOf(p) === 'public' && p !== '/dev' && !p.startsWith('/dev/');
-  if (!isPublicContent) return NextResponse.next();
+  // Language and market only matter for the public site pages.
+  const route = routeSiteLocale(p, req.nextUrl.search);
+  if (!route) return NextResponse.next();
+  if (route.action === 'redirect')
+    return NextResponse.redirect(publicUrl(req, route.location), 301);
   const headers = new Headers(req.headers);
-  const lang = req.nextUrl.searchParams.get('lang');
-  if (isLocale(lang)) headers.set('x-hp-lang', lang);
-  if (p === '/ke' || p.startsWith('/ke/')) headers.set('x-hp-market', 'ke');
+  headers.set('x-hp-lang', route.locale);
+  if (route.market === 'ke') headers.set('x-hp-market', 'ke');
+  // The route path (without `/en`), so the layout can link to the same page in the other languages.
+  headers.set('x-hp-path', route.action === 'rewrite' ? route.path : p);
+  if (route.action === 'rewrite') {
+    const url = req.nextUrl.clone();
+    url.pathname = route.path;
+    return NextResponse.rewrite(url, { request: { headers } });
+  }
   return NextResponse.next({ request: { headers } });
 }
 

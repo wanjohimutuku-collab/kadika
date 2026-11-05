@@ -31,9 +31,14 @@ export function FunnelBar({
         {stages.map((s, i) => {
           const pct = Math.round((s.count / top) * 100);
           const row = (
-            <div className="grid grid-cols-[minmax(6.5rem,9rem)_1fr_auto] items-center gap-3">
-              <span className="truncate text-sm">{s.label}</span>
-              <span className="h-6 overflow-hidden rounded-[4px] bg-ink/6" aria-hidden="true">
+            // Phones: label and count on one line, the bar full width under them, so the bar is
+            // readable at 360 px. From `sm` the three sit on one row. Whole row is the tap target.
+            <div className="grid min-h-11 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-1 sm:grid-cols-[minmax(6.5rem,9rem)_1fr_auto]">
+              <span className="min-w-0 truncate text-sm">{s.label}</span>
+              <span
+                className="col-span-2 row-start-2 h-3 overflow-hidden rounded-[4px] bg-ink/6 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:h-6"
+                aria-hidden="true"
+              >
                 <span
                   className="block h-full rounded-[4px] bg-primary"
                   style={{ width: `${pct}%`, opacity: 1 - i * 0.11 }}
@@ -308,7 +313,8 @@ export function ListRow({
             // A real button keeps the row reachable by keyboard and screen readers; the row click is a touch shortcut.
             <button
               type="button"
-              className="block max-w-full truncate text-left font-medium"
+              // Padding with matching negative margin: a 44 px target without a taller row.
+              className="-my-2.5 block max-w-full truncate py-2.5 text-left font-medium"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpen();

@@ -9,6 +9,7 @@ import {
   Copy,
   ExternalLink,
   FileDown,
+  Images,
   NotebookPen,
   Pencil,
   QrCode,
@@ -119,6 +120,22 @@ export default function GuestDetailPage({
     enabled: !!guest.data,
   });
 
+  // Kumbukumbu (ADR 050): the host shares the guest's own link from their WhatsApp (free).
+  const memories = useQuery({
+    queryKey: qk.memories(id),
+    queryFn: () => getRepository().listMemories(id),
+  });
+  const tm = useTranslations('memories');
+  const shareMemories = useMutation({
+    mutationFn: () => getRepository().getMemoriesLink(gid),
+    onSuccess: (r) => {
+      if (r.waUrl) window.open(r.waUrl, '_blank', 'noopener');
+    },
+    onError: () => toast({ tone: 'error', title: tm('shareUnavailable') }),
+  });
+  const canShareMemories =
+    !!memories.data?.unlocked && !!memories.data.enabled && memories.data.count > 0;
+
   const [editOpen, setEditOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [reissueOpen, setReissueOpen] = useState(false);
@@ -198,7 +215,7 @@ export default function GuestDetailPage({
   const back = (
     <Link
       href={`/app/e/${id}/guests`}
-      className="inline-flex min-h-10 items-center gap-1.5 self-start font-semibold text-primary"
+      className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-primary"
     >
       <ArrowLeft className="size-5" aria-hidden="true" />
       {t('back')}
@@ -344,6 +361,18 @@ export default function GuestDetailPage({
               >
                 {t('addNote')}
               </Button>
+              {canShareMemories && g.phoneE164 ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<Images className="size-4" aria-hidden="true" />}
+                  onClick={() => shareMemories.mutate()}
+                  loading={shareMemories.isPending}
+                  data-testid="share-memories"
+                >
+                  {tm('share')}
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="danger"

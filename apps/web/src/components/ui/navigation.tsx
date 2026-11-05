@@ -145,7 +145,7 @@ export function Switch({
         onCheckedChange={onCheckedChange}
         disabled={disabled}
         aria-describedby={description ? `${id}-d` : undefined}
-        className="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full bg-ink/25 transition-colors data-[state=checked]:bg-primary disabled:opacity-50"
+        className="relative inline-flex h-8 w-14 shrink-0 items-center rounded-full bg-ink/25 transition-colors before:absolute before:-inset-1.5 before:content-[''] data-[state=checked]:bg-primary disabled:opacity-50"
       >
         <RadixSwitch.Thumb className="block size-6 translate-x-1 rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-7" />
       </RadixSwitch.Root>

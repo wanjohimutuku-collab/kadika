@@ -99,6 +99,21 @@ describe('request body limit', () => {
     }
   });
 
+  it('lets a full-size Kumbukumbu photo through, and stops anything bigger', async () => {
+    const { t, evId } = await setup();
+    const send = (bytes: number) => {
+      const form = new FormData();
+      form.append('photo', new File([new Uint8Array(bytes)], 'p.jpg', { type: 'image/jpeg' }));
+      return ctx.app.request(`/v1/events/${evId}/memories`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${t}` },
+        body: form,
+      });
+    };
+    expect((await send(8 * 1024 * 1024)).status).not.toBe(413);
+    expect((await send(11 * 1024 * 1024)).status).toBe(413);
+  });
+
   it('lets a large guest list through the import route only', async () => {
     const { t, evId } = await setup();
     // about 1.4 MB: over the default limit, under the import route's own

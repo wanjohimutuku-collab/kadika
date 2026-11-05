@@ -11,6 +11,8 @@ export interface Config {
   shortBaseUrl: string;
   /** Where staff-uploaded app files (the Android APK, ADR 047) are kept: a persistent volume. */
   appFilesDir?: string;
+  /** Kumbukumbu photos (ADR 050): a persistent volume. */
+  photoFilesDir: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
   /** Rollback levers for Kenya without turning it off (docs/ops/kenya-pilot-runbook.md): no new Kenyan
@@ -52,12 +54,24 @@ export interface Config {
     apiVersion: string;
     verifyToken: string | null;
     appSecret: string | null;
-    templates: { invite?: string; reminder?: string; pledge?: string; contribution?: string };
+    templates: {
+      invite?: string;
+      reminder?: string;
+      pledge?: string;
+      contribution?: string;
+      memories?: string;
+    };
     /** Templates approved per country; Kenya's use a one-host-field parameter layout (ADR 026). */
     templatesByCountry: Partial<
       Record<
         Country,
-        { invite?: string; reminder?: string; pledge?: string; contribution?: string }
+        {
+          invite?: string;
+          reminder?: string;
+          pledge?: string;
+          contribution?: string;
+          memories?: string;
+        }
       >
     >;
   } | null;
@@ -132,6 +146,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     apiPublicUrl: env.API_PUBLIC_URL ? env.API_PUBLIC_URL.replace(/\/$/, '') : null,
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
     appFilesDir: env.APP_FILES_DIR ?? 'data/app-files',
+    photoFilesDir: env.PHOTO_FILES_DIR ?? 'data/photo-files',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',
     kenyaPaymentsPaused: env.KENYA_PAYMENTS_PAUSED === '1' || env.KENYA_PAYMENTS_PAUSED === 'true',
@@ -188,18 +203,21 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,
               pledge: env.WHATSAPP_TEMPLATE_PLEDGE,
               contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION,
+              memories: env.WHATSAPP_TEMPLATE_MEMORIES,
             },
             templatesByCountry:
               env.WHATSAPP_TEMPLATE_INVITE_KE ||
               env.WHATSAPP_TEMPLATE_REMINDER_KE ||
               env.WHATSAPP_TEMPLATE_PLEDGE_KE ||
-              env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE
+              env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE ||
+              env.WHATSAPP_TEMPLATE_MEMORIES_KE
                 ? {
                     KE: {
                       invite: env.WHATSAPP_TEMPLATE_INVITE_KE,
                       reminder: env.WHATSAPP_TEMPLATE_REMINDER_KE,
                       pledge: env.WHATSAPP_TEMPLATE_PLEDGE_KE,
                       contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE,
+                      memories: env.WHATSAPP_TEMPLATE_MEMORIES_KE,
                     },
                   }
                 : {},

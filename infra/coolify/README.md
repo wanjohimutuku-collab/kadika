@@ -1,7 +1,8 @@
 # Build, push and deploy
 
-> **Releases deploy from GitHub Actions again** (`.github/workflows/build-push.yml`): push a `v*` tag on a commit
-> that is green on `main`. The images build while the run checks CI, become `:production` only once CI has
+> **Every green merge to `main` deploys to production** ([ADR 053](../../docs/adr/053-release-on-green-main.md)):
+> `release.yml` tags the next patch version once CI passes and starts `build-push.yml` on that tag. Pushing a `v*`
+> tag by hand still works. The images build while the run checks CI, become `:production` only once CI has
 > passed, and the run waits until the site reports the new commit (about 7 minutes from tag to live).
 > `./scripts/deploy.sh` ([ADR 037](../../docs/adr/037-local-deploys.md)) is the fallback when Actions cannot run,
 > for example when the account's Actions budget is used up; see "Deploying without GitHub Actions" below.
@@ -17,12 +18,12 @@ then waits until the live API and web app report the new commit, so a green run 
 
 ## The flow
 
-| You do                               | Images are tagged                    | Branch moved                           | Coolify deploys |
-| ------------------------------------ | ------------------------------------ | -------------------------------------- | --------------- |
-| Merge or push to `main`              | `staging`, `main`, `sha-<short>`     | `deploy/staging`                       | staging         |
-| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>` | `deploy/production`                    | production      |
-| Run the workflow by hand on `main`   | `staging`, `main`, `sha-<short>`     | `deploy/staging` if "deploy" is ticked | staging         |
-| Run the workflow by hand on a branch | `<branch>`, `sha-<short>`            | none                                   | nothing         |
+| You do                               | Images are tagged                           | Branch moved                           | Coolify deploys |
+| ------------------------------------ | ------------------------------------------- | -------------------------------------- | --------------- |
+| Merge to `main`, CI green            | `production`, `<next patch>`, `sha-<short>` | `deploy/production` (via release.yml)  | production      |
+| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>`        | `deploy/production`                    | production      |
+| Run the workflow by hand on `main`   | `staging`, `main`, `sha-<short>`            | `deploy/staging` if "deploy" is ticked | staging         |
+| Run the workflow by hand on a branch | `<branch>`, `sha-<short>`                   | none                                   | nothing         |
 
 - A release tag only builds if CI already passed on that commit, so tag a commit that is green on `main`.
 - The images are `ghcr.io/<owner>/<repo>-api` and `ghcr.io/<owner>/<repo>-web` (lower case).
@@ -180,6 +181,12 @@ Environment variables for the production stack's `api` service (see [`/.env.exam
 | -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `CORS_EXTRA_ORIGINS` | `https://www.kadisasa.com,https://app.kadisasa.com,https://my.kadisasa.com` | The browser calls the API from every web host; the stack already allows the `web` service's first domain. |
 | `SHORT_BASE_URL`     | `https://kadisasa.com`                                                      | Card links in SMS and WhatsApp messages open on the public host.                                          |
+
+For the `web` service, `GOOGLE_CONTACTS_CLIENT_ID` (optional, read at runtime so a restart is enough) turns on
+"Google Contacts" in the console's contacts import. Create an OAuth client of type _Web application_ in the
+Firebase project's Google Cloud console, with `https://app.kadisasa.com` (and the staging console host) as
+authorised JavaScript origins, and the `contacts.readonly` scope on the consent screen. Until Google verifies that
+scope, only listed test users can use it. Setup and security notes: [ADR 051](../../docs/adr/051-contacts-import.md).
 
 A staff member signs in at `my.kadisasa.com` and a customer at `app.kadisasa.com`. The session belongs to the host,
 so signing in on the wrong one sends you to the right host to sign in again.

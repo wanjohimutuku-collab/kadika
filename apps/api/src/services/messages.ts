@@ -116,10 +116,17 @@ function custom(event: EventRow, key: TemplateKey, locale: Locale): string | und
  * uses Meta-approved templates, so custom text applies to SMS only (the editor says so).
  */
 export function composeSms(
-  type: 'invite' | 'reminder' | 'contribution' | 'pledge',
+  type: 'invite' | 'reminder' | 'contribution' | 'pledge' | 'memories',
   i: MessageInput,
 ): string {
   const locale = i.guest.language;
+  // Kumbukumbu (ADR 050): fixed wording, short enough for one SMS; hosts cannot customise it yet.
+  if (type === 'memories') {
+    const hosts = messageVars(i).hosts;
+    return locale === 'sw'
+      ? `${hosts} wameshiriki kumbukumbu zao nawe: ${i.link}`
+      : `${hosts} shared their memories with you: ${i.link}`;
+  }
   const key: Record<typeof type, TemplateKey> = {
     invite: 'inviteSms',
     reminder: 'reminderSms',

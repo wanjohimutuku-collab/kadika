@@ -185,6 +185,7 @@ export class OpsService {
         dateStart: e.dateStart.toISOString(),
         status: e.status,
         plan: e.plan,
+        product: e.product,
         ownerId: e.ownerId,
         ownerName: ownerName || '—',
         guests: gs.find((r) => r.id === e.id)?.n ?? 0,

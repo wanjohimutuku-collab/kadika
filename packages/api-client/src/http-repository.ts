@@ -1,6 +1,7 @@
 import type { MessagingRoute, MessagingSettingsView } from '@harusi/schemas/messaging-settings';
 import type { PaymentSettingsView } from '@harusi/schemas/payment-settings';
 import type { SignInSettingsView, SignInTestResult } from '@harusi/schemas/signin-settings';
+import type { OpsSmsCustomer, SmsCampaignPreview, SmsCampaignView } from '@harusi/schemas/sms';
 import type { BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import type {
   EventBillingView,
@@ -147,6 +148,7 @@ interface ApiEvent {
   rsvpDeadline: string | null;
   contributionTarget: number | null;
   plan: 'free' | 'paid';
+  product?: 'cards' | 'sms';
   brandTheme: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
@@ -253,6 +255,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
     reminders: { t14: true, t7: true, t1: true },
     whatsappFallbackHours: 6,
     plan: e.plan,
+    product: e.product ?? 'cards',
     createdAt: e.createdAt,
     updatedAt: e.updatedAt,
     stats: empty,
@@ -1454,6 +1457,32 @@ export function createHttpRepository(
     if (!res.ok) return fail(res.status, (await res.json().catch(() => null)) as never);
     return res.blob();
   };
+
+  // ---- SMS reminders only (ADR 055)
+  impl.createSmsEvent = async (input) => {
+    const created = await call<ApiEvent>('POST', '/v1/events', {
+      title: input.title,
+      coupleNames: input.title,
+      senderName: input.senderName || null,
+      dateStart: input.dateStart,
+      languageDefault: input.languageDefault,
+      country: input.country,
+      product: 'sms',
+    });
+    return mapEvent(created);
+  };
+  const smsPath = (eventId: string) => `/v1/events/${encodeURIComponent(eventId)}/sms`;
+  impl.previewSmsCampaign = (eventId, input) =>
+    call<SmsCampaignPreview>('POST', `${smsPath(eventId)}/preview`, input);
+  impl.sendSmsCampaign = (eventId, input, idempotencyKey) =>
+    call<SmsCampaignView>('POST', `${smsPath(eventId)}/campaigns`, input, {
+      'idempotency-key': idempotencyKey.length >= 8 ? idempotencyKey : newKey(),
+    });
+  impl.listSmsCampaigns = async (eventId) =>
+    (await call<{ items: SmsCampaignView[] }>('GET', `${smsPath(eventId)}/campaigns`)).items;
+  impl.cancelSmsCampaign = (eventId, id) =>
+    call<SmsCampaignView>('DELETE', `${smsPath(eventId)}/campaigns/${encodeURIComponent(id)}`);
+  impl.opsListSmsCustomers = () => call<OpsSmsCustomer[]>('GET', '/v1/ops/sms-customers');
 
   // Anything the API does not provide yet rejects with `not_implemented`.
   return new Proxy(impl as Repository, {

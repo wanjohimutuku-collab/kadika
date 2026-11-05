@@ -374,7 +374,11 @@ export class DeliveryService {
   async sendReminders(): Promise<{ sent: number; failed: number }> {
     const now = this.deps.now();
     const dayOf = (d: Date, tz: string) => Math.floor(toZoned(d, tz).getTime() / 86_400_000);
-    const evs = await this.deps.db.select().from(events).where(eq(events.status, 'active'));
+    // SMS-reminder-only accounts (ADR 055) have no cards to remind about; they send their own texts.
+    const evs = await this.deps.db
+      .select()
+      .from(events)
+      .where(and(eq(events.status, 'active'), eq(events.product, 'cards')));
     const out = { sent: 0, failed: 0 };
     for (const event of evs) {
       // Only between 08:00 and 20:00 in the event's own time zone: nobody wants a reminder at night.
@@ -613,6 +617,7 @@ export class DeliveryService {
 
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {
     await this.assertCanSend(eventId, userId);
+    await this.eventsSvc.assertCardsProduct(eventId);
     // Refuse up front (402) when the event cannot generate every card, or pay for every reminder, that
     // this send would need (ADR 042).
     await this.billing.assertCanUse(eventId, await this.needs(eventId, input));

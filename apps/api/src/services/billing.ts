@@ -190,8 +190,9 @@ export class BillingService {
       .select({ n: sql<number>`count(*)::int` })
       .from(guests)
       .where(and(eq(guests.eventId, eventId), isNotNull(guests.cardGeneratedAt)));
+    // One credit per SMS part (ADR 055); every message before custom texts was one part.
     const [msgs] = await this.db
-      .select({ n: sql<number>`count(*)::int` })
+      .select({ n: sql<number>`coalesce(sum(${messageLog.segments}), 0)::int` })
       .from(messageLog)
       .innerJoin(guests, eq(guests.id, messageLog.guestId))
       .where(
@@ -240,6 +241,11 @@ export class BillingService {
       .from(eventPurchases)
       .where(and(eq(eventPurchases.eventId, eventId), eq(eventPurchases.status, 'paid')));
     return addAllowance(c.free, bought ?? NONE);
+  }
+
+  /** Reminder credits left, or null when nothing is enforced (ADR 055 preview). */
+  async messagesLeft(eventId: string): Promise<number | null> {
+    return (await this.remaining(eventId))?.messages ?? null;
   }
 
   /** What is left, or null when nothing is enforced (no limit). */

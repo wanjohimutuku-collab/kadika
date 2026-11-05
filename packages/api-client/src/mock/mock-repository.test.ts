@@ -765,3 +765,46 @@ describe('Kumbukumbu (ADR 050)', () => {
     expect((await r.sendMemories(ev)).sent).toBeGreaterThan(0);
   });
 });
+
+describe('SMS reminders only (ADR 055)', () => {
+  it('creates an SMS account, sends a text to its contacts and counts credits per part', async () => {
+    const e = await repo.createSmsEvent({
+      title: 'Kikao cha harusi',
+      dateStart: '2026-12-01T10:00',
+      languageDefault: 'sw',
+    });
+    expect(e.product).toBe('sms');
+    const contact = (displayName: string, phone: string) =>
+      repo.createGuest(e.id, {
+        displayName,
+        phone,
+        partySizeAllowed: 1,
+        inviteChannelPref: 'sms',
+        hasSmartphone: false,
+        printCard: false,
+        language: 'sw',
+      });
+    await contact('Ndugu A', '0712000101');
+    await contact('Ndugu B', '');
+    const preview = await repo.previewSmsCampaign(e.id, { body: 'a'.repeat(200), target: 'all' });
+    expect(preview).toMatchObject({ recipients: 1, withoutPhone: 1, segments: 2, credits: 2 });
+    const sent = await repo.sendSmsCampaign(e.id, { body: 'Kikao ni kesho', target: 'all' }, 'k1');
+    expect(sent).toMatchObject({ status: 'done', recipientCount: 1, skipped: 1 });
+    // the same key replays the first answer
+    expect((await repo.sendSmsCampaign(e.id, { body: 'x', target: 'all' }, 'k1')).id).toBe(sent.id);
+    const later = await repo.sendSmsCampaign(
+      e.id,
+      { body: 'Kumbuka kikao', target: 'all', scheduleAt: new Date(NOW + 3_600_000).toISOString() },
+      'k2',
+    );
+    expect(later.status).toBe('scheduled');
+    clock = NOW + 2 * 3_600_000;
+    const list = await repo.listSmsCampaigns(e.id);
+    expect(list.find((c) => c.id === later.id)?.status).toBe('done');
+    // card-only screens refuse the custom send for a card event, and staff see the SMS customer
+    const cardEvent = (await repo.listEvents()).find((x) => x.product !== 'sms')!;
+    await expect(
+      repo.sendSmsCampaign(cardEvent.id, { body: 'Habari', target: 'all' }, 'k3'),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+});

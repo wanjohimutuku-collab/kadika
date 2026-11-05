@@ -1,0 +1,448 @@
+{
+  "sw": {
+    "nav": {
+      "contacts": "Wapokeaji",
+      "compose": "Tuma SMS",
+      "history": "Historia",
+      "credits": "Vifurushi"
+    },
+    "events": {
+      "smsBadge": "SMS pekee"
+    },
+    "sms": {
+      "chooser": {
+        "title": "Unahitaji nini?",
+        "cards": "Kadi za mwaliko",
+        "cardsBody": "Kadi zenye QR, majibu ya wageni, michango na ukaguzi mlangoni.",
+        "sms": "SMS za ukumbusho pekee",
+        "smsBody": "Andika ujumbe wako na uutume kwa watu wako wote kwa SMS. Hakuna kadi.",
+        "current": "Umechagua"
+      },
+      "new": {
+        "title": "Anza SMS za ukumbusho",
+        "subtitle": "Nunua SMS kwa wingi, andika ujumbe wako na uutume sasa au baadaye.",
+        "name": "Jina la shughuli",
+        "nameHint": "Mfano: Kikao cha harusi ya Asha, Mkutano wa wazazi",
+        "sender": "Ujumbe unatoka kwa",
+        "senderHint": "Jina lako au la kamati. Linaonekana kwako na kwa wafanyakazi wetu.",
+        "date": "Tarehe ya shughuli",
+        "language": "Lugha ya skrini na ujumbe",
+        "create": "Anza",
+        "creating": "Inaanzisha…",
+        "free": "Unaanza na SMS {count} za bure ili ujaribu.",
+        "back": "Nataka kadi za mwaliko"
+      },
+      "overview": {
+        "credits": "SMS zilizobaki",
+        "unlimited": "Bila kikomo",
+        "creditsSub": "Umetumia {used}",
+        "contacts": "Wapokeaji",
+        "sent30": "SMS zilizotumwa",
+        "scheduled": "Zinazosubiri",
+        "nextTitle": "Ujumbe unaofuata",
+        "nextNone": "Hakuna ujumbe uliopangwa.",
+        "recent": "Ujumbe wa karibuni",
+        "seeAll": "Ona yote",
+        "noContacts": "Bado huna wapokeaji. Ongeza watu kwanza.",
+        "addContacts": "Ongeza wapokeaji",
+        "compose": "Andika ujumbe",
+        "buy": "Nunua SMS",
+        "lowCredits": "SMS zako zinakaribia kuisha ({count} zimebaki).",
+        "eventOn": "Shughuli: {date}"
+      },
+      "contacts": {
+        "title": "Wapokeaji",
+        "subtitle": "{count, plural, one {Mtu #} other {Watu #}} · {withPhone} wana namba",
+        "search": "Tafuta jina, namba au kikundi",
+        "add": "Ongeza mmoja",
+        "paste": "Bandika orodha",
+        "name": "Jina",
+        "phone": "Namba ya simu",
+        "group": "Kikundi",
+        "groupHint": "Hiari. Mfano: Kamati, Familia. Unaweza kutuma kwa kikundi kimoja.",
+        "save": "Hifadhi",
+        "saved": "{name} ameongezwa",
+        "noPhone": "Hana namba",
+        "empty": "Hakuna wapokeaji bado · Bandika orodha ya majina na namba",
+        "noMatch": "Hakuna anayelingana na utafutaji.",
+        "delete": "Ondoa",
+        "deleteTitle": "Ondoa {count, plural, one {mpokeaji #} other {wapokeaji #}}?",
+        "deleteConsequence": "Hawatapokea ujumbe utakaotumwa baadaye.",
+        "deleted": "{count, plural, one {Mpokeaji # ameondolewa} other {Wapokeaji # wameondolewa}}",
+        "undo": "Tendua",
+        "select": "Chagua {name}",
+        "selected": "{count} wamechaguliwa",
+        "showing": "{count, plural, one {Mpokeaji #} other {Wapokeaji #}} wanaonyeshwa",
+        "selectAll": "Chagua wote walioonyeshwa",
+        "selectNone": "Toa chaguo kwa wote",
+        "sendToSelected": "Tuma kwa waliochaguliwa",
+        "pasteTitle": "Bandika orodha",
+        "pasteHint": "Mtu mmoja kwa mstari: jina na namba. Mfano: Juma Ali 0712 345 678",
+        "pasteLabel": "Orodha",
+        "pasteGroup": "Kikundi cha orodha hii",
+        "pasteSummary": "{ok} tayari · {noPhone} hawana namba · {invalid} zina kosa · {duplicate} zinajirudia",
+        "pasteSave": "Ongeza {count}",
+        "pasteDone": "{count, plural, one {Mtu # ameongezwa} other {Watu # wameongezwa}}",
+        "pasteNothing": "Hakuna mstari sahihi wa kuongeza."
+      },
+      "compose": {
+        "title": "Andika ujumbe",
+        "subtitle": "Ujumbe wako unatumwa kama SMS kwa kila mpokeaji mwenye namba.",
+        "message": "Ujumbe",
+        "placeholder": "Mfano: Habari! Kikao cha harusi ni Jumamosi saa 10 jioni, ukumbi wa Mwanga. Karibu.",
+        "counter": "{chars} herufi · {parts, plural, one {SMS #} other {SMS #}} kwa kila mtu",
+        "unicode": "Herufi maalum (kama emoji) zinafanya SMS moja ibebe herufi 70 tu.",
+        "tooLong": "Ujumbe ni mrefu mno: zisizozidi SMS {max} kwa kila mtu.",
+        "to": "Tuma kwa",
+        "toAll": "Wote",
+        "toGroup": "Kikundi",
+        "toPicked": "Waliochaguliwa ({count})",
+        "pickedSummary": "Watu {count} waliochaguliwa",
+        "clearPicked": "Futa chaguo",
+        "pickGroup": "Chagua kikundi",
+        "noGroups": "Huna vikundi bado. Weka kikundi kwenye wapokeaji.",
+        "when": "Lini",
+        "now": "Sasa hivi",
+        "later": "Baadaye",
+        "at": "Tarehe na saa",
+        "preview": "Muhtasari",
+        "recipients": "{count, plural, one {Mpokeaji #} other {Wapokeaji #}}",
+        "withoutPhone": "{count} hawana namba, hawatapata",
+        "credits": "SMS zitakazotumika: {count}",
+        "remaining": "Zilizobaki: {count}",
+        "short": "Huna SMS za kutosha. Unahitaji {needed}, una {remaining}.",
+        "buy": "Nunua SMS",
+        "send": "Tuma sasa",
+        "schedule": "Panga",
+        "sending": "Inatuma…",
+        "sent": "Imetumwa kwa {sent}{failed, plural, =0 {} other { · # zimeshindwa}}",
+        "scheduled": "Imepangwa {when}",
+        "confirmTitle": "Tuma kwa {count, plural, one {mtu #} other {watu #}}?",
+        "confirmBody": "Itatumia SMS {credits}. Ujumbe uliotumwa hauwezi kurudishwa.",
+        "phonePreview": "Hivi ndivyo utakavyoonekana",
+        "senderLine": "Kutoka: {sender}"
+      },
+      "history": {
+        "title": "Historia ya ujumbe",
+        "empty": "Hujatuma ujumbe bado · Andika ujumbe wa kwanza",
+        "status": {
+          "scheduled": "Imepangwa",
+          "running": "Inatuma",
+          "done": "Imetumwa",
+          "cancelled": "Imesitishwa"
+        },
+        "toAll": "Kwa wote",
+        "toGroup": "Kikundi: {group}",
+        "toPicked": "Watu {count} waliochaguliwa",
+        "counts": "{sent} zimefika kwa mtandao · {failed} zimeshindwa · {skipped} hazikutumwa",
+        "credits": "SMS {count}",
+        "at": "Itatumwa {when}",
+        "sentAt": "Ilitumwa {when}",
+        "cancel": "Sitisha",
+        "cancelTitle": "Sitisha ujumbe huu?",
+        "cancelBody": "Hautatumwa. Hakuna SMS itakayotumika.",
+        "cancelled": "Ujumbe umesitishwa",
+        "error": {
+          "missed": "Muda ulipita kabla haujatumwa",
+          "quota_exceeded": "SMS ziliisha katikati",
+          "no provider configured": "Huduma ya SMS haijawekwa",
+          "sending paused": "Utumaji umesimamishwa kwa muda",
+          "other": "Haukutumwa: {error}"
+        },
+        "reuse": "Tumia tena"
+      },
+      "credits": {
+        "title": "Vifurushi vya SMS",
+        "subtitle": "SMS moja ni herufi 160. Ujumbe mrefu zaidi hutumia SMS zaidi kwa kila mtu.",
+        "left": "SMS zilizobaki",
+        "pack": "SMS {count}",
+        "each": "{price} kwa SMS"
+      },
+      "settings": {
+        "title": "Mipangilio",
+        "save": "Hifadhi",
+        "saved": "Imehifadhiwa",
+        "product": "Huduma",
+        "productValue": "SMS za ukumbusho pekee",
+        "productHint": "Ukihitaji kadi za mwaliko, anza shughuli mpya ya kadi.",
+        "delete": "Futa akaunti hii ya SMS",
+        "deleteTitle": "Futa {name}?",
+        "deleteConsequence": "Wapokeaji na ujumbe uliopangwa vitaondolewa. SMS zilizobaki hazitarudishwa.",
+        "deleted": "Imefutwa"
+      },
+      "errors": {
+        "body": {
+          "required": "Andika ujumbe",
+          "tooLong": "Ujumbe ni mrefu mno"
+        },
+        "no_recipients": "Hakuna mpokeaji mwenye namba katika uliowachagua.",
+        "scheduleAt": "Chagua muda angalau dakika moja kuanzia sasa."
+      }
+    },
+    "ops": {
+      "nav": {
+        "sms": "Wateja wa SMS"
+      },
+      "sms": {
+        "title": "Wateja wa SMS za ukumbusho",
+        "subtitle": "Waliochagua kifurushi cha SMS pekee. Bei za vifurushi ziko kwenye Bei.",
+        "customers": "Wateja",
+        "sent30": "SMS (siku 30)",
+        "remaining": "SMS zilizobaki kwa wote",
+        "low": "Wenye SMS chache",
+        "search": "Tafuta jina au mteja",
+        "empty": "Hakuna mteja wa SMS bado.",
+        "colCustomer": "Mteja",
+        "colContacts": "Wapokeaji",
+        "colSent": "SMS zilizotumwa",
+        "colCredits": "Zilizobaki / jumla",
+        "colLast": "Mara ya mwisho",
+        "never": "Bado",
+        "scheduled": "{count} zinasubiri",
+        "grant": "Ongeza SMS",
+        "grantTitle": "Ongeza SMS kwa {name}",
+        "grantAmount": "Idadi ya SMS",
+        "grantNote": "Sababu (mf. kumbukumbu ya benki)",
+        "grantSave": "Ongeza",
+        "granted": "SMS {count} zimeongezwa",
+        "lowBadge": "Chache",
+        "filterAll": "Wote",
+        "filterLow": "SMS chache",
+        "filterActive": "Walio hai (siku 30)"
+      },
+      "events": {
+        "product": "Huduma",
+        "productCards": "Kadi",
+        "productSms": "SMS pekee"
+      }
+    },
+    "guestDetail": {
+      "kind": {
+        "sms_campaign": "Ujumbe wa SMS"
+      }
+    }
+  },
+  "en": {
+    "nav": {
+      "contacts": "Contacts",
+      "compose": "Send SMS",
+      "history": "History",
+      "credits": "Packages"
+    },
+    "events": {
+      "smsBadge": "SMS only"
+    },
+    "sms": {
+      "chooser": {
+        "title": "What do you need?",
+        "cards": "Invitation cards",
+        "cardsBody": "QR cards, guest replies, contributions and gate check-in.",
+        "sms": "SMS reminders only",
+        "smsBody": "Write your own message and send it to all your people by SMS. No cards.",
+        "current": "Selected"
+      },
+      "new": {
+        "title": "Start SMS reminders",
+        "subtitle": "Buy SMS in bulk, write your message and send it now or later.",
+        "name": "Name of the occasion",
+        "nameHint": "For example: Asha's wedding committee, Parents' meeting",
+        "sender": "Messages are from",
+        "senderHint": "Your name or the committee's. You and our staff see it.",
+        "date": "Date of the occasion",
+        "language": "Language of screens and messages",
+        "create": "Start",
+        "creating": "Starting…",
+        "free": "You start with {count} free SMS to try it out.",
+        "back": "I want invitation cards"
+      },
+      "overview": {
+        "credits": "SMS left",
+        "unlimited": "No limit",
+        "creditsSub": "{used} used",
+        "contacts": "Contacts",
+        "sent30": "SMS sent",
+        "scheduled": "Waiting",
+        "nextTitle": "Next message",
+        "nextNone": "No message is scheduled.",
+        "recent": "Recent messages",
+        "seeAll": "See all",
+        "noContacts": "You have no contacts yet. Add people first.",
+        "addContacts": "Add contacts",
+        "compose": "Write a message",
+        "buy": "Buy SMS",
+        "lowCredits": "Your SMS are running low ({count} left).",
+        "eventOn": "Occasion: {date}"
+      },
+      "contacts": {
+        "title": "Contacts",
+        "subtitle": "{count, plural, one {# person} other {# people}} · {withPhone} with a number",
+        "search": "Search name, number or group",
+        "add": "Add one",
+        "paste": "Paste a list",
+        "name": "Name",
+        "phone": "Phone number",
+        "group": "Group",
+        "groupHint": "Optional. For example: Committee, Family. You can send to one group.",
+        "save": "Save",
+        "saved": "{name} added",
+        "noPhone": "No number",
+        "empty": "No contacts yet · Paste a list of names and numbers",
+        "noMatch": "Nobody matches the search.",
+        "delete": "Remove",
+        "deleteTitle": "Remove {count, plural, one {# contact} other {# contacts}}?",
+        "deleteConsequence": "They will not get messages sent from now on.",
+        "deleted": "{count, plural, one {# contact removed} other {# contacts removed}}",
+        "undo": "Undo",
+        "select": "Select {name}",
+        "selected": "{count} selected",
+        "showing": "{count, plural, one {# contact} other {# contacts}} shown",
+        "selectAll": "Select all shown",
+        "selectNone": "Clear selection",
+        "sendToSelected": "Send to selected",
+        "pasteTitle": "Paste a list",
+        "pasteHint": "One person per line: name and number. For example: Juma Ali 0712 345 678",
+        "pasteLabel": "List",
+        "pasteGroup": "Group for this list",
+        "pasteSummary": "{ok} ready · {noPhone} without a number · {invalid} with errors · {duplicate} repeated",
+        "pasteSave": "Add {count}",
+        "pasteDone": "{count, plural, one {# person added} other {# people added}}",
+        "pasteNothing": "No valid line to add."
+      },
+      "compose": {
+        "title": "Write a message",
+        "subtitle": "Your message goes as an SMS to every contact with a number.",
+        "message": "Message",
+        "placeholder": "For example: Hello! The wedding committee meets on Saturday at 4 pm, Mwanga hall. Welcome.",
+        "counter": "{chars} characters · {parts, plural, one {# SMS} other {# SMS}} per person",
+        "unicode": "Special characters (like emoji) make one SMS carry only 70 characters.",
+        "tooLong": "The message is too long: at most {max} SMS per person.",
+        "to": "Send to",
+        "toAll": "Everyone",
+        "toGroup": "A group",
+        "toPicked": "Selected ({count})",
+        "pickedSummary": "{count} selected people",
+        "clearPicked": "Clear selection",
+        "pickGroup": "Choose a group",
+        "noGroups": "No groups yet. Give contacts a group.",
+        "when": "When",
+        "now": "Right now",
+        "later": "Later",
+        "at": "Date and time",
+        "preview": "Summary",
+        "recipients": "{count, plural, one {# contact} other {# contacts}}",
+        "withoutPhone": "{count} have no number and will not get it",
+        "credits": "SMS it will use: {count}",
+        "remaining": "Left: {count}",
+        "short": "Not enough SMS. You need {needed} and have {remaining}.",
+        "buy": "Buy SMS",
+        "send": "Send now",
+        "schedule": "Schedule",
+        "sending": "Sending…",
+        "sent": "Sent to {sent}{failed, plural, =0 {} other { · # failed}}",
+        "scheduled": "Scheduled for {when}",
+        "confirmTitle": "Send to {count, plural, one {# person} other {# people}}?",
+        "confirmBody": "It will use {credits} SMS. A sent message cannot be taken back.",
+        "phonePreview": "This is how it will look",
+        "senderLine": "From: {sender}"
+      },
+      "history": {
+        "title": "Message history",
+        "empty": "No messages sent yet · Write your first message",
+        "status": {
+          "scheduled": "Scheduled",
+          "running": "Sending",
+          "done": "Sent",
+          "cancelled": "Cancelled"
+        },
+        "toAll": "To everyone",
+        "toGroup": "Group: {group}",
+        "toPicked": "{count} selected people",
+        "counts": "{sent} handed to the network · {failed} failed · {skipped} not sent",
+        "credits": "{count} SMS",
+        "at": "Goes out {when}",
+        "sentAt": "Sent {when}",
+        "cancel": "Cancel",
+        "cancelTitle": "Cancel this message?",
+        "cancelBody": "It will not be sent. No SMS will be used.",
+        "cancelled": "Message cancelled",
+        "error": {
+          "missed": "Its time passed before it could go out",
+          "quota_exceeded": "SMS ran out part way",
+          "no provider configured": "The SMS service is not set up",
+          "sending paused": "Sending is paused for now",
+          "other": "Not sent: {error}"
+        },
+        "reuse": "Use again"
+      },
+      "credits": {
+        "title": "SMS packages",
+        "subtitle": "One SMS is 160 characters. A longer message uses more SMS per person.",
+        "left": "SMS left",
+        "pack": "{count} SMS",
+        "each": "{price} per SMS"
+      },
+      "settings": {
+        "title": "Settings",
+        "save": "Save",
+        "saved": "Saved",
+        "product": "Service",
+        "productValue": "SMS reminders only",
+        "productHint": "If you need invitation cards, start a new card event.",
+        "delete": "Delete this SMS account",
+        "deleteTitle": "Delete {name}?",
+        "deleteConsequence": "Contacts and scheduled messages are removed. Remaining SMS are not refunded.",
+        "deleted": "Deleted"
+      },
+      "errors": {
+        "body": {
+          "required": "Write the message",
+          "tooLong": "The message is too long"
+        },
+        "no_recipients": "None of the chosen contacts has a phone number.",
+        "scheduleAt": "Pick a time at least a minute from now."
+      }
+    },
+    "ops": {
+      "nav": {
+        "sms": "SMS customers"
+      },
+      "sms": {
+        "title": "SMS reminder customers",
+        "subtitle": "Customers who chose the SMS-only package. Package prices are under Pricing.",
+        "customers": "Customers",
+        "sent30": "SMS (30 days)",
+        "remaining": "SMS left across all",
+        "low": "Running low",
+        "search": "Search name or customer",
+        "empty": "No SMS customer yet.",
+        "colCustomer": "Customer",
+        "colContacts": "Contacts",
+        "colSent": "SMS sent",
+        "colCredits": "Left / total",
+        "colLast": "Last sent",
+        "never": "Not yet",
+        "scheduled": "{count} waiting",
+        "grant": "Add SMS",
+        "grantTitle": "Add SMS for {name}",
+        "grantAmount": "Number of SMS",
+        "grantNote": "Reason (e.g. bank reference)",
+        "grantSave": "Add",
+        "granted": "{count} SMS added",
+        "lowBadge": "Low",
+        "filterAll": "All",
+        "filterLow": "Running low",
+        "filterActive": "Active (30 days)"
+      },
+      "events": {
+        "product": "Service",
+        "productCards": "Cards",
+        "productSms": "SMS only"
+      }
+    },
+    "guestDetail": {
+      "kind": {
+        "sms_campaign": "SMS message"
+      }
+    }
+  }
+}

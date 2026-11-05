@@ -1,3 +1,4 @@
+import type { EventProduct } from '@harusi/schemas/sms';
 import type { OpsPurchase } from '@harusi/schemas/billing';
 import type {
   CardContent,
@@ -150,6 +151,8 @@ export interface WeddingEvent {
   reminders: ReminderSettings;
   whatsappFallbackHours: number;
   plan: 'free' | 'paid';
+  /** `sms`: an SMS-reminders-only customer with its own console (ADR 055). Absent means `cards`. */
+  product?: EventProduct;
   createdAt: ISODate;
   updatedAt: ISODate;
   stats: EventStats;
@@ -201,10 +204,12 @@ export interface MessageLogEntry {
   guestId: string;
   channel: MessageChannel;
   provider: string;
-  kind: 'invite' | 'reminder' | 'thank_you' | 'test' | 'memories';
+  kind: 'invite' | 'reminder' | 'thank_you' | 'test' | 'memories' | 'sms_campaign';
   status: MessageStatus;
   error: string | null;
   cost: number;
+  /** SMS parts; one reminder credit each (ADR 055). Absent means one. */
+  segments?: number;
   createdAt: ISODate;
 }
 
@@ -613,6 +618,8 @@ export interface OpsEvent {
   dateStart: ISODate;
   status: EventStatus;
   plan: 'free' | 'paid';
+  /** ADR 055; absent means `cards`. */
+  product?: EventProduct;
   ownerId: string;
   ownerName: string;
   guests: number;

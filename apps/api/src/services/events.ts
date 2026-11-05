@@ -38,6 +38,8 @@ export interface EventInput {
   brandTheme?: Record<string, unknown> | null;
   /** Validated by the route; new events default to family-sent cards (ADR 029). */
   cardContent?: CardContent;
+  /** `sms`: an SMS-reminders-only customer (ADR 055). Set at creation only. */
+  product?: 'cards' | 'sms';
 }
 
 /**
@@ -225,6 +227,21 @@ export class EventService {
       .where(and(eq(signingKeys.eventId, eventId), isNull(signingKeys.revokedAt)));
     if (!k) throw new ApiError('not_found', 'No signing key');
     return k.publicKey;
+  }
+
+  /**
+   * Card-only actions (invitations, card PDFs, gate) refuse an SMS-reminders-only event (ADR 055): it
+   * has no cards, and its contacts never asked for one.
+   */
+  async assertCardsProduct(eventId: string): Promise<void> {
+    const [row] = await this.deps.db
+      .select({ product: events.product })
+      .from(events)
+      .where(eq(events.id, eventId));
+    if (row?.product === 'sms')
+      throw new ApiError('conflict', 'This account sends SMS reminders only', {
+        reason: 'sms_only',
+      });
   }
 
   async memberEventIds(userId: string): Promise<string[]> {

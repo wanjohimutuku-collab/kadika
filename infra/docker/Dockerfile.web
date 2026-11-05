@@ -19,8 +19,16 @@ COPY --from=manifests /m/ ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @harusi/web... --config.node-linker=isolated
 
+# Only what the web app is built from, so a change elsewhere (the API, docs) reuses this build, the
+# slowest step of a release. A new workspace package the app uses goes here too; the build fails until
+# it does.
 FROM deps AS build
-COPY . .
+COPY tsconfig.base.json ./
+COPY apps/web apps/web
+COPY packages/api-client packages/api-client
+COPY packages/i18n packages/i18n
+COPY packages/schemas packages/schemas
+COPY packages/ui-tokens packages/ui-tokens
 ENV NEXT_TELEMETRY_DISABLED=1
 # Next.js bakes NEXT_PUBLIC_* into the bundle at build time, so they are build arguments, not runtime
 # settings. The app falls back to mock data unless NEXT_PUBLIC_USE_MOCKS=0, so an image is never a mock
@@ -33,7 +41,8 @@ ARG NEXT_PUBLIC_KENYA_ENABLED=0
 RUN [ -n "$NEXT_PUBLIC_API_URL" ] || unset NEXT_PUBLIC_API_URL; \
     [ -n "$NEXT_PUBLIC_APP_DOMAIN" ] || unset NEXT_PUBLIC_APP_DOMAIN; \
     [ -n "$NEXT_PUBLIC_SITE_URL" ] || unset NEXT_PUBLIC_SITE_URL; \
-    pnpm --filter @harusi/web build
+    pnpm --filter @harusi/web build && \
+    rm -rf apps/web/.next/cache # not in the image, and uploading it to the layer cache slows every release
 
 FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
@@ -48,6 +57,7 @@ ARG GIT_SHA=dev
 ENV GIT_SHA=$GIT_SHA
 USER node
 EXPOSE 3000
-HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
+# --start-interval: see Dockerfile.api.
+HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --start-interval=2s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/web/server.js"]

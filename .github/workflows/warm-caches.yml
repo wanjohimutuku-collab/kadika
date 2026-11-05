@@ -1,0 +1,39 @@
+# CI skips a merge whose files already passed on the PR (ADR 056), and a skipped run saves no caches. A
+# PR can only read caches saved on its own branch or on main, so this keeps main's fresh: the pnpm store,
+# Turbo's results and Next's compile cache. Nothing waits on this workflow and a failure here blocks
+# nothing; it only makes the next PR slower.
+name: Warm caches
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**/*.md', 'docs/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-caches
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/web-prod-build
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+      # continue-on-error: a post step only saves its cache when the job succeeds, and Turbo keeps the
+      # results of every task that did pass.
+      - run: pnpm typecheck
+        continue-on-error: true
+      - run: pnpm lint
+        continue-on-error: true
+      - run: pnpm test
+        continue-on-error: true
+      - run: pnpm build
+        continue-on-error: true

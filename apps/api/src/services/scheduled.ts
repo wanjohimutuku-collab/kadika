@@ -88,6 +88,7 @@ export class ScheduledSendService {
 
   async create(eventId: string, userId: string, input: ScheduleInput): Promise<ScheduledSendView> {
     await this.assertCanManage(eventId, userId);
+    await this.eventsSvc.assertCardsProduct(eventId);
     assertTargetFits(input.kind, input.target);
     assertCardKindFits(input.kind, input.cardKind);
     const now = this.deps.now();

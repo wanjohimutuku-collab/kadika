@@ -1,4 +1,12 @@
 import type {
+  OpsSmsCustomer,
+  SmsCampaignInput,
+  SmsCampaignPreview,
+  SmsCampaignView,
+  SmsEventInput,
+  SmsTarget,
+} from '@harusi/schemas/sms';
+import type {
   MessagingRoute,
   MessagingSettingsInput,
   MessagingSettingsView,
@@ -230,6 +238,27 @@ export interface Repository {
   ): Promise<PurchaseView>;
   getPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
   cancelPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
+
+  // SMS reminders only (ADR 055) — a customer with no cards: contacts are guests, texts are their own
+  /** Starts an SMS-only account (POST /v1/events with `product: 'sms'`). */
+  createSmsEvent(input: SmsEventInput): Promise<WeddingEvent>;
+  /** Who a text would reach, its SMS parts and the credits it needs. Nothing is sent. */
+  previewSmsCampaign(
+    eventId: string,
+    input: { body: string; target: SmsTarget },
+  ): Promise<SmsCampaignPreview>;
+  /** Sends now, or later with `scheduleAt`. Refused with `payment_required` when credits are short. */
+  sendSmsCampaign(
+    eventId: string,
+    input: SmsCampaignInput,
+    idempotencyKey: string,
+  ): Promise<SmsCampaignView>;
+  /** Newest first. */
+  listSmsCampaigns(eventId: string): Promise<SmsCampaignView[]>;
+  /** Stops a scheduled text; `conflict` once it has started. */
+  cancelSmsCampaign(eventId: string, campaignId: string): Promise<SmsCampaignView>;
+  /** Staff: every SMS-only customer with credits and usage. */
+  opsListSmsCustomers(): Promise<OpsSmsCustomer[]>;
 
   // Kumbukumbu (ADR 050) — the couple's photos for their guests; owner and committee manage them
   listMemories(eventId: string): Promise<MemoriesAdminView>;

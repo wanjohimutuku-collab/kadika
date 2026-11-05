@@ -19,6 +19,10 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  MessageSquareText,
+  History,
+  Package,
+  ContactRound,
   ShieldCheck,
   Plus,
   RefreshCw,
@@ -53,7 +57,11 @@ type NavKey =
   | 'team'
   | 'reports'
   | 'billing'
-  | 'settings';
+  | 'settings'
+  | 'contacts'
+  | 'compose'
+  | 'history'
+  | 'credits';
 
 interface NavItem {
   key: NavKey;
@@ -62,7 +70,64 @@ interface NavItem {
   ownerOnly?: boolean;
 }
 
-export function navItems(eventId: string): { primary: NavItem[]; secondary: NavItem[] } {
+/**
+ * SMS-reminders-only customers (ADR 055) get their own, smaller console: contacts, compose, history and
+ * SMS packages. Nothing about cards, RSVP, gate or contributions.
+ */
+function smsNavItems(eventId: string): { primary: NavItem[]; secondary: NavItem[] } {
+  const base = `/app/e/${eventId}`;
+  const i = 'size-6';
+  return {
+    primary: [
+      { key: 'overview', href: base, icon: <LayoutDashboard className={i} aria-hidden="true" /> },
+      {
+        key: 'contacts',
+        href: `${base}/sms/contacts`,
+        icon: <ContactRound className={i} aria-hidden="true" />,
+      },
+      {
+        key: 'compose',
+        href: `${base}/sms/compose`,
+        icon: <MessageSquareText className={i} aria-hidden="true" />,
+      },
+      {
+        key: 'history',
+        href: `${base}/sms/history`,
+        icon: <History className={i} aria-hidden="true" />,
+      },
+      {
+        key: 'credits',
+        href: `${base}/billing`,
+        icon: <Package className={i} aria-hidden="true" />,
+      },
+    ],
+    secondary: [
+      {
+        key: 'settings',
+        href: `${base}/settings`,
+        icon: <Settings className={i} aria-hidden="true" />,
+        ownerOnly: true,
+      },
+    ],
+  };
+}
+
+/** Routes an SMS-only event may open; anything else (cards, gate, guests…) sends it to its overview. */
+export function smsRouteAllowed(eventId: string, pathname: string): boolean {
+  const base = `/app/e/${eventId}`;
+  return (
+    pathname === base ||
+    pathname.startsWith(`${base}/sms/`) ||
+    pathname === `${base}/billing` ||
+    pathname === `${base}/settings`
+  );
+}
+
+export function navItems(
+  eventId: string,
+  product: WeddingEvent['product'] = 'cards',
+): { primary: NavItem[]; secondary: NavItem[] } {
+  if (product === 'sms') return smsNavItems(eventId);
   const base = `/app/e/${eventId}`;
   const i = 'size-6';
   return {
@@ -415,7 +480,7 @@ export function ConsoleShell({
   const session = useSession();
   const [moreOpen, setMoreOpen] = useState(false);
   const isOwner = session.data?.role === 'owner';
-  const nav = eventId ? navItems(eventId) : null;
+  const nav = eventId ? navItems(eventId, event?.product) : null;
   const visibleSecondary = nav?.secondary.filter((n) => isOwner || !n.ownerOnly) ?? [];
   const all = nav ? [...nav.primary, ...visibleSecondary] : [];
 

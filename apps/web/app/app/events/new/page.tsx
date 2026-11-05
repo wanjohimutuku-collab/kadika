@@ -25,6 +25,7 @@ import {
   type ThemeId,
 } from '@harusi/ui-tokens';
 import { ConsoleShell } from '@/components/console/shell';
+import { ProductChooser } from '@/components/sms/product-chooser';
 import { PageHeader } from '@/components/console/page-header';
 import { CardPreview } from '@/components/console/card-preview';
 import { Button } from '@/components/ui/button';
@@ -198,6 +199,8 @@ export default function NewEventPage() {
           </Link>
         }
       />
+      {/* ADR 055: cards, or SMS reminders only — the first choice, on the first step */}
+      {step === 'names' ? <ProductChooser current="cards" /> : null}
       <ol
         className="mb-5 grid grid-cols-4 gap-1.5"
         aria-label={t('stepOf', { current: idx + 1, total: STEPS.length })}

@@ -27,6 +27,8 @@ export const qk = {
   scheduled: (id: string) => ['scheduled-sends', id] as const,
   billing: (id: string) => ['billing', id] as const,
   memories: (id: string) => ['memories', id] as const,
+  /** SMS-reminders-only sends (ADR 055). */
+  smsCampaigns: (id: string) => ['sms-campaigns', id] as const,
   ops: (name: string) => ['ops', name] as const,
 } satisfies Record<string, QueryKey | ((...a: never[]) => QueryKey)>;
 
@@ -43,6 +45,7 @@ export function eventScopedKeys(id: string): QueryKey[] {
     qk.scans(id),
     qk.report(id),
     qk.billing(id),
+    qk.smsCampaigns(id),
   ];
 }
 

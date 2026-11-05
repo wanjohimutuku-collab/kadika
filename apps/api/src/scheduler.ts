@@ -2,6 +2,7 @@ import type { Deps } from './context';
 import { DeliveryService } from './services/delivery';
 import { EventService } from './services/events';
 import { ScheduledSendService } from './services/scheduled';
+import { SmsCampaignService } from './services/sms-campaigns';
 
 const EVERY_MS = 60_000;
 
@@ -13,6 +14,7 @@ const EVERY_MS = 60_000;
 export function startScheduler(deps: Deps, everyMs = EVERY_MS): () => void {
   const events = new EventService(deps);
   const scheduled = new ScheduledSendService(deps, events, new DeliveryService(deps, events));
+  const sms = new SmsCampaignService(deps, events);
   let running = false;
   const tick = async () => {
     if (running) return; // a long send must not overlap the next check
@@ -21,6 +23,10 @@ export function startScheduler(deps: Deps, everyMs = EVERY_MS): () => void {
       const r = await scheduled.runDue();
       if (r.ran + r.failed + r.missed > 0)
         console.log(JSON.stringify({ level: 'info', msg: 'scheduled sends', ...r }));
+      // SMS-reminder-only customers' texts set for later (ADR 055)
+      const s = await sms.runDue();
+      if (s.ran + s.missed > 0)
+        console.log(JSON.stringify({ level: 'info', msg: 'sms campaigns', ...s }));
     } catch (e) {
       console.error(
         JSON.stringify({

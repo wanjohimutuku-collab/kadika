@@ -336,7 +336,11 @@
     "opsLink": "Staff dashboard",
     "content": "Card text",
     "billing": "Plan",
-    "memories": "Memories"
+    "memories": "Memories",
+    "contacts": "Contacts",
+    "compose": "Send SMS",
+    "history": "History",
+    "credits": "Packages"
   },
   "auth": {
     "title": "Sign in to {brand}",
@@ -531,7 +535,8 @@
     "statInvited": "Invited",
     "statConfirmed": "Confirmed",
     "statCollected": "Contributions",
-    "open": "Open {name}"
+    "open": "Open {name}",
+    "smsBadge": "SMS only"
   },
   "wizard": {
     "title": "New event",
@@ -845,7 +850,8 @@
       "thank_you": "Thank you",
       "memories": "Memories",
       "test": "Test",
-      "contribution": "Contribution card"
+      "contribution": "Contribution card",
+      "sms_campaign": "SMS message"
     },
     "msgStatus": {
       "queued": "Queued",
@@ -1305,7 +1311,8 @@
       "pilot": "Pilot",
       "messaging": "SMS & WhatsApp",
       "settings": "Settings",
-      "billing": "Billing"
+      "billing": "Billing",
+      "sms": "SMS customers"
     },
     "overview": {
       "organizers": "Customers",
@@ -1382,7 +1389,10 @@
       "markPaid": "Mark as paid",
       "markFree": "Set back to free",
       "planChanged": "Plan for {name} changed",
-      "billingNote": "Pricing (per wedding or per card) is still undecided — for now the default is marking weddings as paid by hand."
+      "billingNote": "Pricing (per wedding or per card) is still undecided — for now the default is marking weddings as paid by hand.",
+      "product": "Service",
+      "productCards": "Cards",
+      "productSms": "SMS only"
     },
     "usage": {
       "title": "Usage and costs (30 days)",
@@ -1884,6 +1894,33 @@
       "testOk": "Firebase answered: project {project}, and every web address is authorized.",
       "testFailed": "The test failed: {error}",
       "domains": "Authorized domains: {domains}"
+    },
+    "sms": {
+      "title": "SMS reminder customers",
+      "subtitle": "Customers who chose the SMS-only package. Package prices are under Pricing.",
+      "customers": "Customers",
+      "sent30": "SMS (30 days)",
+      "remaining": "SMS left across all",
+      "low": "Running low",
+      "search": "Search name or customer",
+      "empty": "No SMS customer yet.",
+      "colCustomer": "Customer",
+      "colContacts": "Contacts",
+      "colSent": "SMS sent",
+      "colCredits": "Left / total",
+      "colLast": "Last sent",
+      "never": "Not yet",
+      "scheduled": "{count} waiting",
+      "grant": "Add SMS",
+      "grantTitle": "Add SMS for {name}",
+      "grantAmount": "Number of SMS",
+      "grantNote": "Reason (e.g. bank reference)",
+      "grantSave": "Add",
+      "granted": "{count} SMS added",
+      "lowBadge": "Low",
+      "filterAll": "All",
+      "filterLow": "Running low",
+      "filterActive": "Active (30 days)"
     }
   },
   "mobile": {
@@ -2367,6 +2404,171 @@
         "title": "A gate with no network",
         "body": "Your phone becomes the gate and scans even when the network drops."
       }
+    }
+  },
+  "sms": {
+    "chooser": {
+      "title": "What do you need?",
+      "cards": "Invitation cards",
+      "cardsBody": "QR cards, guest replies, contributions and gate check-in.",
+      "sms": "SMS reminders only",
+      "smsBody": "Write your own message and send it to all your people by SMS. No cards.",
+      "current": "Selected"
+    },
+    "new": {
+      "title": "Start SMS reminders",
+      "subtitle": "Buy SMS in bulk, write your message and send it now or later.",
+      "name": "Name of the occasion",
+      "nameHint": "For example: Asha's wedding committee, Parents' meeting",
+      "sender": "Messages are from",
+      "senderHint": "Your name or the committee's. You and our staff see it.",
+      "date": "Date of the occasion",
+      "language": "Language of screens and messages",
+      "create": "Start",
+      "creating": "Starting…",
+      "free": "You start with {count} free SMS to try it out.",
+      "back": "I want invitation cards"
+    },
+    "overview": {
+      "credits": "SMS left",
+      "unlimited": "No limit",
+      "creditsSub": "{used} used",
+      "contacts": "Contacts",
+      "sent30": "SMS sent",
+      "scheduled": "Waiting",
+      "nextTitle": "Next message",
+      "nextNone": "No message is scheduled.",
+      "recent": "Recent messages",
+      "seeAll": "See all",
+      "noContacts": "You have no contacts yet. Add people first.",
+      "addContacts": "Add contacts",
+      "compose": "Write a message",
+      "buy": "Buy SMS",
+      "lowCredits": "Your SMS are running low ({count} left).",
+      "eventOn": "Occasion: {date}"
+    },
+    "contacts": {
+      "title": "Contacts",
+      "subtitle": "{count, plural, one {# person} other {# people}} · {withPhone} with a number",
+      "search": "Search name, number or group",
+      "add": "Add one",
+      "paste": "Paste a list",
+      "name": "Name",
+      "phone": "Phone number",
+      "group": "Group",
+      "groupHint": "Optional. For example: Committee, Family. You can send to one group.",
+      "save": "Save",
+      "saved": "{name} added",
+      "noPhone": "No number",
+      "empty": "No contacts yet · Paste a list of names and numbers",
+      "noMatch": "Nobody matches the search.",
+      "delete": "Remove",
+      "deleteTitle": "Remove {count, plural, one {# contact} other {# contacts}}?",
+      "deleteConsequence": "They will not get messages sent from now on.",
+      "deleted": "{count, plural, one {# contact removed} other {# contacts removed}}",
+      "undo": "Undo",
+      "select": "Select {name}",
+      "selected": "{count} selected",
+      "sendToSelected": "Send to selected",
+      "pasteTitle": "Paste a list",
+      "pasteHint": "One person per line: name and number. For example: Juma Ali 0712 345 678",
+      "pasteLabel": "List",
+      "pasteGroup": "Group for this list",
+      "pasteSummary": "{ok} ready · {noPhone} without a number · {invalid} with errors · {duplicate} repeated",
+      "pasteSave": "Add {count}",
+      "pasteDone": "{count, plural, one {# person added} other {# people added}}",
+      "pasteNothing": "No valid line to add."
+    },
+    "compose": {
+      "title": "Write a message",
+      "subtitle": "Your message goes as an SMS to every contact with a number.",
+      "message": "Message",
+      "placeholder": "For example: Hello! The wedding committee meets on Saturday at 4 pm, Mwanga hall. Welcome.",
+      "counter": "{chars} characters · {parts, plural, one {# SMS} other {# SMS}} per person",
+      "unicode": "Special characters (like emoji) make one SMS carry only 70 characters.",
+      "tooLong": "The message is too long: at most {max} SMS per person.",
+      "to": "Send to",
+      "toAll": "Everyone",
+      "toGroup": "A group",
+      "toPicked": "Selected ({count})",
+      "pickGroup": "Choose a group",
+      "noGroups": "No groups yet. Give contacts a group.",
+      "when": "When",
+      "now": "Right now",
+      "later": "Later",
+      "at": "Date and time",
+      "preview": "Summary",
+      "recipients": "{count, plural, one {# contact} other {# contacts}}",
+      "withoutPhone": "{count} have no number and will not get it",
+      "credits": "SMS it will use: {count}",
+      "remaining": "Left: {count}",
+      "short": "Not enough SMS. You need {needed} and have {remaining}.",
+      "buy": "Buy SMS",
+      "send": "Send now",
+      "schedule": "Schedule",
+      "sending": "Sending…",
+      "sent": "Sent to {sent}{failed, plural, =0 {} other { · # failed}}",
+      "scheduled": "Scheduled for {when}",
+      "confirmTitle": "Send to {count, plural, one {# person} other {# people}}?",
+      "confirmBody": "It will use {credits} SMS. A sent message cannot be taken back.",
+      "phonePreview": "This is how it will look",
+      "senderLine": "From: {sender}"
+    },
+    "history": {
+      "title": "Message history",
+      "empty": "No messages sent yet · Write your first message",
+      "status": {
+        "scheduled": "Scheduled",
+        "running": "Sending",
+        "done": "Sent",
+        "cancelled": "Cancelled"
+      },
+      "toAll": "To everyone",
+      "toGroup": "Group: {group}",
+      "toPicked": "{count} selected people",
+      "counts": "{sent} handed to the network · {failed} failed · {skipped} not sent",
+      "credits": "{count} SMS",
+      "at": "Goes out {when}",
+      "sentAt": "Sent {when}",
+      "cancel": "Cancel",
+      "cancelTitle": "Cancel this message?",
+      "cancelBody": "It will not be sent. No SMS will be used.",
+      "cancelled": "Message cancelled",
+      "error": {
+        "missed": "Its time passed before it could go out",
+        "quota_exceeded": "SMS ran out part way",
+        "no provider configured": "The SMS service is not set up",
+        "sending paused": "Sending is paused for now",
+        "other": "Not sent: {error}"
+      },
+      "reuse": "Use again"
+    },
+    "credits": {
+      "title": "SMS packages",
+      "subtitle": "One SMS is 160 characters. A longer message uses more SMS per person.",
+      "left": "SMS left",
+      "pack": "{count} SMS",
+      "each": "{price} per SMS"
+    },
+    "settings": {
+      "title": "Settings",
+      "save": "Save",
+      "saved": "Saved",
+      "product": "Service",
+      "productValue": "SMS reminders only",
+      "productHint": "If you need invitation cards, start a new card event.",
+      "delete": "Delete this SMS account",
+      "deleteTitle": "Delete {name}?",
+      "deleteConsequence": "Contacts and scheduled messages are removed. Remaining SMS are not refunded.",
+      "deleted": "Deleted"
+    },
+    "errors": {
+      "body": {
+        "required": "Write the message",
+        "tooLong": "The message is too long"
+      },
+      "no_recipients": "None of the chosen contacts has a phone number.",
+      "scheduleAt": "Pick a time at least a minute from now."
     }
   }
 }

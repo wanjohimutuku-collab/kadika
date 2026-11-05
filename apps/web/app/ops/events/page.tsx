@@ -156,6 +156,7 @@ export default function OpsEventsPage() {
                 <Th>{t('col.date')}</Th>
                 <Th>{t('col.status')}</Th>
                 <Th>{t('col.plan')}</Th>
+                <Th>{t('product')}</Th>
                 <Th right>{t('col.guests')}</Th>
                 <Th right>{t('col.sent')}</Th>
                 <Th right>{t('col.failed')}</Th>
@@ -187,6 +188,12 @@ export default function OpsEventsPage() {
                 <Td>
                   <StatusPill tone={e.plan === 'paid' ? 'primary' : 'neutral'}>
                     {t(`plan.${e.plan}`)}
+                  </StatusPill>
+                </Td>
+                <Td>
+                  {/* ADR 055: SMS-reminder-only customers are managed under Wateja wa SMS too */}
+                  <StatusPill tone={e.product === 'sms' ? 'info' : 'neutral'}>
+                    {e.product === 'sms' ? t('productSms') : t('productCards')}
                   </StatusPill>
                 </Td>
                 <Td right>{e.guests}</Td>

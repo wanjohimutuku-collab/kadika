@@ -37,6 +37,8 @@ const CONSOLE_NAMESPACES = [
   'settings',
   'account',
   'devStates',
+  // SMS-reminders-only console (ADR 055)
+  'sms',
 ] as const;
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };

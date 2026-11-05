@@ -51,6 +51,8 @@ import { MANUAL_METHODS, MOBILE_METHODS, PledgeService } from './services/pledge
 import { clientIp, RateLimiter } from './rate-limit';
 import { ReportService } from './services/reports';
 import { BillingService } from './services/billing';
+import { SmsCampaignService } from './services/sms-campaigns';
+import { smsTargetSchema } from '@harusi/schemas/sms';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
@@ -104,6 +106,8 @@ const eventBase = z.object({
   memoriesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
   cardContent: cardContentSchema.optional(),
+  /** ADR 055: `sms` = SMS reminders only. Set on create; the PATCH schema drops it. */
+  product: z.enum(['cards', 'sms']).optional(),
 });
 /** Who a send goes to (ADR 030); whether the audience fits the kind is checked by the service. */
 const sendTargetSchema = z.union([
@@ -209,6 +213,7 @@ export function createApp(deps: Deps) {
   const cardsSvc = new CardService(deps);
   const deliverySvc = new DeliveryService(deps, eventsSvc);
   const scheduledSvc = new ScheduledSendService(deps, eventsSvc, deliverySvc);
+  const smsSvc = new SmsCampaignService(deps, eventsSvc);
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
@@ -438,6 +443,7 @@ export function createApp(deps: Deps) {
   app.post('/v1/guests/:id/reissue', once);
   app.post('/v1/events/:id/invitations/send', once);
   app.post('/v1/events/:id/scheduled-sends', once);
+  app.post('/v1/events/:id/sms/campaigns', once);
   app.post('/v1/payments/manual', once);
 
   app.get('/v1/me', async (c) => {
@@ -607,7 +613,7 @@ export function createApp(deps: Deps) {
   app.patch('/v1/events/:id', async (c) => {
     const patch = parse(
       eventBase
-        .omit({ country: true })
+        .omit({ country: true, product: true })
         .partial()
         .extend({ status: z.enum(['draft', 'active', 'completed', 'archived']).optional() }),
       await body(c),
@@ -914,6 +920,45 @@ export function createApp(deps: Deps) {
   app.delete('/v1/events/:id/scheduled-sends/:sid', async (c) =>
     c.json(await scheduledSvc.cancel(c.req.param('id'), c.req.param('sid'), c.get('userId'))),
   );
+  // ---- SMS reminders only (ADR 055): the customer's own text to their contacts, now or later
+  const smsBody = z.string().max(1000);
+  app.post('/v1/events/:id/sms/preview', async (c) => {
+    const input = parse(
+      z.object({ body: smsBody.optional().default(''), target: smsTargetSchema }),
+      await body(c),
+    );
+    return c.json(await smsSvc.preview(c.req.param('id'), c.get('userId'), input));
+  });
+  app.post('/v1/events/:id/sms/campaigns', async (c) => {
+    const input = parse(
+      z.object({
+        body: smsBody,
+        target: smsTargetSchema,
+        scheduleAt: z.string().datetime({ offset: true }).optional(),
+      }),
+      await body(c),
+    );
+    return c.json(
+      await smsSvc.create(c.req.param('id'), c.get('userId'), {
+        body: input.body,
+        target: input.target,
+        scheduleAt: input.scheduleAt ? new Date(input.scheduleAt) : undefined,
+      }),
+      201,
+    );
+  });
+  app.get('/v1/events/:id/sms/campaigns', async (c) =>
+    c.json({ items: await smsSvc.list(c.req.param('id'), c.get('userId')) }),
+  );
+  app.delete('/v1/events/:id/sms/campaigns/:cid', async (c) =>
+    c.json(
+      await smsSvc.cancel(
+        c.req.param('id'),
+        parse(z.string().uuid(), c.req.param('cid')),
+        c.get('userId'),
+      ),
+    ),
+  );
   app.post('/v1/events/:id/cards/pdf', async (c) => {
     const input = parse(
       z.object({
@@ -1098,6 +1143,7 @@ export function createApp(deps: Deps) {
     return c.json(await opsSvc.setEventPlan(staff(c), idParam(c), plan));
   });
   app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(staff(c))));
+  app.get('/v1/ops/sms-customers', async (c) => c.json(await smsSvc.opsCustomers(staff(c))));
   app.get('/v1/ops/pricing', async (c) => c.json(await billingSvc.opsCatalog(staff(c))));
   app.put('/v1/ops/pricing', async (c) =>
     c.json(await billingSvc.saveCatalog(staff(c), await body(c))),

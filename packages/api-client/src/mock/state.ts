@@ -1,3 +1,4 @@
+import type { SmsCampaignView } from '@harusi/schemas/sms';
 import type { PricingCatalog, PurchaseView } from '@harusi/schemas/billing';
 import type { BrandingInput } from '@harusi/schemas/branding';
 import {
@@ -165,6 +166,8 @@ export interface MockState {
   memories?: Record<string, Memory[]>;
   /** Staff-changed photo limits per event; 30 otherwise. */
   memoriesLimit?: Record<string, number>;
+  /** Texts SMS-only customers sent or scheduled (ADR 055). */
+  smsCampaigns?: SmsCampaignView[];
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */

@@ -21,7 +21,8 @@
     "./signin-settings": "./src/signin-settings.ts",
     "./branding": "./src/branding.ts",
     "./checkout": "./src/checkout.ts",
-    "./billing": "./src/billing.ts"
+    "./billing": "./src/billing.ts",
+    "./sms": "./src/sms.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

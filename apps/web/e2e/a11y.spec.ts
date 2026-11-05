@@ -37,6 +37,10 @@ const ROUTES = [
   '/ops/messaging',
 ];
 
+// The public site fades sections in as they scroll into view; axe should judge the settled page, so the
+// check runs with reduced motion, which turns those animations off (globals.css).
+test.use({ reducedMotion: 'reduce' });
+
 for (const locale of ['sw', 'en'] as const) {
   test.describe(`axe (${locale})`, () => {
     test.describe.configure({ mode: 'serial' });

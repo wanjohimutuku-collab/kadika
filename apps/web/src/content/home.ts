@@ -2,6 +2,7 @@ import { sortedTiers, type PricingCatalog } from '@harusi/schemas/billing';
 import type { Currency } from '@harusi/schemas/country';
 import { formatMoney, formatNumber } from '@/lib/format';
 import type { SiteEdition } from '@/lib/site-nav';
+import type { AppMockupLabels } from '@/components/site/mockups';
 
 /**
  * Home page copy for the three editions (kit content-tz.md and content-ke.md § Home), written to the
@@ -48,6 +49,27 @@ export interface HomeCopy {
   eventsTitle: string;
   /** Kenya only: where the service stands. */
   status?: { h2: string; body: string; cta: string };
+  /** Small tags shown over the section headings. */
+  eyebrows: {
+    hero: string;
+    steps: string;
+    features: string;
+    app: string;
+    events: string;
+    faq: string;
+    cta: string;
+  };
+  /** One reassurance line under the hero buttons. */
+  heroNote: string;
+  /** The organizer and gate app (Android). */
+  app: {
+    h2: string;
+    body: string;
+    items: string[];
+    cta: string;
+    secondary: string;
+    mock: AppMockupLabels;
+  };
   faqTitle: string;
   faq: { q: string; a: string }[];
   ctaBand: { text: string; primary: string; secondary: string };
@@ -79,7 +101,7 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
     ? `Kila tukio linaanza na kadi ${p.free} bure. Baada ya hapo ni ${p.from} kwa kadi, na bei inashuka hadi ${p.lowest} ukinunua kadi ${p.lowestMin} au zaidi. SMS za ziada zina vifurushi vyake.`
     : `Wakati wa majaribio huduma ni bure. Malipo yakianza, kadi itakuwa ${p.from}, na bei inashuka hadi ${p.lowest} ukinunua kadi ${p.lowestMin} au zaidi. Tutatangaza kabla.`;
   return {
-    title: 'Kadi za Harusi za Kidigitali, Michango na Lango la QR | Kadi Sasa',
+    title: 'Kadi za Harusi za Kidigitali na Michango | Kadi Sasa',
     description:
       'Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi. Kamati inaona nani amejibu, nani amechangia na nani ameingia, hata mtandao ukikatika.',
     hero: {
@@ -168,6 +190,46 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       cta: 'Fungua kadi kwa namba yake',
     },
     eventsTitle: 'Kwa kila sherehe',
+    eyebrows: {
+      hero: 'Kadi za mwaliko za kidijitali · Tanzania',
+      steps: 'Hatua nne',
+      features: 'Kwa kila mgeni',
+      app: 'Programu ya Android',
+      events: 'Sherehe',
+      faq: 'Maswali',
+      cta: 'Kikao kijacho',
+    },
+    heroNote: p.charging
+      ? `Kila tukio linaanza na kadi ${p.free} bure. Huhitaji kadi ya benki.`
+      : 'Bure wakati wa majaribio. Huhitaji kadi ya benki kuanza.',
+    app: {
+      h2: 'Kamati nzima kwenye simu moja',
+      body: 'Programu ya Android ni ya wenye sherehe, kamati na walinzi wa lango. Mnaongeza wageni, mnatuma kadi, mnarekodi michango na mnaskani mlangoni kwa simu ile ile.',
+      items: [
+        'Inafanya kazi kwenye Android 8 na kuendelea, hata simu za bei nafuu.',
+        'Lango linapakua orodha mara moja, kisha linaskani bila mtandao.',
+        'Mlinzi wa lango anaingia kwa kiungo na PIN. Hahitaji akaunti.',
+      ],
+      cta: 'Pakua programu',
+      secondary: 'Tumia kwenye kivinjari',
+      mock: {
+        event: 'Asha & Juma',
+        date: '14 Des 2026 · Kibaha',
+        kpis: [
+          { label: 'Waalikwa', value: '320' },
+          { label: 'Wamethibitisha', value: '214' },
+          { label: 'Wamefika', value: '0' },
+        ],
+        funnel: 'Imetumwa · Imefunguliwa · Imethibitishwa',
+        michango: 'Michango',
+        michangoValue: 'TZS 8.4M / 12M',
+        tabs: ['Muhtasari', 'Wageni', 'Tuma', 'Lango', 'Michango'],
+        gateTitle: 'Karibu ndani',
+        gateName: 'Mwanaidi Salim',
+        gateParty: 'Watu: 2 · Familia',
+        offline: 'Nje ya mtandao',
+      },
+    },
     faqTitle: 'Maswali tunayoulizwa',
     faq: [
       { q: 'Bei ni kiasi gani?', a: priceAnswer },
@@ -201,7 +263,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
     ? `Every event starts with ${p.free} free cards. After that it is ${p.from} a card, dropping to ${p.lowest} when you buy ${p.lowestMin} or more. Extra SMS reminders come in packs.`
     : `It is free during the pilot. When charging starts, a card will cost ${p.from}, dropping to ${p.lowest} when you buy ${p.lowestMin} or more. We will announce it first.`;
   return {
-    title: 'Digital Wedding Cards, Michango and QR Gate Check-in | Kadi Sasa',
+    title: 'Digital Wedding Cards and QR Check-in | Kadi Sasa',
     description:
       'Every guest gets their own card by WhatsApp, SMS or paper. The committee sees who replied, who contributed and who came in, even when the network drops.',
     hero: {
@@ -287,6 +349,46 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       cta: 'Open a card by its number',
     },
     eventsTitle: 'For every celebration',
+    eyebrows: {
+      hero: 'Digital invitation cards · Tanzania',
+      steps: 'Four steps',
+      features: 'For every guest',
+      app: 'Android app',
+      events: 'Celebrations',
+      faq: 'Questions',
+      cta: 'Next committee meeting',
+    },
+    heroNote: p.charging
+      ? `Every event starts with ${p.free} free cards. No bank card needed.`
+      : 'Free during the pilot. No bank card needed to start.',
+    app: {
+      h2: 'The whole committee on one phone',
+      body: 'The Android app is for the hosts, the committee and the gate team. Add guests, send cards, record contributions and scan at the door, all from the same phone.',
+      items: [
+        'Runs on Android 8 and newer, including low-cost phones.',
+        'The gate downloads the guest list once, then scans with no network.',
+        'Gate staff join with a link and a PIN. No account needed.',
+      ],
+      cta: 'Get the app',
+      secondary: 'Use it in the browser',
+      mock: {
+        event: 'Asha & Juma',
+        date: '14 Dec 2026 · Kibaha',
+        kpis: [
+          { label: 'Invited', value: '320' },
+          { label: 'Confirmed', value: '214' },
+          { label: 'Arrived', value: '0' },
+        ],
+        funnel: 'Sent · Opened · Confirmed',
+        michango: 'Contributions',
+        michangoValue: 'TZS 8.4M / 12M',
+        tabs: ['Overview', 'Guests', 'Send', 'Gate', 'Pledges'],
+        gateTitle: 'Welcome in',
+        gateName: 'Mwanaidi Salim',
+        gateParty: 'Party: 2 · Family',
+        offline: 'Offline',
+      },
+    },
     faqTitle: 'Questions we get asked',
     faq: [
       { q: 'How much does it cost?', a: priceAnswer },
@@ -317,7 +419,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
 
 function ke(p: PriceFacts, domain: string): HomeCopy {
   return {
-    title: 'Digital Wedding Invitations, Harambee & QR Check-in in Kenya | Kadi Sasa',
+    title: 'Digital Wedding Invitations in Kenya | Kadi Sasa',
     description:
       'Send every guest their own card on WhatsApp or SMS, track harambee pledges on M-Pesa, and check guests in at the gate, even with no network.',
     hero: {
@@ -412,6 +514,44 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       h2: 'Where Kenya stands',
       body: 'Kenya support is built and being tested: +254 numbers, KES, M-Pesa pledges, SMS and WhatsApp cards. It opens once live SMS and WhatsApp approvals, a payment provider and a Kenyan legal review are in place. Tell us if your committee wants to be in the first pilot.',
       cta: 'Join the Kenya pilot',
+    },
+    eyebrows: {
+      hero: 'Digital invitation cards · Kenya',
+      steps: 'Four steps',
+      features: 'For every guest',
+      app: 'Android app',
+      events: 'Celebrations',
+      faq: 'Questions',
+      cta: 'Next committee meeting',
+    },
+    heroNote: 'Kenya is in pilot. Tell us about your event and we will set you up.',
+    app: {
+      h2: 'The whole committee on one phone',
+      body: 'The Android app is for the hosts, the committee and the gate team. Add guests, send cards, record contributions and scan at the door, all from the same phone.',
+      items: [
+        'Runs on Android 8 and newer, including low-cost phones.',
+        'The gate downloads the guest list once, then scans with no network.',
+        'Gate staff join with a link and a PIN. No account needed.',
+      ],
+      cta: 'Get the app',
+      secondary: 'Join the Kenya pilot',
+      mock: {
+        event: 'Wanjiku & Otieno',
+        date: '6 Dec 2026 · Limuru',
+        kpis: [
+          { label: 'Invited', value: '320' },
+          { label: 'Confirmed', value: '214' },
+          { label: 'Arrived', value: '0' },
+        ],
+        funnel: 'Sent · Opened · Confirmed',
+        michango: 'Harambee',
+        michangoValue: 'KES 640K / 900K',
+        tabs: ['Overview', 'Guests', 'Send', 'Gate', 'Pledges'],
+        gateTitle: 'Welcome in',
+        gateName: 'Mama Akinyi',
+        gateParty: 'Party: 2 · Family',
+        offline: 'Offline',
+      },
     },
     faqTitle: 'Questions committees ask',
     faq: [

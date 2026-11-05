@@ -18,7 +18,7 @@ A guest gets one card that works on a smartphone, on a feature phone (SMS with a
 
 Sending goes by WhatsApp or SMS with automatic fallback, and a guest can hold either an **invitation card** (RSVP, QR, gate entry) or a **contribution card** (contribution only). Kenya support is built but switched off behind `KENYA_ENABLED`.
 
-The full product and build specification is in [CLAUDE.md](CLAUDE.md), and the reasoning behind each decision is in [docs/adr](docs/adr).
+The full product and build specification is in [docs/spec](docs/spec/README.md), and the reasoning behind each decision is in [docs/adr](docs/adr).
 
 ## Repository layout
 
@@ -122,7 +122,8 @@ Never commit `.env`. It is already git-ignored.
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md): product and build specification
+- [docs/spec](docs/spec/README.md): product and build specification
+- [CLAUDE.md](CLAUDE.md): short agent instructions and pointers into the spec
 - [docs/TODO.md](docs/TODO.md): current status and what is left
 - [docs/adr](docs/adr): architecture decision records
 - [docs/ops](docs/ops): Kenya pilot runbook and WhatsApp template notes

@@ -38,7 +38,7 @@ Each guest gets their own signed card that works through every channel: a WhatsA
 
 ## Capabilities and Constraints
 
-- The full spec is in `CLAUDE.md`, decisions are in `docs/adr/`, and the UI plan and handoff are in `docs/ui/PLAN.md` and `docs/ui/HANDOFF.md`.
+- The full spec is in `docs/spec/`, decisions are in `docs/adr/`, and the UI plan and handoff are in `docs/ui/PLAN.md` and `docs/ui/HANDOFF.md`.
 - **Language:** English is the default and Swahili is a full equal, one tap away on every surface. Every string lives in `packages/i18n`, with Kenyan overlays. Swahili copy needs review by a native speaker.
 - **Country:** the event carries the country (TZ/KE), and with it the currency (TZS/KES) and time zone. Money is in whole units. Kenya stays behind `*_KENYA_ENABLED` flags.
 - **Performance:** the guest card loads under 100 KB initially and its JS stays under 120 KB gz. It works on 3G, LCP is under 2.5 s on Slow 4G, and it shows offline after the first open. The mobile app targets Android 8+ on 2 GB RAM devices.

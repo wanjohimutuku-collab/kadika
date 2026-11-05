@@ -10,7 +10,7 @@ You are a senior product designer + frontend engineer. Build the **complete MVP 
 
 ## SOURCE OF TRUTH
 
-Read `CLAUDE.md` completely before doing anything, especially §1 (problems P1–P11), §2 (roles), §5 (data model), §6 (QR/code rules), §7 (flows), §10 (performance/localisation) and **§17 (UI/UX specification: tokens, navigation, wireframes, states, microcopy, accessibility, acceptance criteria)**. If this prompt and `CLAUDE.md` conflict, `CLAUDE.md` wins; record the conflict in `docs/adr/`. Do not change the stack in §3. Do not build the Expo mobile app or the backend in this task.
+Read `CLAUDE.md` and then all of `docs/spec/` before doing anything, especially §1 (problems P1–P11), §2 (roles), §5 (data model), §6 (QR/code rules), §7 (flows), §10 (performance/localisation) and **§17 (UI/UX specification: tokens, navigation, wireframes, states, microcopy, accessibility, acceptance criteria)**. If this prompt and `CLAUDE.md` conflict, `CLAUDE.md` wins; record the conflict in `docs/adr/`. Do not change the stack in §3. Do not build the Expo mobile app or the backend in this task.
 
 ## SCOPE (what "complete MVP web app" means)
 
@@ -105,7 +105,7 @@ Use warm, respectful Swahili (formal for elders), plain words, no slang, no emoj
    - M6 Gate monitor + manual check-in, team, reports, settings, account, landing/legal pages.
    - M7 Polish: a11y pass, performance pass, Swahili copy pass, state coverage via `/dev/states`, e2e + Lighthouse green.
 3. After each milestone, run the app, exercise it in a real browser at 360×640 and 1280×800, fix visual or UX defects, and update `docs/ui/PLAN.md` with status. Do not mark a milestone done until its acceptance checks pass.
-4. Keep `CLAUDE.md` accurate: if you add routes/components/decisions, update §17 and add an ADR.
+4. Keep `docs/spec/` accurate: if you add routes/components/decisions, update §17 and add an ADR.
 
 ## DEFINITION OF DONE
 
@@ -117,4 +117,4 @@ Use warm, respectful Swahili (formal for elders), plain words, no slang, no emoj
 - Tests, lint, typecheck, build, Storybook build and Lighthouse CI pass.
 - `docs/ui/PLAN.md`, ADRs, screenshots and a short `docs/ui/HANDOFF.md` (how to swap `MockRepository` for the real API, known gaps, Swahili review checklist) are committed.
 
-Start now with step 1 (the plan). Do not ask questions; where something is ambiguous, choose the option most consistent with `CLAUDE.md`, proceed, and record the decision in `docs/adr/`.
+Start now with step 1 (the plan). Do not ask questions; where something is ambiguous, choose the option most consistent with `docs/spec/`, proceed, and record the decision in `docs/adr/`.

@@ -1,6 +1,6 @@
 # Build specification
 
-The full spec, split by section so agents read only what a task needs. Section numbers are unchanged: `CLAUDE.md §N` in ADRs, code comments and docs means section N here. Files are verbatim, and "this file" in `00-preamble.md` means this spec. The spec remains the source of truth, with decisions in `docs/adr/`.
+The full spec, split by section so agents read only what a task needs. Section numbers are unchanged: `CLAUDE.md §N` in ADRs, code comments and docs means section N here. Files are verbatim, and "this file" in `00-preamble.md` means this spec (the `CLAUDE.md` line in the `04-monorepo.md` tree dates from before the split). The spec remains the source of truth, with decisions in `docs/adr/`.
 
 | § | File | Read for |
 |---|---|---|

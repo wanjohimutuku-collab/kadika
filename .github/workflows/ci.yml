@@ -74,13 +74,13 @@ jobs:
                 continue ;;
             esac
             code=true
-            # What the web app is built from: Storybook and the browser checks only need these.
+            # Packages the web app is not built from (see apps/web/package.json) cannot change Storybook or
+            # the browser checks. Anything else, including a file nobody listed here, runs them.
             case "$f" in
-              apps/web/* | packages/api-client/* | packages/schemas/* | packages/ui-tokens/* | packages/i18n/* | \
-              package.json | pnpm-lock.yaml | pnpm-workspace.yaml | .npmrc | .nvmrc | turbo.json | \
-              tsconfig.base.json | eslint.config.mjs | .prettierrc | .prettierignore | \
-              .github/workflows/ci.yml | .github/actions/*)
-                web=true ;;
+              apps/api/* | apps/mobile/* | packages/crypto/* | packages/db/* | packages/gate/* | \
+              packages/messaging/* | packages/payments/*)
+                ;;
+              *) web=true ;;
             esac
           done <<< "$files"
           out tested=false; out code=$code; out web=$web

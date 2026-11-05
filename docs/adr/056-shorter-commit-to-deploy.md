@@ -4,7 +4,7 @@ Date: 2026-11-05 · Status: accepted
 
 ## Context
 
-Measured on the releases v0.7.9 to v0.7.12: a green merge took 14 to 15 minutes to go live, and 38 to 59 minutes
+Measured on the releases v0.7.7 to v0.7.12: a green merge took 14 to 17 minutes to go live, and 38 to 59 minutes
 when Lighthouse flaked and someone had to press re-run. The time went to `web-e2e` (8 to 9.5 minutes, run once on
 the PR and again on main), then the image build (3 to 6 minutes) and the Coolify deploy (2 minutes). 18 of the last
 21 PR merges produced a commit with exactly the files of the PR head, so the second CI run proved nothing new.

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, Send, Smartphone } from 'lucide-react';
+import { CalendarClock, Send, Smartphone, X } from 'lucide-react';
 import { isRepositoryError } from '@harusi/api-client';
 import { SMS_MAX_SEGMENTS, smsSegments, type SmsTarget } from '@harusi/schemas/sms';
 import type { Locale } from '@harusi/i18n';
@@ -63,6 +63,10 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
     const h = setTimeout(() => saveDraft(id, body), 300);
     return () => clearTimeout(h);
   }, [id, body]);
+  // The "picked" chip only shows while there are picks; keep `to` consistent if the list empties.
+  useEffect(() => {
+    if (to === 'picked' && picked.length === 0) setTo('all');
+  }, [to, picked.length]);
 
   const groups = useQuery({
     queryKey: qk.groups(id),
@@ -141,11 +145,19 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
   });
 
   const sender = event.data?.senderName || event.data?.title || '';
-  const minLocal = useMemo(() => {
-    const d = new Date(Date.now() + 5 * 60_000);
+  // Recomputed when the datetime picker opens, so the floor never drifts into the past while the page sits.
+  const { minLocal, maxLocal } = useMemo(() => {
     const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }, []);
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const now = Date.now();
+    return {
+      minLocal: fmt(new Date(now + 5 * 60_000)),
+      // Server refuses anything more than a year ahead; mirror that in the picker.
+      maxLocal: fmt(new Date(now + 365 * 24 * 3_600_000)),
+    };
+    // `when` as a dep so the floor refreshes every time the user switches to "later".
+  }, [when]);
 
   return (
     <>
@@ -185,6 +197,24 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
                   : []),
               ]}
             />
+            {to === 'picked' && picked.length > 0 ? (
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-card border border-border bg-bg px-3 py-2">
+                <span className="text-sm">{t('pickedSummary', { count: picked.length })}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<X className="size-4" aria-hidden="true" />}
+                  onClick={() => {
+                    setPicked([]);
+                    savePicked(id, []);
+                    setTo('all');
+                  }}
+                  data-testid="sms-clear-picked"
+                >
+                  {t('clearPicked')}
+                </Button>
+              </div>
+            ) : null}
             {to === 'group' ? (
               <div className="mt-3">
                 {groups.data?.length ? (
@@ -217,6 +247,7 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
                 label={t('at')}
                 type="datetime-local"
                 min={minLocal}
+                max={maxLocal}
                 value={at}
                 onChange={(e) => setAt(e.target.value)}
                 error={at && !timeOk ? te('scheduleAt') : undefined}

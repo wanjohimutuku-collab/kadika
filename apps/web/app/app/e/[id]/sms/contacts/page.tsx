@@ -147,22 +147,49 @@ export default function SmsContactsPage({ params }: { params: Promise<{ id: stri
             {shown.length === 0 ? (
               <p className="py-6 text-center text-muted">{t('noMatch')}</p>
             ) : (
-              <ul
-                className="flex flex-col divide-y divide-border rounded-card border border-border bg-surface"
-                data-testid="sms-contacts"
-              >
-                {shown.map((g) => (
-                  <ContactRow
-                    key={g.id}
-                    g={g}
-                    home={country}
-                    checked={picked.has(g.id)}
-                    onToggle={() => toggle(g.id)}
-                    label={t('select', { name: g.displayName })}
-                    noPhone={t('noPhone')}
-                  />
-                ))}
-              </ul>
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="text-muted">{t('showing', { count: shown.length })}</span>
+                  {(() => {
+                    const shownIds = shown.map((g) => g.id);
+                    const allShownPicked =
+                      shownIds.length > 0 && shownIds.every((id) => picked.has(id));
+                    return (
+                      <button
+                        type="button"
+                        className="min-h-9 rounded-full px-3 font-semibold text-primary hover:bg-primary/5"
+                        onClick={() => {
+                          setPicked((s) => {
+                            const n = new Set(s);
+                            if (allShownPicked) shownIds.forEach((id) => n.delete(id));
+                            else shownIds.forEach((id) => n.add(id));
+                            return n;
+                          });
+                        }}
+                        data-testid="sms-select-all"
+                      >
+                        {allShownPicked ? t('selectNone') : t('selectAll')}
+                      </button>
+                    );
+                  })()}
+                </div>
+                <ul
+                  className="flex flex-col divide-y divide-border rounded-card border border-border bg-surface"
+                  data-testid="sms-contacts"
+                >
+                  {shown.map((g) => (
+                    <ContactRow
+                      key={g.id}
+                      g={g}
+                      home={country}
+                      checked={picked.has(g.id)}
+                      onToggle={() => toggle(g.id)}
+                      label={t('select', { name: g.displayName })}
+                      noPhone={t('noPhone')}
+                    />
+                  ))}
+                </ul>
+              </>
             )}
           </div>
         )}

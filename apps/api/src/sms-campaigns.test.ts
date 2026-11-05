@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { smsCampaigns } from '@harusi/db';
+import { guests, smsCampaigns } from '@harusi/db';
 import { DEFAULT_PRICING, type PricingCatalog } from '@harusi/schemas/billing';
 import { SmsCampaignService } from './services/sms-campaigns';
 import { EventService } from './services/events';
@@ -182,6 +182,30 @@ describe('SMS reminders only (ADR 055)', () => {
     expect(ctx.sms.sent.slice(before).map((m) => m.body)).toEqual(['Kesho ni kikao']);
     const [row] = await ctx.db.select().from(smsCampaigns).where(eq(smsCampaigns.id, later.id));
     expect(row).toMatchObject({ status: 'done', sentCount: 1 });
+  });
+
+  it('refuses a schedule more than a year ahead', async () => {
+    const s = await setup();
+    await s.add(1);
+    const tooFar = new Date(ctx.clock.now + 400 * 24 * 3_600_000).toISOString();
+    const r = await s.send({ body: 'Mbali mno', target: 'all', scheduleAt: tooFar });
+    expect(r.status).toBe(400);
+    expect(r.body!.error.details.field).toBe('scheduleAt');
+  });
+
+  it('skips contacts who opted out of reminders and refunds unused parts', async () => {
+    const s = await setup();
+    const keeps = (await s.add(1)).body!;
+    const opts = (await s.add(2)).body!;
+    await ctx.db.update(guests).set({ remindersOptOut: true }).where(eq(guests.id, opts.id));
+    const preview = await api(ctx, 'POST', `/v1/events/${s.evId}/sms/preview`, {
+      token: s.t,
+      body: { body: 'Habari', target: 'all' },
+    });
+    expect(preview.body).toMatchObject({ recipients: 1, withoutPhone: 1 });
+    const r = await s.send({ body: 'Habari', target: 'all' });
+    expect(r.body).toMatchObject({ sent: 1, failed: 0, skipped: 1, credits: 1 });
+    expect(ctx.sms.sent.at(-1)!.to).toBe(keeps.phoneE164);
   });
 
   it('is for SMS accounts only, and gate agents cannot send', async () => {

@@ -64,7 +64,7 @@ The fixes are in the working tree on `feat/kadisasa-site`, not deployed. The liv
 
 **8. `/maswali` repeated its H1 as its only H2, and FAQ questions had no headings. Fixed.** The FAQ section skips the duplicate heading on the FAQ page itself, and every question on every content page is now an `<h3>` inside its `<summary>` (looks the same).
 
-**9. Thin occasion pages. Open (content).** In `<main>`: `/kadi-ya-kitchen-party` 190 words, `/kadi-za-mwaliko-biashara` 179, `/kadi-ya-mahafali` 202, `/kadi-ya-kuzaliwa` 208, `/kusimamia-majibu-ya-rsvp` 237, and their English copies. Each needs a worked example, a wording sample and 2 to 3 FAQ answers specific to that occasion (aim for about 500 useful words). Content lives in `apps/web/src/content/pages/`.
+**9. Thin occasion pages. Fixed (2026-11-05, ADR 054).** Worked examples, wording samples and occasion FAQs added in `content/pages/expansions.ts`. In `<main>`: `/kadi-ya-kitchen-party` 190 words, `/kadi-za-mwaliko-biashara` 179, `/kadi-ya-mahafali` 202, `/kadi-ya-kuzaliwa` 208, `/kusimamia-majibu-ya-rsvp` 237, and their English copies. Each needs a worked example, a wording sample and 2 to 3 FAQ answers specific to that occasion (aim for about 500 useful words). Content lives in `apps/web/src/content/pages/`.
 
 **10. Pages are never cached. Open (deliberate trade-off).** Public pages return `Cache-Control: private, no-store` and Cloudflare reports `DYNAMIC`, because they read live prices and branding per request (`connection()`). Origin TTFB measured 0.4 to 0.7 s. Short ISR (for example `revalidate = 300`) on content pages would cut this without stale prices on `/bei`.
 
@@ -72,11 +72,11 @@ The fixes are in the working tree on `feat/kadisasa-site`, not deployed. The liv
 
 ### Low
 
-**12. `llms.txt` listed none of the guides. Fixed.** It now lists the product page, the no-smartphone guide, the safety guide and the FAQ. (No ranking weight for Google; may help other assistants.)
+**12. `llms.txt` listed none of the guides. Fixed.** Since 2026-11-05 it is generated from the content with key facts, and `/llms-full.txt` serves every guide as Markdown. It now lists the product page, the no-smartphone guide, the safety guide and the FAQ. (No ranking weight for Google; may help other assistants.)
 
-**13. Titles over 60 characters. Open.** Home sw (65), `/en` (64), `/ke` (72), `/ke/data-requests` (65), `/en/ombi-la-data` (63), `/ke/wedding-invitation-wording` (62), `/ke/is-a-digital-wedding-invitation-safe` (61). Google truncates around 60; trim the tail ("| Kadi Sasa" or the second clause).
+**13. Titles over 60 characters. Fixed (2026-11-05).** Home sw (65), `/en` (64), `/ke` (72), `/ke/data-requests` (65), `/en/ombi-la-data` (63), `/ke/wedding-invitation-wording` (62), `/ke/is-a-digital-wedding-invitation-safe` (61). Google truncates around 60; trim the tail ("| Kadi Sasa" or the second clause).
 
-**14. Short titles and descriptions.** `/mawasiliano` title is 22 characters ("Mawasiliano | Kadi Sasa"); add what the page offers. Three Kenya descriptions run 165 to 168 characters.
+**14. Short titles and descriptions. Contact titles fixed (2026-11-05).** `/mawasiliano` title is 22 characters ("Mawasiliano | Kadi Sasa"); add what the page offers. Three Kenya descriptions run 165 to 168 characters.
 
 **15. English pages use Swahili slugs** (`/en/kadi-ya-harusi-mtandaoni`). Acceptable; revisit if English search traffic matters.
 

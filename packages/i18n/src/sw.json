@@ -2354,5 +2354,23 @@
     "step2": "Rudi kwenye ukurasa huu ubonyeze \"Fungua kwenye programu\", au fungua programu uchague \"Ninalinda lango\" na uweke namba {code}.",
     "step3": "Weka PIN uliyopewa. Orodha ya wageni itapakuliwa, kisha unaweza kuskani hata bila mtandao.",
     "trust": "Hatutakuomba nenosiri wala namba ya siri ya simu yako. PIN ya lango unapewa na mwenye harusi tu."
+  },
+  "appWelcome": {
+    "eyebrow": "Kadi za mwaliko · Tanzania",
+    "sample": "Mfano wa kadi ya mgeni",
+    "points": {
+      "cards": {
+        "title": "Kadi kwa kila mgeni",
+        "body": "Kwa WhatsApp, SMS au karatasi, hata kwa simu ya tochi."
+      },
+      "pledges": {
+        "title": "Michango wazi",
+        "body": "Ahadi na malipo ya kila mgeni, tayari kwa kikao."
+      },
+      "gate": {
+        "title": "Lango bila mtandao",
+        "body": "Simu yako inakuwa lango na inaskani hata mtandao ukikatika."
+      }
+    }
   }
 }

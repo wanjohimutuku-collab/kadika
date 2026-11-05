@@ -2350,5 +2350,23 @@
     "step2": "Come back to this page and tap \"Open in the app\", or open the app, choose \"I'm running the gate\" and enter code {code}.",
     "step3": "Enter the PIN you were given. The guest list downloads, then you can scan even without a network.",
     "trust": "We will never ask for a password or your phone's PIN. The gate PIN only comes from the hosts."
+  },
+  "appWelcome": {
+    "eyebrow": "Invitation cards · Tanzania",
+    "sample": "Sample guest card",
+    "points": {
+      "cards": {
+        "title": "A card for every guest",
+        "body": "By WhatsApp, SMS or paper, even on a basic phone."
+      },
+      "pledges": {
+        "title": "Clear contributions",
+        "body": "Every guest’s pledge and payments, ready for the meeting."
+      },
+      "gate": {
+        "title": "A gate with no network",
+        "body": "Your phone becomes the gate and scans even when the network drops."
+      }
+    }
   }
 }

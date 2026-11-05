@@ -1446,7 +1446,7 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Data requests',
-      title: 'Data Request: Get a Copy or Delete Your Information | Kadi Sasa',
+      title: 'Data Request: Copy or Delete Your Data | Kadi Sasa',
       description:
         'How to ask for a copy of your information, correct it or delete it from Kadi Sasa, as a guest or a host, and how long we take to respond.',
       h1: 'Data requests: copy, correction and deletion',

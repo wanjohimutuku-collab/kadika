@@ -1,7 +1,11 @@
-# Everything the browser checks need before they start: dependencies, Chromium, and a production build
-# of the web app in .next-prod. Shared by the e2e shards and Lighthouse in ci.yml.
+# Everything the browser checks need before they start: dependencies, optionally Chromium, and a
+# production build of the web app in .next-prod. Shared by the e2e shards, Lighthouse and warm-caches.yml.
 name: Web production build
-description: Install the workspace and Chromium, then build the web app for the browser checks
+description: Install the workspace and optionally Chromium, then build the web app for the browser checks
+inputs:
+  playwright:
+    description: Install Playwright's Chromium and its system packages. Lighthouse uses the runner's own Chrome.
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -12,7 +16,13 @@ runs:
         cache: pnpm
     - run: pnpm install --frozen-lockfile
       shell: bash
-    - run: pnpm --filter @harusi/web exec playwright install --with-deps chromium
+    # A stalled Ubuntu mirror waits 120 seconds per package by default, which once cost a job 9 minutes.
+    # Give up on a stalled download quickly and try again instead.
+    - if: inputs.playwright == 'true'
+      run: printf 'Acquire::http::Timeout "15";\nAcquire::Retries "5";\n' | sudo tee /etc/apt/apt.conf.d/99ci-timeouts
+      shell: bash
+    - if: inputs.playwright == 'true'
+      run: pnpm --filter @harusi/web exec playwright install --with-deps chromium
       shell: bash
     # Next's compile cache. Keyed per commit and restored from the newest earlier run; the parallel jobs
     # of one run share a key, so the first to finish saves it and the others skip.

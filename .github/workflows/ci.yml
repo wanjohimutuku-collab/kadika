@@ -200,6 +200,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/web-prod-build
+        with:
+          playwright: 'false'
       # Simulated throttling on a shared runner is noisy near the budget, and a false red used to wait for
       # someone to press re-run. One automatic retry; a real regression fails both.
       - run: pnpm --filter @harusi/web lhci || pnpm --filter @harusi/web lhci

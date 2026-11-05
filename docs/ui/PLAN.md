@@ -2,7 +2,7 @@
 
 Status legend: ☐ not started · ◐ in progress · ☑ done (acceptance checks passed)
 
-Source of truth: `CLAUDE.md` (§1, §2, §5–§8, §10, §17). This plan covers `apps/web` only, running on mock data. Decisions that differ from or extend `CLAUDE.md` are in `docs/adr/005`–`docs/adr/0xx`.
+Source of truth: `docs/spec/` (§1, §2, §5–§8, §10, §17). This plan covers `apps/web` only, running on mock data. Decisions that differ from or extend `CLAUDE.md` are in `docs/adr/005`–`docs/adr/0xx`.
 
 ---
 

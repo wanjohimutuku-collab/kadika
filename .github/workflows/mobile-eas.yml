@@ -10,4 +10,4 @@ jobs:
   placeholder:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Not implemented in Phase 0. See CLAUDE.md section 11."
+      - run: echo "Not implemented in Phase 0. See docs/spec/11-devops.md."

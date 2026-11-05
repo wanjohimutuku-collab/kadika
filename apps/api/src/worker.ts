@@ -6,6 +6,7 @@ import { EventService } from './services/events';
 import { PledgeService } from './services/pledges';
 import { BillingService } from './services/billing';
 import { checkMessageVolume } from './spend-alert';
+import { safeErrorMessage } from './observability';
 
 const QUEUE = 'harusi-delivery';
 const TICK_EVERY_MS = 15 * 60_000;
@@ -67,12 +68,19 @@ export function startWorker(deps: Deps, redisUrl: string) {
   // A failed job (the tick, or a queued send) is an error someone must see, not only a log line.
   worker.on('failed', (job, err) => {
     console.error(
-      JSON.stringify({ level: 'error', msg: 'job failed', job: job?.name, err: err.message }),
+      JSON.stringify({
+        level: 'error',
+        msg: 'job failed',
+        job: job?.name,
+        err: safeErrorMessage(err),
+      }),
     );
     deps.reportError?.(err);
   });
   worker.on('error', (err) => {
-    console.error(JSON.stringify({ level: 'error', msg: 'worker error', err: err.message }));
+    console.error(
+      JSON.stringify({ level: 'error', msg: 'worker error', err: safeErrorMessage(err) }),
+    );
     deps.reportError?.(err);
   });
   return {

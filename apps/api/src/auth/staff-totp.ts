@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { users } from '@harusi/db';
 import type { Deps } from '../context';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
@@ -64,36 +64,47 @@ export class StaffTotpService {
     const secret = base32Decode(
       await decryptSecret(u.staffTotpSecret, this.deps.config.keyEncSecret),
     );
-    const step = matchTotp(secret, code, now, u.staffTotpLastStep);
-    if (step === null) {
-      const [r] = await this.deps.db
+    const lockNow = async () => {
+      const until = new Date(now.getTime() + LOCK_MS);
+      await this.deps.db
         .update(users)
-        .set({ staffTotpFailedAttempts: sql`${users.staffTotpFailedAttempts} + 1` })
-        .where(eq(users.id, u.id))
-        .returning({ attempts: users.staffTotpFailedAttempts });
-      const attempts = r?.attempts ?? MAX_ATTEMPTS;
-      if (attempts >= MAX_ATTEMPTS) {
-        const until = new Date(now.getTime() + LOCK_MS);
-        await this.deps.db
-          .update(users)
-          .set({ staffTotpFailedAttempts: 0, staffTotpLockedUntil: until })
-          .where(eq(users.id, u.id));
-        await recordAudit(this.deps.db, {
-          eventId: null,
-          actorId: u.id,
-          action: 'staff.totp_locked',
-          entity: 'user',
-          entityId: u.id,
-        });
-        throw new ApiError('locked', 'Too many attempts', { until: until.toISOString() });
-      }
+        .set({ staffTotpFailedAttempts: 0, staffTotpLockedUntil: until })
+        .where(eq(users.id, u.id));
+      await recordAudit(this.deps.db, {
+        eventId: null,
+        actorId: u.id,
+        action: 'staff.totp_locked',
+        entity: 'user',
+        entityId: u.id,
+      });
+      return new ApiError('locked', 'Too many attempts', { until: until.toISOString() });
+    };
+    // Every code takes one attempt in a single statement BEFORE it is checked, so parallel guesses
+    // cannot all read the same count and slip past the lockout (as for gate PINs).
+    const [slot] = await this.deps.db
+      .update(users)
+      .set({ staffTotpFailedAttempts: sql`${users.staffTotpFailedAttempts} + 1` })
+      .where(
+        and(
+          eq(users.id, u.id),
+          or(isNull(users.staffTotpLockedUntil), lte(users.staffTotpLockedUntil, now)),
+          lt(users.staffTotpFailedAttempts, MAX_ATTEMPTS),
+        ),
+      )
+      .returning({ attempts: users.staffTotpFailedAttempts });
+    if (!slot) throw await lockNow();
+    const wrong = async () => {
+      if (slot.attempts >= MAX_ATTEMPTS) throw await lockNow();
       throw new ApiError('validation', 'Wrong code', {
         reason: 'wrong_code',
-        attemptsLeft: MAX_ATTEMPTS - attempts,
+        attemptsLeft: MAX_ATTEMPTS - slot.attempts,
       });
-    }
+    };
+    const step = matchTotp(secret, code, now, u.staffTotpLastStep);
+    if (step === null) return wrong();
     const enrolling = !u.staffTotpEnrolledAt;
-    await this.deps.db
+    // Only one request may spend a step: a code replayed in parallel finds `last_step` already moved.
+    const [used] = await this.deps.db
       .update(users)
       .set({
         staffTotpLastStep: step,
@@ -101,7 +112,14 @@ export class StaffTotpService {
         staffTotpLockedUntil: null,
         ...(enrolling ? { staffTotpEnrolledAt: now } : {}),
       })
-      .where(eq(users.id, u.id));
+      .where(
+        and(
+          eq(users.id, u.id),
+          or(isNull(users.staffTotpLastStep), lt(users.staffTotpLastStep, step)),
+        ),
+      )
+      .returning({ id: users.id });
+    if (!used) return wrong();
     if (enrolling)
       await recordAudit(this.deps.db, {
         eventId: null,

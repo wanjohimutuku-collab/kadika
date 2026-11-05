@@ -17,6 +17,7 @@ import { recordAudit } from './audit';
 import { BillingService } from './billing';
 import type { EventService } from './events';
 import { requireStaff, type StaffCaller } from './staff-guard';
+import { safeErrorMessage } from '../observability';
 
 type Row = typeof smsCampaigns.$inferSelect;
 type Guest = typeof guests.$inferSelect;
@@ -388,7 +389,8 @@ export class SmsCampaignService {
           .update(smsCampaigns)
           .set({
             status: 'done',
-            error: e instanceof Error ? e.message : String(e),
+            // shown to the customer: never a failed query's bound values
+            error: safeErrorMessage(e),
             finishedAt: this.deps.now(),
           })
           .where(eq(smsCampaigns.id, id));

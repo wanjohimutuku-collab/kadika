@@ -43,7 +43,9 @@ test.use({ reducedMotion: 'reduce' });
 
 for (const locale of ['sw', 'en'] as const) {
   test.describe(`axe (${locale})`, () => {
-    test.describe.configure({ mode: 'serial' });
+    // Each route is judged on its own page, so these can spread over workers and CI shards. A failing
+    // route also no longer hides the result of the routes after it.
+    test.describe.configure({ mode: 'parallel' });
     test.beforeEach(async ({ context }) => {
       await context.addCookies([
         { name: 'NEXT_LOCALE', value: locale, url: 'http://localhost:3100' },

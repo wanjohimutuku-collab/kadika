@@ -53,9 +53,7 @@ export function ContactSourcesPanel({
           {tk('back')}
         </button>
         <h3 className="text-base font-semibold">{tk(`sources.${helpFor}.label`)}</h3>
-        <p className="whitespace-pre-line text-sm text-muted">
-          {tk(`sources.${helpFor}.steps`)}
-        </p>
+        <p className="whitespace-pre-line text-sm text-muted">{tk(`sources.${helpFor}.steps`)}</p>
         <FilePicker
           label={tk(`sources.${helpFor}.upload`)}
           hint={tk('fileHelp')}
@@ -116,14 +114,8 @@ export function ContactSourcesPanel({
         direct={googleId ? onPickGoogle : undefined}
         testId="contacts-google"
       />
-      <Row
-        kind="icloud"
-        icon={<Cloud className="size-5" aria-hidden="true" />}
-      />
-      <Row
-        kind="other"
-        icon={<FileUp className="size-5" aria-hidden="true" />}
-      />
+      <Row kind="icloud" icon={<Cloud className="size-5" aria-hidden="true" />} />
+      <Row kind="other" icon={<FileUp className="size-5" aria-hidden="true" />} />
     </div>
   );
 }

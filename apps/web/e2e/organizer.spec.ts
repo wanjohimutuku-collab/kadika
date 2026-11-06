@@ -26,7 +26,9 @@ test('owner creates an event, imports 50 guests with errors, sends, retries fail
   const errors = trackConsoleErrors(page);
   await page.goto('/app');
   await shot(page, 'events');
-  await page.getByRole('link', { name: 'Tukio jipya' }).first().click();
+  // The "new event" link also lives in a closed Radix DropdownMenu.Portal; click the visible
+  // primary button on the events page itself so the test doesn't depend on portal mounting.
+  await page.getByRole('link', { name: 'Harusi mpya' }).first().click();
   await page.getByLabel('Jina la mwenyeji (au la kwanza)').fill('Neema');
   await page.getByLabel('Jina la pili (si lazima)').fill('Daudi');
   await page.getByLabel('Tarehe na saa').fill('2027-03-20T15:00');

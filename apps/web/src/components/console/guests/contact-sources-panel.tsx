@@ -67,6 +67,19 @@ export function ContactSourcesPanel({
     );
   }
 
+  // Only sources with a direct API have a `help` string (icloud/other are always fallback-only), so
+  // look it up per-kind rather than templating the key.
+  const directHelp = (kind: SourceKind): string => {
+    switch (kind) {
+      case 'phone':
+        return tk('sources.phone.help');
+      case 'google':
+        return tk('sources.google.help');
+      default:
+        return tk(`sources.${kind}.fallbackHelp`);
+    }
+  };
+
   const Row = ({
     kind,
     icon,
@@ -91,7 +104,7 @@ export function ContactSourcesPanel({
         {tk(`sources.${kind}.label`)}
       </Button>
       <p className="text-sm text-muted">
-        {direct ? tk(`sources.${kind}.help`) : tk(`sources.${kind}.fallbackHelp`)}
+        {direct ? directHelp(kind) : tk(`sources.${kind}.fallbackHelp`)}
       </p>
     </div>
   );

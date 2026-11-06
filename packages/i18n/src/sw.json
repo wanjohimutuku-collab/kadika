@@ -525,9 +525,9 @@
     "auto": "Kulingana na mgeni"
   },
   "events": {
-    "title": "Matukio yangu",
-    "new": "Tukio jipya",
-    "empty": "Bado huna tukio. Anza kwa kuunda tukio lako la kwanza.",
+    "title": "Harusi zangu",
+    "new": "Harusi mpya",
+    "empty": "Bado huna harusi. Anza kwa kuunda harusi yako ya kwanza.",
     "daysLeft": "{days, plural, =0 {Leo} one {Siku # imebaki} other {Siku # zimebaki}}",
     "daysAgo": "{days, plural, one {Siku # iliyopita} other {Siku # zilizopita}}",
     "statusPill": {
@@ -543,7 +543,7 @@
     "smsBadge": "SMS pekee"
   },
   "wizard": {
-    "title": "Tukio jipya",
+    "title": "Harusi mpya",
     "stepOf": "Hatua {current} kati ya {total}",
     "steps": {
       "names": "Majina & tarehe",
@@ -555,8 +555,8 @@
     "kindHint": "Chagua moja au andika yako, mfano Mahafali au Kitchen party",
     "hostA": "Jina la mwenyeji (au la kwanza)",
     "hostB": "Jina la pili (si lazima)",
-    "partnerA": "Jina la mwenyeji (au la kwanza)",
-    "partnerB": "Jina la pili (si lazima)",
+    "partnerA": "Jina la Bibi Harusi",
+    "partnerB": "Jina la Bwana Harusi",
     "titleHint": "Linaonekana kwenye dashibodi tu",
     "date": "Tarehe na saa",
     "dateHint": "Saa za Afrika Mashariki (EAT)",
@@ -583,11 +583,11 @@
     "draftSaved": "Rasimu imehifadhiwa kwenye kifaa hiki",
     "draftRestored": "Tumerudisha rasimu yako",
     "discardDraft": "Anza upya",
-    "create": "Unda tukio",
-    "created": "Tukio limeundwa",
+    "create": "Unda harusi",
+    "created": "Harusi imeundwa",
     "reviewEdit": "Badilisha",
     "preview": "Hivi ndivyo kadi itakavyoonekana",
-    "eventTitle": "Jina la tukio",
+    "eventTitle": "Jina la harusi",
     "coverSunset": "Picha ya mfano: Machweo",
     "coverGarden": "Picha ya mfano: Bustani"
   },
@@ -771,7 +771,9 @@
     },
     "cardKindHelp": "Kadi ya mchango haina vitufe vya kujibu wala QR, na mtu huyo haingizwi langoni.",
     "printCard": "Kadi ya kuchapisha",
-    "printCardHelp": "Mgeni huyu atapata kadi iliyochapishwa. Unaitengeneza kwenye Kadi; inahesabiwa mara moja tu."
+    "printCardHelp": "Mgeni huyu atapata kadi iliyochapishwa. Unaitengeneza kwenye Kadi; inahesabiwa mara moja tu.",
+    "prefill": "Chagua kutoka kwenye anwani",
+    "prefillTitle": "Chagua mtu mmoja"
   },
   "import": {
     "title": "Ingiza orodha ya wageni",
@@ -2358,7 +2360,7 @@
     "google": "Google Contacts",
     "googleHelp": "Google itakuuliza ruhusa ya kusoma tu. Tunaifuta mara tu tunapomaliza kusoma.",
     "file": "Faili la anwani",
-    "fileHelp": "iPhone au iCloud: icloud.com/contacts → Hamisha vCard. Google: contacts.google.com → Hamisha. Android: Anwani → Hamisha kwenda faili la .vcf.",
+    "fileHelp": "Faili la vCard (.vcf) au CSV ya Google Contacts. Hadi MB 5.",
     "chooseFile": "Chagua faili",
     "notContacts": "Faili hili halina anwani zinazosomeka",
     "tooLarge": "Faili ni kubwa mno (zaidi ya MB 5)",
@@ -2376,7 +2378,38 @@
     "permPhone": "Ruhusu Kadi Sasa kusoma anwani kwenye mipangilio ya simu, au bandika orodha badala yake.",
     "limited": "Umeruhusu baadhi ya anwani tu. Unaweza kuruhusu zaidi kwenye mipangilio ya simu.",
     "read": "Soma anwani",
-    "readHelp": "Kadi Sasa itaomba ruhusa ya kusoma anwani. Hakuna kinachotumwa mpaka uthibitishe."
+    "readHelp": "Kadi Sasa itaomba ruhusa ya kusoma anwani. Hakuna kinachotumwa mpaka uthibitishe.",
+    "back": "Rudi nyuma",
+    "sources": {
+      "phone": {
+        "label": "Anwani za simu hii",
+        "help": "Chagua watu moja kwa moja kutoka kwenye kitabu cha anwani cha simu hii.",
+        "fallbackHelp": "Kivinjari hiki hakiruhusu kusoma anwani za simu moja kwa moja. Tumia app ya Kadi Sasa kwenye Android, au hamisha faili la .vcf kutoka kwenye simu yako kisha uliweke hapa.",
+        "upload": "Pakia faili la anwani (.vcf)",
+        "steps": "Simu yako:\n1. Fungua Anwani (Contacts)\n2. Chagua ⋮ → Hamisha (Export) au Share\n3. Chagua muundo wa vCard (.vcf)\n4. Tuma faili kwenye kompyuta hii na uichague hapa chini."
+      },
+      "google": {
+        "label": "Google Contacts",
+        "help": "Ingia kwa Google na usome anwani moja kwa moja. Tunauliza ruhusa ya kusoma tu, na tunaifuta mara tu tunapomaliza.",
+        "fallbackHelp": "Mmiliki wa mfumo bado hajaweka Google Contacts kwa upande wa Google. Kwa sasa, hamisha anwani zako kutoka Google kisha uzipakie hapa.",
+        "upload": "Pakia faili kutoka Google",
+        "steps": "Kwenye kompyuta:\n1. Fungua contacts.google.com\n2. Bofya ⋮ (menu) → Hamisha (Export)\n3. Chagua Google CSV au vCard (.vcf)\n4. Pakia faili hilo hapa chini."
+      },
+      "icloud": {
+        "label": "Anwani za iCloud (iPhone)",
+        "help": "",
+        "fallbackHelp": "Apple haina API ya moja kwa moja. Hamisha vCard kutoka kwenye iCloud au iPhone yako kisha uipakie hapa.",
+        "upload": "Pakia vCard kutoka iCloud",
+        "steps": "Kwenye kompyuta:\n1. Fungua icloud.com/contacts (ingia na Apple ID yako)\n2. Chagua anwani zote (Ctrl+A au Cmd+A)\n3. Bofya ⚙ (gear) → Hamisha vCard\n4. Pakia faili la .vcf hapa chini.\n\nKwenye iPhone:\n• Anwani → chagua kadi → Share Contact → AirDrop/Email faili la .vcf."
+      },
+      "other": {
+        "label": "Chanzo kingine (Outlook, Yahoo, faili)",
+        "help": "",
+        "fallbackHelp": "Faili la vCard (.vcf, toleo 2.1/3.0/4.0) au CSV ya Google Contacts. Yanafaa kwa Outlook, Yahoo na programu nyingine.",
+        "upload": "Pakia faili la anwani",
+        "steps": "Fungua programu yako ya anwani (Outlook, Yahoo, n.k.), chagua Hamisha (Export) na chagua muundo wa vCard (.vcf) au CSV ya Google Contacts. Kisha pakia faili hapa chini."
+      }
+    }
   },
   "gateJoinPage": {
     "metaTitle": "Kiungo cha lango · {brand}",
@@ -2484,7 +2517,8 @@
       "pasteSummary": "{ok} tayari · {noPhone} hawana namba · {invalid} zina kosa · {duplicate} zinajirudia",
       "pasteSave": "Ongeza {count}",
       "pasteDone": "{count, plural, one {Mtu # ameongezwa} other {Watu # wameongezwa}}",
-      "pasteNothing": "Hakuna mstari sahihi wa kuongeza."
+      "pasteNothing": "Hakuna mstari sahihi wa kuongeza.",
+      "fromContacts": "Kutoka kwenye anwani"
     },
     "compose": {
       "title": "Andika ujumbe",

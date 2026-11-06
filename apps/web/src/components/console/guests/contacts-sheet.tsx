@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { FileUp, Lock, ShieldAlert, Smartphone } from 'lucide-react';
+import { FileUp, ShieldAlert } from 'lucide-react';
 import {
   CONTACTS_FILE_MAX_BYTES,
   cleanContacts,
@@ -17,7 +17,8 @@ import { parsePhone, usePhoneCountry } from '@/lib/country';
 import { BottomSheet } from '@/components/ui/overlay';
 import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
-import { FilePicker, TextField } from '@/components/ui/form';
+import { TextField } from '@/components/ui/form';
+import { ContactSourcesPanel } from './contact-sources-panel';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
@@ -70,6 +71,7 @@ export function ContactsSheet({
   onOpenChange,
   onImported,
   cardKind,
+  channel,
 }: {
   eventId: string;
   open: boolean;
@@ -77,6 +79,12 @@ export function ContactsSheet({
   onImported: () => void;
   /** What the people picked become: invitation cards (the default) or contribution cards (ADR 041). */
   cardKind?: CardKind;
+  /**
+   * How picked contacts should be reached (ADR 055): "sms" marks them as SMS-only contacts with no
+   * print card and no smartphone. Omit for invitation events, where the channel is guessed from the
+   * number.
+   */
+  channel?: 'sms';
 }) {
   const t = useTranslations('guests');
   const tk = useTranslations('contacts');
@@ -199,6 +207,17 @@ export function ContactsSheet({
         .map((i) => list[i]!)
         .map((c) => {
           const p = parsePhone(c.phone, country);
+          // SMS-only events (ADR 055): every contact is SMS, never a smartphone, never a print card.
+          if (channel === 'sms') {
+            return {
+              displayName: c.name,
+              phoneRaw: c.phone,
+              groupLabel: '',
+              partySizeAllowed: 1,
+              hasSmartphone: false,
+              inviteChannelPref: 'sms' as const,
+            };
+          }
           return {
             displayName: c.name,
             phoneRaw: c.phone,
@@ -259,46 +278,15 @@ export function ContactsSheet({
           </a>
         </div>
       ) : !contacts ? (
-        <div className="flex flex-col gap-4" data-testid="contacts-sources">
-          <p className="flex items-start gap-2 text-sm text-muted">
-            <Lock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            {tk('privacy')}
-          </p>
-          {error ? <Banner tone="error">{error}</Banner> : null}
-          {native ? (
-            <div className="flex flex-col gap-1">
-              <Button
-                block
-                icon={<Smartphone className="size-5" aria-hidden="true" />}
-                onClick={pickNative}
-              >
-                {tk('thisPhone')}
-              </Button>
-              <p className="text-sm text-muted">{tk('thisPhoneHelp')}</p>
-            </div>
-          ) : null}
-          {googleId ? (
-            <div className="flex flex-col gap-1">
-              <Button
-                block
-                variant="secondary"
-                loading={reading}
-                onClick={pickGoogle}
-                data-testid="contacts-google"
-              >
-                {tk('google')}
-              </Button>
-              <p className="text-sm text-muted">{tk('googleHelp')}</p>
-            </div>
-          ) : null}
-          <FilePicker
-            label={tk('file')}
-            hint={tk('fileHelp')}
-            accept=".vcf,.vcard,text/vcard,text/x-vcard,.csv,text/csv"
-            buttonLabel={tk('chooseFile')}
-            onFile={pickFile}
-          />
-        </div>
+        <ContactSourcesPanel
+          nativeAvailable={native}
+          googleId={googleId}
+          reading={reading}
+          error={error}
+          onPickNative={pickNative}
+          onPickGoogle={pickGoogle}
+          onFile={pickFile}
+        />
       ) : (
         <>
           {contacts === MOCK_CONTACTS ? (

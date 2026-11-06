@@ -1,6 +1,7 @@
 'use client';
 
-import { useId, useRef } from 'react';
+import { useId, useRef, useState } from 'react';
+import { ContactRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +22,9 @@ import { eventScopedKeys, qk } from '@/lib/queries';
 import { useFieldError } from '@/lib/use-field-error';
 import { formatPhone } from '@/lib/format';
 import { CardKindPicker } from './card-kind-picker';
+import { ContactsPrefillSheet } from './contacts-prefill';
 import { useQuotaToast } from '@/components/console/quota';
+import { parsePhone, usePhoneCountry } from '@/lib/country';
 
 export function guestToInput(g: Guest): GuestInput {
   return {
@@ -76,6 +79,8 @@ export function GuestForm({
   const quota = useQuotaToast(eventId);
   const queryClient = useQueryClient();
   const listId = useId();
+  const country = usePhoneCountry();
+  const [prefill, setPrefill] = useState(false);
   const groups = useQuery({
     queryKey: qk.groups(eventId),
     queryFn: () => getRepository().listGroups(eventId),
@@ -139,6 +144,7 @@ export function GuestForm({
   const addAnother = useRef(false);
 
   return (
+    <>
     <form
       noValidate
       className="flex flex-col gap-4"
@@ -153,6 +159,20 @@ export function GuestForm({
         else onDone(g);
       })}
     >
+      {!guest ? (
+        <div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<ContactRound className="size-4" aria-hidden="true" />}
+            onClick={() => setPrefill(true)}
+            data-testid="guest-form-prefill"
+          >
+            {t('prefill')}
+          </Button>
+        </div>
+      ) : null}
       <CardKindPicker
         name="cardKind"
         testId="guest-card-kind"
@@ -297,5 +317,19 @@ export function GuestForm({
         </Button>
       </div>
     </form>
+    <ContactsPrefillSheet
+      open={prefill}
+      onOpenChange={setPrefill}
+      onPick={(c) => {
+        setValue('displayName', c.name, { shouldDirty: true, shouldValidate: true });
+        const p = parsePhone(c.phone, country);
+        // keep what the picker gave if the phone cannot be normalised; the field re-validates on blur
+        setValue('phone', p.ok ? formatPhone(p.e164).slice(1) : c.phone, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }}
+    />
+    </>
   );
 }

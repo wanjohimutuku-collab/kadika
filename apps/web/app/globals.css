@@ -235,8 +235,11 @@
   --ks-muted: #5b6662;
   --ks-paper: #fbfaf7;
   --ks-line: #e4e1da;
-  --ks-ok: #1e8a5a;
-  --ks-warn: #b7791f;
+  /* Darkened for AA on `bg-ks-ok text-white` and `bg-ks-warn text-white` in GateChip / progress bars
+     (mockups.tsx). Mirrors the ADR 006 gate-color fix so the three status tokens behave the same
+     across web, print and mobile. ks-palette.test.ts locks the ratios. */
+  --ks-ok: #0f7a47;
+  --ks-warn: #8c5a14;
   --ks-error: #b42318;
   /* Shared components that read the app tokens (buttons, focus ring) follow the site palette here. */
   --hp-primary: var(--ks-green-700);

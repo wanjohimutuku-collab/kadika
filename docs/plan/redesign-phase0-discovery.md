@@ -47,18 +47,18 @@ report).
 
 ### Public site — `app/(public)`
 
-| Route               | Source                                     | Notes                                                |
-| ------------------- | ------------------------------------------ | ---------------------------------------------------- |
-| `/`                 | `app/(public)/page.tsx`                    | Home, Swahili. Uses `HomePage` + live `PricingCatalog`. |
-| `/en`               | same, via `/en` rewrite in middleware      | Home, English.                                       |
-| `/ke`               | `app/(public)/ke/page.tsx` (home)          | Kenya home.                                          |
-| `/bei`              | `app/(public)/bei/page.tsx`                | Pricing.                                             |
-| `/programu`         | `app/(public)/programu/page.tsx`           | Android app page. `/app-download` 308 → `/programu`. |
-| `/login`            | `app/(public)/login/page.tsx`              | Phone sign-in (Firebase + OTP fallback).             |
-| `/privacy`          | `app/(public)/privacy/page.tsx`            | Static route; ContentPage slug is skipped.           |
-| `/terms`            | `app/(public)/terms/page.tsx`              | Static route; ContentPage slug is skipped.           |
-| `/gate-join`        | `app/(public)/gate-join/*`                 | Gate join flow.                                      |
-| `/[slug]`           | `app/(public)/[slug]/page.tsx`             | Every content page in `ALL_PAGES`.                   |
+| Route        | Source                                | Notes                                                   |
+| ------------ | ------------------------------------- | ------------------------------------------------------- |
+| `/`          | `app/(public)/page.tsx`               | Home, Swahili. Uses `HomePage` + live `PricingCatalog`. |
+| `/en`        | same, via `/en` rewrite in middleware | Home, English.                                          |
+| `/ke`        | `app/(public)/ke/page.tsx` (home)     | Kenya home.                                             |
+| `/bei`       | `app/(public)/bei/page.tsx`           | Pricing.                                                |
+| `/programu`  | `app/(public)/programu/page.tsx`      | Android app page. `/app-download` 308 → `/programu`.    |
+| `/login`     | `app/(public)/login/page.tsx`         | Phone sign-in (Firebase + OTP fallback).                |
+| `/privacy`   | `app/(public)/privacy/page.tsx`       | Static route; ContentPage slug is skipped.              |
+| `/terms`     | `app/(public)/terms/page.tsx`         | Static route; ContentPage slug is skipped.              |
+| `/gate-join` | `app/(public)/gate-join/*`            | Gate join flow.                                         |
+| `/[slug]`    | `app/(public)/[slug]/page.tsx`        | Every content page in `ALL_PAGES`.                      |
 
 #### Content pages registered in `src/content/pages/*` (37 pages)
 
@@ -158,17 +158,17 @@ this branch. Key points:
 
 ## 5. Integrations
 
-| Capability                    | Interface / adapter                                                       |
-| ----------------------------- | ------------------------------------------------------------------------- |
-| Phone sign-in                 | Firebase phone auth (ADR 048) in `src/lib/firebase-phone.ts`, fallback SMS OTP (`auth/otp.ts`). |
-| Staff 2FA                     | TOTP (ADR 040), `apps/api/src/auth/staff-totp.ts`.                         |
-| WhatsApp                      | `MessagingProvider` interface. Adapters: WhatsApp Cloud API, Evolution API (unofficial, ADR 020). |
-| SMS (TZ)                      | NextSMS (ADR 018).                                                        |
-| SMS (KE)                      | Africa's Talking (ADR 026).                                               |
-| Payments aggregator (TZ)      | `PaymentProvider` → Snippe aggregator (ADR 027): M-Pesa, Mixx, Airtel Money, HaloPesa. |
-| Payments aggregator (KE)      | KES currency on same interface (ADR 027).                                 |
-| Analytics                     | **None deployed.** `legal.ts:1298` promises "no advertising or analytics cookies". See §7. |
-| Error reporting               | `@sentry/node` on the API.                                                |
+| Capability               | Interface / adapter                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| Phone sign-in            | Firebase phone auth (ADR 048) in `src/lib/firebase-phone.ts`, fallback SMS OTP (`auth/otp.ts`).   |
+| Staff 2FA                | TOTP (ADR 040), `apps/api/src/auth/staff-totp.ts`.                                                |
+| WhatsApp                 | `MessagingProvider` interface. Adapters: WhatsApp Cloud API, Evolution API (unofficial, ADR 020). |
+| SMS (TZ)                 | NextSMS (ADR 018).                                                                                |
+| SMS (KE)                 | Africa's Talking (ADR 026).                                                                       |
+| Payments aggregator (TZ) | `PaymentProvider` → Snippe aggregator (ADR 027): M-Pesa, Mixx, Airtel Money, HaloPesa.            |
+| Payments aggregator (KE) | KES currency on same interface (ADR 027).                                                         |
+| Analytics                | **None deployed.** `legal.ts:1298` promises "no advertising or analytics cookies". See §7.        |
+| Error reporting          | `@sentry/node` on the API.                                                                        |
 
 All providers have in-memory fakes used by tests and local dev; staff may swap live settings via
 `/ops/messaging` and `/ops/settings`.
@@ -228,13 +228,13 @@ Constraints that override CLAUDE.md where they disagree:
 
 Delta between CLAUDE.md spec and current implementation (to decide before Phase 2):
 
-| CLAUDE.md asks for                                 | Today                                            | Proposed resolution                                            |
-| -------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
-| Header: Platform / Occasions / How It Works / Pricing / Resources | Huduma + Miongozo + Bei + Kuhusu + CTA                      | Keep current groups; rename labels only if confirmed by user.  |
-| `/resources/`, `/help/`, `/about/`, `/contact/`    | `/maswali`, `/kuhusu`, `/mawasiliano`            | Keep current slugs (preserve URLs); add EN aliases only if demanded. |
-| Dedicated `/church-events/` landing page            | Not present                                      | Create under `occasions.ts` only if user confirms demand.      |
-| Warm cream + burgundy / terracotta accent          | Warm paper + emerald `#0F5C4D` + gold `#D9A441`  | Keep existing palette (brand identity + ADR 054); do not swap to burgundy without user approval. |
-| Conversion event tracking                          | None                                             | Needs new ADR + consent flow before any pixel.                 |
+| CLAUDE.md asks for                                                | Today                                           | Proposed resolution                                                                              |
+| ----------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Header: Platform / Occasions / How It Works / Pricing / Resources | Huduma + Miongozo + Bei + Kuhusu + CTA          | Keep current groups; rename labels only if confirmed by user.                                    |
+| `/resources/`, `/help/`, `/about/`, `/contact/`                   | `/maswali`, `/kuhusu`, `/mawasiliano`           | Keep current slugs (preserve URLs); add EN aliases only if demanded.                             |
+| Dedicated `/church-events/` landing page                          | Not present                                     | Create under `occasions.ts` only if user confirms demand.                                        |
+| Warm cream + burgundy / terracotta accent                         | Warm paper + emerald `#0F5C4D` + gold `#D9A441` | Keep existing palette (brand identity + ADR 054); do not swap to burgundy without user approval. |
+| Conversion event tracking                                         | None                                            | Needs new ADR + consent flow before any pixel.                                                   |
 
 Risks that need user input before Phase 2 begins:
 

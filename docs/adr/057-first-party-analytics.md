@@ -22,7 +22,7 @@ decisions, not for targeting people.
    `properties jsonb` (whitelisted small values only, see §3). Index on `(name, occurred_at)` and
    `(occurred_at)` for retention sweep. No user id, no event id of ours, no phone, no amount.
 2. **Session hash.** Per request, we derive `session_hash = BLAKE2b-256(ip || user_agent ||
-   date_bucket || secret)` where `date_bucket` is the UTC date and `secret` is
+date_bucket || secret)` where `date_bucket` is the UTC date and `secret` is
    `ANALYTICS_SESSION_SECRET` rotated weekly. This is an anonymous grouping key, not a cookie; the
    same visitor gets a different hash tomorrow and at a different IP, which is exactly what we want.
    The IP and user agent are never stored, only consumed by the hash. `date_bucket` and the secret
@@ -40,7 +40,7 @@ decisions, not for targeting people.
    - `add_guest`, `receive_rsvp`
    - `record_contribution` (no amount, no guest id)
    - `scan_qr`, `complete_checkin` (no guest id, no event id)
-   Any new name requires an ADR amendment. Unknown names are rejected `400 unknown_event`.
+     Any new name requires an ADR amendment. Unknown names are rejected `400 unknown_event`.
 5. **Ingest.** Internal only; the web app emits events server-side inside its route handlers (the
    RSC render or a server action), never from the browser. The API exposes no public ingest
    endpoint, so no bot traffic reaches the table. Guest surfaces (`/c`, `/s`, `/k`) emit nothing

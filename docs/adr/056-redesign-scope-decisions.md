@@ -12,7 +12,7 @@ decisions; this ADR records how they were resolved before Phase 2 opens.
 ## Decision
 
 1. **Palette: keep emerald + gold.** The brand tokens (`--ks-green-700 #0F5C4D`, `--ks-gold-500
-   #D9A441`) stay. Burgundy / terracotta would break the logo, the mobile app, the printed card and
+#D9A441`) stay. Burgundy / terracotta would break the logo, the mobile app, the printed card and
    every guest-card surface, which all share the same tokens. CLAUDE.md §4's "warm cream backgrounds"
    and "soft neutral surfaces" are already met by `--ks-paper #FBFAF7` and `--ks-line #E4E1DA`.
 2. **Header groups: keep the current five-slot nav.** Huduma (dropdown of products), Miongozo

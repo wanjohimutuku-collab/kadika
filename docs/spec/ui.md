@@ -12,20 +12,20 @@
 
 ## 17.2 Design tokens (`packages/ui-tokens`, consumed by Tailwind and NativeWind)
 
-| Token | Light | Dark (mobile app only) |
-|---|---|---|
-| `bg` | `#FBF8F3` (warm ivory) | `#121413` |
-| `surface` | `#FFFFFF` | `#1C1F1D` |
-| `ink` | `#1B1B1F` | `#F2EFE9` |
-| `muted` | `#5F6368` | `#A7ADA9` |
-| `primary` (emerald) | `#0F5C4D` | `#4CC2A6` |
-| `on-primary` | `#FFFFFF` | `#08241D` |
-| `accent` (gold) | `#B8893B` | `#D9B26A` |
-| `border` | `#E6DFD3` | `#2C312E` |
-| `success` | `#1E7D3A` | `#5BD17F` |
-| `warning` | `#B26A00` | `#F0B34A` |
-| `danger` | `#B3261E` | `#FF8A80` |
-| `info` | `#0B63B6` | `#7DB8F5` |
+| Token               | Light                  | Dark (mobile app only) |
+| ------------------- | ---------------------- | ---------------------- |
+| `bg`                | `#FBF8F3` (warm ivory) | `#121413`              |
+| `surface`           | `#FFFFFF`              | `#1C1F1D`              |
+| `ink`               | `#1B1B1F`              | `#F2EFE9`              |
+| `muted`             | `#5F6368`              | `#A7ADA9`              |
+| `primary` (emerald) | `#0F5C4D`              | `#4CC2A6`              |
+| `on-primary`        | `#FFFFFF`              | `#08241D`              |
+| `accent` (gold)     | `#B8893B`              | `#D9B26A`              |
+| `border`            | `#E6DFD3`              | `#2C312E`              |
+| `success`           | `#1E7D3A`              | `#5BD17F`              |
+| `warning`           | `#B26A00`              | `#F0B34A`              |
+| `danger`            | `#B3261E`              | `#FF8A80`              |
+| `info`              | `#0B63B6`              | `#7DB8F5`              |
 
 - **Gate result fills:** ADMIT `#075E20`, DUPLICATE `#7A4A00`, DENY `#8C1D17`, text white. Contrast ≥ 7:1 (the earlier `#0B7A2B` / `#B26A00` / `#B3261E` measured only 4.2–6.5:1; see `docs/adr/006-token-contrast.md` and `docs/adr/022-phase5-gate-scanner.md`). Never rely on colour alone: each state also has an icon and a word.
 - **Event theming:** `events.brand_theme` may override only `primary`, `accent` and a decorative pattern on the **guest card**, from 4 preset themes (Emerald & Gold default, Navy & Silver, Terracotta, Rose & Sage) plus an optional cover photo. The QR block is always black on white regardless of theme. Reject themes failing 4.5:1 text contrast.
@@ -62,6 +62,7 @@ app/
 ## 17.4 Organizer mobile screens (wireframes, 360 dp wide)
 
 **Overview (Muhtasari)**
+
 ```
 ┌────────────────────────────┐
 │ ▾ Asha & Juma     SW|EN  ⟳ │  header: event switcher, lang, sync
@@ -78,9 +79,9 @@ app/
 └────────────────────────────┘
 ```
 
-**Guests (Wageni):** search field (name/phone/code), filter chips (Wote · Hawajatumiwa · Wamethibitisha · Hawajajibu · Wamekataa · Hawana smartphone), list rows: avatar initials, name, group, status pill, channel icon (WhatsApp/SMS/Print). FAB **＋ Ongeza mgeni** with sheet: *Andika mmoja · Ingiza orodha · Kutoka kwenye anwani*. Swipe row: left = tuma tena, right = badilisha. Long-press = multi-select with bottom action bar (Tuma, Chapisha, Futa).
+**Guests (Wageni):** search field (name/phone/code), filter chips (Wote · Hawajatumiwa · Wamethibitisha · Hawajajibu · Wamekataa · Hawana smartphone), list rows: avatar initials, name, group, status pill, channel icon (WhatsApp/SMS/Print). FAB **＋ Ongeza mgeni** with sheet: _Andika mmoja · Ingiza orodha · Kutoka kwenye anwani_. Swipe row: left = tuma tena, right = badilisha. Long-press = multi-select with bottom action bar (Tuma, Chapisha, Futa).
 
-**Guest detail:** header (name, phone, short code with copy button), status timeline (iliyoundwa → imetumwa → imefika → imefunguliwa → imethibitishwa → amefika), party size stepper, channel picker, pledge summary, buttons: *Tuma tena*, *Onyesha QR*, *Toa kadi mpya (reissue)* (confirm sheet), *Pakua kadi ya kuchapisha*.
+**Guest detail:** header (name, phone, short code with copy button), status timeline (iliyoundwa → imetumwa → imefika → imefunguliwa → imethibitishwa → amefika), party size stepper, channel picker, pledge summary, buttons: _Tuma tena_, _Onyesha QR_, _Toa kadi mpya (reissue)_ (confirm sheet), _Pakua kadi ya kuchapisha_.
 
 **Import:** 3-step wizard (Chagua chanzo → Hakiki → Thibitisha). Preview table flags invalid phones (red), duplicates (amber), and shows counts; "Rekebisha" inline edit; nothing is saved until confirmed.
 
@@ -109,15 +110,16 @@ app/
 ```
 
 **Result overlay (full screen, auto-dismiss after 2.5 s or tap):**
+
 - **ADMIT (green):** ✔ icon, "KARIBU NDANI", guest name (36 bold), "Watu: 2", group, short haptic + rising tone.
-- **DUPLICATE (amber):** ⚠ "TAYARI AMEINGIA", name, "Saa 14:32 · Lango B", two buttons *Sawa* and *Ruhusu kwa sababu…* (committee/owner only).
-- **DENY (red):** ✖ "KADI SI HALALI" with reason line (imebadilishwa / si ya harusi hii / saini batili), long buzz, button *Tafuta kwa jina*.
+- **DUPLICATE (amber):** ⚠ "TAYARI AMEINGIA", name, "Saa 14:32 · Lango B", two buttons _Sawa_ and _Ruhusu kwa sababu…_ (committee/owner only).
+- **DENY (red):** ✖ "KADI SI HALALI" with reason line (imebadilishwa / si ya harusi hii / saini batili), long buzz, button _Tafuta kwa jina_.
 - Scanning is continuous; the next scan is accepted only after the overlay is dismissed (prevents double scans).
-- **Manual search sheet:** input with instant local results (name, last 4 digits, code); tap a row → confirmation card with *Ingiza* button (logged as `manual_ok`).
+- **Manual search sheet:** input with instant local results (name, last 4 digits, code); tap a row → confirmation card with _Ingiza_ button (logged as `manual_ok`).
 - **Sync indicator:** tap to see queue (n scans waiting, last sync time, "Sawazisha sasa"). Never block scanning on sync.
 - **First-run join:** gate link → enter PIN (numeric keypad) → "Inapakua orodha… 320/320" progress → ready. Show "Imekamilika, unaweza kufanya kazi bila mtandao".
 - Keep-awake enabled; screen brightness not forced; orientation locked portrait; volume/haptics toggle in a header menu.
-- Camera permission denied state: explanatory screen with *Fungua mipangilio* button and the manual-entry fallback still available.
+- Camera permission denied state: explanatory screen with _Fungua mipangilio_ button and the manual-entry fallback still available.
 
 ## 17.6 Guest card (web, `/c/<token>`) — mobile-first single column
 
@@ -154,7 +156,7 @@ app/
 
 - After RSVP: success banner, buttons switch to a compact "Umethibitisha ✔ · Badilisha"; QR section is promoted.
 - **Visible states:** loading skeleton, token invalid/expired ("Kiungo hiki si sahihi. Wasiliana na kamati." + phone), card reissued ("Kadi hii imebadilishwa; tumia kiungo kipya"), offline ("Unaona nakala iliyohifadhiwa" banner, QR still shown), event passed (RSVP disabled).
-- Pay flow: amount field (prefilled with balance) → phone number → "Thibitisha kwenye simu yako" waiting state with 60 s countdown and *Nimeshalipa* check → success/failure screen. Never ask for PINs or OTPs; show the provider name only.
+- Pay flow: amount field (prefilled with balance) → phone number → "Thibitisha kwenye simu yako" waiting state with 60 s countdown and _Nimeshalipa_ check → success/failure screen. Never ask for PINs or OTPs; show the provider name only.
 - No animation by default; a CSS-only fade-in at most. `prefers-reduced-motion` respected.
 
 ## 17.7 Print card (PDF) layout
@@ -179,39 +181,39 @@ Button (primary/secondary/ghost/danger, loading, disabled), IconButton, TextFiel
 
 ## 17.10 State matrix (every screen implements all)
 
-| State | Behaviour |
-|---|---|
-| Loading | Skeleton matching final layout, no full-screen spinner |
-| Empty | Illustration-free: icon, one sentence, one primary action (e.g. "Hakuna wageni bado · Ingiza orodha") |
-| Error | Plain-language message, *Jaribu tena*, error code in small text, never raw stack traces |
-| Offline | Persistent slim banner "Hakuna mtandao — mabadiliko yatatumwa baadaye"; writes queue locally; reads from cache |
-| Partial failure | Per-item status (e.g. 3 of 120 messages failed) with retry-failed action |
-| Permission denied | Explain why + deep-link to settings + a non-camera fallback |
-| Destructive | Confirmation sheet naming the object and consequence; undo snackbar where reversible |
+| State             | Behaviour                                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| Loading           | Skeleton matching final layout, no full-screen spinner                                                         |
+| Empty             | Illustration-free: icon, one sentence, one primary action (e.g. "Hakuna wageni bado · Ingiza orodha")          |
+| Error             | Plain-language message, _Jaribu tena_, error code in small text, never raw stack traces                        |
+| Offline           | Persistent slim banner "Hakuna mtandao — mabadiliko yatatumwa baadaye"; writes queue locally; reads from cache |
+| Partial failure   | Per-item status (e.g. 3 of 120 messages failed) with retry-failed action                                       |
+| Permission denied | Explain why + deep-link to settings + a non-camera fallback                                                    |
+| Destructive       | Confirmation sheet naming the object and consequence; undo snackbar where reversible                           |
 
 ## 17.11 Microcopy (Swahili default; have a native speaker review before launch)
 
-| Key | SW | EN |
-|---|---|---|
-| tab.overview | Muhtasari | Overview |
-| tab.guests | Wageni | Guests |
-| tab.send | Tuma | Send |
-| tab.gate | Lango | Gate |
-| tab.pledges | Michango | Pledges |
-| rsvp.yes / rsvp.no | Nitahudhuria / Sitahudhuria | I will attend / I can't attend |
-| trust.sender | Mwaliko huu umetumwa na {sender} | This invitation was sent by {sender} |
-| gate.admit | Karibu ndani | Welcome in |
-| gate.duplicate | Tayari ameingia | Already checked in |
-| gate.invalid | Kadi si halali | Invalid card |
-| offline.banner | Hakuna mtandao — mabadiliko yatatumwa baadaye | No network — changes will sync later |
-| sync.pending | Inasubiri kusawazisha ({n}) | Waiting to sync ({n}) |
-| perm.camera | Ruhusa ya kamera inahitajika | Camera permission needed |
-| guest.add | Ongeza mgeni | Add guest |
-| import | Ingiza orodha | Import list |
-| search | Tafuta jina au namba | Search name or number |
-| pledge | Ahadi | Pledge |
-| paid / balance | Imelipwa / Salio | Paid / Balance |
-| brightness.hint | Ongeza mwangaza wa skrini kabla ya kuonyesha QR | Raise screen brightness before showing the QR |
+| Key                | SW                                              | EN                                            |
+| ------------------ | ----------------------------------------------- | --------------------------------------------- |
+| tab.overview       | Muhtasari                                       | Overview                                      |
+| tab.guests         | Wageni                                          | Guests                                        |
+| tab.send           | Tuma                                            | Send                                          |
+| tab.gate           | Lango                                           | Gate                                          |
+| tab.pledges        | Michango                                        | Pledges                                       |
+| rsvp.yes / rsvp.no | Nitahudhuria / Sitahudhuria                     | I will attend / I can't attend                |
+| trust.sender       | Mwaliko huu umetumwa na {sender}                | This invitation was sent by {sender}          |
+| gate.admit         | Karibu ndani                                    | Welcome in                                    |
+| gate.duplicate     | Tayari ameingia                                 | Already checked in                            |
+| gate.invalid       | Kadi si halali                                  | Invalid card                                  |
+| offline.banner     | Hakuna mtandao — mabadiliko yatatumwa baadaye   | No network — changes will sync later          |
+| sync.pending       | Inasubiri kusawazisha ({n})                     | Waiting to sync ({n})                         |
+| perm.camera        | Ruhusa ya kamera inahitajika                    | Camera permission needed                      |
+| guest.add          | Ongeza mgeni                                    | Add guest                                     |
+| import             | Ingiza orodha                                   | Import list                                   |
+| search             | Tafuta jina au namba                            | Search name or number                         |
+| pledge             | Ahadi                                           | Pledge                                        |
+| paid / balance     | Imelipwa / Salio                                | Paid / Balance                                |
+| brightness.hint    | Ongeza mwangaza wa skrini kabla ya kuonyesha QR | Raise screen brightness before showing the QR |
 
 Tone: warm, respectful (use "Karibu", "Tafadhali"), no slang, no emoji in system errors. Elders are addressed formally.
 

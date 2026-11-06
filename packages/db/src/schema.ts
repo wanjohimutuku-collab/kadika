@@ -39,6 +39,33 @@ export const currencyEnum = pgEnum('currency', ['TZS', 'KES']);
 export const eventPlanEnum = pgEnum('event_plan', ['free', 'paid']);
 /** What the customer bought (ADR 055): the full card product, or SMS reminders only. */
 export const eventProductEnum = pgEnum('event_product', ['cards', 'sms']);
+/**
+ * First-party anonymous event names (ADR 057). Adding a name needs an ADR amendment.
+ * The ingest service rejects any name outside this list.
+ */
+export const analyticsEventEnum = pgEnum('analytics_event', [
+  'page_view',
+  'start_registration',
+  'complete_registration',
+  'create_event',
+  'complete_event_setup',
+  'create_invitation',
+  'share_invitation',
+  'add_guest',
+  'receive_rsvp',
+  'record_contribution',
+  'scan_qr',
+  'complete_checkin',
+]);
+/** Visitor's device class, from the User-Agent, bucketed before the hash so it is never free text. */
+export const analyticsDeviceEnum = pgEnum('analytics_device', ['mobile', 'tablet', 'desktop']);
+/** Where the visit arrived from, derived from the referrer host (ADR 057 §3). */
+export const analyticsSourceEnum = pgEnum('analytics_source', [
+  'direct',
+  'search',
+  'social',
+  'referral',
+]);
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'committee', 'gate']);
 export const languageEnum = pgEnum('language', ['sw', 'en']);
 export const channelPrefEnum = pgEnum('invite_channel_pref', ['whatsapp', 'sms', 'print', 'mixed']);
@@ -740,5 +767,37 @@ export const smsCampaigns = pgTable(
   (t) => [
     index('sms_campaigns_due_idx').on(t.status, t.scheduledFor),
     index('sms_campaigns_event_idx').on(t.eventId, t.createdAt),
+  ],
+);
+
+/**
+ * Anonymous first-party analytics (ADR 057). Guarded behind `ANALYTICS_ENABLED`. No user id, no
+ * guest id, no event id, no phone, no amount; `sessionHash` is a daily-rotating BLAKE2b-256 digest
+ * of ip + user-agent + a secret, so it cannot be joined with other logs and does not survive the
+ * day. Retention is 180 days, trimmed by a daily worker (ADR 057 §6).
+ */
+export const analyticsEvents = pgTable(
+  'analytics_events',
+  {
+    id: id(),
+    name: analyticsEventEnum('name').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    /** 32-byte BLAKE2b-256 digest. Grouping key only; never joinable with other identity logs. */
+    sessionHash: text('session_hash').notNull(),
+    market: text('market').notNull(),
+    locale: text('locale').notNull(),
+    edition: text('edition').notNull(),
+    /** Public page path, query stripped, at most 160 chars. */
+    path: text('path').notNull(),
+    /** Referrer host only, never the path or query; at most 80 chars. */
+    referrerHost: text('referrer_host'),
+    device: analyticsDeviceEnum('device').notNull(),
+    source: analyticsSourceEnum('source').notNull().default('direct'),
+    /** Whitelisted small values only; the ingest service strips any other key. */
+    properties: jsonb('properties').$type<Record<string, string>>().notNull().default({}),
+  },
+  (t) => [
+    index('analytics_events_name_time_idx').on(t.name, t.occurredAt),
+    index('analytics_events_time_idx').on(t.occurredAt),
   ],
 );

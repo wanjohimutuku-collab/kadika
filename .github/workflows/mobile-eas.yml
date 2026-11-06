@@ -1,13 +1,54 @@
-# Placeholder (Phase 4): EAS preview on PR label, production on tag.
+# Preview APK on PR when it carries the `eas:preview` label; production AAB on tags like
+# `mobile-v*`. Requires EXPO_TOKEN in repo secrets (Expo access token with EAS build scope).
 name: Mobile EAS
+
 on:
+  pull_request:
+    types: [labeled, synchronize]
+  push:
+    tags: ['mobile-v*']
   workflow_dispatch:
+    inputs:
+      profile:
+        description: Build profile from eas.json
+        type: choice
+        default: preview
+        options: [preview, production]
 
 permissions:
   contents: read
 
+concurrency:
+  group: mobile-eas-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  placeholder:
+  build:
+    # Preview only runs if the PR event carries the eas:preview label (or on resyncs of a PR that
+    # already has it); production and manual dispatches run unconditionally.
+    if: |
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'eas:preview')
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Tags push production; labelled PRs and workflow_dispatch default to preview.
+      PROFILE: >-
+        ${{ startsWith(github.ref, 'refs/tags/mobile-v')
+            && 'production'
+            || (inputs.profile || 'preview') }}
     steps:
-      - run: echo "Not implemented in Phase 0. See CLAUDE.md section 11."
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - name: Build Android ${{ env.PROFILE }}
+        working-directory: apps/mobile
+        run: eas build --platform android --profile "$PROFILE" --non-interactive --no-wait

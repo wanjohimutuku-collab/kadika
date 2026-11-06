@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { radius, spacing, useColors } from '../lib/theme';
 import { Icon, type IconName } from './icons';
@@ -20,6 +22,18 @@ import { useT } from '../lib/i18n';
 
 /** Touch targets are at least 48 dp (§17.1). */
 const MIN = 48;
+
+/**
+ * Subtle tactile feedback on primary presses (§17.13). Web is a no-op; §17.12 keeps haptics
+ * optional at the OS level, so this never steals control from users who have them off.
+ */
+function tapFeedback(variant: 'light' | 'warn' = 'light') {
+  if (Platform.OS === 'web') return;
+  const style =
+    variant === 'warn' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light;
+  // Fire-and-forget; a rejected promise on an unsupported device must not crash the tap.
+  Haptics.impactAsync(style).catch(() => {});
+}
 
 export function Screen({
   children,
@@ -129,7 +143,12 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!off, busy: !!loading }}
       disabled={off}
-      onPress={onPress}
+      onPress={() => {
+        if (variant === 'primary' || variant === 'danger') {
+          tapFeedback(variant === 'danger' ? 'warn' : 'light');
+        }
+        onPress();
+      }}
       style={({ pressed }) => [
         {
           minHeight: 52,
@@ -143,6 +162,7 @@ export function Button({
           flexDirection: 'row',
           gap: spacing.sm,
           opacity: off ? 0.5 : pressed ? 0.85 : 1,
+          transform: pressed && !off ? [{ scale: 0.98 }] : undefined,
         },
         style,
       ]}
@@ -721,7 +741,10 @@ export function Tile({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: !!selected }}
-      onPress={onPress}
+      onPress={() => {
+        tapFeedback('light');
+        onPress();
+      }}
       style={({ pressed }) => ({
         flexGrow: 1,
         flexBasis: '45%',
@@ -733,6 +756,7 @@ export function Tile({
         borderColor: selected ? c.primary : c.border,
         backgroundColor: selected ? c.primary + '12' : c.surface,
         opacity: pressed ? 0.85 : 1,
+        transform: pressed ? [{ scale: 0.98 }] : undefined,
       })}
     >
       <Icon name={icon} size={24} color={c.primary} />

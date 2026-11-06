@@ -4,7 +4,15 @@ import { use, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, ContactRound, Search, Send, Trash2, UserPlus } from 'lucide-react';
+import {
+  ClipboardList,
+  ContactRound,
+  Search,
+  Send,
+  Smartphone,
+  Trash2,
+  UserPlus,
+} from 'lucide-react';
 import type { Guest } from '@harusi/api-client';
 import type { Country } from '@harusi/schemas/country';
 import {
@@ -26,6 +34,7 @@ import { eventScopedKeys, useEvent } from '@/lib/queries';
 import { formatPhone } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { savePicked, useContacts } from '@/components/sms/shared';
+import { ContactsSheet } from '@/components/console/guests/contacts-sheet';
 
 /**
  * Wapokeaji (ADR 055): the SMS-only customer's contact list. Contacts are the event's guests, kept to
@@ -46,6 +55,7 @@ export default function SmsContactsPage({ params }: { params: Promise<{ id: stri
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [pasting, setPasting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const language = event.data?.languageDefault ?? 'sw';
 
@@ -106,6 +116,14 @@ export default function SmsContactsPage({ params }: { params: Promise<{ id: stri
         }
         actions={
           <>
+            <Button
+              variant="secondary"
+              icon={<Smartphone className="size-5" aria-hidden="true" />}
+              onClick={() => setImporting(true)}
+              data-testid="sms-contacts-from-contacts"
+            >
+              {t('fromContacts')}
+            </Button>
             <Button
               variant="secondary"
               icon={<ClipboardList className="size-5" aria-hidden="true" />}
@@ -238,6 +256,13 @@ export default function SmsContactsPage({ params }: { params: Promise<{ id: stri
         eventId={id}
         existing={contacts.data ?? []}
         onSaved={refresh}
+      />
+      <ContactsSheet
+        eventId={id}
+        open={importing}
+        onOpenChange={setImporting}
+        onImported={() => void refresh()}
+        channel="sms"
       />
     </>
   );

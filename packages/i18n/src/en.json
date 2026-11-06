@@ -521,9 +521,9 @@
     "auto": "Per guest"
   },
   "events": {
-    "title": "My events",
-    "new": "New event",
-    "empty": "You have no events yet. Start by creating your first event.",
+    "title": "My weddings",
+    "new": "New wedding",
+    "empty": "You have no weddings yet. Start by creating your first wedding.",
     "daysLeft": "{days, plural, =0 {Today} one {# day left} other {# days left}}",
     "daysAgo": "{days, plural, one {# day ago} other {# days ago}}",
     "statusPill": {
@@ -539,7 +539,7 @@
     "smsBadge": "SMS only"
   },
   "wizard": {
-    "title": "New event",
+    "title": "New wedding",
     "stepOf": "Step {current} of {total}",
     "steps": {
       "names": "Names & date",
@@ -551,8 +551,8 @@
     "kindHint": "Choose one or write your own, for example Graduation or Kitchen party",
     "hostA": "Host name (or first name)",
     "hostB": "Second name (optional)",
-    "partnerA": "Host name (or first name)",
-    "partnerB": "Second name (optional)",
+    "partnerA": "Bride's name",
+    "partnerB": "Groom's name",
     "titleHint": "Shown on the dashboard only",
     "date": "Date and time",
     "dateHint": "East Africa Time (EAT)",
@@ -579,11 +579,11 @@
     "draftSaved": "Draft saved on this device",
     "draftRestored": "We restored your draft",
     "discardDraft": "Start over",
-    "create": "Create event",
-    "created": "Event created",
+    "create": "Create wedding",
+    "created": "Wedding created",
     "reviewEdit": "Edit",
     "preview": "This is how the card will look",
-    "eventTitle": "Event title",
+    "eventTitle": "Wedding title",
     "coverSunset": "Sample photo: Sunset",
     "coverGarden": "Sample photo: Garden"
   },
@@ -767,7 +767,9 @@
     },
     "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate.",
     "printCard": "Printed card",
-    "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once."
+    "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once.",
+    "prefill": "Pick from contacts",
+    "prefillTitle": "Pick one person"
   },
   "import": {
     "title": "Import guest list",
@@ -2354,7 +2356,7 @@
     "google": "Google Contacts",
     "googleHelp": "Google will ask you for read-only access. We remove it as soon as we have finished reading.",
     "file": "Contacts file",
-    "fileHelp": "iPhone or iCloud: icloud.com/contacts → Export vCard. Google: contacts.google.com → Export. Android: Contacts → Export to .vcf file.",
+    "fileHelp": "vCard (.vcf) file or Google Contacts CSV. Up to 5 MB.",
     "chooseFile": "Choose file",
     "notContacts": "This file has no readable contacts",
     "tooLarge": "The file is too large (over 5 MB)",
@@ -2372,7 +2374,36 @@
     "permPhone": "Allow Kadi Sasa to read contacts in your phone settings, or paste a list instead.",
     "limited": "You allowed only some contacts. You can allow more in your phone settings.",
     "read": "Read contacts",
-    "readHelp": "Kadi Sasa will ask for permission to read your contacts. Nothing is sent until you confirm."
+    "readHelp": "Kadi Sasa will ask for permission to read your contacts. Nothing is sent until you confirm.",
+    "back": "Back",
+    "sources": {
+      "phone": {
+        "label": "This phone's contacts",
+        "help": "Pick straight from the address book on this device.",
+        "fallbackHelp": "This browser can't read phone contacts directly. Use the Kadi Sasa Android app, or export a .vcf file from your phone and upload it here.",
+        "upload": "Upload contacts file (.vcf)",
+        "steps": "On your phone:\n1. Open Contacts\n2. Tap ⋮ → Export or Share\n3. Pick vCard (.vcf) format\n4. Send the file to this computer and choose it below."
+      },
+      "google": {
+        "label": "Google Contacts",
+        "help": "Sign in with Google and read contacts directly. We ask for read-only access and remove it as soon as we're done.",
+        "fallbackHelp": "Google Contacts sign-in isn't set up on this instance yet. In the meantime, export your contacts from Google and upload the file here.",
+        "upload": "Upload Google export",
+        "steps": "On a computer:\n1. Open contacts.google.com\n2. Click ⋮ (menu) → Export\n3. Choose Google CSV or vCard (.vcf)\n4. Upload the file below."
+      },
+      "icloud": {
+        "label": "iCloud contacts (iPhone)",
+        "fallbackHelp": "Apple has no direct web API. Export a vCard from iCloud or your iPhone and upload it here.",
+        "upload": "Upload iCloud vCard",
+        "steps": "On a computer:\n1. Open icloud.com/contacts (sign in with your Apple ID)\n2. Select all contacts (Ctrl+A or Cmd+A)\n3. Click ⚙ (gear) → Export vCard\n4. Upload the .vcf file below.\n\nOn iPhone:\n• Contacts → choose a card → Share Contact → AirDrop/Email a .vcf file."
+      },
+      "other": {
+        "label": "Other source (Outlook, Yahoo, file)",
+        "fallbackHelp": "vCard (.vcf, versions 2.1/3.0/4.0) or Google Contacts CSV. Works for Outlook, Yahoo and most other apps.",
+        "upload": "Upload contacts file",
+        "steps": "Open your contacts app (Outlook, Yahoo, etc.), choose Export and pick vCard (.vcf) or Google Contacts CSV. Then upload the file below."
+      }
+    }
   },
   "gateJoinPage": {
     "metaTitle": "Gate link · {brand}",
@@ -2480,7 +2511,8 @@
       "pasteSummary": "{ok} ready · {noPhone} without a number · {invalid} with errors · {duplicate} repeated",
       "pasteSave": "Add {count}",
       "pasteDone": "{count, plural, one {# person added} other {# people added}}",
-      "pasteNothing": "No valid line to add."
+      "pasteNothing": "No valid line to add.",
+      "fromContacts": "From contacts"
     },
     "compose": {
       "title": "Write a message",

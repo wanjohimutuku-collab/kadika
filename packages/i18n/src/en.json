@@ -2393,14 +2393,12 @@
       },
       "icloud": {
         "label": "iCloud contacts (iPhone)",
-        "help": "",
         "fallbackHelp": "Apple has no direct web API. Export a vCard from iCloud or your iPhone and upload it here.",
         "upload": "Upload iCloud vCard",
         "steps": "On a computer:\n1. Open icloud.com/contacts (sign in with your Apple ID)\n2. Select all contacts (Ctrl+A or Cmd+A)\n3. Click ⚙ (gear) → Export vCard\n4. Upload the .vcf file below.\n\nOn iPhone:\n• Contacts → choose a card → Share Contact → AirDrop/Email a .vcf file."
       },
       "other": {
         "label": "Other source (Outlook, Yahoo, file)",
-        "help": "",
         "fallbackHelp": "vCard (.vcf, versions 2.1/3.0/4.0) or Google Contacts CSV. Works for Outlook, Yahoo and most other apps.",
         "upload": "Upload contacts file",
         "steps": "Open your contacts app (Outlook, Yahoo, etc.), choose Export and pick vCard (.vcf) or Google Contacts CSV. Then upload the file below."

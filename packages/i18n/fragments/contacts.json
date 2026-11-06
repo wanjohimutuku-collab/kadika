@@ -50,14 +50,12 @@
         },
         "icloud": {
           "label": "Anwani za iCloud (iPhone)",
-          "help": "",
           "fallbackHelp": "Apple haina API ya moja kwa moja. Hamisha vCard kutoka kwenye iCloud au iPhone yako kisha uipakie hapa.",
           "upload": "Pakia vCard kutoka iCloud",
           "steps": "Kwenye kompyuta:\n1. Fungua icloud.com/contacts (ingia na Apple ID yako)\n2. Chagua anwani zote (Ctrl+A au Cmd+A)\n3. Bofya ⚙ (gear) → Hamisha vCard\n4. Pakia faili la .vcf hapa chini.\n\nKwenye iPhone:\n• Anwani → chagua kadi → Share Contact → AirDrop/Email faili la .vcf."
         },
         "other": {
           "label": "Chanzo kingine (Outlook, Yahoo, faili)",
-          "help": "",
           "fallbackHelp": "Faili la vCard (.vcf, toleo 2.1/3.0/4.0) au CSV ya Google Contacts. Yanafaa kwa Outlook, Yahoo na programu nyingine.",
           "upload": "Pakia faili la anwani",
           "steps": "Fungua programu yako ya anwani (Outlook, Yahoo, n.k.), chagua Hamisha (Export) na chagua muundo wa vCard (.vcf) au CSV ya Google Contacts. Kisha pakia faili hapa chini."
@@ -116,14 +114,12 @@
         },
         "icloud": {
           "label": "iCloud contacts (iPhone)",
-          "help": "",
           "fallbackHelp": "Apple has no direct web API. Export a vCard from iCloud or your iPhone and upload it here.",
           "upload": "Upload iCloud vCard",
           "steps": "On a computer:\n1. Open icloud.com/contacts (sign in with your Apple ID)\n2. Select all contacts (Ctrl+A or Cmd+A)\n3. Click ⚙ (gear) → Export vCard\n4. Upload the .vcf file below.\n\nOn iPhone:\n• Contacts → choose a card → Share Contact → AirDrop/Email a .vcf file."
         },
         "other": {
           "label": "Other source (Outlook, Yahoo, file)",
-          "help": "",
           "fallbackHelp": "vCard (.vcf, versions 2.1/3.0/4.0) or Google Contacts CSV. Works for Outlook, Yahoo and most other apps.",
           "upload": "Upload contacts file",
           "steps": "Open your contacts app (Outlook, Yahoo, etc.), choose Export and pick vCard (.vcf) or Google Contacts CSV. Then upload the file below."

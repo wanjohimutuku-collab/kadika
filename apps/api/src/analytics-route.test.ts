@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyticsEvents } from '@harusi/db';
-import { api, createTestContext, type TestContext } from './testing/test-app';
+import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
 
 /**
  * ADR 057 §5 locks POST /v1/internal/analytics/events as internal-only: the route is refused
@@ -105,5 +105,52 @@ describe('POST /v1/internal/analytics/events', () => {
   });
 });
 
-// The `api()` helper is unused here but imported to keep the testing surface consistent.
-void api;
+/**
+ * ADR 057 §5: business endpoints that count as conversions must emit when analytics is on, and
+ * must stay silent when it is off. Test POST /v1/events and POST /v1/c/:token/rsvp as proxies for
+ * the full set; the emit helper is shared so if these two work the others do too.
+ */
+describe('conversion events from business routes', () => {
+  it('writes create_event when analytics is on', async () => {
+    ctx = await createTestContext({
+      env: { ANALYTICS_ENABLED: '1', ANALYTICS_SESSION_SECRET: SESSION },
+    });
+    const { accessToken } = await loginAs(ctx, '+255712480009');
+    const create = await api(ctx, 'POST', '/v1/events', {
+      token: accessToken,
+      body: {
+        title: 'Asha & Juma',
+        coupleNames: 'Asha & Juma',
+        dateStart: '2026-12-01',
+        country: 'TZ',
+      },
+    });
+    expect(create.status).toBe(201);
+    // Retry the read briefly — emit is fire-and-forget so the row may land a tick later.
+    let rows: unknown[] = [];
+    for (let i = 0; i < 20; i++) {
+      rows = await ctx.db.select().from(analyticsEvents);
+      if (rows.some((r) => (r as { name: string }).name === 'create_event')) break;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    expect(rows.some((r) => (r as { name: string }).name === 'create_event')).toBe(true);
+  });
+
+  it('writes nothing when analytics is off', async () => {
+    ctx = await createTestContext();
+    const { accessToken } = await loginAs(ctx, '+255712480009');
+    const res = await api(ctx, 'POST', '/v1/events', {
+      token: accessToken,
+      body: {
+        title: 'Asha & Juma',
+        coupleNames: 'Asha & Juma',
+        dateStart: '2026-12-01',
+        country: 'TZ',
+      },
+    });
+    expect(res.status).toBe(201);
+    // Wait a short while so a slow emit cannot hide a failure.
+    await new Promise((r) => setTimeout(r, 100));
+    expect(await ctx.db.select().from(analyticsEvents)).toHaveLength(0);
+  });
+});

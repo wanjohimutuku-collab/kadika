@@ -261,10 +261,10 @@ a fresh dump: `docker exec <backup container> sh -c 'pg_dump --no-owner --no-acl
 
 ## Keeping deploys fast
 
-**The pipeline.** A push to `main` builds both images in parallel in GitHub Actions (`docker buildx bake`,
-[`infra/docker/docker-bake.hcl`](../docker/docker-bake.hcl)), with the layer cache in the GitHub Actions cache.
-The dependency install is reused until the lockfile or a `package.json` changes, so a code-only change rebuilds
-just the app (about a minute, versus about four before). Each image is then booted and its `/health` checked
+**The pipeline.** A release builds both images in parallel in GitHub Actions (`docker buildx bake`,
+[`infra/docker/docker-bake.hcl`](../docker/docker-bake.hcl)), with the layer cache in GHCR. The dependency install
+is reused until the lockfile or a `package.json` changes, and each image rebuilds only when a package it is built
+from changes ([ADR 056](../../docs/adr/056-shorter-commit-to-deploy.md)). Each image is then booted and its `/health` checked
 before the deploy branch moves, so an image that cannot start never reaches the server. Coolify only pulls, so the
 deploy itself is a pull and a restart; the run reports how long it took to go live.
 

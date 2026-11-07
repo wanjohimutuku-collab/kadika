@@ -39,8 +39,8 @@ jobs:
     # A release only goes out from code CI has already passed on.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # CI on main runs about 15 minutes, and a tag is usually pushed together with its commit, so
-    # wait for that run to finish instead of failing while it is still going.
+    # A tag can be pushed together with its commit, so wait for CI on that commit to finish instead of
+    # failing while it is still going.
     timeout-minutes: 45
     permissions:
       actions: read
@@ -89,6 +89,7 @@ jobs:
       packages: write
     outputs:
       prefix: ${{ steps.names.outputs.prefix }}
+      tag: ${{ steps.names.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -111,6 +112,8 @@ jobs:
           echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
+        with:
+          cleanup: false # the runner is thrown away, and removing the builder takes 20 seconds
 
       - uses: docker/login-action@v4
         with:
@@ -192,41 +195,6 @@ jobs:
           check web http://127.0.0.1:3000/api/health
           curl -sf http://127.0.0.1:3000/sw.js > /dev/null || { echo "::error::web is missing /sw.js"; exit 1; }
 
-      # Report-only for now (exit-code 0): HIGH and CRITICAL findings with a fix available go to the
-      # run summary and never block a release. Set exit-code to '1' once the list is clean.
-      # A scanner outage (continue-on-error) cannot block one either. Pinned to the v0.36.0 commit,
-      # since the action's tags were once rewritten upstream.
-      - name: Scan the API image
-        continue-on-error: true
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ steps.names.outputs.prefix }}-api:${{ steps.names.outputs.tag }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '0'
-          output: trivy-api.txt
-
-      - name: Scan the web image
-        continue-on-error: true
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        env:
-          TRIVY_SKIP_DB_UPDATE: 'true' # the API scan just downloaded it
-        with:
-          image-ref: ${{ steps.names.outputs.prefix }}-web:${{ steps.names.outputs.tag }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '0'
-          output: trivy-web.txt
-
-      - name: Report the scan
-        run: |
-          for image in api web; do
-            echo "### Vulnerabilities in $image (HIGH/CRITICAL, fixable)"
-            echo '```'
-            cat "trivy-$image.txt" 2>/dev/null || echo "No scan output."
-            echo '```'
-          done >> "$GITHUB_STEP_SUMMARY"
-
       - name: List what was pushed
         env:
           API_TAGS: ${{ steps.meta-api.outputs.tags }}
@@ -244,6 +212,56 @@ jobs:
             echo "$WEB_TAGS"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Its own job, alongside the deploy: the scan reports and decides nothing, so a release does not wait.
+  scan:
+    needs: build-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Report-only for now (exit-code 0): HIGH and CRITICAL findings with a fix available go to the
+      # run summary and never block a release. Set exit-code to '1' once the list is clean.
+      # A scanner outage (continue-on-error) cannot block one either. Pinned to the v0.36.0 commit,
+      # since the action's tags were once rewritten upstream.
+      - name: Scan the API image
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ needs.build-push.outputs.prefix }}-api:${{ needs.build-push.outputs.tag }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-api.txt
+
+      - name: Scan the web image
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_SKIP_DB_UPDATE: 'true' # the API scan just downloaded it
+        with:
+          image-ref: ${{ needs.build-push.outputs.prefix }}-web:${{ needs.build-push.outputs.tag }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          output: trivy-web.txt
+
+      - name: Report the scan
+        run: |
+          for image in api web; do
+            echo "### Vulnerabilities in $image (HIGH/CRITICAL, fixable)"
+            echo '```'
+            cat "trivy-$image.txt" 2>/dev/null || echo "No scan output."
+            echo '```'
+          done >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     needs: [verify-ci, build-push]

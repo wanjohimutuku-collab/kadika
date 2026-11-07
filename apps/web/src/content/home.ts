@@ -35,6 +35,13 @@ export interface HomeHeroFormLabels {
   };
   downloadCta: string;
   downloadAria: string;
+  shareCta: string;
+  shareAria: string;
+  shareDialogTitle: string;
+  shareScanHint: string;
+  shareCopy: string;
+  shareCopied: string;
+  shareClose: string;
 }
 
 export interface TryStep {
@@ -210,6 +217,13 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       },
       downloadCta: 'Pakua picha',
       downloadAria: 'Pakua picha ya kadi',
+      shareCta: 'Shiriki',
+      shareAria: 'Shiriki kadi hii kwa simu yoyote',
+      shareDialogTitle: 'Fungua kadi kwenye simu',
+      shareScanHint: 'Changanua kwa kamera ya simu kufungua kadi',
+      shareCopy: 'Nakili kiungo',
+      shareCopied: 'Kimenakiliwa',
+      shareClose: 'Funga',
     },
     heroPreviewOpen: 'Tazama kadi kamili',
     trustLine: 'Hulipi mpaka utume kadi · Ada moja · Inatumika pia bila mtandao',
@@ -461,6 +475,13 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       },
       downloadCta: 'Download card',
       downloadAria: 'Download card as image',
+      shareCta: 'Share',
+      shareAria: 'Share this card to any phone',
+      shareDialogTitle: 'Open this card on a phone',
+      shareScanHint: 'Scan with a phone camera to open the card',
+      shareCopy: 'Copy link',
+      shareCopied: 'Copied',
+      shareClose: 'Close',
     },
     heroPreviewOpen: 'See the full card',
     trustLine: 'You don’t pay until you send · One fee · Works offline too',
@@ -706,6 +727,13 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       },
       downloadCta: 'Download card',
       downloadAria: 'Download card as image',
+      shareCta: 'Share',
+      shareAria: 'Share this card to any phone',
+      shareDialogTitle: 'Open this card on a phone',
+      shareScanHint: 'Scan with a phone camera to open the card',
+      shareCopy: 'Copy link',
+      shareCopied: 'Copied',
+      shareClose: 'Close',
     },
     heroPreviewOpen: 'See the full card',
     trustLine: 'Kenya pilot · One fee per card · Works offline too',

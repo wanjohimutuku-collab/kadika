@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Download } from 'lucide-react';
+import { Check, Copy, Download, Share2, X } from 'lucide-react';
 import {
   buildDemoCardView,
   DEMO_EVENT_TYPES,
@@ -10,23 +10,21 @@ import {
   THEME_STOPS,
   type DemoEventType,
 } from '@/lib/demo-card';
-import { renderCard, shell } from '@/lib/light-card/render';
-import { resolvePalette } from '@harusi/ui-tokens/palette';
 import type { ThemeId } from '@harusi/ui-tokens/themes';
 import { emit, hashShort } from '@/lib/analytics-client';
 import type { HomeHeroFormLabels } from '@/content/home';
-import type { CardView } from '@harusi/api-client';
 
 /**
  * Interactive hero. Four inputs (names, date, event kind, theme) drive a live preview rendered
  * into a drawn phone body, and the secondary CTA hands a `/jaribu?...` deep link to the real
  * guest card. The Download button captures the full `renderCard + shell` template (same code
- * path `/jaribu` uses) into a PNG via an SVG `foreignObject`, so the file matches the chosen
+ * path `/jaribu` uses) into an SVG via an SVG `foreignObject`, so the file matches the chosen
  * theme end-to-end: trust strip, cover, RSVP, QR, short code, pledge summary, brand footer.
+ *
+ * The heavy `renderCard + shell + resolvePalette` tree and the QR encoder are dynamically
+ * imported so they only land in the client bundle after the visitor acts — the home's LCP
+ * budget (§10) can't afford them at the hero's first paint.
  */
-
-const CARD_PNG_WIDTH = 1080;
-const CARD_PNG_HEIGHT = 1920;
 
 function nextSaturdayISO(): string {
   const d = new Date();
@@ -52,69 +50,6 @@ function slugify(s: string): string {
     .slice(0, 48);
 }
 
-/**
- * Build the exact `/jaribu` document for a view, then hand it to the browser as an SVG download
- * that carries the complete card template. We ship SVG (not a raster PNG) because Chrome taints
- * any canvas that drew foreignObject content, so `canvas.toBlob` throws — and the SVG is the
- * truest representation anyway: vector, infinitely scalable, inline CSS, inline QR, every
- * element of the real `renderCard + shell` output.
- */
-async function renderDemoCardToSvg(opts: {
-  view: CardView;
-  locale: 'sw' | 'en';
-  themeId: ThemeId;
-  filename: string;
-}): Promise<void> {
-  const { view, locale, filename } = opts;
-  const palette = resolvePalette(view.event?.themeId, view.event?.palette);
-  const inner = renderCard(view, {
-    token: 'demo',
-    locale,
-    domain: 'kadisasa.co.tz',
-    mode: 'mock',
-    apiUrl: 'https://kadisasa.co.tz',
-  });
-  const doc = shell({ locale, title: 'Kadi', palette, body: inner });
-
-  // Pull the inlined <style> and the sanitised body out of the document so we can drop them
-  // inside an <svg><foreignObject>...</foreignObject></svg> wrapper. Scripts are removed because
-  // foreignObject needs XHTML-well-formed content and the card's CLIENT_SCRIPT uses raw `<` / `&`.
-  const parsed = new DOMParser().parseFromString(doc, 'text/html');
-  const styleBlocks = Array.from(parsed.head.querySelectorAll('style'))
-    .map((s) => s.textContent ?? '')
-    .join('\n');
-  parsed.body.querySelectorAll('script').forEach((n) => n.remove());
-  const serializer = new XMLSerializer();
-  const bodyXml = Array.from(parsed.body.childNodes)
-    .map((n) => serializer.serializeToString(n))
-    .join('');
-  const styleCdata = `/*<![CDATA[*/${styleBlocks}/*]]>*/`;
-  const bgColor = escapeHtml(palette.bg);
-  const w = CARD_PNG_WIDTH;
-  const h = CARD_PNG_HEIGHT;
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-    `<foreignObject x="0" y="0" width="${w}" height="${h}">` +
-    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;background:${bgColor};font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden">` +
-    `<style>${styleCdata}</style>` +
-    `<div style="width:640px;transform:scale(1.25);transform-origin:top center">${bodyXml}</div>` +
-    `</div></foreignObject></svg>`;
-
-  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  try {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } finally {
-    // Delay revoke so the browser can finish fetching the blob for download.
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-  }
-}
-
 export interface HeroLiveProps {
   locale: 'sw' | 'en';
   h1: string;
@@ -134,6 +69,8 @@ export function HeroLive(props: HeroLiveProps) {
   const [themeChoice, setThemeChoice] = useState<ThemeId | 'auto'>('auto');
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const timer = useRef<number | null>(null);
 
   const themeId: ThemeId = useMemo(() => {
@@ -197,10 +134,86 @@ export function HeroLive(props: HeroLiveProps) {
     themeChoice !== 'auto' ? `&theme=${encodeURIComponent(themeChoice)}` : ''
   }`;
 
+  const shareTitle = useMemo(
+    () => view.event?.coupleNames ?? 'Kadi',
+    [view.event?.coupleNames],
+  );
+
+  const shareCard = useCallback(async () => {
+    const absolute = new URL(secondaryHref, window.location.origin).toString();
+    emit('home_hero_share_click', { themeId, eventType });
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function' &&
+      // iOS/Android share sheets accept url; feature-detect to avoid desktop pop-under quirks.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (navigator as any).canShare?.({ url: absolute }) !== false
+    ) {
+      try {
+        await navigator.share({ title: shareTitle, text: shareTitle, url: absolute });
+        emit('home_hero_share_native');
+        return;
+      } catch {
+        // User cancelled or the sheet failed; fall through to the QR dialog.
+      }
+    }
+    setCopied(false);
+    setShareUrl(absolute);
+    emit('home_hero_share_dialog');
+  }, [secondaryHref, shareTitle, themeId, eventType]);
+
+  const closeShare = useCallback(() => {
+    setShareUrl(null);
+    setCopied(false);
+  }, []);
+
+  const copyShareUrl = useCallback(async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      emit('home_hero_share_copy');
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard denied — the link is still visible in the input for manual copy.
+    }
+  }, [shareUrl]);
+
+  // Dismiss on Escape so the dialog is keyboard-operable even without a focus trap.
+  useEffect(() => {
+    if (!shareUrl) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeShare();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [shareUrl, closeShare]);
+
+  const [shareQr, setShareQr] = useState<{ path: string; dim: number } | null>(null);
+  useEffect(() => {
+    if (!shareUrl) {
+      setShareQr(null);
+      return;
+    }
+    let cancelled = false;
+    // Lazy-load the QR encoder on demand — it would otherwise be pulled into the home's first
+    // paint bundle and hurt LCP (§10). Share is a secondary, user-initiated path.
+    void import('@/lib/qr').then(({ qrMatrix, qrPath, QR_QUIET_ZONE }) => {
+      if (cancelled) return;
+      const m = qrMatrix(shareUrl);
+      const dim = m.size + QR_QUIET_ZONE * 2;
+      setShareQr({ path: qrPath(m), dim });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [shareUrl]);
+
   const downloadCard = useCallback(async () => {
     if (downloading) return;
     setDownloading(true);
     try {
+      const { renderDemoCardToSvg } = await import('@/lib/download-demo-card');
       await renderDemoCardToSvg({
         view,
         locale: props.locale,
@@ -349,6 +362,16 @@ export function HeroLive(props: HeroLiveProps) {
             <Download className="size-4" strokeWidth={2} aria-hidden="true" />
             {props.form.downloadCta}
           </button>
+          <button
+            type="button"
+            onClick={shareCard}
+            aria-label={props.form.shareAria}
+            data-testid="home-hero-share"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ks-ink/15 bg-white px-6 font-semibold text-ks-ink"
+          >
+            <Share2 className="size-4" strokeWidth={2} aria-hidden="true" />
+            {props.form.shareCta}
+          </button>
         </div>
         <p className="text-sm text-ks-muted">{props.footnote}</p>
       </div>
@@ -417,6 +440,72 @@ export function HeroLive(props: HeroLiveProps) {
           </div>
         </div>
       </div>
+
+      {shareUrl && shareQr ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={props.form.shareDialogTitle}
+          data-testid="home-hero-share-dialog"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={closeShare}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeShare}
+              aria-label={props.form.shareClose}
+              className="absolute right-3 top-3 inline-flex size-9 items-center justify-center rounded-full text-ks-muted hover:bg-ks-border/40"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </button>
+            <h2 className="pr-8 text-base font-semibold text-ks-ink">
+              {props.form.shareDialogTitle}
+            </h2>
+            <p className="mt-1 text-sm text-ks-muted">{props.form.shareScanHint}</p>
+            <div className="mt-4 flex items-center justify-center rounded-xl border border-ks-border bg-white p-4">
+              <svg
+                viewBox={`0 0 ${shareQr.dim} ${shareQr.dim}`}
+                width={240}
+                height={240}
+                role="img"
+                aria-label={props.form.shareDialogTitle}
+                className="block"
+                shapeRendering="crispEdges"
+              >
+                <rect width={shareQr.dim} height={shareQr.dim} fill="#FFFFFF" />
+                <path d={shareQr.path} fill="#000000" />
+              </svg>
+            </div>
+            <div className="mt-4 flex items-stretch gap-2">
+              <input
+                readOnly
+                value={shareUrl}
+                aria-label={props.form.shareDialogTitle}
+                onFocus={(e) => e.currentTarget.select()}
+                className="h-11 min-w-0 flex-1 rounded-ks border border-ks-border bg-ks-bg px-3 text-sm text-ks-ink"
+              />
+              <button
+                type="button"
+                onClick={copyShareUrl}
+                aria-label={props.form.shareCopy}
+                data-testid="home-hero-share-copy"
+                className="inline-flex h-11 min-w-28 items-center justify-center gap-2 rounded-full bg-ks-green-700 px-4 text-sm font-semibold text-white"
+              >
+                {copied ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+                {copied ? props.form.shareCopied : props.form.shareCopy}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

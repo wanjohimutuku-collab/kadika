@@ -133,7 +133,7 @@ function Blocks({ blocks }: { blocks: Block[] }) {
 
 function jsonLd(page: ContentPageDef, locale: Locale) {
   const t = textOf(page, locale);
-  const path = pagePath(page);
+  const path = pagePath(page, locale);
   const market = marketOf(page);
   const url = absoluteLocaleUrl(path, locale);
   const name = DEFAULT_BRANDING.businessName;
@@ -199,7 +199,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
   const t = textOf(page, locale);
   const ui = UI[locale];
   const market = marketOf(page);
-  const path = pagePath(page);
+  const path = pagePath(page, locale);
   const related = page.related
     .map((s) => resolveRelated(page, s))
     .filter((p): p is ContentPageDef => !!p);
@@ -210,7 +210,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
       <SeoLinks
         path={path}
         locale={locale}
-        counterpartPath={counterpart ? pagePath(counterpart) : undefined}
+        counterpartPath={counterpart ? pagePath(counterpart, locale) : undefined}
       />
       <script
         type="application/ld+json"
@@ -382,7 +382,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
             {related.map((r) => (
               <li key={r.slug} className="ks-reveal">
                 <Link
-                  href={localeUrl(pagePath(r), locale)}
+                  href={localeUrl(pagePath(r, locale), locale)}
                   className="group ks-ease flex min-h-16 items-center justify-between gap-4 rounded-[1.5rem] bg-white py-3 pr-3 pl-5 font-semibold shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.5)] active:scale-[0.99]"
                 >
                   {textOf(r, locale).nav}

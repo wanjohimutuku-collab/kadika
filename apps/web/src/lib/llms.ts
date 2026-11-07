@@ -12,7 +12,7 @@ import { PRICING_PATH } from '@/lib/server-pricing';
 
 const u = (p: string) => `${SITE_URL}${p === '/' ? '' : p}`;
 /** English edition URL of a Tanzania page; Kenya pages are English already. */
-const enUrl = (p: ContentPageDef) => u(marketOf(p) === 'ke' ? pagePath(p) : `/en${pagePath(p)}`);
+const enUrl = (p: ContentPageDef) => u(pagePath(p, 'en'));
 
 export const SUMMARY =
   'Kadi Sasa is a Tanzanian service for digital invitation cards, michango (wedding contributions) and offline QR gate check-in, for weddings and other events in Tanzania, with Kenya support in pilot. Every guest gets their own card with a QR code and a short card number (for example KH-4826) by WhatsApp, SMS or on paper. The committee tracks replies, party sizes and pledges, and any committee phone becomes the gate, scanning even with no network.';
@@ -50,10 +50,10 @@ ${FACTS.map((f) => `- ${f}`).join('\n')}
 
 ## Main pages
 
-- [Home (Kiswahili)](${u('/')}): what Kadi Sasa does, in Swahili
-- [Home (English)](${u('/en')}): the same in English
-- [Pricing](${u(`/en${PRICING_PATH}`)}): per-card prices in TZS, free cards to start
-- [Android app](${u(`/en${APP_DOWNLOAD_PATH}`)}): the organizer and gate app
+- [Home (English)](${u('/')}): what Kadi Sasa does
+- [Home (Kiswahili)](${u('/sw')}): the same in Swahili
+- [Pricing](${u(PRICING_PATH)}): per-card prices in TZS, free cards to start
+- [Android app](${u(APP_DOWNLOAD_PATH)}): the organizer and gate app
 - [Check a card by its number](${u('/k')}): guests open their card with the short number
 
 ${section('Products and occasions', tz('product'))}
@@ -64,7 +64,7 @@ ${section('Kenya (pilot)', ke)}
 
 - [Full text of every guide](${u('/llms-full.txt')}): all pages above as plain Markdown, English edition
 - [Sitemap](${u('/sitemap.xml')})
-- [Privacy](${u('/en/privacy')}) and [terms](${u('/en/terms')})
+- [Privacy](${u('/privacy')}) and [terms](${u('/terms')})
 `.replace(/\n{3,}/g, '\n\n');
 }
 

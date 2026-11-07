@@ -17,7 +17,7 @@ export function pageMetadata(page: ContentPageDef, locale: Locale): Metadata {
       title: t.title,
       description: t.description,
       locale: `${locale}_${region}`,
-      url: absoluteLocaleUrl(pagePath(page), locale),
+      url: absoluteLocaleUrl(pagePath(page, locale), locale),
       images: ogImages(locale, marketOf(page)),
     },
   };

@@ -103,7 +103,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
   const path = market === 'ke' ? '/ke' : '/';
   const currency = market === 'ke' ? 'KES' : 'TZS';
   const contact = getPage('mawasiliano');
-  const pilotHref = contact ? localeUrl(pagePath(contact), 'en') : '/en';
+  const pilotHref = contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/';
   const primaryHref = market === 'ke' ? pilotHref : '/login';
   const appHref = localeUrl(APP_DOWNLOAD_PATH, locale);
   const name = DEFAULT_BRANDING.businessName;
@@ -317,7 +317,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
           {events.map((p) => (
             <li key={p.slug}>
               <Link
-                href={localeUrl(pagePath(p), locale)}
+                href={localeUrl(pagePath(p, locale), locale)}
                 className="group inline-flex min-h-12 items-center gap-3 rounded-full bg-white py-1.5 pr-1.5 pl-5 font-medium shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 ks-ease hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.5)] active:scale-[0.98]"
               >
                 {textOf(p, locale).nav}

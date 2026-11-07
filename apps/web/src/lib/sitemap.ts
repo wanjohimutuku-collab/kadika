@@ -34,9 +34,10 @@ export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
       : [];
   for (const p of ALL_PAGES) {
     if (marketOf(p) !== market) continue;
+    const path = pagePath(p, locale);
     pages.push({
-      path: pagePath(p),
-      counterpart: counterpartPath(pagePath(p)),
+      path,
+      counterpart: counterpartPath(path, locale),
       updated: p.updated,
       priority: weight(p),
     });

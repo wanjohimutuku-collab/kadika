@@ -55,6 +55,7 @@ import { safeErrorMessage } from './observability';
 import { BillingService } from './services/billing';
 import { SmsCampaignService } from './services/sms-campaigns';
 import { smsTargetSchema } from '@harusi/schemas/sms';
+import { createAnalyticsService, recordEventSchema } from './services/analytics';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
@@ -255,6 +256,16 @@ export function createApp(deps: Deps) {
   const auditSvc = new AuditService(deps, eventsSvc);
   const privacySvc = new PrivacyService(deps, eventsSvc);
   const reportSvc = new ReportService(deps, eventsSvc, deliverySvc, pledgeSvc, gateSvc);
+  // Public host for the analytics referrer check: taken from APP_BASE_URL, falling back to a
+  // sensible default. A malformed value leaves the host as the fallback rather than failing startup.
+  const analyticsSiteHost = (() => {
+    try {
+      return new URL(deps.config.appBaseUrl).host;
+    } catch {
+      return 'kadisasa.com';
+    }
+  })();
+  const analyticsSvc = createAnalyticsService(deps, analyticsSiteHost);
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
   const payReads = new RateLimiter(deps.now, 120, 60_000, 'pay-read', deps.rateStore);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000, 'gate-join', deps.rateStore);
@@ -452,6 +463,7 @@ export function createApp(deps: Deps) {
     c.req.path.startsWith('/v1/c/') ||
     c.req.path.startsWith('/v1/webhooks/') ||
     c.req.path.startsWith('/v1/payments/webhook/') ||
+    c.req.path.startsWith('/v1/internal/') ||
     c.req.path === '/v1/gate/join' ||
     c.req.path === '/v1/branding' ||
     c.req.path === '/v1/pricing' ||
@@ -624,6 +636,26 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     return c.json(await cardsSvc.rsvp(c.req.param('token'), input));
+  });
+
+  // ---- internal analytics ingest (ADR 057 §5): web RSC calls this with the shared secret.
+  // Not a public endpoint; no auth cookie, no CSRF, no bot traffic (the secret stops that). The
+  // service is a no-op when ANALYTICS_ENABLED is off, so this route always answers 204 and never
+  // reveals whether analytics is on.
+  const internalAnalyticsAuth = (c: Context) => {
+    const want = deps.config.analyticsInternalSecret;
+    if (!want) throw new ApiError('forbidden', 'Analytics ingest is not configured');
+    const got = c.req.header('x-internal-secret') ?? '';
+    const a = Buffer.from(got);
+    const b = Buffer.from(want);
+    if (a.length !== b.length || !timingSafeEqual(a, b))
+      throw new ApiError('unauthorized', 'Bad internal secret');
+  };
+  app.post('/v1/internal/analytics/events', async (c) => {
+    internalAnalyticsAuth(c);
+    const input = parse(recordEventSchema, await body(c));
+    await analyticsSvc.record(input);
+    return c.body(null, 204);
   });
 
   // ---- events

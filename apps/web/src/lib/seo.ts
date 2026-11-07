@@ -1,7 +1,7 @@
 import type { Locale } from '@harusi/i18n';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { APP_DOMAIN } from './env';
-import { enPath } from './site-locale';
+import { swPath } from './site-locale';
 
 /** Public origin used for canonical URLs, hreflang, the sitemap and structured data. */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${APP_DOMAIN}`).replace(
@@ -60,9 +60,9 @@ export function marketOfPath(path: string): Market {
   return path === '/ke' || path.startsWith('/ke/') ? 'ke' : 'tz';
 }
 
-/** Swahili on Tanzania pages (the root), English on Kenya pages (kit sitemap.md). */
-export function defaultLocaleFor(market: Market): Locale {
-  return market === 'ke' ? 'en' : 'sw';
+/** English on both markets (English-default scheme). */
+export function defaultLocaleFor(_market: Market): Locale {
+  return 'en';
 }
 
 /** Kenya pages are English only; Swahili may not be served there. */
@@ -71,12 +71,13 @@ export function localesFor(market: Market): readonly Locale[] {
 }
 
 /**
- * The URL of a site page in a language. Tanzania: Swahili at the plain path, English under `/en`.
- * Kenya: always the plain `/ke` path.
+ * The URL of a site page in a language. Tanzania: English at the plain path, Swahili under `/sw`.
+ * Kenya: always the plain `/ke` path. The caller is responsible for passing a slug-correct path
+ * via `pagePath(p, locale)`.
  */
 export function localeUrl(path: string, locale: Locale): string {
-  if (marketOfPath(path) === 'ke' || locale === 'sw') return path;
-  return enPath(path);
+  if (marketOfPath(path) === 'ke' || locale === 'en') return path;
+  return swPath(path);
 }
 
 export function absoluteLocaleUrl(path: string, locale: Locale): string {
@@ -95,10 +96,10 @@ export function hreflangMap(path: string, counterpartPath?: string): Record<stri
   const ke = market === 'ke' ? path : counterpartPath;
   const map: Record<string, string> = {};
   if (tz) {
-    map['sw-TZ'] = abs(tz, 'sw');
     map['en-TZ'] = abs(tz, 'en');
+    map['sw-TZ'] = abs(tz, 'sw');
   }
   if (ke) map['en-KE'] = abs(ke, 'en');
-  map['x-default'] = tz ? abs(tz, 'sw') : abs(ke!, 'en');
+  map['x-default'] = tz ? abs(tz, 'en') : abs(ke!, 'en');
   return map;
 }

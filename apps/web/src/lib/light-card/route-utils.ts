@@ -6,7 +6,7 @@ import type { LightBrand } from './render';
 /** The API as browsers reach it: the card's RSVP and the Kumbukumbu photos are fetched from here. */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
-/** The guest's chosen language (cookie), Swahili otherwise. */
+/** The guest's chosen language (cookie), English otherwise (@harusi/i18n defaultLocale). */
 export function localeOf(req: Request): Locale {
   const m = new RegExp(`(?:^|;\\s*)${LOCALE_COOKIE}=([^;]+)`).exec(req.headers.get('cookie') ?? '');
   return isLocale(m?.[1]) ? m![1] : defaultLocale;

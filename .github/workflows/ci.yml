@@ -8,38 +8,134 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same PR (or to main) cancels the run it supersedes.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Decides how much of CI this change needs, so docs and deploy-config changes do not pay for a full
+  # build, Storybook and the browser tests. Anything it cannot classify runs everything.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read # finds earlier passing runs
+      contents: read
+      pull-requests: read # lists a PR's files
+    outputs:
+      tested: ${{ steps.classify.outputs.tested }}
+      code: ${{ steps.classify.outputs.code }}
+      web: ${{ steps.classify.outputs.web }}
+    steps:
+      - name: Classify the changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          out() { echo "$1" >> "$GITHUB_OUTPUT"; }
+          everything() { out tested=false; out code=true; out web=true; echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; }
+
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            files=$(gh api --paginate "repos/$GH_REPO/pulls/$PR/files" --jq '.[].filename') \
+              || everything "Could not list the PR's files; running everything."
+          else
+            # A PR that was up to date with main merges into a commit with the same file tree as its
+            # head, which CI has just passed. Do not run it all again (build-push's verify-ci accepts
+            # the same match for a release).
+            tree() { gh api "repos/$GH_REPO/commits/$1" --jq .commit.tree.sha; }
+            want=$(tree "$GITHUB_SHA") || everything "Could not read this commit's tree; running everything."
+            for sha in $(gh run list --workflow ci.yml --status success --limit 40 --json headSha --jq '.[].headSha' | sort -u); do
+              if [ "$sha" != "$GITHUB_SHA" ] && [ "$(tree "$sha")" = "$want" ]; then
+                out tested=true; out code=false; out web=false
+                echo "CI already passed on ${sha::7}, which has exactly the files of ${GITHUB_SHA::7}. Nothing to run." | tee -a "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+            done
+            case "$BEFORE" in ''|0000000000000000000000000000000000000000) everything "No previous commit to compare with; running everything." ;; esac
+            files=$(gh api "repos/$GH_REPO/compare/$BEFORE...$GITHUB_SHA" --jq '.files[].filename') \
+              || everything "Could not compare with ${BEFORE::7}; running everything."
+            # The compare API lists at most 300 files.
+            [ "$(echo "$files" | wc -l)" -lt 300 ] || everything "Too many changed files to classify; running everything."
+          fi
+
+          code=false
+          web=false
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            # Not read by any build, test or lint. Prettier still checks them (see the ci job).
+            case "$f" in
+              *.md | docs/* | infra/* | docker-compose*.yml | .claude/* | .impeccable/* | \
+              .github/dependabot.yml | .github/workflows/build-push.yml | .github/workflows/mobile-eas.yml | \
+              scripts/deploy.sh | scripts/dev.sh | .deploy.env.example | .dockerignore | .gitattributes)
+                continue ;;
+            esac
+            code=true
+            # What the web app is built from: Storybook and the browser tests only need these.
+            case "$f" in
+              apps/web/* | packages/api-client/* | packages/schemas/* | packages/ui-tokens/* | packages/i18n/* | \
+              package.json | pnpm-lock.yaml | pnpm-workspace.yaml | .npmrc | .nvmrc | turbo.json | \
+              tsconfig.base.json | eslint.config.mjs | .prettierrc | .prettierignore | .github/workflows/ci.yml)
+                web=true ;;
+            esac
+          done <<< "$files"
+          out tested=false; out code=$code; out web=$web
+          echo "Code changed: $code. Web app changed: $web." | tee -a "$GITHUB_STEP_SUMMARY"
+
   ci:
+    needs: changes
+    if: needs.changes.outputs.tested != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      CODE: ${{ needs.changes.outputs.code }}
+      WEB: ${{ needs.changes.outputs.web }}
     steps:
       - uses: actions/checkout@v4
+
+      # Docs and deploy-config only: Prettier is the one check that reads them, so run just that, at
+      # the version in the lockfile, without installing the workspace.
+      - name: Check formatting only
+        if: env.CODE != 'true'
+        run: |
+          version=$(sed -n 's/^  prettier@\([0-9][0-9.]*\):.*/\1/p' pnpm-lock.yaml | head -n1)
+          npx --yes "prettier@$version" --check .
+
       - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+        if: env.CODE == 'true'
       - uses: actions/setup-node@v4
+        if: env.CODE == 'true'
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: env.CODE == 'true'
       # Turbo's local cache, kept between runs: a package whose files did not change replays its
       # typecheck, lint, test and build results instead of running them again. Keyed per commit and
       # restored from the newest earlier run (PRs can read main's).
       - uses: actions/cache@v4
+        if: env.CODE == 'true'
         with:
           path: .turbo/cache
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
       - run: pnpm typecheck
+        if: env.CODE == 'true'
       - run: pnpm lint
+        if: env.CODE == 'true'
       - run: pnpm format:check
+        if: env.CODE == 'true'
       - run: pnpm test
+        if: env.CODE == 'true'
       - run: pnpm build
+        if: env.CODE == 'true'
       # Tests run TS through vitest, which forgives ESM import paths that plain Node rejects in the
       # bundle (a missing `.js` once crash-looped the deployed API). Boot the bundle and hit /health.
       - name: Smoke-test the built API bundle
+        if: env.CODE == 'true'
         working-directory: apps/api
         env:
           NODE_ENV: production
@@ -57,10 +153,15 @@ jobs:
           cat api.log
           exit 1
       - run: pnpm --filter @harusi/web build-storybook
+        if: env.WEB == 'true'
       - run: pnpm audit --prod --audit-level=high
+        if: env.CODE == 'true'
         continue-on-error: true # advisory until Phase 7 hardening
 
   web-e2e:
+    needs: changes
+    # Skipped (which counts as passing) unless the web app or what it is built from changed.
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     # Runs alongside the ci job rather than after it: CI finishes in the time of the longer job instead

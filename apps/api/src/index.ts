@@ -169,8 +169,16 @@ if (config.redisUrl) {
     }),
   );
 }
-// Scheduled invitations and reminders (ADR 030) run with or without Redis.
-const stopScheduler = startScheduler(deps);
+// Scheduled invitations and reminders (ADR 030) run with or without Redis. Also hosts the
+// analytics retention sweep (ADR 057): a no-op when `ANALYTICS_ENABLED` is off.
+const siteHost = (() => {
+  try {
+    return new URL(deps.config.appBaseUrl).host;
+  } catch {
+    return 'kadisasa.com';
+  }
+})();
+const stopScheduler = startScheduler(deps, { siteHost });
 const app = createApp(deps);
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {

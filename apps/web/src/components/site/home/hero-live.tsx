@@ -72,6 +72,8 @@ export function HeroLive(props: HeroLiveProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | null>(null);
+  const shareTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const shareCloseRef = useRef<HTMLButtonElement | null>(null);
 
   const themeId: ThemeId = useMemo(() => {
     if (themeChoice !== 'auto') return themeChoice;
@@ -188,6 +190,16 @@ export function HeroLive(props: HeroLiveProps) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [shareUrl, closeShare]);
+
+  // Move focus into the dialog on open, return it to the trigger on close.
+  useEffect(() => {
+    if (shareUrl) {
+      shareCloseRef.current?.focus();
+      return () => {
+        shareTriggerRef.current?.focus();
+      };
+    }
+  }, [shareUrl]);
 
   const [shareQr, setShareQr] = useState<{ path: string; dim: number } | null>(null);
   useEffect(() => {
@@ -363,6 +375,7 @@ export function HeroLive(props: HeroLiveProps) {
             {props.form.downloadCta}
           </button>
           <button
+            ref={shareTriggerRef}
             type="button"
             onClick={shareCard}
             aria-label={props.form.shareAria}
@@ -441,7 +454,7 @@ export function HeroLive(props: HeroLiveProps) {
         </div>
       </div>
 
-      {shareUrl && shareQr ? (
+      {shareUrl ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -455,6 +468,7 @@ export function HeroLive(props: HeroLiveProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              ref={shareCloseRef}
               type="button"
               onClick={closeShare}
               aria-label={props.form.shareClose}
@@ -466,19 +480,26 @@ export function HeroLive(props: HeroLiveProps) {
               {props.form.shareDialogTitle}
             </h2>
             <p className="mt-1 text-sm text-ks-muted">{props.form.shareScanHint}</p>
-            <div className="mt-4 flex items-center justify-center rounded-xl border border-ks-border bg-white p-4">
-              <svg
-                viewBox={`0 0 ${shareQr.dim} ${shareQr.dim}`}
-                width={240}
-                height={240}
-                role="img"
-                aria-label={props.form.shareDialogTitle}
-                className="block"
-                shapeRendering="crispEdges"
-              >
-                <rect width={shareQr.dim} height={shareQr.dim} fill="#FFFFFF" />
-                <path d={shareQr.path} fill="#000000" />
-              </svg>
+            <div className="mt-4 flex aspect-square items-center justify-center rounded-xl border border-ks-border bg-white p-4">
+              {shareQr ? (
+                <svg
+                  viewBox={`0 0 ${shareQr.dim} ${shareQr.dim}`}
+                  width={240}
+                  height={240}
+                  role="img"
+                  aria-label={props.form.shareDialogTitle}
+                  className="block"
+                  shapeRendering="crispEdges"
+                >
+                  <rect width={shareQr.dim} height={shareQr.dim} fill="#FFFFFF" />
+                  <path d={shareQr.path} fill="#000000" />
+                </svg>
+              ) : (
+                <div
+                  className="h-[240px] w-[240px] animate-pulse rounded-md bg-ks-border/40"
+                  aria-hidden="true"
+                />
+              )}
             </div>
             <div className="mt-4 flex items-stretch gap-2">
               <input

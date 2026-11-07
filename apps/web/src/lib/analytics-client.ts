@@ -10,7 +10,6 @@ export function emit(name: string, data?: Record<string, unknown>): void {
   if (typeof window === 'undefined') return;
   if (process.env.NODE_ENV !== 'production') {
     try {
-      // eslint-disable-next-line no-console
       console.debug('[analytics]', name, data ?? {});
     } catch {
       /* ignore */

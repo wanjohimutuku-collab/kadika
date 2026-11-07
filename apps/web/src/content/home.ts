@@ -485,11 +485,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       {
         eyebrow: 'Michango',
         title: 'Pledges and payments that watch themselves.',
-        bullets: [
-          'M-Pesa, Mixx, Airtel Money',
-          'CSV reports',
-          'Private: only you see the figures',
-        ],
+        bullets: ['M-Pesa, Mixx, Airtel Money', 'CSV reports', 'Private: only you see the figures'],
       },
     ],
     pricingTeaser: {

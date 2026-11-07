@@ -210,7 +210,10 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
               <ul className="flex flex-col gap-3">
                 {c.app.items.map((i) => (
                   <li key={i} className="flex gap-3 leading-relaxed">
-                    <span aria-hidden="true" className="mt-0.5 size-6 shrink-0 rounded-full bg-white/10" />
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 size-6 shrink-0 rounded-full bg-white/10"
+                    />
                     {i}
                   </li>
                 ))}

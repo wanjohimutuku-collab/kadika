@@ -9,13 +9,7 @@ import type { ThemeId } from '@harusi/ui-tokens/themes';
  */
 
 export type DemoEventType =
-  | 'harusi'
-  | 'send-off'
-  | 'kitchen-party'
-  | 'nikah'
-  | 'uchumba'
-  | 'kuzaliwa'
-  | 'mahafali';
+  'harusi' | 'send-off' | 'kitchen-party' | 'nikah' | 'uchumba' | 'kuzaliwa' | 'mahafali';
 
 export interface DemoInput {
   names: string;

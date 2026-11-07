@@ -191,17 +191,36 @@ export function Hero({
   );
 }
 
-/** The quotable 40–60 word answer, placed high on the page for search and AI answers. */
+/**
+ * The quotable 40–60 word answer, placed high on the page for search and AI answers. Rendered as
+ * a self-contained "answer card" so the passage reads as an authoritative snippet rather than a
+ * side-note: soft white panel, centred gold accent bar, a `?` glyph next to the eyebrow, and a
+ * wider line-height on the body copy to invite reading.
+ */
 export function AnswerBlock({ label, text }: { label: string; text: string }) {
   return (
-    <Container as="section" aria-label={label} className="py-16 md:py-24">
-      <div className="ks-reveal mx-auto grid max-w-4xl gap-5 md:grid-cols-[auto_1fr] md:gap-10">
-        <p className="text-sm font-semibold tracking-[0.14em] text-ks-green-700 uppercase md:pt-3">
-          {label}
-        </p>
-        <p className="border-l-2 border-ks-gold-500 pl-5 text-xl leading-relaxed text-ks-ink md:pl-8 md:text-[26px] md:leading-[1.45]">
-          {text}
-        </p>
+    <Container as="section" aria-label={label} className="py-14 md:py-20">
+      <div className="ks-reveal mx-auto max-w-3xl">
+        <article className="relative rounded-[2rem] border border-ks-border/60 bg-white px-6 py-10 shadow-[0_28px_70px_-48px_rgb(10_63_53/0.28)] md:px-12 md:py-14">
+          <span
+            aria-hidden="true"
+            className="absolute left-1/2 top-0 h-1 w-24 -translate-x-1/2 rounded-full bg-ks-gold-500/80"
+          />
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-ks-green-700/10 font-serif text-lg font-semibold text-ks-green-700"
+            >
+              ?
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-ks-green-700">
+              {label}
+            </span>
+          </div>
+          <p className="mt-5 text-[20px] leading-[1.6] text-ks-ink md:mt-6 md:text-[26px] md:leading-[1.55]">
+            {text}
+          </p>
+        </article>
       </div>
     </Container>
   );

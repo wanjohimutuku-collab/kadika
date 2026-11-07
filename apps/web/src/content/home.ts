@@ -42,6 +42,7 @@ export interface HomeHeroFormLabels {
   shareCopy: string;
   shareCopied: string;
   shareClose: string;
+  utilityTrayAria: string;
 }
 
 export interface TryStep {
@@ -224,6 +225,7 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       shareCopy: 'Nakili kiungo',
       shareCopied: 'Kimenakiliwa',
       shareClose: 'Funga',
+      utilityTrayAria: 'Vitendo vya kadi ya majaribio',
     },
     heroPreviewOpen: 'Tazama kadi kamili',
     trustLine: 'Hulipi mpaka utume kadi · Ada moja · Inatumika pia bila mtandao',
@@ -482,6 +484,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       shareCopy: 'Copy link',
       shareCopied: 'Copied',
       shareClose: 'Close',
+      utilityTrayAria: 'Demo card actions',
     },
     heroPreviewOpen: 'See the full card',
     trustLine: 'You don’t pay until you send · One fee · Works offline too',
@@ -734,6 +737,7 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       shareCopy: 'Copy link',
       shareCopied: 'Copied',
       shareClose: 'Close',
+      utilityTrayAria: 'Demo card actions',
     },
     heroPreviewOpen: 'See the full card',
     trustLine: 'Kenya pilot · One fee per card · Works offline too',

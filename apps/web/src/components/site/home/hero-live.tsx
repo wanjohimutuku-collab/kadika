@@ -349,45 +349,57 @@ export function HeroLive(props: HeroLiveProps) {
           </fieldset>
         </div>
 
-        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-          <a
-            href={props.primary.href}
-            onClick={() => emit('home_hero_cta_primary')}
-            className="inline-flex min-h-12 items-center justify-center rounded-full bg-ks-green-700 px-6 font-semibold text-white"
+        {/* Two-tier action group. Row 1 is the conversion pair (Start free + See full card),
+            sized tall and claiming the thumb zone. Row 2 is the demo utility tray (Download +
+            Share) — compact, icon-forward, visibly subordinate so the primary CTA stays the
+            loudest element on the hero. */}
+        <div className="flex flex-col gap-3 pt-2">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a
+              href={props.primary.href}
+              onClick={() => emit('home_hero_cta_primary')}
+              className="inline-flex min-h-[3.25rem] flex-1 items-center justify-center rounded-full bg-ks-green-700 px-7 text-base font-semibold text-white shadow-[0_8px_20px_-10px_rgb(15_92_77/0.6)] transition hover:bg-ks-green-700/90 sm:min-w-[11rem] sm:flex-initial"
+            >
+              {props.primary.label}
+            </a>
+            <a
+              href={secondaryHref}
+              target="_blank"
+              rel="noopener"
+              onClick={() => emit('home_hero_cta_secondary')}
+              className="inline-flex min-h-[3.25rem] flex-1 items-center justify-center rounded-full border border-ks-green-700/60 bg-white px-7 text-base font-semibold text-ks-green-700 transition hover:border-ks-green-700 sm:min-w-[11rem] sm:flex-initial"
+            >
+              {props.secondaryLabel}
+            </a>
+          </div>
+          <div
+            className="flex items-center gap-2"
+            role="group"
+            aria-label={props.form.utilityTrayAria}
           >
-            {props.primary.label}
-          </a>
-          <a
-            href={secondaryHref}
-            target="_blank"
-            rel="noopener"
-            onClick={() => emit('home_hero_cta_secondary')}
-            className="inline-flex min-h-12 items-center justify-center rounded-full border border-ks-green-700 px-6 font-semibold text-ks-green-700"
-          >
-            {props.secondaryLabel}
-          </a>
-          <button
-            type="button"
-            onClick={downloadCard}
-            disabled={downloading}
-            aria-label={props.form.downloadAria}
-            data-testid="home-hero-download"
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ks-ink/15 bg-white px-6 font-semibold text-ks-ink disabled:opacity-60"
-          >
-            <Download className="size-4" strokeWidth={2} aria-hidden="true" />
-            {props.form.downloadCta}
-          </button>
-          <button
-            ref={shareTriggerRef}
-            type="button"
-            onClick={shareCard}
-            aria-label={props.form.shareAria}
-            data-testid="home-hero-share"
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ks-ink/15 bg-white px-6 font-semibold text-ks-ink"
-          >
-            <Share2 className="size-4" strokeWidth={2} aria-hidden="true" />
-            {props.form.shareCta}
-          </button>
+            <button
+              type="button"
+              onClick={downloadCard}
+              disabled={downloading}
+              aria-label={props.form.downloadAria}
+              data-testid="home-hero-download"
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-ks-ink/10 bg-white px-4 text-sm font-medium text-ks-ink transition hover:border-ks-ink/25 disabled:opacity-60 sm:flex-initial"
+            >
+              <Download className="size-4 text-ks-muted" strokeWidth={2} aria-hidden="true" />
+              {props.form.downloadCta}
+            </button>
+            <button
+              ref={shareTriggerRef}
+              type="button"
+              onClick={shareCard}
+              aria-label={props.form.shareAria}
+              data-testid="home-hero-share"
+              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-ks-ink/10 bg-white px-4 text-sm font-medium text-ks-ink transition hover:border-ks-ink/25 sm:flex-initial"
+            >
+              <Share2 className="size-4 text-ks-muted" strokeWidth={2} aria-hidden="true" />
+              {props.form.shareCta}
+            </button>
+          </div>
         </div>
         <p className="text-sm text-ks-muted">{props.footnote}</p>
       </div>

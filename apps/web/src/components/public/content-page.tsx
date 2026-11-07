@@ -211,6 +211,8 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
         path={path}
         locale={locale}
         counterpartPath={counterpart ? pagePath(counterpart, locale) : undefined}
+        enPath={market === 'tz' ? pagePath(page, 'en') : undefined}
+        swPath={market === 'tz' ? pagePath(page, 'sw') : undefined}
       />
       <script
         type="application/ld+json"

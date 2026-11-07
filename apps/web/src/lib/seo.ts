@@ -85,19 +85,29 @@ export function absoluteLocaleUrl(path: string, locale: Locale): string {
 }
 
 /**
- * hreflang for one page: `sw-TZ` and `en-TZ` for a Tanzania page, `en-KE` for a Kenya page, both
- * markets when the page has a same-topic counterpart. `x-default` is the Tanzania Swahili page, or
- * the Kenya page when there is no Tanzania one.
+ * hreflang for one page: `en-TZ` and `sw-TZ` for a Tanzania page, `en-KE` for a Kenya page, both
+ * markets when the page has a same-topic counterpart. `x-default` is the Tanzania English page
+ * (the default edition), or the Kenya page when there is no Tanzania one.
+ *
+ * `path` is the English TZ URL (slug-correct for EN). When the TZ page's SW slug differs from
+ * its EN slug, the caller MUST pass `swOverride` with the SW-slug TZ path (bare, no `/sw`
+ * prefix); the function wraps it with `/sw` internally. Without an override, SW uses the same
+ * slug as EN.
  */
-export function hreflangMap(path: string, counterpartPath?: string): Record<string, string> {
+export function hreflangMap(
+  path: string,
+  counterpartPath?: string,
+  swOverride?: string,
+): Record<string, string> {
   const abs = absoluteLocaleUrl;
   const market = marketOfPath(path);
   const tz = market === 'tz' ? path : counterpartPath;
+  const tzSw = market === 'tz' ? (swOverride ?? path) : (swOverride ?? counterpartPath);
   const ke = market === 'ke' ? path : counterpartPath;
   const map: Record<string, string> = {};
   if (tz) {
     map['en-TZ'] = abs(tz, 'en');
-    map['sw-TZ'] = abs(tz, 'sw');
+    map['sw-TZ'] = tzSw ? abs(tzSw, 'sw') : abs(tz, 'sw');
   }
   if (ke) map['en-KE'] = abs(ke, 'en');
   map['x-default'] = tz ? abs(tz, 'en') : abs(ke!, 'en');

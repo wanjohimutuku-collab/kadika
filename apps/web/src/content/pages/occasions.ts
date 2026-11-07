@@ -10,6 +10,8 @@ const UPDATED = '2026-10-20';
 export const OCCASION_PAGES: ContentPageDef[] = [
   {
     slug: 'kadi-za-mwaliko-mtandaoni',
+
+    slugEn: 'online-invitations',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -186,6 +188,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-kuzaliwa',
+
+    slugEn: 'birthday-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -301,6 +305,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-kitchen-party',
+
+    slugEn: 'kitchen-party-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -407,6 +413,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-mahafali',
+
+    slugEn: 'graduation-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -506,6 +514,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-za-mwaliko-biashara',
+
+    slugEn: 'business-event-invitations',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,

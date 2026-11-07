@@ -5,6 +5,7 @@ const UPDATED = '2026-10-15';
 export const PRODUCT_PAGES: ContentPageDef[] = [
   {
     slug: 'kadi-ya-harusi-mtandaoni',
+    slugEn: 'online-wedding-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -214,6 +215,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'michango-ya-harusi',
+    slugEn: 'wedding-contributions',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -388,6 +390,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-send-off',
+    slugEn: 'send-off-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -544,6 +547,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-uchumba',
+    slugEn: 'engagement-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,

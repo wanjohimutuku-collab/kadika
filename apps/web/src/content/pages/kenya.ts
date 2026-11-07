@@ -12,6 +12,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
   {
     market: 'ke',
     slug: '',
+    slugEn: '',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,

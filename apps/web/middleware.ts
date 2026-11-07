@@ -36,8 +36,9 @@ function publicUrl(req: NextRequest, pathAndQuery: string): URL {
 }
 
 /**
- * The public site takes its language from the path: `/` Swahili, `/en/...` English (rewritten to the same
- * route), `/ke/...` English Kenya. Old `?lang=` URLs get a permanent redirect to the new ones.
+ * The public site takes its language from the path: `/` English Tanzania (the default edition),
+ * `/sw/...` Swahili Tanzania (rewritten to the same route), `/ke/...` English Kenya. Old `/en`,
+ * `/en/x`, `?lang=` and legacy-slug URLs all 301 to the canonical en-TZ or sw-TZ URL.
  */
 export function middleware(req: NextRequest) {
   const p = req.nextUrl.pathname;

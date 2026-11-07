@@ -424,14 +424,18 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p, fallback, language));
+    const out = await auth.requestOtp(p, fallback, language);
+    emit(c, 'start_registration', '/v1/auth/otp/request');
+    return c.json(out);
   });
   app.post('/v1/auth/otp/verify', async (c) => {
     const { phone: p, code } = parse(
       z.object({ phone, code: z.string().regex(/^\d{6}$/) }),
       await body(c),
     );
-    return c.json(await auth.verifyOtp(p, code));
+    const out = await auth.verifyOtp(p, code);
+    emit(c, 'complete_registration', '/v1/auth/otp/verify');
+    return c.json(out);
   });
   // Which sign-in flow clients use (ADR 048); the Firebase web values are public by design.
   app.get('/v1/auth/config', (c) => {
@@ -837,10 +841,14 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(
-      await gateSvc.manualCheckIn(c.req.param('id'), consoleUser(c), input.guestId, input),
-      201,
+    const out = await gateSvc.manualCheckIn(
+      c.req.param('id'),
+      consoleUser(c),
+      input.guestId,
+      input,
     );
+    emit(c, 'complete_checkin', '/v1/events/:id/gate/manual-checkin');
+    return c.json(out, 201);
   });
   app.get('/v1/events/:id/gate/admitted', async (c) =>
     c.json(await gateSvc.admitted(c.req.param('id'), actorOf(c))),
@@ -874,7 +882,15 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(await gateSvc.sync(c.req.param('id'), actorOf(c), input));
+    const out = await gateSvc.sync(c.req.param('id'), actorOf(c), input);
+    // One scan_qr per successful scan (whether admitted, duplicate or denied). Admitted scans
+    // also count as a complete_checkin so the funnel ends in the same aggregate.
+    for (const s of input.scans) {
+      emit(c, 'scan_qr', '/v1/events/:id/gate/scans/sync');
+      if (s.result === 'ok' || s.result === 'manual_ok')
+        emit(c, 'complete_checkin', '/v1/events/:id/gate/scans/sync');
+    }
+    return c.json(out);
   });
   app.get('/v1/events/:id/public-key', async (c) => {
     await eventsSvc.role(c.req.param('id'), c.get('userId'));
@@ -949,12 +965,15 @@ export function createApp(deps: Deps) {
       ),
     );
   });
-  app.post('/v1/events/:id/guests', async (c) =>
-    c.json(
-      await guestsSvc.create(c.req.param('id'), c.get('userId'), parse(guestBase, await body(c))),
-      201,
-    ),
-  );
+  app.post('/v1/events/:id/guests', async (c) => {
+    const guest = await guestsSvc.create(
+      c.req.param('id'),
+      c.get('userId'),
+      parse(guestBase, await body(c)),
+    );
+    emit(c, 'add_guest', '/v1/events/:id/guests');
+    return c.json(guest, 201);
+  });
   app.post('/v1/events/:id/guests/import', async (c) => {
     const input = parse(
       z.object({
@@ -1103,7 +1122,9 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(await pledgeSvc.recordManual(c.get('userId'), input), 201);
+    const out = await pledgeSvc.recordManual(c.get('userId'), input);
+    emit(c, 'record_contribution', '/v1/payments/manual');
+    return c.json(out, 201);
   });
   // ---- audit trail and personal data rights (§9)
   app.get('/v1/events/:id/audit', async (c) =>

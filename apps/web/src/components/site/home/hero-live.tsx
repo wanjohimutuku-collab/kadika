@@ -60,11 +60,17 @@ export interface HeroLiveProps {
   footnote: string;
   form: HomeHeroFormLabels;
   previewFrameAlt: string;
+  /** Server-computed initial date for the hero's date input. Prevents SSR/CSR drift from `new Date()`. */
+  initialDateISO: string;
 }
 
 export function HeroLive(props: HeroLiveProps) {
   const [names, setNames] = useState('Asha & Juma');
-  const [dateISO, setDateISO] = useState(nextSaturdayISO());
+  // Seed the initial date server-side via a prop so SSR and the client's first render agree.
+  // Computing it client-side (`new Date()` in useState or useEffect) races the server's render
+  // and React 19 flags a hydration mismatch, which then regenerates the whole subtree — that was
+  // the "Share button vanishing" symptom we saw.
+  const [dateISO, setDateISO] = useState<string>(() => props.initialDateISO || nextSaturdayISO());
   const [eventType, setEventType] = useState<DemoEventType>('harusi');
   const [themeChoice, setThemeChoice] = useState<ThemeId | 'auto'>('auto');
   const [previewHtml, setPreviewHtml] = useState<string>('');
@@ -136,10 +142,7 @@ export function HeroLive(props: HeroLiveProps) {
     themeChoice !== 'auto' ? `&theme=${encodeURIComponent(themeChoice)}` : ''
   }`;
 
-  const shareTitle = useMemo(
-    () => view.event?.coupleNames ?? 'Kadi',
-    [view.event?.coupleNames],
-  );
+  const shareTitle = useMemo(() => view.event?.coupleNames ?? 'Kadi', [view.event?.coupleNames]);
 
   const shareCard = useCallback(async () => {
     const absolute = new URL(secondaryHref, window.location.origin).toString();

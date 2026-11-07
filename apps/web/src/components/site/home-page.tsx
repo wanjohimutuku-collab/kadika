@@ -34,6 +34,16 @@ const TZ_EVENTS = [
 
 const domainOf = (url: string) => url.replace(/^https?:\/\//, '');
 
+/** Server-computed seed so SSR and the hero island's client state start in agreement. */
+function nextSaturdayFromToday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 60);
+  const day = d.getDay();
+  const shift = (6 - day + 7) % 7;
+  d.setDate(d.getDate() + shift);
+  return d.toISOString().slice(0, 10);
+}
+
 /** `/`, `/en` and `/ke`: one page, copy per edition, prices from the live catalogue. */
 export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: PricingCatalog }) {
   const domain = domainOf(SITE_URL);
@@ -124,6 +134,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         footnote={c.heroNote}
         form={c.formLabels}
         previewFrameAlt={c.hero.h1}
+        initialDateISO={nextSaturdayFromToday()}
       />
 
       <TrustLine text={c.trustLine} />

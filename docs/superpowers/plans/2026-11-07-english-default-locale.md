@@ -870,3 +870,135 @@ EOF
 - Placeholders: none. Every step has exact code / commands.
 - Type consistency: `LocaleRoute`, `SiteMarket`, `stripSwPrefix`, `swPath`, `editionOfPath`, `legacySwRedirect`, `LEGACY_SW_ROOT_PATHS` names match across Tasks 2, 3, 4. `hreflangMap(path, counterpartPath?)` signature unchanged. `localeUrl(path, locale)` signature unchanged.
 - Decomposition: 10 tasks, each with a single commit. Tests precede implementation for Tasks 1–4. Verification-only tasks (6, 7) make a commit only if they trigger an edit.
+
+---
+
+## 2026-11-07 Addendum — per-locale slugs (supersedes Tasks 1 and 2)
+
+### Why
+
+`ContentPageDef.slug` is shared across SW and EN; the original Task 2 legacy-redirect table
+cannot distinguish a legacy SW URL from a valid EN URL. The remedy is per-locale slugs.
+
+### New task order (replaces Tasks 1, 2; re-numbers Tasks 3–10 as A–I below)
+
+Each task ends with its own commit, TDD where applicable.
+
+### Task A — Content model: `slugEn` on every TZ page
+
+- Modify `apps/web/src/content/types.ts`: add `slugEn: string` to `ContentPageDef`.
+- Modify `apps/web/src/content/pages/{articles,company,geo,guides,legal,occasions,products}.ts`:
+  author `slugEn` on each page per the map in the spec addendum.
+- Modify `apps/web/src/content/pages/{kenya,kenya-legal}.ts`: set `slugEn = slug` per page
+  (KE pages have one English slug already).
+- Commit:
+  ```
+  feat(web,content): add slugEn to every content page
+  ```
+
+### Task B — Content helpers: `pagePath(locale)`, `pageBySlug`, `routeSlugRedirect`
+
+- Modify `apps/web/src/content/index.ts`:
+  - `pagePath(p: ContentPageDef, locale: Locale): string` — returns `/ke/<slug>` for KE,
+    `/<slug-en>` for EN TZ, `/<slug-sw>` for SW TZ (callers wrap with the `/sw` prefix
+    later via `localeUrl`).
+  - `pageBySlug(slug: string, market: Market): { page: ContentPageDef; matchedLocale: Locale } | null`
+    — EN first, SW second.
+- Modify every existing `pagePath(p)` call site to pass a locale. Grep: `pagePath\(` to find
+  them; they all have a resolvable locale in context.
+- New file: `apps/web/src/content/slug-redirect.ts`:
+  - `routeSlugRedirect(path: string): string | null` — returns a 301 target when an EN-edition
+    URL carries a SW slug, or vice versa; null otherwise.
+- Tests: `apps/web/src/content/slug-redirect.test.ts` covering the §2026-11-07 Addendum
+  "Updated test matrix" entries plus "slugs identical → no redirect".
+- Commit:
+  ```
+  feat(web,content): locale-aware pagePath + pageBySlug + slug-redirect
+  ```
+
+### Task C — Flip `site-locale.ts` to the per-locale-slug scheme
+
+- Modify `apps/web/src/lib/site-locale.ts` to the body in the main plan's Task 3, with the
+  "legacy-SW table" replaced by `routeSlugRedirect(bare)` from Task B.
+- Replace `legacy-sw-redirects.*` with `slug-redirect.*` references.
+- Tests: expand `site-locale.test.ts` with the Updated test matrix cases from the spec
+  addendum.
+- Commit:
+  ```
+  feat(web): routeSiteLocale with per-locale slug redirects
+  ```
+
+### Task D — `[slug]` route resolves by either locale's slug
+
+- Modify `apps/web/app/(public)/[slug]/page.tsx` to look up the page via `pageBySlug(slug, 'tz')`
+  (and for `/ke/[slug]`, `pageBySlug(slug, 'ke')`).
+- If the slug matched in a language different from the resolved page locale, return
+  `notFound()` — the middleware's `routeSlugRedirect` should have 301'd first; a direct hit
+  means the URL is indeed canonical for the current edition.
+- No test change; existing page tests continue to pass.
+- Commit:
+  ```
+  feat(web): resolve [slug] via pageBySlug
+  ```
+
+### Task E — Flip `seo.ts` composer
+
+- Modify `apps/web/src/lib/seo.ts` exactly as in the main plan's Task 4, except `localeUrl`:
+
+  ```ts
+  export function localeUrl(path: string, locale: Locale): string {
+    if (marketOfPath(path) === 'ke' || locale === 'en') return path;
+    return swPath(path);
+  }
+  ```
+
+  Content-page links must compose through `pagePath(p, locale)` for the slug part; `localeUrl`
+  only handles the SW `/sw` prefix and the KE case. Callers that build content-page URLs
+  (`site-nav.ts`, `home-page.tsx`, footer builders) pass the locale-correct path returned by
+  `pagePath(p, locale)` into `localeUrl` with the same locale.
+- Tests: the main plan's Task 4 test file, with the content-page assertions updated — e.g.
+  `localeUrl('/online-wedding-invitation', 'en')` returns `/online-wedding-invitation`;
+  `localeUrl('/kadi-ya-harusi-mtandaoni', 'sw')` returns `/sw/kadi-ya-harusi-mtandaoni`.
+- Commit:
+  ```
+  feat(web): flip SEO composer for English-default + per-locale slugs
+  ```
+
+### Task F — Nav, footer, `editionTargets`, `counterpartOf` consume locale-aware paths
+
+- Modify callers of `pagePath` in `apps/web/src/lib/site-nav.ts`, `apps/web/app/(public)/layout.tsx`,
+  and `apps/web/src/components/site/home-page.tsx` to pass the resolved locale into
+  `pagePath(p, locale)`.
+- `counterpartOf` is unchanged, but the way the layout builds the counterpart URL uses
+  `pagePath(counterpart, counterpartLocale)` now.
+- Verify LocaleSwitch chip offers the right URL on a content page.
+- Commit:
+  ```
+  refactor(web): plumb locale into pagePath call sites
+  ```
+
+### Task G — Middleware + layout docstrings (same as main plan's Task 5)
+
+### Task H — Playwright + sitemap verification
+
+- Expand `locale-redirects.spec.ts` with:
+  - Visit `/kadi-ya-harusi-mtandaoni` → URL settles at `/online-wedding-invitation`.
+  - Visit `/sw/online-wedding-invitation` → settles at `/sw/kadi-ya-harusi-mtandaoni`.
+  - Visit `/privacy` → stays; renders EN.
+- Build; curl `/sitemap.xml`; verify every TZ page has both URLs, slug-correct per locale,
+  with `hreflang` alternates.
+- Commit:
+  ```
+  test(web): e2e and sitemap verification for per-locale slugs
+  ```
+
+### Task I — Final verification (same as main plan's Task 10)
+
+### Dropped from the original plan
+
+- Task 2 (legacy-sw-redirects): replaced by Task B's `routeSlugRedirect`.
+- The "legacy SW slug at root" cases in Task 1: replaced by Task C's slug-aware cases.
+
+### Task count
+
+A, B, C, D, E, F, G, H, I = 9 tasks. Baseline (committed) + spec/plan revision (committed) + these 9 = 11 commits before the finishing-a-development-branch handoff.

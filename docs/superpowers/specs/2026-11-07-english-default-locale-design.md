@@ -193,3 +193,72 @@ Rollback is a git revert.
   currency — are untouched).
 - `apps/web/middleware.ts`, `apps/web/src/lib/site-locale.ts` — current scheme.
 - `apps/web/src/lib/seo.ts` — canonical + alternate URL composer.
+
+---
+
+## 2026-11-07 Addendum — per-locale slugs
+
+### What changed
+
+Code review revealed `ContentPageDef` has one `slug` shared by both locales
+(`apps/web/src/content/types.ts`: "URL slug, the same in both languages"), so the original
+§4 legacy-redirect-table approach would silently take over the EN page URL. The team chose to
+introduce per-locale slugs now rather than ship the flip with Swahili-looking URLs serving
+English content.
+
+### Supersedes
+
+- §3.3 `localeUrl()` body — needs the page's own slug for the target locale, not a mechanical
+  `swPath()`. The composer now looks up the page by its path and picks the SW slug for SW URLs.
+  Non-page paths (`/bei`, `/programu`, the home) keep the mechanical `swPath()` fallback.
+- §4 — the one-shot legacy-SW table is dropped. Replaced by two rules, both applied in
+  `routeSiteLocale`:
+  1. Unprefixed `/<slug>` that matches a known **SW-only slug** (a page whose SW slug differs
+     from its EN slug) → 301 to the page's **EN** canonical `/<slug-en>`. Rationale: EN is the
+     default; an EN visitor on a SW URL should land on the EN edition.
+  2. `/sw/<slug>` that matches a known **EN-only slug** (same difference) → 301 to the page's
+     **SW** canonical `/sw/<slug-sw>`.
+- Task 2 (legacy-sw-redirects table) is replaced by a page-indexed helper, below.
+
+### New schema
+
+Add to `ContentPageDef`:
+
+```ts
+/** URL slug for the English edition. Required for every TZ page; equals `slug` on KE pages. */
+slugEn: string;
+```
+
+Keep existing `slug` as the Swahili TZ URL slug (de facto what it is today). `pagePath` grows a
+locale parameter.
+
+### The 29 TZ-page slug map
+
+Committed in this change; see `apps/web/src/content/pages/*.ts`. KE pages set `slugEn = slug`.
+
+### New helpers in `@/content`
+
+- `pagePath(p, locale: Locale): string` — `/<slug-en>` (`'en'`) or `/sw/<slug-sw>` (`'sw'`); KE stays `/ke/<slug>`.
+- `pageBySlug(slug: string, market: SiteMarket): { page: ContentPageDef; matchedLocale: Locale } | null` — matches EN first, SW second, so a slug that is identical in both resolves to the EN canonical.
+- `routeSlugRedirect(path: string): string | null` — convenience for the middleware: given an
+  unprefixed TZ path `/<x>`, if `x` is a SW slug whose EN sibling differs, return
+  `/<slug-en>`; if given `/sw/<x>` where `x` is an EN slug whose SW sibling differs, return
+  `/sw/<slug-sw>`; otherwise `null`.
+
+### Updated test matrix
+
+- `/kadi-ya-harusi-mtandaoni` → 301 → `/online-wedding-invitation`
+- `/online-wedding-invitation` → next, EN
+- `/sw/online-wedding-invitation` → 301 → `/sw/kadi-ya-harusi-mtandaoni`
+- `/sw/kadi-ya-harusi-mtandaoni` → rewrite, SW
+- `/privacy` → next, EN (slugs identical in both languages, no redirect)
+- `/sw/privacy` → rewrite, SW
+- `/en/kadi-ya-harusi-mtandaoni` → 301 → `/online-wedding-invitation` (double redirect avoided
+  by chaining the two rules in `routeSiteLocale` before it returns).
+
+### Acceptance additions
+
+- Every TZ page has a working EN URL (unprefixed) and SW URL (`/sw/...`).
+- Sitemap advertises both URLs per page with `hreflang="en-TZ"` and `hreflang="sw-TZ"`
+  pointing to the slug-correct variant.
+- No internal link in any component composes a stale `/kadi-ya-...` for the EN edition.

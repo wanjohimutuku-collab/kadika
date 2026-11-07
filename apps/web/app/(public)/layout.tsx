@@ -17,6 +17,7 @@ import type { ContentPageDef } from '@/content/types';
 import { SITE_UI } from '@/content/site-ui';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
+import { buildServerContext, recordServerEvent } from '@/lib/server-analytics';
 
 const link = (p: ContentPageDef, locale: Locale) => ({
   href: localeUrl(pagePath(p), locale),
@@ -33,6 +34,9 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const market = h.get('x-hp-market') === 'ke' ? 'ke' : 'tz';
   const path = h.get('x-hp-path') ?? (market === 'ke' ? '/ke' : '/');
   const edition: SiteEdition = market === 'ke' ? 'ke' : locale;
+  // First-party page_view (ADR 057). Fire-and-forget: a slow API never blocks the render,
+  // and the helper is a no-op in mock mode or when ANALYTICS_INTERNAL_SECRET is missing.
+  void recordServerEvent('page_view', buildServerContext(h, { path, market, locale, edition }));
   const ui = SITE_UI[edition];
   const targets = editionTargets(path);
   const tzPage = (slug: string) => getPage(slug);

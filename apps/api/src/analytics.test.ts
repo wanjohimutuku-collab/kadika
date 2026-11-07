@@ -207,3 +207,50 @@ describe('analytics service (database)', () => {
     expect(row!.referrerHost!.length).toBeLessThanOrEqual(80);
   });
 });
+
+describe('retention sweep', () => {
+  it('is a no-op when analytics is disabled', async () => {
+    ctx = await createTestContext();
+    const svc = createAnalyticsService(ctx.deps, 'kadisasa.com');
+    expect(await svc.sweepOld()).toBe(0);
+  });
+
+  it('deletes rows older than the retention window and keeps the rest', async () => {
+    ctx = await createTestContext({
+      env: { ANALYTICS_ENABLED: '1', ANALYTICS_SESSION_SECRET: 's' },
+    });
+    const svc = createAnalyticsService(ctx.deps, 'kadisasa.com');
+    await build(svc)();
+    await build(svc)({ name: 'create_event' });
+    // Age one row past the cutoff and leave the other inside.
+    const oldOccurred = new Date('2026-01-01T00:00:00Z');
+    const rows = await ctx.db.select().from(analyticsEvents);
+    await ctx.db
+      .update(analyticsEvents)
+      .set({ occurredAt: oldOccurred })
+      .where(eq(analyticsEvents.id, rows[0]!.id));
+    const now = new Date('2026-11-07T00:00:00Z'); // > 180 days after 2026-01-01
+    const deleted = await svc.sweepOld(now);
+    expect(deleted).toBe(1);
+    const remaining = await ctx.db.select().from(analyticsEvents);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]!.id).toBe(rows[1]!.id);
+  });
+
+  it('respects a custom retention window', async () => {
+    ctx = await createTestContext({
+      env: { ANALYTICS_ENABLED: '1', ANALYTICS_SESSION_SECRET: 's' },
+    });
+    const svc = createAnalyticsService(ctx.deps, 'kadisasa.com');
+    await build(svc)();
+    const [row] = await ctx.db.select().from(analyticsEvents);
+    const twoDaysAgo = new Date('2026-11-05T00:00:00Z');
+    await ctx.db
+      .update(analyticsEvents)
+      .set({ occurredAt: twoDaysAgo })
+      .where(eq(analyticsEvents.id, row!.id));
+    // 180-day window keeps it; 1-day window deletes it.
+    expect(await svc.sweepOld(new Date('2026-11-07T00:00:00Z'), 180)).toBe(0);
+    expect(await svc.sweepOld(new Date('2026-11-07T00:00:00Z'), 1)).toBe(1);
+  });
+});

@@ -1,8 +1,12 @@
 import { blake2b } from '@noble/hashes/blake2';
+import { lt } from 'drizzle-orm';
 import { z } from 'zod';
 import { analyticsEvents, newId } from '@harusi/db';
 import type { Deps } from '../context';
 import type { Config } from '../config';
+
+/** Rows older than this get swept by the daily worker (ADR 057 §6). */
+export const ANALYTICS_RETENTION_DAYS = 180;
 
 /**
  * First-party anonymous analytics ingestion (ADR 057). Writes rows to `analytics_events` and
@@ -149,6 +153,12 @@ export function normalisePath(path: string): string {
 export interface AnalyticsService {
   readonly enabled: boolean;
   record(input: RecordEventInput): Promise<void>;
+  /**
+   * Deletes rows older than `retentionDays` and returns how many were removed.
+   * Runs when the scheduler triggers the daily sweep; safe to call with analytics off
+   * (the service is enabled only on flag + secret, and the sweep refuses otherwise).
+   */
+  sweepOld(now?: Date, retentionDays?: number): Promise<number>;
 }
 
 /**
@@ -186,6 +196,15 @@ export function createAnalyticsService(
         source,
         properties: input.properties ?? {},
       });
+    },
+    async sweepOld(now = new Date(), retentionDays = ANALYTICS_RETENTION_DAYS) {
+      if (!enabled) return 0;
+      const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
+      const rows = await deps.db
+        .delete(analyticsEvents)
+        .where(lt(analyticsEvents.occurredAt, cutoff))
+        .returning({ id: analyticsEvents.id });
+      return rows.length;
     },
   };
 }

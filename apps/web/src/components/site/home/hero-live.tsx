@@ -10,19 +10,23 @@ import {
   THEME_STOPS,
   type DemoEventType,
 } from '@/lib/demo-card';
+import { renderCard, shell } from '@/lib/light-card/render';
+import { resolvePalette } from '@harusi/ui-tokens/palette';
 import type { ThemeId } from '@harusi/ui-tokens/themes';
 import { emit, hashShort } from '@/lib/analytics-client';
 import type { HomeHeroFormLabels } from '@/content/home';
+import type { CardView } from '@harusi/api-client';
 
 /**
- * Interactive hero that drives a realistic phone-frame preview from four inputs (names, date,
- * event kind, theme) and hands the secondary CTA a `/jaribu?...` deep link. A download button
- * paints the same card onto a 1080×1920 canvas and offers a PNG with the chosen theme intact.
- *
- * Preview updates on a 100 ms debounce. Analytics events (`home_hero_view`, `home_hero_input`,
- * `home_hero_theme`, `home_hero_cta_primary`, `home_hero_cta_secondary`, `home_hero_download`)
- * flow through `@/lib/analytics-client`.
+ * Interactive hero. Four inputs (names, date, event kind, theme) drive a live preview rendered
+ * into a drawn phone body, and the secondary CTA hands a `/jaribu?...` deep link to the real
+ * guest card. The Download button captures the full `renderCard + shell` template (same code
+ * path `/jaribu` uses) into a PNG via an SVG `foreignObject`, so the file matches the chosen
+ * theme end-to-end: trust strip, cover, RSVP, QR, short code, pledge summary, brand footer.
  */
+
+const CARD_PNG_WIDTH = 1080;
+const CARD_PNG_HEIGHT = 1920;
 
 function nextSaturdayISO(): string {
   const d = new Date();
@@ -48,25 +52,67 @@ function slugify(s: string): string {
     .slice(0, 48);
 }
 
-/** Round-rect fallback for browsers without CanvasRenderingContext2D.roundRect. */
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(x, y, w, h, r);
-    return;
+/**
+ * Build the exact `/jaribu` document for a view, then hand it to the browser as an SVG download
+ * that carries the complete card template. We ship SVG (not a raster PNG) because Chrome taints
+ * any canvas that drew foreignObject content, so `canvas.toBlob` throws — and the SVG is the
+ * truest representation anyway: vector, infinitely scalable, inline CSS, inline QR, every
+ * element of the real `renderCard + shell` output.
+ */
+async function renderDemoCardToSvg(opts: {
+  view: CardView;
+  locale: 'sw' | 'en';
+  themeId: ThemeId;
+  filename: string;
+}): Promise<void> {
+  const { view, locale, filename } = opts;
+  const palette = resolvePalette(view.event?.themeId, view.event?.palette);
+  const inner = renderCard(view, {
+    token: 'demo',
+    locale,
+    domain: 'kadisasa.co.tz',
+    mode: 'mock',
+    apiUrl: 'https://kadisasa.co.tz',
+  });
+  const doc = shell({ locale, title: 'Kadi', palette, body: inner });
+
+  // Pull the inlined <style> and the sanitised body out of the document so we can drop them
+  // inside an <svg><foreignObject>...</foreignObject></svg> wrapper. Scripts are removed because
+  // foreignObject needs XHTML-well-formed content and the card's CLIENT_SCRIPT uses raw `<` / `&`.
+  const parsed = new DOMParser().parseFromString(doc, 'text/html');
+  const styleBlocks = Array.from(parsed.head.querySelectorAll('style'))
+    .map((s) => s.textContent ?? '')
+    .join('\n');
+  parsed.body.querySelectorAll('script').forEach((n) => n.remove());
+  const serializer = new XMLSerializer();
+  const bodyXml = Array.from(parsed.body.childNodes)
+    .map((n) => serializer.serializeToString(n))
+    .join('');
+  const styleCdata = `/*<![CDATA[*/${styleBlocks}/*]]>*/`;
+  const bgColor = escapeHtml(palette.bg);
+  const w = CARD_PNG_WIDTH;
+  const h = CARD_PNG_HEIGHT;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
+    `<foreignObject x="0" y="0" width="${w}" height="${h}">` +
+    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;background:${bgColor};font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden">` +
+    `<style>${styleCdata}</style>` +
+    `<div style="width:640px;transform:scale(1.25);transform-origin:top center">${bodyXml}</div>` +
+    `</div></foreignObject></svg>`;
+
+  const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    // Delay revoke so the browser can finish fetching the blob for download.
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
 }
 
 export interface HeroLiveProps {
@@ -92,7 +138,6 @@ export function HeroLive(props: HeroLiveProps) {
 
   const themeId: ThemeId = useMemo(() => {
     if (themeChoice !== 'auto') return themeChoice;
-    // Mirror DEMO_THEME_BY_EVENT without importing — light copy to keep the client bundle tiny.
     switch (eventType) {
       case 'send-off':
         return 'rose-sage';
@@ -152,99 +197,23 @@ export function HeroLive(props: HeroLiveProps) {
     themeChoice !== 'auto' ? `&theme=${encodeURIComponent(themeChoice)}` : ''
   }`;
 
-  const downloadPng = useCallback(async () => {
+  const downloadCard = useCallback(async () => {
+    if (downloading) return;
     setDownloading(true);
     try {
-      const W = 1080;
-      const H = 1920;
-      const canvas = document.createElement('canvas');
-      canvas.width = W;
-      canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const [c0, c1] = THEME_STOPS[themeId];
-      const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, c0);
-      g.addColorStop(1, c1);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-
-      // Decorative inner frame.
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      roundRect(ctx, 80, 120, W - 160, H - 240, 48);
-      ctx.stroke();
-
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      // Eyebrow.
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
-      ctx.font = '600 36px system-ui, -apple-system, Segoe UI, sans-serif';
-      const eyebrow = (props.form.eventLabels[eventType] ?? '').toUpperCase();
-      ctx.fillText(eyebrow, W / 2, 400);
-
-      // Couple names.
-      ctx.fillStyle = '#fff';
-      ctx.font = `700 120px Georgia, "Times New Roman", serif`;
-      ctx.fillText(view.event?.coupleNames ?? '', W / 2, 760);
-
-      // Date.
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.font = '400 56px system-ui, -apple-system, Segoe UI, sans-serif';
-      ctx.fillText(datePretty, W / 2, 900);
-
-      // Short-code pill.
-      const pillW = 340;
-      const pillH = 92;
-      const pillX = (W - pillW) / 2;
-      const pillY = H - 560;
-      ctx.fillStyle = 'rgba(255,255,255,0.14)';
-      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      roundRect(ctx, pillX, pillY, pillW, pillH, 46);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#fff';
-      ctx.font = '600 38px system-ui, -apple-system, Segoe UI, sans-serif';
-      ctx.fillText(view.guest?.shortCode ?? 'DEMO-0001', W / 2, pillY + pillH / 2 + 2);
-
-      // Footer brand mark.
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.font = '500 34px system-ui, -apple-system, Segoe UI, sans-serif';
-      ctx.fillText('kadisasa.co.tz', W / 2, H - 200);
-
-      // Theme tag.
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.font = '500 22px system-ui, -apple-system, Segoe UI, sans-serif';
-      ctx.fillText(props.form.themeNames[themeId] ?? themeId, W / 2, H - 150);
-
-      const blob: Blob | null = await new Promise((r) => canvas.toBlob((b) => r(b), 'image/png'));
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kadi-${slugify(view.event?.coupleNames ?? 'kadi')}-${themeId}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await renderDemoCardToSvg({
+        view,
+        locale: props.locale,
+        themeId,
+        filename: `kadi-${slugify(view.event?.coupleNames ?? 'kadi')}-${themeId}.svg`,
+      });
       emit('home_hero_download', { themeId, eventType });
+    } catch (err) {
+      emit('home_hero_download_failed', { themeId, eventType, err: String(err) });
     } finally {
       setDownloading(false);
     }
-  }, [
-    themeId,
-    eventType,
-    datePretty,
-    view.event?.coupleNames,
-    view.guest?.shortCode,
-    props.form.eventLabels,
-    props.form.themeNames,
-  ]);
+  }, [downloading, view, themeId, props.locale, eventType]);
 
   const screenGradient = THEME_GRADIENTS[themeId];
 
@@ -371,9 +340,10 @@ export function HeroLive(props: HeroLiveProps) {
           </a>
           <button
             type="button"
-            onClick={downloadPng}
+            onClick={downloadCard}
             disabled={downloading}
             aria-label={props.form.downloadAria}
+            data-testid="home-hero-download"
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ks-ink/15 bg-white px-6 font-semibold text-ks-ink disabled:opacity-60"
           >
             <Download className="size-4" strokeWidth={2} aria-hidden="true" />
@@ -390,7 +360,7 @@ export function HeroLive(props: HeroLiveProps) {
           className="relative"
           style={{ width: 300, height: 600 }}
         >
-          {/* Phone body — a scaled SVG shell draws bezel, side buttons, and the dynamic island. */}
+          {/* Phone body — a scaled SVG shell draws bezel, side buttons and the dynamic island. */}
           <svg
             viewBox="0 0 300 600"
             width={300}

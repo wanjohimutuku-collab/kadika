@@ -24,6 +24,13 @@ export interface Config {
    * committee records it. Webhooks and reconciliation still settle payments already in flight.
    */
   guestPaymentsEnabled: boolean;
+  /**
+   * Anonymous first-party analytics (ADR 057). Off by default, no cookies, no third party.
+   * When off, the service is a no-op and writes nothing.
+   */
+  analyticsEnabled: boolean;
+  /** 32-byte base64 secret used to hash visitor IP + user-agent into the daily session key. */
+  analyticsSessionSecret: string | null;
   /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
   shortBaseUrls: Partial<Record<Country, string>>;
   /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
@@ -152,6 +159,8 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     kenyaPaymentsPaused: env.KENYA_PAYMENTS_PAUSED === '1' || env.KENYA_PAYMENTS_PAUSED === 'true',
     guestPaymentsEnabled:
       env.GUEST_PAYMENTS_ENABLED === '1' || env.GUEST_PAYMENTS_ENABLED === 'true',
+    analyticsEnabled: env.ANALYTICS_ENABLED === '1' || env.ANALYTICS_ENABLED === 'true',
+    analyticsSessionSecret: env.ANALYTICS_SESSION_SECRET ?? null,
     shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
     paymentProviderKe: env.PAYMENT_PROVIDER_KE ?? 'fake',
     paymentKe:

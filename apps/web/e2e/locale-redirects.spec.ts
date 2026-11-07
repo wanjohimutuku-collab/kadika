@@ -20,9 +20,9 @@ test('legacy /en/<slug> lands at the EN slug', async ({ page }) => {
   expect(page.url()).not.toMatch(/\/en\//);
 });
 
-test('legacy SW root slug lands at /sw/<slug>', async ({ page }) => {
+test('legacy SW root slug lands at the EN canonical (EN is default)', async ({ page }) => {
   await page.goto('/kadi-ya-harusi-mtandaoni', { waitUntil: 'domcontentloaded' });
-  expect(page.url()).toMatch(/\/sw\/kadi-ya-harusi-mtandaoni$/);
+  expect(page.url()).toMatch(/\/online-wedding-invitation$/);
 });
 
 test('wrong-locale slug under /sw lands at the SW canonical', async ({ page }) => {

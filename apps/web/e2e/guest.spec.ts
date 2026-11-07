@@ -151,19 +151,19 @@ test.describe('guest card', () => {
       .first()
       .click();
     await expect(page.getByText('Will you attend?')).toBeVisible();
-    // The public site takes its language from the path, not the card's cookie: `/` is Swahili.
+    // The public site takes its language from the path, not the card's cookie: `/` is English.
     await page.goto('/');
-    await expect(page.getByRole('link', { name: 'Anza bure' }).first()).toBeVisible();
-    const sw = page.getByRole('contentinfo');
-    await sw.getByText('TZ · SW').click();
-    await sw.getByRole('link', { name: 'Tanzania (English)' }).click();
-    await expect(page).toHaveURL(/\/en$/);
     await expect(page.getByRole('link', { name: 'Start free' }).first()).toBeVisible();
+    const sw = page.getByRole('contentinfo');
+    await sw.getByText('TZ · EN').click();
+    await sw.getByRole('link', { name: 'Tanzania (Kiswahili)' }).click();
+    await expect(page).toHaveURL(/\/sw$/);
+    await expect(page.getByRole('link', { name: 'Anza bure' }).first()).toBeVisible();
   });
 
   test('old ?lang= site URLs redirect permanently to the path-based ones', async ({ request }) => {
-    const res = await request.get('/bei?lang=en', { maxRedirects: 0 });
+    const res = await request.get('/bei?lang=sw', { maxRedirects: 0 });
     expect(res.status()).toBe(301);
-    expect(res.headers()['location']).toBe('/en/bei');
+    expect(res.headers()['location']).toBe('/sw/bei');
   });
 });

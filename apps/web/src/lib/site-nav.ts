@@ -9,7 +9,7 @@ export type SiteEdition = 'sw' | 'en' | 'ke';
 const stripSwPrefix = (p: string) => (p === '/sw' ? '/' : p.startsWith('/sw/') ? p.slice(3) : p);
 
 /** Returns the TZ page whose path (for the given locale) is `path`, or null. */
-function tzPageByPath(path: string, locale: Locale): ContentPageDef | null {
+function tzPageByPath(path: string, _locale: Locale): ContentPageDef | null {
   if (path === '/') return null;
   const slug = path.startsWith('/') ? path.slice(1) : path;
   const match = pageBySlug(slug, 'tz');

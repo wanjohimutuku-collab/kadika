@@ -103,6 +103,7 @@ import type {
   OpsOrganizer,
   OpsOverview,
   OpsUsage,
+  OpsAnalytics,
   StaffPermission,
   GuestMemoriesView,
   MemoriesAdminView,
@@ -3257,6 +3258,16 @@ export class MockRepository implements Repository {
           medianSecondsBetweenAdmissions: null,
         },
       };
+    });
+  }
+
+  opsAnalytics(days: number = 30): Promise<OpsAnalytics> {
+    return this.run('read', 'ops', (): OpsAnalytics => {
+      this.requireStaff();
+      // Analytics is a real-deploy feature (ADR 057); the mock returns an empty summary so the
+      // page renders its "No data yet" state cleanly without any fake rows.
+      const since = new Date(this.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      return { since, totals: {}, byDay: [], byEdition: [], bySource: [] };
     });
   }
 

@@ -649,6 +649,20 @@ export interface OpsUsage {
   failureReasons: { reason: string; count: number }[];
 }
 
+/** First-party analytics summary for `/ops/analytics` (ADR 057 §7). */
+export interface OpsAnalytics {
+  /** ISO timestamp lower bound of the window. */
+  since: string;
+  /** Totals per event name over the window. */
+  totals: Record<string, number>;
+  /** Daily counts of page views and non-page_view events, sparse. */
+  byDay: { day: string; pageViews: number; conversions: number }[];
+  /** Page views grouped by edition (`sw`, `en`, `ke`). */
+  byEdition: { edition: string; pageViews: number }[];
+  /** Page views grouped by source (`direct`, `search`, `social`, `referral`). */
+  bySource: { source: string; pageViews: number }[];
+}
+
 export interface OpsGuestHit {
   guestId: string;
   eventId: string;

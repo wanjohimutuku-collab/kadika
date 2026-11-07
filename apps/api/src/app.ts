@@ -1201,6 +1201,12 @@ export function createApp(deps: Deps) {
     return c.json(await opsSvc.setEventPlan(staff(c), idParam(c), plan));
   });
   app.get('/v1/ops/usage', async (c) => c.json(await opsSvc.usage(staff(c))));
+  app.get('/v1/ops/analytics', async (c) => {
+    // Staff only (ADR 057 §7). Reads the summary; no row data leaves this endpoint.
+    await requireStaff(deps.db, staff(c));
+    const days = Math.max(1, Math.min(180, Number(c.req.query('days') ?? 30)));
+    return c.json(await analyticsSvc.summary(days, deps.now()));
+  });
   app.get('/v1/ops/sms-customers', async (c) => c.json(await smsSvc.opsCustomers(staff(c))));
   app.get('/v1/ops/pricing', async (c) => c.json(await billingSvc.opsCatalog(staff(c))));
   app.put('/v1/ops/pricing', async (c) =>

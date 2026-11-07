@@ -31,6 +31,12 @@ export interface Config {
   analyticsEnabled: boolean;
   /** 32-byte base64 secret used to hash visitor IP + user-agent into the daily session key. */
   analyticsSessionSecret: string | null;
+  /**
+   * Shared secret the web RSC layer passes with each `POST /v1/internal/analytics/events`
+   * (header `x-internal-secret`). The route is refused when unset, so no bot traffic reaches
+   * the table. Compared in constant time (ADR 057 §5).
+   */
+  analyticsInternalSecret: string | null;
   /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
   shortBaseUrls: Partial<Record<Country, string>>;
   /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
@@ -161,6 +167,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
       env.GUEST_PAYMENTS_ENABLED === '1' || env.GUEST_PAYMENTS_ENABLED === 'true',
     analyticsEnabled: env.ANALYTICS_ENABLED === '1' || env.ANALYTICS_ENABLED === 'true',
     analyticsSessionSecret: env.ANALYTICS_SESSION_SECRET ?? null,
+    analyticsInternalSecret: env.ANALYTICS_INTERNAL_SECRET ?? null,
     shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
     paymentProviderKe: env.PAYMENT_PROVIDER_KE ?? 'fake',
     paymentKe:

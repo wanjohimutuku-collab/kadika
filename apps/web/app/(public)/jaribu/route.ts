@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
+import { themeIds, type ThemeId } from '@harusi/ui-tokens/themes';
 import { messages } from '@harusi/i18n';
 import { renderCard, shell, esc } from '@/lib/light-card/render';
 import { brandOf, localeOf, API_URL } from '@/lib/light-card/route-utils';
@@ -28,6 +29,10 @@ const input = z.object({
     .refine((s) => !Number.isNaN(new Date(s).valueOf()), { message: 'bad date' })
     .catch(() => nextSixtyDays()),
   event: z.enum(DEMO_EVENT_TYPES).catch('harusi' satisfies DemoEventType),
+  theme: z
+    .enum(themeIds as [string, ...string[]])
+    .optional()
+    .catch(undefined),
 });
 
 const BANNERS = {
@@ -55,12 +60,14 @@ export async function GET(req: Request) {
     names: url.searchParams.get('names') ?? '',
     date: url.searchParams.get('date') ?? '',
     event: url.searchParams.get('event') ?? '',
+    theme: url.searchParams.get('theme') ?? undefined,
   });
   const brand = await brandOf();
   const view = buildDemoCardView({
     names: parsed.names,
     dateISO: parsed.date,
     eventType: parsed.event,
+    themeId: parsed.theme as ThemeId | undefined,
   });
   const inner = renderCard(view, {
     token: 'demo',

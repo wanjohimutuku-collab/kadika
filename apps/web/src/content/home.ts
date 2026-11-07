@@ -26,6 +26,15 @@ export interface HomeHeroFormLabels {
     kuzaliwa: string;
     mahafali: string;
   };
+  themeLabel: string;
+  themeNames: {
+    'emerald-gold': string;
+    'navy-silver': string;
+    terracotta: string;
+    'rose-sage': string;
+  };
+  downloadCta: string;
+  downloadAria: string;
 }
 
 export interface TryStep {
@@ -192,6 +201,15 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
         kuzaliwa: 'Siku ya kuzaliwa',
         mahafali: 'Mahafali',
       },
+      themeLabel: 'Mandhari',
+      themeNames: {
+        'emerald-gold': 'Kijani na dhahabu',
+        'navy-silver': 'Buluu na fedha',
+        terracotta: 'Terracotta',
+        'rose-sage': 'Waridi na kijani',
+      },
+      downloadCta: 'Pakua picha',
+      downloadAria: 'Pakua picha ya kadi',
     },
     heroPreviewOpen: 'Tazama kadi kamili',
     trustLine: 'Hulipi mpaka utume kadi · Ada moja · Inatumika pia bila mtandao',
@@ -434,6 +452,15 @@ function en(p: PriceFacts, domain: string): HomeCopy {
         kuzaliwa: 'Birthday',
         mahafali: 'Graduation',
       },
+      themeLabel: 'Theme',
+      themeNames: {
+        'emerald-gold': 'Emerald & Gold',
+        'navy-silver': 'Navy & Silver',
+        terracotta: 'Terracotta',
+        'rose-sage': 'Rose & Sage',
+      },
+      downloadCta: 'Download card',
+      downloadAria: 'Download card as image',
     },
     heroPreviewOpen: 'See the full card',
     trustLine: 'You don’t pay until you send · One fee · Works offline too',
@@ -670,6 +697,15 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
         kuzaliwa: 'Birthday',
         mahafali: 'Graduation',
       },
+      themeLabel: 'Theme',
+      themeNames: {
+        'emerald-gold': 'Emerald & Gold',
+        'navy-silver': 'Navy & Silver',
+        terracotta: 'Terracotta',
+        'rose-sage': 'Rose & Sage',
+      },
+      downloadCta: 'Download card',
+      downloadAria: 'Download card as image',
     },
     heroPreviewOpen: 'See the full card',
     trustLine: 'Kenya pilot · One fee per card · Works offline too',

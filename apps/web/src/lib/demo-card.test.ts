@@ -5,6 +5,8 @@ import {
   DEMO_EVENT_TYPES,
   DEMO_QR_PAYLOAD,
   DEMO_THEME_BY_EVENT,
+  DEMO_THEME_IDS,
+  THEME_GRADIENTS,
   type DemoInput,
 } from './demo-card';
 
@@ -69,5 +71,13 @@ describe('buildDemoCardView', () => {
     const v = buildDemoCardView({ ...base, dateISO: 'not-a-date' });
     expect(() => new Date(v.event!.dateStart)).not.toThrow();
     expect(Number.isNaN(new Date(v.event!.dateStart).valueOf())).toBe(false);
+  });
+
+  it('honours an explicit themeId over the event-derived default', () => {
+    for (const themeId of DEMO_THEME_IDS) {
+      const v = buildDemoCardView({ ...base, themeId });
+      expect(v.event?.themeId).toBe(themeId);
+      expect(v.event?.coverGradient).toBe(THEME_GRADIENTS[themeId]);
+    }
   });
 });

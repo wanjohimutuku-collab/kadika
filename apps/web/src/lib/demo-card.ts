@@ -1,6 +1,6 @@
 import { createSeedState, MockRepository } from '@harusi/api-client/mock';
 import type { CardView } from '@harusi/api-client';
-import type { ThemeId } from '@harusi/ui-tokens/themes';
+import { themeIds, type ThemeId } from '@harusi/ui-tokens/themes';
 
 /**
  * A `CardView` seeded from the mock repo, with the four fields that the home-hero inputs drive
@@ -15,7 +15,27 @@ export interface DemoInput {
   names: string;
   dateISO: string;
   eventType: DemoEventType;
+  /** Explicit theme override; when omitted the event kind picks one of the four themes. */
+  themeId?: ThemeId;
 }
+
+export const DEMO_THEME_IDS = themeIds;
+
+/** One linear-gradient per production theme; used by the download renderer and the phone preview. */
+export const THEME_GRADIENTS: Record<ThemeId, string> = {
+  'emerald-gold': 'linear-gradient(135deg,#0F5C4D 0%,#B8893B 100%)',
+  'navy-silver': 'linear-gradient(135deg,#1F3A5F 0%,#8A96A3 100%)',
+  terracotta: 'linear-gradient(135deg,#9A3B1F 0%,#C98A5A 100%)',
+  'rose-sage': 'linear-gradient(135deg,#8C3B57 0%,#5E7A5E 100%)',
+};
+
+/** Matching stop pairs for canvas download (no gradient parser needed). */
+export const THEME_STOPS: Record<ThemeId, [string, string]> = {
+  'emerald-gold': ['#0F5C4D', '#B8893B'],
+  'navy-silver': ['#1F3A5F', '#8A96A3'],
+  terracotta: ['#9A3B1F', '#C98A5A'],
+  'rose-sage': ['#8C3B57', '#5E7A5E'],
+};
 
 export const DEMO_EVENT_TYPES = [
   'harusi',
@@ -111,7 +131,9 @@ function baseView(): CardView {
 export function buildDemoCardView(input: DemoInput): CardView {
   const base = baseView();
   const { a, b, joined } = splitNames(input.names);
-  const theme = DEMO_THEME_BY_EVENT[input.eventType];
+  const auto = DEMO_THEME_BY_EVENT[input.eventType];
+  const themeId: ThemeId = input.themeId ?? auto.themeId;
+  const coverGradient = input.themeId ? THEME_GRADIENTS[themeId] : auto.coverGradient;
   const dateStart = sanitiseDate(input.dateISO);
   if (!base.event || !base.guest) return base;
   return {
@@ -127,8 +149,8 @@ export function buildDemoCardView(input: DemoInput): CardView {
       partnerB: b,
       coupleNames: joined,
       dateStart,
-      themeId: theme.themeId,
-      coverGradient: theme.coverGradient,
+      themeId,
+      coverGradient,
       palette: {},
     },
     guest: {

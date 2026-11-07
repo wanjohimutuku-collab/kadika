@@ -69,4 +69,24 @@ describe('/jaribu route', () => {
     const text = await body(res);
     expect(text).not.toContain('A'.repeat(100));
   });
+
+  it('accepts an explicit theme query and renders without 5xx', async () => {
+    const res = await GET(
+      new Request(
+        'https://kadisasa.co.tz/jaribu?names=Asha%20%26%20Juma&date=2026-12-19&event=harusi&theme=navy-silver',
+      ),
+    );
+    expect(res.status).toBe(200);
+    const text = await body(res);
+    expect(text).toContain('Asha');
+  });
+
+  it('ignores an unknown theme and falls back to the event default', async () => {
+    const res = await GET(
+      new Request(
+        'https://kadisasa.co.tz/jaribu?names=Asha%20%26%20Juma&date=2026-12-19&event=harusi&theme=not-a-theme',
+      ),
+    );
+    expect(res.status).toBe(200);
+  });
 });

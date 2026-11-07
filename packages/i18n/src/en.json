@@ -1306,6 +1306,7 @@
       "organizers": "Customers",
       "events": "Events",
       "usage": "Usage and costs",
+      "analytics": "Site analytics",
       "payments": "Payments",
       "support": "Support",
       "requests": "Data requests",
@@ -1416,6 +1417,34 @@
         "rate_limited": "Too many messages at once"
       },
       "assumption": "SMS cost is an estimate: TZS 25 per message until a provider is chosen."
+    },
+    "analytics": {
+      "title": "Site analytics (30 days)",
+      "empty": "No data yet. Events start flowing once ANALYTICS_ENABLED=1 and its secret are set.",
+      "footnote": "The counts never store names, phones or guest ids. Rows are kept for 180 days.",
+      "cards": {
+        "pageViews": "Page views",
+        "startRegistration": "Started sign-up",
+        "completeRegistration": "Completed sign-up",
+        "createEvent": "New events",
+        "shareInvitation": "Invitations shared"
+      },
+      "daily": "By day",
+      "col": {
+        "day": "Day",
+        "pageViews": "Views",
+        "conversions": "Actions",
+        "edition": "Edition",
+        "source": "Source"
+      },
+      "edition": "By edition",
+      "source": "Traffic source",
+      "sources": {
+        "direct": "Direct",
+        "search": "Google / Bing",
+        "social": "Social",
+        "referral": "Other sites"
+      }
     },
     "payments": {
       "title": "Contribution payments",

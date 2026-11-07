@@ -254,3 +254,36 @@ describe('retention sweep', () => {
     expect(await svc.sweepOld(new Date('2026-11-07T00:00:00Z'), 1)).toBe(1);
   });
 });
+
+describe('summary aggregates', () => {
+  it('returns an empty summary when disabled', async () => {
+    ctx = await createTestContext();
+    const svc = createAnalyticsService(ctx.deps, 'kadisasa.com');
+    const s = await svc.summary(30);
+    expect(s.totals).toEqual({});
+    expect(s.byDay).toEqual([]);
+    expect(s.byEdition).toEqual([]);
+    expect(s.bySource).toEqual([]);
+  });
+
+  it('aggregates totals and groupings by edition and source', async () => {
+    ctx = await createTestContext({
+      env: { ANALYTICS_ENABLED: '1', ANALYTICS_SESSION_SECRET: 's' },
+    });
+    const svc = createAnalyticsService(ctx.deps, 'kadisasa.com');
+    await build(svc)();
+    await build(svc)({ edition: 'en' });
+    await build(svc)({ name: 'create_event' });
+    await build(svc)({
+      referrer: 'https://www.google.com/search?q=kadi',
+    });
+    const s = await svc.summary(30);
+    expect(s.totals.page_view).toBe(3);
+    expect(s.totals.create_event).toBe(1);
+    // One event from the referrer test comes from search.
+    const search = s.bySource.find((r) => r.source === 'search');
+    expect(search?.pageViews).toBe(1);
+    const sw = s.byEdition.find((r) => r.edition === 'sw');
+    expect(sw && sw.pageViews > 0).toBe(true);
+  });
+});

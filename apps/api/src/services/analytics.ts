@@ -1,5 +1,5 @@
 import { blake2b } from '@noble/hashes/blake2';
-import { lt } from 'drizzle-orm';
+import { and, gte, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { analyticsEvents, newId } from '@harusi/db';
 import type { Deps } from '../context';
@@ -150,6 +150,20 @@ export function normalisePath(path: string): string {
   return (noQuery.startsWith('/') ? noQuery : `/${noQuery}`).slice(0, PATH_MAX);
 }
 
+/** Aggregate shape returned by `summary()`, consumed by `/ops/analytics`. */
+export interface AnalyticsSummary {
+  /** Lower bound of the window; everything after this timestamp is counted. */
+  since: string;
+  /** Totals per event name over the window. Keys are from ANALYTICS_EVENT_NAMES. */
+  totals: Record<string, number>;
+  /** One row per day in the window (UTC, sparse: only days with at least one event). */
+  byDay: { day: string; pageViews: number; conversions: number }[];
+  /** Page views per edition (sw, en, ke). */
+  byEdition: { edition: string; pageViews: number }[];
+  /** Page views per source bucket. */
+  bySource: { source: string; pageViews: number }[];
+}
+
 export interface AnalyticsService {
   readonly enabled: boolean;
   record(input: RecordEventInput): Promise<void>;
@@ -159,6 +173,11 @@ export interface AnalyticsService {
    * (the service is enabled only on flag + secret, and the sweep refuses otherwise).
    */
   sweepOld(now?: Date, retentionDays?: number): Promise<number>;
+  /**
+   * Aggregates the last `days` into counts by name, day, edition and source. Safe to call when
+   * disabled: it returns an empty summary. Staff-only data; the route around it enforces auth.
+   */
+  summary(days?: number, now?: Date): Promise<AnalyticsSummary>;
 }
 
 /**
@@ -205,6 +224,64 @@ export function createAnalyticsService(
         .where(lt(analyticsEvents.occurredAt, cutoff))
         .returning({ id: analyticsEvents.id });
       return rows.length;
+    },
+    async summary(days = 30, now = new Date()) {
+      const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const empty: AnalyticsSummary = {
+        since: since.toISOString(),
+        totals: {},
+        byDay: [],
+        byEdition: [],
+        bySource: [],
+      };
+      if (!enabled) return empty;
+      const window = and(gte(analyticsEvents.occurredAt, since));
+      const totalsRows = await deps.db
+        .select({
+          name: analyticsEvents.name,
+          n: sql<number>`count(*)`.mapWith(Number),
+        })
+        .from(analyticsEvents)
+        .where(window)
+        .groupBy(analyticsEvents.name);
+      const day = sql<string>`to_char(${analyticsEvents.occurredAt} at time zone 'utc', 'YYYY-MM-DD')`;
+      const isPageView = sql`${analyticsEvents.name} = 'page_view'`;
+      const isConversion = sql`${analyticsEvents.name} <> 'page_view'`;
+      const byDay = await deps.db
+        .select({
+          day,
+          pageViews: sql<number>`count(*) filter (where ${isPageView})`.mapWith(Number),
+          conversions: sql<number>`count(*) filter (where ${isConversion})`.mapWith(Number),
+        })
+        .from(analyticsEvents)
+        .where(window)
+        .groupBy(day)
+        .orderBy(day);
+      const byEdition = await deps.db
+        .select({
+          edition: analyticsEvents.edition,
+          pageViews: sql<number>`count(*) filter (where ${isPageView})`.mapWith(Number),
+        })
+        .from(analyticsEvents)
+        .where(window)
+        .groupBy(analyticsEvents.edition);
+      const bySource = await deps.db
+        .select({
+          source: analyticsEvents.source,
+          pageViews: sql<number>`count(*) filter (where ${isPageView})`.mapWith(Number),
+        })
+        .from(analyticsEvents)
+        .where(window)
+        .groupBy(analyticsEvents.source);
+      const totals: Record<string, number> = {};
+      for (const r of totalsRows) totals[r.name] = r.n;
+      return {
+        since: since.toISOString(),
+        totals,
+        byDay,
+        byEdition,
+        bySource,
+      };
     },
   };
 }

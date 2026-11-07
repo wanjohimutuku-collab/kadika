@@ -35,6 +35,8 @@ const ITEMS = [
   { key: 'organizers', href: '/ops/organizers', icon: Users },
   { key: 'events', href: '/ops/events', icon: CalendarHeart },
   { key: 'usage', href: '/ops/usage', icon: Activity },
+  /** First-party site analytics (ADR 057). */
+  { key: 'analytics', href: '/ops/analytics', icon: BarChart3 },
   { key: 'pilot', href: '/ops/pilot', icon: Gauge },
   /** Card bundles and message packs hosts buy, and their prices (ADR 042). */
   { key: 'billing', href: '/ops/billing', icon: Wallet },

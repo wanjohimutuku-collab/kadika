@@ -19,14 +19,14 @@ content; it only moves URLs.
 
 ## 2. Target route map
 
-| Was | Becomes | Status |
-|---|---|---|
-| `/` | `/` | Content now EN-TZ (was SW-TZ) |
-| `/en` | `/` | 301 permanent redirect |
-| `/en/x` | `/x` | 301 permanent redirect (all EN-TZ pages collapse to canonical path) |
-| `/x` (SW pages at root) | `/sw/x` | 301 permanent redirect |
-| `/ke`, `/ke/...` | unchanged | — |
-| `/c/<token>`, `/s/<code>`, `/k`, `/app/...`, `/ops/...`, `/gate-join/...`, `/dev/...` | unchanged | Not site paths |
+| Was                                                                                   | Becomes   | Status                                                              |
+| ------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------- |
+| `/`                                                                                   | `/`       | Content now EN-TZ (was SW-TZ)                                       |
+| `/en`                                                                                 | `/`       | 301 permanent redirect                                              |
+| `/en/x`                                                                               | `/x`      | 301 permanent redirect (all EN-TZ pages collapse to canonical path) |
+| `/x` (SW pages at root)                                                               | `/sw/x`   | 301 permanent redirect                                              |
+| `/ke`, `/ke/...`                                                                      | unchanged | —                                                                   |
+| `/c/<token>`, `/s/<code>`, `/k`, `/app/...`, `/ops/...`, `/gate-join/...`, `/dev/...` | unchanged | Not site paths                                                      |
 
 Canonical: every public TZ page's canonical URL uses the new scheme (EN at `/`, SW at `/sw/`).
 `x-default` → `/`. Alternates: `en-TZ` at `/`, `sw-TZ` at `/sw/`, `en-KE` at `/ke/` where applicable.
@@ -93,7 +93,7 @@ The `x-hp-lang` header value now flips (EN by default at `/`).
 
 - `apps/web/src/content/site-ui.ts` labels unchanged. The nav builder (`layout.tsx`) uses
   `localeUrl()` already, so flipping the composer in §3.3 is enough.
-- `LocaleSwitch` in `components/site/locale-switch.tsx`: the toggle still labels the *other*
+- `LocaleSwitch` in `components/site/locale-switch.tsx`: the toggle still labels the _other_
   locale; today's "EN" chip now reads "SW" when on `/`. Logic generic, no code change if it
   uses `editionTargets`. Verify.
 

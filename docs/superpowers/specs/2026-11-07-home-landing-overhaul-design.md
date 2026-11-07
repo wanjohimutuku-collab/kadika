@@ -67,7 +67,7 @@ No PII is sent; `names` is hashed client-side before emission.
 ## 4. "Jaribu mwenyewe" — three interactive steps
 
 Full-width section with ivory background, three equal cards on desktop, stacked on mobile. Each
-card has an eyebrow number, title, one-sentence body, and a *working* interaction (not a static
+card has an eyebrow number, title, one-sentence body, and a _working_ interaction (not a static
 image). Interactions are entirely client-side state — no network calls.
 
 1. **Mgeni anafungua kadi** — a mini WhatsApp-style bubble shows the real SMS/WhatsApp copy with
@@ -122,7 +122,7 @@ Behaviour:
   a visitor lands back on the demo. This is deliberate — the demo must not render a
   shape resembling a real signed token.
 - Response headers: `Cache-Control: s-maxage=3600, stale-while-revalidate=86400`, `X-Robots-Tag:
-  noindex`. Added to `robots.ts` disallow. Not added to sitemap.
+noindex`. Added to `robots.ts` disallow. Not added to sitemap.
 - Works at `/jaribu` (SW) and `/en/jaribu` (EN). `/try` is a 308 redirect to `/en/jaribu`.
 
 ### Pricing teaser
@@ -159,7 +159,7 @@ A real "WhatsApp me the demo" bridge through WhatsApp Business Cloud API is expl
 
 - `apps/web/app/(public)/jaribu/route.ts` — `/jaribu` + `/en/jaribu` demo card (plain HTML).
 - `apps/web/src/components/site/home/hero-live.tsx` — client island; inputs + phone frame
-  + debounced preview.
+  - debounced preview.
 - `apps/web/src/components/site/home/try-section.tsx` — client island; the three §4 steps and
   their local state.
 - `apps/web/src/components/site/home/feature-row.tsx` — server component used three times.

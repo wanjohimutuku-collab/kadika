@@ -55,10 +55,12 @@
 ## Task 1: `buildDemoCardView()` and its tests
 
 **Files:**
+
 - Create: `apps/web/src/lib/demo-card.ts`
 - Create: `apps/web/src/lib/demo-card.test.ts`
 
 **Interfaces:**
+
 - Consumes: `createSeedState`, `MockRepository` from `@harusi/api-client/mock`; `CardView` from `@harusi/api-client`.
 - Produces:
   - `type DemoEventType = 'harusi' | 'send-off' | 'kitchen-party' | 'nikah' | 'uchumba' | 'kuzaliwa' | 'mahafali';`
@@ -74,12 +76,7 @@
 // apps/web/src/lib/demo-card.test.ts
 import { describe, it, expect } from 'vitest';
 import { renderCard } from '@/lib/light-card/render';
-import {
-  buildDemoCardView,
-  DEMO_EVENT_TYPES,
-  DEMO_QR_PAYLOAD,
-  type DemoInput,
-} from './demo-card';
+import { buildDemoCardView, DEMO_EVENT_TYPES, DEMO_QR_PAYLOAD, type DemoInput } from './demo-card';
 
 const base: DemoInput = {
   names: 'Asha & Juma',
@@ -152,13 +149,7 @@ import { createSeedState, MockRepository } from '@harusi/api-client/mock';
 import type { CardView } from '@harusi/api-client';
 
 export type DemoEventType =
-  | 'harusi'
-  | 'send-off'
-  | 'kitchen-party'
-  | 'nikah'
-  | 'uchumba'
-  | 'kuzaliwa'
-  | 'mahafali';
+  'harusi' | 'send-off' | 'kitchen-party' | 'nikah' | 'uchumba' | 'kuzaliwa' | 'mahafali';
 
 export interface DemoInput {
   names: string;
@@ -323,11 +314,13 @@ EOF
 ## Task 2: `/jaribu` route handler
 
 **Files:**
+
 - Create: `apps/web/app/(public)/jaribu/route.ts`
 - Create: `apps/web/app/(public)/jaribu/route.test.ts`
 - Modify: `apps/web/app/robots.ts` (add `/jaribu` and `/en/jaribu` disallow)
 
 **Interfaces:**
+
 - Consumes: `buildDemoCardView`, `DEMO_EVENT_TYPES` from `@/lib/demo-card`; `renderCard`, `shell` from `@/lib/light-card/render`; `brandOf`, `html`, `localeOf` from `@/lib/light-card/route-utils`; `API_URL` from the same; zod.
 - Produces: HTTP route at `GET /jaribu` and `GET /en/jaribu` returning `text/html; charset=utf-8` with `X-Robots-Tag: noindex, nofollow` and the response headers specified in the spec.
 
@@ -345,7 +338,9 @@ async function body(res: Response) {
 describe('/jaribu route', () => {
   it('renders a demo card with the demo banner for valid input', async () => {
     const res = await GET(
-      new Request('https://kadisasa.co.tz/jaribu?names=Asha%20%26%20Juma&date=2026-12-19&event=harusi'),
+      new Request(
+        'https://kadisasa.co.tz/jaribu?names=Asha%20%26%20Juma&date=2026-12-19&event=harusi',
+      ),
     );
     expect(res.status).toBe(200);
     expect(res.headers.get('x-robots-tag') ?? '').toMatch(/noindex/i);
@@ -356,7 +351,9 @@ describe('/jaribu route', () => {
   });
 
   it('falls back to defaults on invalid input and never 5xx', async () => {
-    const res = await GET(new Request('https://kadisasa.co.tz/jaribu?names=&date=not-a-date&event=zzz'));
+    const res = await GET(
+      new Request('https://kadisasa.co.tz/jaribu?names=&date=not-a-date&event=zzz'),
+    );
     expect(res.status).toBe(200);
     const text = await body(res);
     expect(text).toContain('Asha');
@@ -364,7 +361,9 @@ describe('/jaribu route', () => {
 
   it('escapes names so no <script> runs', async () => {
     const res = await GET(
-      new Request('https://kadisasa.co.tz/jaribu?names=%3Cscript%3Ealert(1)%3C/script%3E&date=2026-12-19&event=harusi'),
+      new Request(
+        'https://kadisasa.co.tz/jaribu?names=%3Cscript%3Ealert(1)%3C/script%3E&date=2026-12-19&event=harusi',
+      ),
     );
     const text = await body(res);
     expect(text).not.toMatch(/<script>alert\(1\)<\/script>/);
@@ -374,7 +373,9 @@ describe('/jaribu route', () => {
   it('clamps a 300-char names input to 60 chars', async () => {
     const long = 'A'.repeat(300);
     const res = await GET(
-      new Request(`https://kadisasa.co.tz/jaribu?names=${encodeURIComponent(long)}&date=2026-12-19&event=harusi`),
+      new Request(
+        `https://kadisasa.co.tz/jaribu?names=${encodeURIComponent(long)}&date=2026-12-19&event=harusi`,
+      ),
     );
     const text = await body(res);
     expect(text).not.toContain('A'.repeat(100));
@@ -397,11 +398,7 @@ Expected: FAIL with "Cannot find module './route'".
 import { z } from 'zod';
 import { renderCard, shell } from '@/lib/light-card/render';
 import { brandOf, html, localeOf, API_URL } from '@/lib/light-card/route-utils';
-import {
-  buildDemoCardView,
-  DEMO_EVENT_TYPES,
-  type DemoEventType,
-} from '@/lib/demo-card';
+import { buildDemoCardView, DEMO_EVENT_TYPES, type DemoEventType } from '@/lib/demo-card';
 import { APP_DOMAIN } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
@@ -509,10 +506,12 @@ EOF
 ## Task 3: `HomeCopy` shape + SW/EN copy
 
 **Files:**
+
 - Modify: `apps/web/src/content/home.ts`
 - Modify: `apps/web/src/content/site-ui.ts`
 
 **Interfaces:**
+
 - Consumes: `PricingCatalog`, `SiteEdition` (already imported).
 - Produces (adds to `HomeCopy`):
   - `hero.formLabels: { names: string; namesPlaceholder: string; date: string; eventType: string; eventLabels: Record<DemoEventType, string> }`
@@ -594,14 +593,22 @@ const sw = {
     {
       eyebrow: 'Kadi',
       title: 'Kadi inayofaa kwa simu yoyote.',
-      bullets: ['SMS ikiwa WhatsApp imeshindwa', 'PDF ya kuchapisha', 'Inafanya kazi offline baada ya kufunguka mara ya kwanza'],
+      bullets: [
+        'SMS ikiwa WhatsApp imeshindwa',
+        'PDF ya kuchapisha',
+        'Inafanya kazi offline baada ya kufunguka mara ya kwanza',
+      ],
       linkLabel: 'Jifunze zaidi',
       linkSlug: 'kadi-ya-harusi-mtandaoni',
     },
     {
       eyebrow: 'Lango',
       title: 'Mlangoni, sekunde moja kwa kila mgeni.',
-      bullets: ['Uthibitisho bila mtandao', 'Duplicate inajulikana mara moja', 'PIN tofauti kwa kila lango'],
+      bullets: [
+        'Uthibitisho bila mtandao',
+        'Duplicate inajulikana mara moja',
+        'PIN tofauti kwa kila lango',
+      ],
     },
     {
       eyebrow: 'Michango',
@@ -670,9 +677,11 @@ EOF
 ## Task 4: `<TrustLine>` server component
 
 **Files:**
+
 - Create: `apps/web/src/components/site/home/trust-line.tsx`
 
 **Interfaces:**
+
 - Produces: `export function TrustLine({ text }: { text: string }): JSX.Element`.
 
 - [ ] **Step 1: Implement**
@@ -707,9 +716,11 @@ EOF
 ## Task 5: `<HeroLive>` client island
 
 **Files:**
+
 - Create: `apps/web/src/components/site/home/hero-live.tsx`
 
 **Interfaces:**
+
 - Consumes: `buildDemoCardView`, `DEMO_EVENT_TYPES` from `@/lib/demo-card`; `homeCopy` shape (receives the resolved `HomeCopy['hero']`, `HomeCopy['formLabels']`, and `heroPreviewOpen` via props); `cn` from `@/lib/cn`; analytics `emit()` from `@/lib/analytics` (wherever existing emitters live — Task 2 of ADR 057 landed this; grep for `emit(` in `apps/web/src` to find the exact import).
 - Produces:
   - `export interface HeroLiveProps { locale: 'sw' | 'en'; h1: string; sub: string; primary: { href: string; label: string }; secondaryBaseHref: string; secondaryLabel: string; footnote: string; form: HomeCopy['hero']['formLabels']; previewFrameAlt: string; }`
@@ -777,7 +788,10 @@ export function HeroLive(props: HeroLiveProps) {
   const [cardHtml, setCardHtml] = useState<string>('');
   const timer = useRef<number | null>(null);
 
-  const view = useMemo(() => buildDemoCardView({ names, dateISO, eventType }), [names, dateISO, eventType]);
+  const view = useMemo(
+    () => buildDemoCardView({ names, dateISO, eventType }),
+    [names, dateISO, eventType],
+  );
 
   useEffect(() => {
     emit('home_hero_view');
@@ -790,11 +804,14 @@ export function HeroLive(props: HeroLiveProps) {
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       const label = props.form.eventLabels[eventType];
-      const datePretty = new Date(dateISO).toLocaleDateString(props.locale === 'sw' ? 'sw-TZ' : 'en-GB', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      });
+      const datePretty = new Date(dateISO).toLocaleDateString(
+        props.locale === 'sw' ? 'sw-TZ' : 'en-GB',
+        {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        },
+      );
       setCardHtml(
         `<div class="flex h-full flex-col items-center justify-between p-6 text-center">` +
           `<span class="text-xs uppercase tracking-widest opacity-70">${escapeHtml(label)}</span>` +
@@ -818,7 +835,9 @@ export function HeroLive(props: HeroLiveProps) {
   return (
     <section className="ks-reveal mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:gap-16 md:py-24">
       <div className="flex flex-col gap-6">
-        <h1 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] md:text-5xl">{props.h1}</h1>
+        <h1 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] md:text-5xl">
+          {props.h1}
+        </h1>
         <p className="max-w-xl text-lg leading-relaxed text-ks-muted">{props.sub}</p>
 
         <div className="flex flex-col gap-3 pt-2">
@@ -910,7 +929,10 @@ export function HeroLive(props: HeroLiveProps) {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  );
 }
 ```
 
@@ -943,9 +965,11 @@ EOF
 ## Task 6: `<TrySection>` client island
 
 **Files:**
+
 - Create: `apps/web/src/components/site/home/try-section.tsx`
 
 **Interfaces:**
+
 - Consumes: `HomeCopy['trySection']` as `copy` prop; secondary CTA href base (same as hero secondary) and current `{names, dateISO, eventType}` as a `demoHref` string prop built by the parent server component.
 - Produces:
   - `export interface TrySectionProps { copy: HomeCopy['trySection']; demoHref: string; }`
@@ -1060,9 +1084,25 @@ export function TrySection({ copy, demoHref, gateCopy }: TrySectionProps) {
                     </button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => setParty((p) => Math.max(1, p - 1))} aria-label="minus" className="size-10 rounded-full border">−</button>
-                    <span aria-live="polite" className="w-10 text-center font-semibold">{party}</span>
-                    <button type="button" onClick={() => setParty((p) => p + 1)} aria-label="plus" className="size-10 rounded-full border">+</button>
+                    <button
+                      type="button"
+                      onClick={() => setParty((p) => Math.max(1, p - 1))}
+                      aria-label="minus"
+                      className="size-10 rounded-full border"
+                    >
+                      −
+                    </button>
+                    <span aria-live="polite" className="w-10 text-center font-semibold">
+                      {party}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setParty((p) => p + 1)}
+                      aria-label="plus"
+                      className="size-10 rounded-full border"
+                    >
+                      +
+                    </button>
                   </div>
                 </>
               ) : (
@@ -1092,7 +1132,9 @@ export function TrySection({ copy, demoHref, gateCopy }: TrySectionProps) {
                   className="rounded-xl px-4 py-5 text-center text-white motion-safe:transition-colors"
                   style={{ background: GATE_BG[gate] }}
                 >
-                  <p className="text-sm uppercase tracking-widest opacity-90">{gate.toUpperCase()}</p>
+                  <p className="text-sm uppercase tracking-widest opacity-90">
+                    {gate.toUpperCase()}
+                  </p>
                   <p className="font-semibold">{gateCopy[gate]}</p>
                 </div>
               ) : null}
@@ -1126,10 +1168,12 @@ EOF
 ## Task 7: `<FeatureRow>` and `<PricingTeaser>` server components
 
 **Files:**
+
 - Create: `apps/web/src/components/site/home/feature-row.tsx`
 - Create: `apps/web/src/components/site/home/pricing-teaser.tsx`
 
 **Interfaces:**
+
 - `FeatureRow`:
   - `export interface FeatureRowProps { eyebrow: string; title: string; bullets: string[]; linkLabel?: string; linkHref?: string; visual: ReactNode; reverse?: boolean; }`
 - `PricingTeaser`:
@@ -1155,12 +1199,27 @@ export interface FeatureRowProps {
   reverse?: boolean;
 }
 
-export function FeatureRow({ eyebrow, title, bullets, linkLabel, linkHref, visual, reverse }: FeatureRowProps) {
+export function FeatureRow({
+  eyebrow,
+  title,
+  bullets,
+  linkLabel,
+  linkHref,
+  visual,
+  reverse,
+}: FeatureRowProps) {
   return (
-    <section className={cn('mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-2 md:gap-16 md:py-24', reverse && 'md:[direction:rtl] md:[&>*]:[direction:ltr]')}>
+    <section
+      className={cn(
+        'mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-2 md:gap-16 md:py-24',
+        reverse && 'md:[direction:rtl] md:[&>*]:[direction:ltr]',
+      )}
+    >
       <div className="flex flex-col gap-5">
         <span className="text-xs tracking-widest text-ks-muted">{eyebrow}</span>
-        <h2 className="font-serif text-3xl leading-tight tracking-[-0.02em] md:text-4xl">{title}</h2>
+        <h2 className="font-serif text-3xl leading-tight tracking-[-0.02em] md:text-4xl">
+          {title}
+        </h2>
         <ul className="flex flex-col gap-3">
           {bullets.map((b) => (
             <li key={b} className="flex gap-3 leading-relaxed">
@@ -1172,7 +1231,10 @@ export function FeatureRow({ eyebrow, title, bullets, linkLabel, linkHref, visua
           ))}
         </ul>
         {linkLabel && linkHref ? (
-          <Link href={linkHref} className="inline-flex w-fit items-center gap-2 text-ks-green-700 underline-offset-4 hover:underline">
+          <Link
+            href={linkHref}
+            className="inline-flex w-fit items-center gap-2 text-ks-green-700 underline-offset-4 hover:underline"
+          >
             {linkLabel}
             <ArrowUpRight className="size-4" strokeWidth={1.75} />
           </Link>
@@ -1213,14 +1275,19 @@ export function PricingTeaser({ catalog, locale, copy, comparisonHref }: Pricing
     <section aria-labelledby="bei" className="bg-ks-surface py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-10 flex flex-col gap-2">
-          <h2 id="bei" className="font-serif text-3xl tracking-[-0.02em] md:text-4xl">{copy.title}</h2>
+          <h2 id="bei" className="font-serif text-3xl tracking-[-0.02em] md:text-4xl">
+            {copy.title}
+          </h2>
           <p className="text-ks-muted">{copy.sub}</p>
         </div>
         <div className="grid gap-5 md:grid-cols-3">
           {tiers.map((t, i) => {
             const emphasised = i === 1;
             return (
-              <article key={t.id} className={cn('ks-bezel', emphasised && 'ring-2 ring-ks-green-700/40')}>
+              <article
+                key={t.id}
+                className={cn('ks-bezel', emphasised && 'ring-2 ring-ks-green-700/40')}
+              >
                 <div className="ks-core flex h-full flex-col gap-4 p-6 md:p-8">
                   <h3 className="text-xl font-semibold">{t.name}</h3>
                   <p className="text-3xl font-bold tracking-tight">
@@ -1231,7 +1298,9 @@ export function PricingTeaser({ catalog, locale, copy, comparisonHref }: Pricing
                     href={`${loginBase}?plan=${encodeURIComponent(t.id)}`}
                     className={cn(
                       'mt-auto inline-flex min-h-12 items-center justify-center rounded-full px-5 font-semibold',
-                      emphasised ? 'bg-ks-green-700 text-white' : 'border border-ks-green-700 text-ks-green-700',
+                      emphasised
+                        ? 'bg-ks-green-700 text-white'
+                        : 'border border-ks-green-700 text-ks-green-700',
                     )}
                   >
                     {copy.cta}
@@ -1242,7 +1311,10 @@ export function PricingTeaser({ catalog, locale, copy, comparisonHref }: Pricing
           })}
         </div>
         <p className="mt-6 text-sm text-ks-muted">
-          {copy.footnote} · <Link href={comparisonHref} className="underline">{copy.comparisonLink}</Link>
+          {copy.footnote} ·{' '}
+          <Link href={comparisonHref} className="underline">
+            {copy.comparisonLink}
+          </Link>
         </p>
       </div>
     </section>
@@ -1272,9 +1344,11 @@ EOF
 ## Task 8: `<CtaBand>` client component
 
 **Files:**
+
 - Create: `apps/web/src/components/site/home/cta-band.tsx`
 
 **Interfaces:**
+
 - `export interface CtaBandProps { copy: { text: string; primary: string; secondary: string; whatsappField: string; whatsappCta: string; whatsappTemplate: string; }; primaryHref: string; demoHrefBuilder: () => string; }`
 - Produces client component that composes `wa.me/<digits>?text=<encoded message with url>`.
 
@@ -1314,7 +1388,9 @@ export function CtaBand({ copy, primaryHref, demoHref }: CtaBandProps) {
   return (
     <section className="ks-mesh-dark relative py-20 md:py-28 text-white">
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 text-center">
-        <h2 className="font-serif text-3xl leading-tight tracking-[-0.02em] md:text-4xl">{copy.text}</h2>
+        <h2 className="font-serif text-3xl leading-tight tracking-[-0.02em] md:text-4xl">
+          {copy.text}
+        </h2>
         <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
           <input
             type="tel"
@@ -1366,10 +1442,12 @@ EOF
 ## Task 9: Rewrite `home-page.tsx` to stitch the new sections
 
 **Files:**
+
 - Modify: `apps/web/src/components/site/home-page.tsx`
 - Remove dead exports from: `apps/web/src/components/site/mockups.tsx` (only if grep shows no external consumer)
 
 **Interfaces:**
+
 - Produces: the new render order: `Hero → TrustLine → TrySection → FeatureRow×3 → PricingTeaser → Events → Faq → CtaBand`, JSON-LD updated to source `HowTo.step` from `c.trySection.steps` (keep `name`, map `step[].name = s.title`, `step[].text = s.body`).
 
 - [ ] **Step 1: Rewrite**
@@ -1473,9 +1551,11 @@ EOF
 ## Task 10: Playwright e2e for the hero → `/jaribu` flow
 
 **Files:**
+
 - Create: `apps/web/e2e/home-hero.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Playwright `test` from `@playwright/test`.
 - Produces: a single spec with a two-step scenario.
 
@@ -1529,6 +1609,7 @@ EOF
 ## Task 11: Lighthouse, accessibility, and final verification
 
 **Files:**
+
 - None created. Verifies acceptance criteria from spec §8.
 
 - [ ] **Step 1: Build**

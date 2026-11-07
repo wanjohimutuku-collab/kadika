@@ -62,7 +62,15 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const links = [
     ...(market === 'tz' ? [{ href: localeUrl(PRICING_PATH, locale), label: ui.pricing }] : []),
     ...(about
-      ? [{ href: localeUrl(pagePath(about, market === 'ke' ? 'en' : locale), market === 'ke' ? 'en' : locale), label: ui.about }]
+      ? [
+          {
+            href: localeUrl(
+              pagePath(about, market === 'ke' ? 'en' : locale),
+              market === 'ke' ? 'en' : locale,
+            ),
+            label: ui.about,
+          },
+        ]
       : []),
   ];
   const cta =

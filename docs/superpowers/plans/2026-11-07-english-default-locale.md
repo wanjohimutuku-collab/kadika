@@ -49,9 +49,11 @@
 ## Task 1: Lock in the new `routeSiteLocale` behavior with tests
 
 **Files:**
+
 - Modify: `apps/web/src/lib/site-locale.test.ts` (add new cases first; existing cases stay until Task 3 changes the behavior).
 
 **Interfaces:**
+
 - Consumes: `routeSiteLocale` from `./site-locale` (soon-to-change behavior).
 - Produces: a complete test matrix that will go from failing to passing in Task 3.
 
@@ -70,7 +72,12 @@ describe('routeSiteLocale — English-default scheme', () => {
   });
 
   it('serves /sw by rewriting to / in Swahili', () => {
-    expect(routeSiteLocale('/sw', '')).toEqual({ action: 'rewrite', path: '/', locale: 'sw', market: 'tz' });
+    expect(routeSiteLocale('/sw', '')).toEqual({
+      action: 'rewrite',
+      path: '/',
+      locale: 'sw',
+      market: 'tz',
+    });
   });
 
   it('rewrites /sw/<slug> to /<slug> in Swahili', () => {
@@ -123,7 +130,11 @@ describe('routeSiteLocale — English-default scheme', () => {
 
   it('leaves /ke/... unchanged', () => {
     expect(routeSiteLocale('/ke', '')).toEqual({ action: 'next', locale: 'en', market: 'ke' });
-    expect(routeSiteLocale('/ke/weddings', '')).toEqual({ action: 'next', locale: 'en', market: 'ke' });
+    expect(routeSiteLocale('/ke/weddings', '')).toEqual({
+      action: 'next',
+      locale: 'en',
+      market: 'ke',
+    });
   });
 });
 ```
@@ -158,10 +169,12 @@ EOF
 ## Task 2: Build the legacy-SW-redirect table and its tests
 
 **Files:**
+
 - Create: `apps/web/src/lib/legacy-sw-redirects.ts`
 - Create: `apps/web/src/lib/legacy-sw-redirects.test.ts`
 
 **Interfaces:**
+
 - Consumes: `pagesOf('tz')` from `@/content`; `pagePath(page, locale)` or equivalent from `@/content` (grep to confirm the exact export; a 1-minute lookup).
 - Produces:
   - `export const LEGACY_SW_ROOT_PATHS: ReadonlyMap<string, string>` — keys are old root paths (e.g. `/kadi-ya-harusi-mtandaoni`, `/kuhusu`), values are new canonical SW paths (e.g. `/sw/kadi-ya-harusi-mtandaoni`).
@@ -278,10 +291,12 @@ EOF
 ## Task 3: Flip `site-locale.ts` to the new scheme
 
 **Files:**
+
 - Modify: `apps/web/src/lib/site-locale.ts`
 - Modify: `apps/web/src/lib/site-locale.test.ts` (remove tests for the old scheme that now contradict the new behavior)
 
 **Interfaces:**
+
 - Consumes: `legacySwRedirect` from `./legacy-sw-redirects`; `isSitePath`, `editionOfPath` kept for consumers.
 - Produces:
   - `export function routeSiteLocale(pathname, search): LocaleRoute | null` — new behavior per the spec target route map.
@@ -421,10 +436,12 @@ EOF
 ## Task 4: Flip the URL composer in `seo.ts`
 
 **Files:**
+
 - Modify: `apps/web/src/lib/seo.ts`
 - Modify: `apps/web/src/lib/seo.test.ts` if it exists; otherwise create it with focused cases.
 
 **Interfaces:**
+
 - Produces:
   - `defaultLocaleFor('tz')` → `'en'`; `defaultLocaleFor('ke')` → `'en'` (unchanged).
   - `localeUrl(path, 'en')` → `path` (unchanged in shape; semantics now default).
@@ -542,11 +559,13 @@ EOF
 ## Task 5: Refresh middleware + public-layout docstrings
 
 **Files:**
+
 - Modify: `apps/web/middleware.ts` (docstring only)
 - Modify: `apps/web/app/(public)/page.tsx` (docstring only)
 - Modify: `apps/web/app/(public)/layout.tsx` (docstring + verify `edition` derivation)
 
 **Interfaces:**
+
 - No external signature changes.
 
 - [ ] **Step 1: Update `middleware.ts` top-level comment**
@@ -619,6 +638,7 @@ EOF
 ## Task 6: Verify sitemap output flipped
 
 **Files:**
+
 - Modify (only if needed): `apps/web/app/sitemap.xml/**`, `apps/web/app/sitemaps/**`
 - Smoke-test outputs; no proactive edits expected.
 
@@ -662,9 +682,11 @@ If no edit was needed, skip the commit and record the verification in the final 
 ## Task 7: Verify `LocaleSwitch` + nav links flip with the composer
 
 **Files:**
+
 - Verify only: `apps/web/src/components/site/locale-switch.tsx`, `apps/web/src/lib/site-nav.ts`, `apps/web/app/(public)/layout.tsx`.
 
 **Interfaces:**
+
 - None added. Expectation: after Task 4 flipped `localeUrl`, the nav's locale-switch chip, footer links, and in-page cross-locale links all compose the new URLs automatically.
 
 - [ ] **Step 1: Dev smoke-test**
@@ -698,9 +720,11 @@ Note the verification in Task 10.
 ## Task 8: Retarget e2e specs that asserted SW copy at `/`
 
 **Files:**
+
 - Modify: specs under `apps/web/e2e/` that assert Swahili copy on `/`.
 
 **Interfaces:**
+
 - None.
 
 - [ ] **Step 1: List candidate specs**
@@ -716,6 +740,7 @@ Record the list.
 Decide: does the spec want to assert SW copy (then change `page.goto('/')` to `page.goto('/sw')`), or does it want to assert EN copy (then update the matcher strings to the EN equivalents from `apps/web/src/content/home.ts`)?
 
 Preference order:
+
 1. If the spec's intent is "the SW landing works end-to-end", change the goto path.
 2. If the spec's intent is "the default landing has a working CTA", keep `/` and update matchers to EN.
 
@@ -749,9 +774,11 @@ EOF
 ## Task 9: Add a redirect e2e spec
 
 **Files:**
+
 - Create: `apps/web/e2e/locale-redirects.spec.ts`
 
 **Interfaces:**
+
 - Consumes: Playwright `test`, `expect`.
 
 - [ ] **Step 1: Write the spec**
@@ -814,6 +841,7 @@ EOF
 ## Task 10: Final verification
 
 **Files:**
+
 - None created. Verifies the spec's §8 acceptance criteria.
 
 - [ ] **Step 1: Run every test**
@@ -956,6 +984,7 @@ Each task ends with its own commit, TDD where applicable.
   only handles the SW `/sw` prefix and the KE case. Callers that build content-page URLs
   (`site-nav.ts`, `home-page.tsx`, footer builders) pass the locale-correct path returned by
   `pagePath(p, locale)` into `localeUrl` with the same locale.
+
 - Tests: the main plan's Task 4 test file, with the content-page assertions updated — e.g.
   `localeUrl('/online-wedding-invitation', 'en')` returns `/online-wedding-invitation`;
   `localeUrl('/kadi-ya-harusi-mtandaoni', 'sw')` returns `/sw/kadi-ya-harusi-mtandaoni`.

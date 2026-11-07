@@ -55,7 +55,11 @@ import { safeErrorMessage } from './observability';
 import { BillingService } from './services/billing';
 import { SmsCampaignService } from './services/sms-campaigns';
 import { smsTargetSchema } from '@harusi/schemas/sms';
-import { createAnalyticsService, recordEventSchema } from './services/analytics';
+import {
+  createAnalyticsService,
+  recordEventSchema,
+  type AnalyticsEventName,
+} from './services/analytics';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
@@ -266,6 +270,32 @@ export function createApp(deps: Deps) {
     }
   })();
   const analyticsSvc = createAnalyticsService(deps, analyticsSiteHost);
+  /**
+   * Fire-and-forget analytics emit for a route handler. Reads IP, user-agent and referrer from
+   * the request headers; `market` / `locale` / `edition` default to the TZ main site because
+   * API-only callers lack that context. The service is a no-op when disabled, so this never
+   * fails a request.
+   */
+  const emit = (c: Context, name: AnalyticsEventName, path: string) => {
+    if (!analyticsSvc.enabled) return;
+    void analyticsSvc
+      .record({
+        name,
+        path,
+        ip: client(c),
+        userAgent: c.req.header('user-agent') ?? 'unknown',
+        referrer: c.req.header('referer') ?? undefined,
+        market: 'tz',
+        locale: 'sw',
+        edition: 'sw',
+      })
+      .catch((e: Error) => {
+        // Never let a metric error reach the caller; log and move on.
+        console.error(
+          JSON.stringify({ level: 'error', msg: 'analytics emit failed', err: e.message }),
+        );
+      });
+  };
   const payStarts = new RateLimiter(deps.now, 10, 60_000, 'pay-start', deps.rateStore);
   const payReads = new RateLimiter(deps.now, 120, 60_000, 'pay-read', deps.rateStore);
   const gateJoins = new RateLimiter(deps.now, 20, 60_000, 'gate-join', deps.rateStore);
@@ -635,7 +665,9 @@ export function createApp(deps: Deps) {
       z.object({ attending: z.boolean(), partySize: z.number().int().min(0).max(10) }),
       await body(c),
     );
-    return c.json(await cardsSvc.rsvp(c.req.param('token'), input));
+    const out = await cardsSvc.rsvp(c.req.param('token'), input);
+    emit(c, 'receive_rsvp', '/v1/c/:token/rsvp');
+    return c.json(out);
   });
 
   // ---- internal analytics ingest (ADR 057 §5): web RSC calls this with the shared secret.
@@ -662,9 +694,11 @@ export function createApp(deps: Deps) {
   app.get('/v1/events', async (c) =>
     c.json({ items: await eventsSvc.listForUser(c.get('userId')) }),
   );
-  app.post('/v1/events', async (c) =>
-    c.json(await eventsSvc.create(c.get('userId'), parse(eventBase, await body(c))), 201),
-  );
+  app.post('/v1/events', async (c) => {
+    const event = await eventsSvc.create(c.get('userId'), parse(eventBase, await body(c)));
+    emit(c, 'create_event', '/v1/events');
+    return c.json(event, 201);
+  });
   app.get('/v1/events/:id', async (c) =>
     c.json(await eventsSvc.get(c.req.param('id'), c.get('userId'))),
   );
@@ -942,9 +976,12 @@ export function createApp(deps: Deps) {
         userId: c.get('userId'),
         input,
       });
+      emit(c, 'share_invitation', '/v1/events/:id/invitations/send');
       return c.json({ queued: true, jobId }, 202);
     }
-    return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
+    const sent = await deliverySvc.send(c.req.param('id'), c.get('userId'), input);
+    emit(c, 'share_invitation', '/v1/events/:id/invitations/send');
+    return c.json(sent);
   });
   // What a send would do, with nothing sent: the same audience rules as the send itself (ADR 041).
   app.post('/v1/events/:id/invitations/preview', async (c) =>

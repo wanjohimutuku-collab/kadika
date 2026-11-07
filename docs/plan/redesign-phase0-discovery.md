@@ -306,4 +306,36 @@ required checks locked; nothing deploys without the user's explicit approval.
    update)?
 6. Testimonials: do we have any real pilot customers who have agreed to be quoted?
 
-No further work begins until these are answered.
+## 10. Implementation status (2026-11-07)
+
+The six open decisions were all answered "all recommended". Implementation landed across these
+pull requests, all CI-green, waiting for review and merge:
+
+| Phase                   | What shipped                                                                                                                                                                                                                                                                                                                                    | PR                                          |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| 0 — Discovery           | This doc, ADR 056, ADR 057, AA fix on `--ks-ok` / `--ks-warn`, palette-contrast test                                                                                                                                                                                                                                                            | #92                                         |
+| 1 — Design system       | Covered by the AA fix in #92 (no further gaps found)                                                                                                                                                                                                                                                                                            | #92                                         |
+| 2 — Homepage            | Church occasion page + home-page strip entry; captured gate-scanner SVG wired into section 8                                                                                                                                                                                                                                                    | #93, #101                                   |
+| 3 — Landing pages       | `/kadi-za-kanisa` added as the only missing occasion; thin pages already have their ADR 054 expansions                                                                                                                                                                                                                                          | #93                                         |
+| 4 — SEO                 | **External only.** Proxy `http://` → `https://` is still a 302 on the Coolify / Traefik edge — flip to 301 in Cloudflare or the Traefik entrypoint (not a code change). `sameAs` stays empty until the Google Business Profile, LinkedIn, Instagram and YouTube URLs exist; then add them to `organizationNode()` in `apps/web/src/lib/seo.ts`. | n/a                                         |
+| 5 — TZ / KE content     | KE already has its own pages and privacy; nothing missing in-tree.                                                                                                                                                                                                                                                                              | n/a                                         |
+| 6 — GEO content         | Covered by ADR 054's four pages; no new articles in this cycle.                                                                                                                                                                                                                                                                                 | n/a                                         |
+| 7 — Analytics (ADR 057) | Full stack behind `ANALYTICS_ENABLED=0`: schema + ingest service + retention sweep + internal route + `page_view` + `/ops/analytics` dashboard + privacy paragraph + every funnel emit site                                                                                                                                                     | #94, #95 (merged), #96, #97, #98, #99, #100 |
+| 8 — QA                  | Each PR runs typecheck + lint + format + unit + web e2e + Lighthouse through CI.                                                                                                                                                                                                                                                                | per-PR                                      |
+
+What is still blocked outside the code:
+
+- **Proxy redirect** (SEO audit item 5). Flip `http://` → `https://` from 302 to 301 on the edge
+  (Cloudflare "Always Use HTTPS" or the Traefik HTTP-to-HTTPS entrypoint).
+- **`sameAs` URLs.** No social or Google Business Profile URLs exist yet; `organizationNode()`
+  stays silent on them until there is something real to point at.
+- **Testimonials.** Not surfaced until a real pilot customer has signed off on a quote; the
+  `TrustStrip` on the home page carries the factual trust band in the meantime.
+
+Operational switches once this is ready to go live:
+
+- Set `ANALYTICS_ENABLED=1`, `ANALYTICS_SESSION_SECRET=<32-byte base64>` and
+  `ANALYTICS_INTERNAL_SECRET=<shared secret>` in Coolify for both `kadisasa-api` and
+  `kadisasa-web`. Rotate the session secret weekly (ADR 057 §2).
+- Merge the open PRs in stack order: #92, #93, #94, then the analytics chain #96 → #100 (#95 is
+  already on main), then #101.

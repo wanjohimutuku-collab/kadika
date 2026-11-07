@@ -210,10 +210,25 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
           </Tile>
           <Tile id="lango" h2={c.gate.h2} body={c.gate.body} className="md:col-span-5">
             <Bullets items={c.gate.items} />
-            <div className="mt-auto flex flex-col items-start gap-3" aria-hidden="true">
-              <GateChip state="ok" label={c.gate.chips.ok} />
-              <GateChip state="duplicate" label={c.gate.chips.duplicate} />
-              <GateChip state="missing" label={c.gate.chips.missing} />
+            <div className="mt-auto grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+              <div className="flex flex-col items-start gap-3" aria-hidden="true">
+                <GateChip state="ok" label={c.gate.chips.ok} />
+                <GateChip state="duplicate" label={c.gate.chips.duplicate} />
+                <GateChip state="missing" label={c.gate.chips.missing} />
+              </div>
+              {/*
+                Real scanner result (ADR 056 item 3). Captured as a static SVG under
+                /public/site/ so no running demo is needed; swap when the scanner UI changes.
+              */}
+              <img
+                src="/site/gate-scanner-admit.svg"
+                width={168}
+                height={344}
+                alt={c.gate.screenshotAlt}
+                loading="lazy"
+                decoding="async"
+                className="max-w-[12rem] rounded-[2rem] shadow-[0_18px_40px_-16px_rgb(10_63_53/0.4)]"
+              />
             </div>
           </Tile>
           <section aria-labelledby="michango" className="ks-bezel ks-reveal md:col-span-12">

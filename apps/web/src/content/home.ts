@@ -44,6 +44,8 @@ export interface HomeCopy {
     body: string;
     items: string[];
     chips: { ok: string; duplicate: string; missing: string };
+    /** Alt text for the captured scanner screenshot (ADR 056 item 3). */
+    screenshotAlt: string;
   };
   trust: { title: string; items: string[]; cta: string };
   eventsTitle: string;
@@ -179,6 +181,8 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
         'Mtu akileta picha ya QR ya mwenzake, simu inaonyesha kuwa kadi hiyo imeshatumika.',
       ],
       chips: { ok: 'Ameingia', duplicate: 'Tayari ameingia saa 6:42', missing: 'Kadi haipo' },
+      screenshotAlt:
+        'Picha ya simu inayoonyesha lango likimruhusu Fatuma Mwanga, watu wawili, kundi la Familia.',
     },
     trust: {
       title: 'Kadi halali inaonekana hivi',
@@ -338,6 +342,8 @@ function en(p: PriceFacts, domain: string): HomeCopy {
         'Someone with a photo of another guest’s QR is shown as already admitted.',
       ],
       chips: { ok: 'Admitted', duplicate: 'Already admitted 6:42 pm', missing: 'Card not found' },
+      screenshotAlt:
+        'A phone showing the gate admitting Fatuma Mwanga, party of two, from the Family group.',
     },
     trust: {
       title: 'What a real card looks like',
@@ -499,6 +505,8 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
         'A screenshot of someone else’s card shows up as already used.',
       ],
       chips: { ok: 'Admitted', duplicate: 'Already admitted 6:42 pm', missing: 'Card not found' },
+      screenshotAlt:
+        'A phone showing the gate admitting Fatuma Mwanga, party of two, from the Family group.',
     },
     trust: {
       title: 'How to tell a real card',

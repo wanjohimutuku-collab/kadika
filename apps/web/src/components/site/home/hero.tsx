@@ -36,57 +36,101 @@ export function Hero(props: HeroProps) {
   const [pre, accent, post] = splitOnAccent(props.h1, props.accentWord);
   const s = props.statCards;
   return (
-    <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.05fr_1fr] md:gap-16 md:py-24">
-      <div className="flex flex-col gap-7">
-        <h1 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] md:text-5xl">
-          {pre}
-          {accent ? <span className="text-ks-green-700">{accent}</span> : null}
-          {post}
-        </h1>
-        <p className="max-w-xl text-lg leading-relaxed text-ks-muted">{props.sub}</p>
-
-        <div className="flex flex-wrap items-center gap-5 pt-2">
-          <Link
-            href={props.primary.href}
-            className="inline-flex min-h-[3.25rem] items-center justify-center rounded-full bg-ks-green-700 px-8 text-base font-semibold text-white shadow-[0_8px_20px_-10px_rgb(15_92_77/0.6)] transition hover:bg-ks-green-700/90"
-          >
-            {props.primary.label}
-          </Link>
-          <Link
-            href={props.howHref}
-            className="group inline-flex items-center gap-2 text-base font-semibold text-ks-ink underline-offset-4 hover:underline"
-          >
-            <span className="inline-flex size-9 items-center justify-center rounded-full border border-ks-ink/15 text-ks-green-700 transition group-hover:border-ks-green-700/50">
-              <Play className="size-4" strokeWidth={2} aria-hidden="true" />
+    <section className="ks-mesh relative overflow-hidden">
+      {/* Soft kitenge chevron strip along the top edge — a thread from the wedding's own
+          fabric vocabulary, repeated at the CtaBand so the page bookends in colour. */}
+      <div
+        aria-hidden="true"
+        className="ks-kitenge pointer-events-none absolute inset-x-0 top-0 h-1.5 opacity-70"
+      />
+      <div className="relative mx-auto grid max-w-6xl gap-10 px-6 pt-16 pb-20 md:grid-cols-[1.05fr_1fr] md:gap-16 md:pt-24 md:pb-28">
+        <div className="flex flex-col gap-7">
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/70 py-1.5 pl-2 pr-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.14)] backdrop-blur-sm">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-5 items-center justify-center rounded-full bg-ks-magenta text-[9px] text-white"
+            >
+              TZ
             </span>
-            {props.howLabel}
-          </Link>
-        </div>
-        <p className="inline-flex items-center gap-2 text-sm text-ks-muted">
-          <CheckCircle2 className="size-4 text-ks-green-700" aria-hidden="true" />
-          {props.trustLine}
-        </p>
-      </div>
+            Kadi ya harusi · yako kabisa
+          </span>
+          <h1 className="font-serif text-[44px] leading-[1.02] tracking-[-0.035em] text-ks-ink md:text-[64px] xl:text-[72px]">
+            {pre}
+            {accent ? (
+              <span className="relative inline-block text-ks-magenta">
+                {accent}
+                {/* Hand-drawn gold underline — one deliberate flourish instead of a color
+                    swap. Vibrance is a brushstroke, not a highlight marker. */}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 200 14"
+                  preserveAspectRatio="none"
+                  className="pointer-events-none absolute -bottom-1 left-0 h-[0.35em] w-full text-ks-saffron"
+                >
+                  <path
+                    d="M3 8 Q 50 2 100 7 Q 150 11 197 5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+            ) : null}
+            {post}
+          </h1>
+          <p className="max-w-xl text-lg leading-relaxed text-ks-ink/75 md:text-xl">
+            {props.sub}
+          </p>
 
-      <div className="relative flex flex-col items-center gap-6 md:min-h-[600px] md:items-stretch md:justify-end">
-        {/* Soft blurred backdrop so the stat cards feel grounded (desktop only). */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-10 right-0 hidden w-[82%] rounded-[3rem] bg-gradient-to-br from-ks-green-100/70 via-white to-ks-gold-100/60 blur-md md:block"
-        />
-        {/* Floating stat: guest list funnel. Sits outside the phone's top-left so it never
-            crops the kadi's eyebrow swash or gold corner. */}
-        <div className="absolute -left-6 -top-2 z-10 hidden w-[12rem] rounded-2xl border border-ks-border/50 bg-white p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:block">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-muted">
-            <Users className="size-3.5 text-ks-green-700" aria-hidden="true" />
-            {s.guestsTitle}
+          <div className="flex flex-wrap items-center gap-5 pt-2">
+            <Link
+              href={props.primary.href}
+              className="group relative inline-flex min-h-[3.5rem] items-center justify-center overflow-hidden rounded-full bg-ks-green-900 px-9 text-base font-semibold text-white shadow-[0_18px_40px_-14px_rgb(10_63_53/0.55)] transition hover:bg-ks-ink"
+            >
+              {/* Saffron blush that races through on hover — one small moment of life. */}
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-ks-saffron/0 via-ks-saffron/40 to-ks-saffron/0 transition-transform duration-700 group-hover:translate-x-full"
+              />
+              <span className="relative">{props.primary.label}</span>
+            </Link>
+            <Link
+              href={props.howHref}
+              className="group inline-flex items-center gap-2 text-base font-semibold text-ks-ink underline-offset-4 hover:underline"
+            >
+              <span className="inline-flex size-10 items-center justify-center rounded-full bg-ks-saffron text-ks-ink shadow-[0_6px_16px_-6px_rgb(232_149_48/0.7)] transition group-hover:scale-[1.04]">
+                <Play className="size-4 fill-ks-ink" strokeWidth={0} aria-hidden="true" />
+              </span>
+              {props.howLabel}
+            </Link>
           </div>
-          <ul className="mt-2 space-y-1 text-sm font-medium text-ks-ink">
-            <li>{s.guestsInvited}</li>
-            <li className="text-ks-green-700">{s.guestsConfirmed}</li>
-            <li className="text-ks-muted">{s.guestsAwaiting}</li>
-          </ul>
+          <p className="inline-flex items-center gap-2 text-sm text-ks-ink/70">
+            <CheckCircle2 className="size-4 text-ks-green-700" aria-hidden="true" />
+            {props.trustLine}
+          </p>
         </div>
+
+        <div className="relative flex flex-col items-center gap-6 md:min-h-[600px] md:items-stretch md:justify-end">
+          {/* Backdrop glow — a warm cream halo behind the phone, picking up the mesh's
+              saffron so the kadi reads as something the page is holding up. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-y-6 right-0 hidden w-[90%] rounded-[3rem] bg-gradient-to-br from-ks-saffron-100 via-white to-ks-magenta-100/70 md:block"
+          />
+          {/* Floating stat: guest list funnel, in a kanga-magenta key so the colour story
+              carries across all three orbiting cards. */}
+          <div className="absolute -left-6 -top-2 z-10 hidden w-[12rem] rounded-2xl bg-white p-3 shadow-[0_20px_40px_-18px_rgb(200_31_106/0.35),inset_0_0_0_1px_rgb(200_31_106/0.14)] md:block">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-magenta">
+              <Users className="size-3.5" aria-hidden="true" />
+              {s.guestsTitle}
+            </div>
+            <ul className="mt-2 space-y-1 text-sm font-medium text-ks-ink">
+              <li>{s.guestsInvited}</li>
+              <li className="text-ks-green-700">{s.guestsConfirmed}</li>
+              <li className="text-ks-muted">{s.guestsAwaiting}</li>
+            </ul>
+          </div>
         {/* Phone body — matches the DemoStudio frame visually. */}
         <div
           aria-label={props.previewFrameAlt}
@@ -266,43 +310,48 @@ export function Hero(props: HeroProps) {
             />
           </div>
         </div>
-        {/* Floating stat: contributions. Pushed slightly outside the phone so the top-right
-            gold corner stays visible. */}
-        <div className="absolute -right-4 top-28 z-10 hidden w-[13rem] rounded-2xl border border-ks-border/50 bg-white p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:block md:top-40">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-muted">
-            <Wallet className="size-3.5 text-ks-gold-600" aria-hidden="true" />
-            {s.michangoTitle}
+          {/* Floating stat: contributions, saffron key. The progress bar now runs saffron
+              → magenta so the michango number carries real colour. */}
+          <div className="absolute -right-4 top-28 z-10 hidden w-[13rem] rounded-2xl bg-white p-3 shadow-[0_20px_40px_-18px_rgb(232_149_48/0.4),inset_0_0_0_1px_rgb(232_149_48/0.2)] md:block md:top-40">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-saffron">
+              <Wallet className="size-3.5" aria-hidden="true" />
+              {s.michangoTitle}
+            </div>
+            <div className="mt-2 flex items-baseline justify-between text-xs text-ks-muted">
+              <span>{s.michangoPledged}</span>
+              <span className="text-sm font-semibold text-ks-ink">TZS 12M</span>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between text-xs text-ks-muted">
+              <span>{s.michangoReceived}</span>
+              <span className="text-sm font-semibold text-ks-green-700">TZS 8.4M</span>
+            </div>
+            <div
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-ks-saffron-100"
+              aria-hidden="true"
+            >
+              <div
+                className="h-full w-[70%] rounded-full"
+                style={{
+                  background: 'linear-gradient(90deg,#e89530 0%,#c81f6a 100%)',
+                }}
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-ks-muted">{s.michangoPercent}</p>
           </div>
-          <div className="mt-2 flex items-baseline justify-between text-xs text-ks-muted">
-            <span>{s.michangoPledged}</span>
-            <span className="text-sm font-semibold text-ks-ink">TZS 12M</span>
-          </div>
-          <div className="mt-1 flex items-baseline justify-between text-xs text-ks-muted">
-            <span>{s.michangoReceived}</span>
-            <span className="text-sm font-semibold text-ks-green-700">TZS 8.4M</span>
-          </div>
-          <div
-            className="mt-2 h-1.5 overflow-hidden rounded-full bg-ks-border/60"
-            aria-hidden="true"
-          >
-            <div className="h-full w-[70%] rounded-full bg-ks-gold-500" />
-          </div>
-          <p className="mt-1 text-[11px] text-ks-muted">{s.michangoPercent}</p>
-        </div>
-        {/* Floating stat: gate check-in (hangs below the phone, desktop only, so nothing covers
-            the card's QR, short code or bottom-left scroll corner — the signature. */}
-        <div className="absolute -bottom-5 -left-4 z-10 hidden items-center gap-2 rounded-full border border-ks-border/50 bg-white py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:flex">
-          <span className="inline-flex size-9 items-center justify-center rounded-full bg-ks-green-700 text-white">
-            <CheckCircle2 className="size-5" aria-hidden="true" />
-          </span>
-          <span className="flex flex-col leading-tight">
-            <span className="text-xs font-semibold text-ks-ink">{s.checkedInTitle}</span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-ks-green-700">
-              <Wifi className="size-3" aria-hidden="true" />
-              {s.checkedInOffline}
+          {/* Floating stat: gate check-in (hangs below the phone, desktop only). Jewel emerald
+              key completes the three-color story. */}
+          <div className="absolute -bottom-5 -left-4 z-10 hidden items-center gap-2 rounded-full bg-white py-2 pl-2 pr-4 shadow-[0_20px_40px_-18px_rgb(15_92_77/0.4),inset_0_0_0_1px_rgb(15_92_77/0.14)] md:flex">
+            <span className="inline-flex size-9 items-center justify-center rounded-full bg-ks-green-700 text-white">
+              <CheckCircle2 className="size-5" aria-hidden="true" />
             </span>
-          </span>
-        </div>
+            <span className="flex flex-col leading-tight">
+              <span className="text-xs font-semibold text-ks-ink">{s.checkedInTitle}</span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-ks-green-700">
+                <Wifi className="size-3" aria-hidden="true" />
+                {s.checkedInOffline}
+              </span>
+            </span>
+          </div>
 
         {/* Mobile-only stat row: a tidy 3-up grid under the phone that carries the same product
             story as the floating cards on desktop. */}
@@ -331,6 +380,7 @@ export function Hero(props: HeroProps) {
               {s.checkedInOffline}
             </p>
           </div>
+        </div>
         </div>
       </div>
     </section>

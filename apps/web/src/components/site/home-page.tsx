@@ -246,22 +246,54 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
           {c.eventsTitle}
         </SectionHeading>
         <ul className="ks-reveal flex flex-wrap gap-3">
-          {events.map((p) => (
-            <li key={p.slug}>
-              <Link
-                href={localeUrl(pagePath(p, locale), locale)}
-                className="group inline-flex min-h-12 items-center gap-3 rounded-full bg-white py-1.5 pr-1.5 pl-5 font-medium shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 ks-ease hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.5)] active:scale-[0.98]"
-              >
-                {textOf(p, locale).nav}
-                <span
-                  aria-hidden="true"
-                  className="flex size-8 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700 transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px"
+          {events.map((p, i) => {
+            // Rotate pill accents across five kanga colours so the strip reads like a
+            // string of celebrations rather than a nav bar of chips.
+            const palette = [
+              {
+                pill: 'bg-ks-magenta-100 text-ks-magenta',
+                dot: 'bg-ks-magenta',
+                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(200_31_106/0.55)]',
+              },
+              {
+                pill: 'bg-ks-saffron-100 text-ks-saffron',
+                dot: 'bg-ks-saffron',
+                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(232_149_48/0.6)]',
+              },
+              {
+                pill: 'bg-ks-green-100 text-ks-green-700',
+                dot: 'bg-ks-green-700',
+                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.55)]',
+              },
+              {
+                pill: 'bg-[#e4e8fb] text-ks-indigo',
+                dot: 'bg-ks-indigo',
+                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(36_50_114/0.55)]',
+              },
+              {
+                pill: 'bg-[#fbe6dc] text-ks-terracotta',
+                dot: 'bg-ks-terracotta',
+                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(193_85_44/0.55)]',
+              },
+            ][i % 5]!;
+            return (
+              <li key={p.slug}>
+                <Link
+                  href={localeUrl(pagePath(p, locale), locale)}
+                  className={`group inline-flex min-h-12 items-center gap-3 rounded-full bg-white py-1.5 pr-1.5 pl-5 font-medium shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 ks-ease active:scale-[0.98] ${palette.hover}`}
                 >
-                  <ArrowUpRight className="size-4" strokeWidth={1.75} />
-                </span>
-              </Link>
-            </li>
-          ))}
+                  <span aria-hidden="true" className={`size-2 rounded-full ${palette.dot}`} />
+                  {textOf(p, locale).nav}
+                  <span
+                    aria-hidden="true"
+                    className={`flex size-8 items-center justify-center rounded-full transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px ${palette.pill}`}
+                  >
+                    <ArrowUpRight className="size-4" strokeWidth={1.75} />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </Container>
 

@@ -221,6 +221,14 @@
   --color-ks-ok: var(--ks-ok);
   --color-ks-warn: var(--ks-warn);
   --color-ks-error: var(--ks-error);
+  /* 2026-11 vibrance pass — kanga/kitenge-derived colour used sparingly in hero,
+     CtaBand and category chips. Not a theme swap; the editorial sections stay quiet. */
+  --color-ks-magenta: var(--ks-magenta);
+  --color-ks-magenta-100: var(--ks-magenta-100);
+  --color-ks-saffron: var(--ks-saffron);
+  --color-ks-saffron-100: var(--ks-saffron-100);
+  --color-ks-indigo: var(--ks-indigo);
+  --color-ks-terracotta: var(--ks-terracotta);
   --radius-ks: 12px;
   --font-ks-names: var(--font-fraunces), Georgia, serif;
 }
@@ -238,6 +246,14 @@
   --ks-ok: #1e8a5a;
   --ks-warn: #b7791f;
   --ks-error: #b42318;
+  /* Kanga/kitenge vibrance tokens — see @theme above for the Tailwind utilities
+     they generate (bg-ks-magenta, text-ks-saffron, etc.). */
+  --ks-magenta: #c81f6a;
+  --ks-magenta-100: #fbe5ef;
+  --ks-saffron: #e89530;
+  --ks-saffron-100: #fdedd3;
+  --ks-indigo: #243272;
+  --ks-terracotta: #c1552c;
   /* Shared components that read the app tokens (buttons, focus ring) follow the site palette here. */
   --hp-primary: var(--ks-green-700);
   --hp-bg: var(--ks-paper);
@@ -292,17 +308,41 @@
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-/* Soft emerald and gold light behind the hero; static gradients, no blur filter. */
+/* Vibrant hero mesh: four radial blobs — kanga magenta, saffron, jewel emerald and
+   soft indigo — over the paper base. Each blob stays under 40% opacity so headlines
+   stay readable in both languages. Static gradients only; no blur filter. */
 .ks-mesh {
   background:
-    radial-gradient(60% 55% at 85% 10%, rgb(217 164 65 / 0.16), transparent 70%),
-    radial-gradient(55% 60% at 5% 30%, rgb(15 92 77 / 0.14), transparent 70%), var(--ks-paper);
+    radial-gradient(60% 45% at 92% 8%, rgb(232 149 48 / 0.34), transparent 70%),
+    radial-gradient(55% 55% at 0% 25%, rgb(200 31 106 / 0.22), transparent 70%),
+    radial-gradient(70% 60% at 50% 100%, rgb(15 92 77 / 0.22), transparent 70%),
+    radial-gradient(40% 40% at 70% 70%, rgb(36 50 114 / 0.14), transparent 70%),
+    var(--ks-paper);
 }
 .ks-mesh-dark {
   background:
     radial-gradient(50% 70% at 90% 0%, rgb(217 164 65 / 0.22), transparent 70%),
     radial-gradient(60% 80% at 0% 100%, rgb(76 194 166 / 0.18), transparent 70%),
     var(--ks-green-900);
+}
+/* Saffron-into-magenta band for the final CTA — opposite tonality from the hero
+   so the page opens warm, cools through editorial, and closes hot. */
+.ks-mesh-hot {
+  background:
+    radial-gradient(60% 70% at 0% 100%, rgb(200 31 106 / 0.55), transparent 70%),
+    radial-gradient(60% 70% at 100% 0%, rgb(232 149 48 / 0.55), transparent 70%),
+    linear-gradient(135deg, #f5c25a 0%, #e89530 48%, #d04f7a 100%);
+}
+/* Kanga zig-zag triangle strip — reused as a decorative accent band. */
+.ks-kitenge {
+  background-image:
+    linear-gradient(135deg, var(--ks-saffron) 25%, transparent 25%),
+    linear-gradient(225deg, var(--ks-saffron) 25%, transparent 25%);
+  background-size: 14px 14px;
+  background-position:
+    0 0,
+    7px 0;
+  background-color: var(--ks-magenta);
 }
 /* Outer shell of a nested card: a tray with a hairline, holding the inner core. */
 .ks-bezel {

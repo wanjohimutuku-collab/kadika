@@ -187,9 +187,9 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         />
       ) : null}
 
-      <Container as="section" aria-labelledby="programu" className="py-12 md:py-20">
+      <Container as="section" aria-labelledby="programu" className="py-6 md:py-10">
         <div className="ks-mesh-dark ks-reveal relative overflow-hidden rounded-[2.5rem] text-white">
-          <div className="grid gap-12 px-6 py-16 md:grid-cols-[1fr_1.05fr] md:items-center md:gap-10 md:px-14 md:py-20">
+          <div className="grid gap-12 px-6 py-12 md:grid-cols-[1fr_1.05fr] md:items-center md:gap-10 md:px-14 md:py-16">
             <div className="flex flex-col gap-6">
               <SectionHeading id="programu" eyebrow={c.eyebrows.app} sub={c.app.body} dark>
                 {c.app.h2}

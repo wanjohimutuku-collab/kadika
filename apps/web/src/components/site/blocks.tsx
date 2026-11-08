@@ -199,28 +199,39 @@ export function Hero({
  */
 export function AnswerBlock({ label, text }: { label: string; text: string }) {
   return (
-    <Container as="section" aria-label={label} className="py-14 md:py-20">
+    <Container as="section" aria-label={label} className="pt-10 pb-6 md:pt-14 md:pb-10">
       <div className="ks-reveal mx-auto max-w-3xl">
-        <article className="relative rounded-[2rem] border border-ks-border/60 bg-white px-6 py-10 shadow-[0_28px_70px_-48px_rgb(10_63_53/0.28)] md:px-12 md:py-14">
-          <span
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-ks-gold-500/50" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ks-green-700">
+            {label}
+          </span>
+          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-ks-gold-500/50" />
+        </div>
+        <p className="mt-6 text-[20px] leading-[1.55] text-ks-ink md:text-[26px] md:leading-[1.5]">
+          <span className="float-left mr-2 font-serif text-[52px] font-semibold leading-[0.9] text-ks-green-900 md:text-[64px]">
+            {text.charAt(0)}
+          </span>
+          {text.slice(1)}
+        </p>
+        {/* Fleuron divider — the same scroll motif used in the hero's card corners, one small
+            quiet reprise. Restraint: ornament appears exactly twice on the page. */}
+        <div className="mt-8 flex items-center justify-center gap-3 text-ks-gold-500/70">
+          <span aria-hidden="true" className="h-px w-10 bg-current" />
+          <svg
             aria-hidden="true"
-            className="absolute left-1/2 top-0 h-1 w-24 -translate-x-1/2 rounded-full bg-ks-gold-500/80"
-          />
-          <div className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-ks-green-700/10 font-serif text-lg font-semibold text-ks-green-700"
-            >
-              ?
-            </span>
-            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-ks-green-700">
-              {label}
-            </span>
-          </div>
-          <p className="mt-5 text-[20px] leading-[1.6] text-ks-ink md:mt-6 md:text-[26px] md:leading-[1.55]">
-            {text}
-          </p>
-        </article>
+            viewBox="0 0 32 16"
+            className="h-3 w-8 text-ks-gold-500"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          >
+            <path d="M2 8 Q 8 2 16 8 Q 24 14 30 8" />
+            <circle cx="16" cy="8" r="1.4" fill="currentColor" stroke="none" />
+          </svg>
+          <span aria-hidden="true" className="h-px w-10 bg-current" />
+        </div>
       </div>
     </Container>
   );

@@ -34,7 +34,7 @@ export function PricingTeaser({
   const tiers = sortedTiers(catalog.cardTiers).slice(0, 3);
   const loginBase = locale === 'sw' ? '/login' : '/en/login';
   return (
-    <section aria-labelledby="bei" className="bg-ks-surface py-20 md:py-28">
+    <section aria-labelledby="bei" className="bg-ks-surface py-16 md:py-20">
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-10 flex flex-col gap-2">
           <h2 id="bei" className="font-serif text-3xl tracking-[-0.02em] md:text-4xl">

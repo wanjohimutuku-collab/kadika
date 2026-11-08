@@ -124,6 +124,10 @@ export function Hero(props: HeroProps) {
             <rect x="120" y="22" width="60" height="18" rx="9" fill="#050707" />
             <circle cx="166" cy="31" r="2.2" fill="#1C2322" />
           </svg>
+          {/* The signature moment: the phone holds a real wedding-card interior — not a gradient
+              tile. Hand-drawn gold scroll corners, italic swash eyebrow, Fraunces display names,
+              an abstracted QR plate with short code, and a kanga chevron band. The ornament
+              motif reappears, hairline, under the AnswerBlock. */}
           <div
             className="absolute overflow-hidden"
             style={{
@@ -132,20 +136,109 @@ export function Hero(props: HeroProps) {
               left: 14,
               right: 14,
               borderRadius: 34,
-              background: 'linear-gradient(135deg,#0F5C4D 0%,#B8893B 100%)',
+              background:
+                'radial-gradient(120% 80% at 15% 0%, #1b7764 0%, #0F5C4D 55%, #0a3f35 100%)',
             }}
           >
             <div className="h-10" aria-hidden="true" />
-            <div className="flex h-[calc(100%-2.5rem)] flex-col items-center justify-between px-6 pt-8 pb-7 text-center text-white">
-              <span className="text-[11px] uppercase tracking-[0.3em] opacity-85">Harusi</span>
-              <div className="flex flex-col gap-2">
-                <p className="font-serif text-[30px] leading-tight">Asha &amp; Juma</p>
-                <p className="text-sm opacity-90">14 Desemba 2026</p>
+            {/* Ornamental inner card on warm ivory, inset so the gold edges can breathe. */}
+            <div className="relative mx-5 mb-6 mt-5 flex h-[calc(100%-2.5rem-2.75rem)] flex-col items-center justify-between overflow-hidden rounded-[22px] bg-[#FBF8F1] px-5 pb-5 pt-7 text-center text-ks-ink">
+              {/* Gold scroll corners — one SVG, mirrored to the four corners via transforms.
+                  Hand-drawn curves + a small fleuron give the hero its signature. */}
+              {([
+                ['left-2 top-2', ''],
+                ['right-2 top-2', '-scale-x-100'],
+                ['left-2 bottom-2', '-scale-y-100'],
+                ['right-2 bottom-2', '-scale-100'],
+              ] as const).map(([pos, flip], i) => (
+                <svg
+                  key={i}
+                  aria-hidden="true"
+                  viewBox="0 0 48 48"
+                  className={`pointer-events-none absolute ${pos} ${flip} size-11 text-ks-gold-500`}
+                >
+                  <g fill="none" stroke="currentColor" strokeLinecap="round">
+                    <path d="M2 18 Q 2 2 18 2" strokeWidth="1.6" />
+                    <path d="M8 18 Q 8 8 18 8" strokeWidth="1.1" opacity=".7" />
+                    <path d="M2 28 Q 10 24 14 16 Q 22 12 28 2" strokeWidth="0.9" opacity=".55" />
+                    <circle cx="18" cy="18" r="1.7" fill="currentColor" stroke="none" />
+                    <path d="M18 2 Q 22 6 24 12" strokeWidth="0.9" opacity=".45" />
+                    <path d="M2 18 Q 6 22 12 24" strokeWidth="0.9" opacity=".45" />
+                  </g>
+                </svg>
+              ))}
+
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="font-serif text-[13px] italic text-ks-green-900/80">
+                  ~ Harusi ya ~
+                </span>
+                <span className="h-px w-8 bg-ks-gold-500/50" />
               </div>
-              <span className="rounded-full border border-white/40 bg-white/10 px-3 py-1 text-[11px] tracking-[0.25em]">
-                KH-4826
-              </span>
+              <div className="flex flex-col gap-1.5">
+                <p className="font-serif text-[27px] leading-[1.02] text-ks-green-900">
+                  Asha
+                  <span className="mx-1.5 align-middle font-serif text-ks-gold-500 italic">
+                    &amp;
+                  </span>
+                  Juma
+                </p>
+                <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-ks-muted">
+                  14 · Desemba · 2026
+                </p>
+              </div>
+
+              {/* Abstracted QR plate + short code, side by side in a thin gold-bordered band —
+                  the band is what a committee prints beside the QR on the paper kadi. */}
+              <div className="flex items-center gap-3 rounded-lg bg-white px-2.5 py-1.5 shadow-[inset_0_0_0_1px_rgb(217_164_65/0.4)]">
+                <div
+                  aria-hidden="true"
+                  className="grid size-[54px] shrink-0 grid-cols-7 grid-rows-7 gap-[2px]"
+                >
+                  <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
+                  <span className="bg-ks-ink/85" />
+                  <span />
+                  <span className="bg-ks-ink/60" />
+                  <span className="bg-ks-ink/85" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span className="bg-ks-ink/60" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span />
+                  <span className="bg-ks-ink/85" />
+                  <span className="bg-ks-ink/60" />
+                  <span />
+                </div>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-ks-muted">
+                    Namba
+                  </span>
+                  <span className="font-mono text-[14px] font-semibold tracking-[0.12em] text-ks-green-900">
+                    KH-4826
+                  </span>
+                </span>
+              </div>
             </div>
+            {/* Kanga chevron band at the bottom of the phone screen. */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-0 bottom-0 h-7"
+              style={{
+                background:
+                  'linear-gradient(135deg,#D9A441 25%,transparent 25%) 0 0/8px 8px,' +
+                  'linear-gradient(225deg,#D9A441 25%,transparent 25%) 4px 0/8px 8px,#0a3f35',
+              }}
+            />
           </div>
         </div>
         {/* Floating stat: contributions (right of phone, desktop only). */}
@@ -170,8 +263,9 @@ export function Hero(props: HeroProps) {
           </div>
           <p className="mt-1 text-[11px] text-ks-muted">{s.michangoPercent}</p>
         </div>
-        {/* Floating stat: gate check-in (bottom-left of phone, desktop only). */}
-        <div className="absolute bottom-10 left-2 z-10 hidden items-center gap-2 rounded-full border border-ks-border/50 bg-white/95 py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur md:flex">
+        {/* Floating stat: gate check-in (hangs below the phone, desktop only, so nothing covers
+            the card's QR + short code — the signature. */}
+        <div className="absolute -bottom-2 left-0 z-10 hidden items-center gap-2 rounded-full border border-ks-border/50 bg-white py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:flex">
           <span className="inline-flex size-9 items-center justify-center rounded-full bg-ks-green-700 text-white">
             <CheckCircle2 className="size-5" aria-hidden="true" />
           </span>

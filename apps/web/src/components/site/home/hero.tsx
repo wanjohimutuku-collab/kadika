@@ -74,8 +74,9 @@ export function Hero(props: HeroProps) {
           aria-hidden="true"
           className="absolute inset-y-10 right-0 hidden w-[82%] rounded-[3rem] bg-gradient-to-br from-ks-green-100/70 via-white to-ks-gold-100/60 blur-md md:block"
         />
-        {/* Floating stat: guest list funnel (top-left of phone, desktop only). */}
-        <div className="absolute left-0 top-6 z-10 hidden w-[12rem] rounded-2xl border border-ks-border/50 bg-white/95 p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur md:block">
+        {/* Floating stat: guest list funnel. Sits outside the phone's top-left so it never
+            crops the kadi's eyebrow swash or gold corner. */}
+        <div className="absolute -left-6 -top-2 z-10 hidden w-[12rem] rounded-2xl border border-ks-border/50 bg-white p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:block">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-muted">
             <Users className="size-3.5 text-ks-green-700" aria-hidden="true" />
             {s.guestsTitle}
@@ -143,38 +144,46 @@ export function Hero(props: HeroProps) {
             <div className="h-10" aria-hidden="true" />
             {/* Ornamental inner card on warm ivory, inset so the gold edges can breathe. */}
             <div className="relative mx-5 mb-6 mt-5 flex h-[calc(100%-2.5rem-2.75rem)] flex-col items-center justify-between overflow-hidden rounded-[22px] bg-[#FBF8F1] px-5 pb-5 pt-7 text-center text-ks-ink">
-              {/* Gold scroll corners — one SVG, mirrored to the four corners via transforms.
-                  Hand-drawn curves + a small fleuron give the hero its signature. */}
+              {/* Gold scroll corners — one copperplate-filigree SVG, mirrored to the four
+                  corners via transforms. Stronger stroke so they read as ornament, not scribble. */}
               {([
-                ['left-2 top-2', ''],
-                ['right-2 top-2', '-scale-x-100'],
-                ['left-2 bottom-2', '-scale-y-100'],
-                ['right-2 bottom-2', '-scale-100'],
+                ['left-1.5 top-1.5', ''],
+                ['right-1.5 top-1.5', '-scale-x-100'],
+                ['left-1.5 bottom-1.5', '-scale-y-100'],
+                ['right-1.5 bottom-1.5', '-scale-100'],
               ] as const).map(([pos, flip], i) => (
                 <svg
                   key={i}
                   aria-hidden="true"
-                  viewBox="0 0 48 48"
-                  className={`pointer-events-none absolute ${pos} ${flip} size-11 text-ks-gold-500`}
+                  viewBox="0 0 40 40"
+                  className={`pointer-events-none absolute ${pos} ${flip} size-10 text-ks-gold-500`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
                 >
-                  <g fill="none" stroke="currentColor" strokeLinecap="round">
-                    <path d="M2 18 Q 2 2 18 2" strokeWidth="1.6" />
-                    <path d="M8 18 Q 8 8 18 8" strokeWidth="1.1" opacity=".7" />
-                    <path d="M2 28 Q 10 24 14 16 Q 22 12 28 2" strokeWidth="0.9" opacity=".55" />
-                    <circle cx="18" cy="18" r="1.7" fill="currentColor" stroke="none" />
-                    <path d="M18 2 Q 22 6 24 12" strokeWidth="0.9" opacity=".45" />
-                    <path d="M2 18 Q 6 22 12 24" strokeWidth="0.9" opacity=".45" />
-                  </g>
+                  {/* Outer scroll */}
+                  <path d="M3 20 Q 3 3 20 3" strokeWidth="1.6" />
+                  {/* Inner curl into a round terminal */}
+                  <path
+                    d="M3 20 Q 3 10 10 10 Q 15 10 15 15 Q 15 18 12 18"
+                    strokeWidth="1.1"
+                    opacity=".8"
+                  />
+                  {/* Leafy flourish along the diagonal */}
+                  <path d="M20 3 Q 24 7 22 12" strokeWidth="0.9" opacity=".6" />
+                  <path d="M3 20 Q 7 24 12 22" strokeWidth="0.9" opacity=".6" />
+                  {/* Small accent dot */}
+                  <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
                 </svg>
               ))}
 
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="font-serif text-[13px] italic text-ks-green-900/80">
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-serif text-[12px] italic text-ks-green-900/80">
                   ~ Harusi ya ~
                 </span>
-                <span className="h-px w-8 bg-ks-gold-500/50" />
+                <span className="h-px w-10 bg-ks-gold-500/60" />
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <p className="font-serif text-[27px] leading-[1.02] text-ks-green-900">
                   Asha
                   <span className="mx-1.5 align-middle font-serif text-ks-gold-500 italic">
@@ -185,6 +194,24 @@ export function Hero(props: HeroProps) {
                 <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-ks-muted">
                   14 · Desemba · 2026
                 </p>
+                {/* Venue + dress code — fills the quiet middle of the kadi the way a real
+                    printed invitation would, and reinforces that this is wedding-shaped. */}
+                <div className="mt-2 flex flex-col items-center gap-1.5 text-ks-muted">
+                  <span className="font-serif text-[12px] italic">Ukumbi wa Mwanga, Kibaha</span>
+                  <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.2em]">
+                    <span
+                      aria-hidden="true"
+                      className="inline-block size-1.5 rounded-full bg-ks-green-700"
+                    />
+                    Kijani
+                    <span className="opacity-40">·</span>
+                    <span
+                      aria-hidden="true"
+                      className="inline-block size-1.5 rounded-full bg-ks-gold-500"
+                    />
+                    Dhahabu
+                  </span>
+                </div>
               </div>
 
               {/* Abstracted QR plate + short code, side by side in a thin gold-bordered band —
@@ -241,8 +268,9 @@ export function Hero(props: HeroProps) {
             />
           </div>
         </div>
-        {/* Floating stat: contributions (right of phone, desktop only). */}
-        <div className="absolute right-0 top-28 z-10 hidden w-[13rem] rounded-2xl border border-ks-border/50 bg-white/95 p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur md:block md:top-36">
+        {/* Floating stat: contributions. Pushed slightly outside the phone so the top-right
+            gold corner stays visible. */}
+        <div className="absolute -right-4 top-28 z-10 hidden w-[13rem] rounded-2xl border border-ks-border/50 bg-white p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:block md:top-40">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-muted">
             <Wallet className="size-3.5 text-ks-gold-600" aria-hidden="true" />
             {s.michangoTitle}
@@ -264,8 +292,8 @@ export function Hero(props: HeroProps) {
           <p className="mt-1 text-[11px] text-ks-muted">{s.michangoPercent}</p>
         </div>
         {/* Floating stat: gate check-in (hangs below the phone, desktop only, so nothing covers
-            the card's QR + short code — the signature. */}
-        <div className="absolute -bottom-2 left-0 z-10 hidden items-center gap-2 rounded-full border border-ks-border/50 bg-white py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:flex">
+            the card's QR, short code or bottom-left scroll corner — the signature. */}
+        <div className="absolute -bottom-5 -left-4 z-10 hidden items-center gap-2 rounded-full border border-ks-border/50 bg-white py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] md:flex">
           <span className="inline-flex size-9 items-center justify-center rounded-full bg-ks-green-700 text-white">
             <CheckCircle2 className="size-5" aria-hidden="true" />
           </span>

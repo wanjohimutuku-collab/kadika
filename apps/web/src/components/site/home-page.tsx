@@ -12,8 +12,8 @@ import type { SiteEdition } from '@/lib/site-nav';
 import { AnswerBlock, Container, Faq, PillLink, SectionHeading } from './blocks';
 import { JsonLd } from './json-ld';
 import { AppMockup, GateChip, MichangoBar, SmsBubble } from './mockups';
+import { Hero } from './home/hero';
 import { HeroLive } from './home/hero-live';
-import { TrustLine } from './home/trust-line';
 import { TrySection } from './home/try-section';
 import { FeatureRow } from './home/feature-row';
 import { PricingTeaser } from './home/pricing-teaser';
@@ -124,24 +124,33 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         }}
       />
 
-      <HeroLive
-        locale={locale}
+      <Hero
         h1={c.hero.h1}
+        accentWord={c.heroAccent}
         sub={c.hero.sub}
         primary={{ href: primaryHref, label: c.hero.primary }}
-        secondaryBaseHref={jaribuBase}
-        secondaryLabel={c.heroPreviewOpen}
-        footnote={c.heroNote}
-        form={c.formLabels}
+        howHref="#jaribu-mwenyewe"
+        howLabel={c.heroHowLink}
+        trustLine={c.heroTrustLine}
         previewFrameAlt={c.hero.h1}
-        initialDateISO={nextSaturdayFromToday()}
+        statCards={c.heroStatCards}
       />
-
-      <TrustLine text={c.trustLine} />
 
       <div id="jibu">
         <AnswerBlock label={c.answerLabel} text={c.answer} />
       </div>
+
+      <HeroLive
+        locale={locale}
+        eyebrow={c.demoStudio.eyebrow}
+        h1={c.demoStudio.title}
+        sub={c.demoStudio.sub}
+        secondaryBaseHref={jaribuBase}
+        secondaryLabel={c.heroPreviewOpen}
+        form={c.formLabels}
+        previewFrameAlt={c.hero.h1}
+        initialDateISO={nextSaturdayFromToday()}
+      />
 
       <TrySection
         copy={c.trySection}

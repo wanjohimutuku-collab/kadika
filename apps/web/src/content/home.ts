@@ -74,14 +74,37 @@ export interface PricingTeaserCopy {
   comparisonLink: string;
 }
 
+export interface HeroStatCardsCopy {
+  guestsTitle: string;
+  guestsInvited: string;
+  guestsConfirmed: string;
+  guestsAwaiting: string;
+  michangoTitle: string;
+  michangoPledged: string;
+  michangoReceived: string;
+  michangoPercent: string;
+  checkedInTitle: string;
+  checkedInOffline: string;
+}
+
 export interface HomeCopy {
   title: string;
   description: string;
   hero: { h1: string; sub: string; primary: string; secondary: string };
+  /** One word inside hero.h1 that gets the gold-accent treatment; case-sensitive. */
+  heroAccent: string;
+  /** Text-only link beside the primary CTA, e.g. "See how it works" → `#jaribu-mwenyewe`. */
+  heroHowLink: string;
+  /** Short trust line placed tight under the hero CTA. */
+  heroTrustLine: string;
+  /** Labels on the three floating stat cards around the hero phone. */
+  heroStatCards: HeroStatCardsCopy;
   /** Inputs on the live hero (ADR for the home overhaul). */
   formLabels: HomeHeroFormLabels;
   /** Secondary CTA label on the hero that opens the full card on /jaribu. */
   heroPreviewOpen: string;
+  /** Headings for the Demo Studio island below the hero. */
+  demoStudio: { eyebrow: string; title: string; sub: string };
   /** One-line trust strip under the hero. */
   trustLine: string;
   /** Three interactive steps the visitor can try before signing up. */
@@ -194,6 +217,26 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       sub: 'Tuma kadi kwa WhatsApp, SMS au karatasi. Kamati inafuatilia majibu na michango, na mlangoni mnaskani hata bila mtandao.',
       primary: 'Anza bure',
       secondary: 'Nina namba ya kadi',
+    },
+    heroAccent: 'kila mgeni',
+    heroHowLink: 'Angalia jinsi inavyofanya kazi',
+    heroTrustLine: 'Kadi 5 bure · Hulipi mpaka utume',
+    heroStatCards: {
+      guestsTitle: 'Orodha ya wageni',
+      guestsInvited: '320 waalikwa',
+      guestsConfirmed: '214 wamethibitisha',
+      guestsAwaiting: '106 wanasubiriwa',
+      michangoTitle: 'Michango',
+      michangoPledged: 'Ahadi',
+      michangoReceived: 'Imepokelewa',
+      michangoPercent: '70% ya ahadi',
+      checkedInTitle: 'Mgeni ameingia',
+      checkedInOffline: 'Inafanya kazi bila mtandao',
+    },
+    demoStudio: {
+      eyebrow: 'Jaribu mwenyewe',
+      title: 'Buni kadi yako mwenyewe.',
+      sub: 'Badilisha majina, tarehe na mandhari. Kisha pakua au shiriki kadi ya majaribio.',
     },
     formLabels: {
       names: 'Majina ya wana-ndoa',
@@ -454,6 +497,26 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       primary: 'Start free',
       secondary: 'I have a card number',
     },
+    heroAccent: 'every guest',
+    heroHowLink: 'See how it works',
+    heroTrustLine: '5 cards free · You don’t pay until you send',
+    heroStatCards: {
+      guestsTitle: 'Guest list',
+      guestsInvited: '320 invited',
+      guestsConfirmed: '214 confirmed',
+      guestsAwaiting: '106 awaiting',
+      michangoTitle: 'Contributions',
+      michangoPledged: 'Pledged',
+      michangoReceived: 'Received',
+      michangoPercent: '70% of pledges',
+      checkedInTitle: 'Guest checked in',
+      checkedInOffline: 'Works offline',
+    },
+    demoStudio: {
+      eyebrow: 'Try it yourself',
+      title: 'Build your own card.',
+      sub: 'Swap the names, date and theme. Then download or share the demo card.',
+    },
     formLabels: {
       names: 'Couple names',
       namesPlaceholder: 'e.g. Asha & Juma',
@@ -706,6 +769,26 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       sub: 'Every guest gets their own card on WhatsApp or SMS. The committee sees who’s coming, who’s pledged and who’s paid, and the gate works offline.',
       primary: 'Join the Kenya pilot',
       secondary: 'I have a card number',
+    },
+    heroAccent: 'every guest',
+    heroHowLink: 'See how it works',
+    heroTrustLine: 'Kenya pilot · You don’t pay until you send',
+    heroStatCards: {
+      guestsTitle: 'Guest list',
+      guestsInvited: '320 invited',
+      guestsConfirmed: '214 confirmed',
+      guestsAwaiting: '106 awaiting',
+      michangoTitle: 'Harambee',
+      michangoPledged: 'Pledged',
+      michangoReceived: 'Received',
+      michangoPercent: '70% of pledges',
+      checkedInTitle: 'Guest checked in',
+      checkedInOffline: 'Works offline',
+    },
+    demoStudio: {
+      eyebrow: 'Try it yourself',
+      title: 'Build your own card.',
+      sub: 'Swap the names, date and theme. Then download or share the demo card.',
     },
     formLabels: {
       names: 'Couple names',

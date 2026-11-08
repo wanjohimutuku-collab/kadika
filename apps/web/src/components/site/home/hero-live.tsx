@@ -52,18 +52,24 @@ function slugify(s: string): string {
 
 export interface HeroLiveProps {
   locale: 'sw' | 'en';
+  /** Section eyebrow (e.g. "Jaribu mwenyewe") shown at top. */
+  eyebrow: string;
   h1: string;
   sub: string;
-  primary: { href: string; label: string };
   secondaryBaseHref: string;
   secondaryLabel: string;
-  footnote: string;
   form: HomeHeroFormLabels;
   previewFrameAlt: string;
   /** Server-computed initial date for the hero's date input. Prevents SSR/CSR drift from `new Date()`. */
   initialDateISO: string;
 }
 
+/**
+ * Interactive demo studio below the Hero. Visitors edit the four fields that drive a real card
+ * preview inside a phone frame, then download or share the result. The primary conversion CTA
+ * lives on the Hero component above — this island is the "try it yourself" surface, not a hero.
+ * Kept named `HeroLive` for backwards import compatibility.
+ */
 export function HeroLive(props: HeroLiveProps) {
   const [names, setNames] = useState('Asha & Juma');
   // Seed the initial date server-side via a prop so SSR and the client's first render agree.
@@ -246,12 +252,22 @@ export function HeroLive(props: HeroLiveProps) {
   const screenGradient = THEME_GRADIENTS[themeId];
 
   return (
-    <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:gap-16 md:py-24">
+    <section
+      id="jaribu-mwenyewe"
+      aria-labelledby="jaribu-mwenyewe-heading"
+      className="mx-auto grid max-w-6xl scroll-mt-24 gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:gap-16 md:py-20"
+    >
       <div className="flex flex-col gap-6">
-        <h1 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] md:text-5xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ks-green-700">
+          {props.eyebrow}
+        </p>
+        <h2
+          id="jaribu-mwenyewe-heading"
+          className="font-serif text-[32px] leading-[1.1] tracking-[-0.02em] md:text-[40px]"
+        >
           {props.h1}
-        </h1>
-        <p className="max-w-xl text-lg leading-relaxed text-ks-muted">{props.sub}</p>
+        </h2>
+        <p className="max-w-xl text-base leading-relaxed text-ks-muted md:text-lg">{props.sub}</p>
 
         <div className="flex flex-col gap-3 pt-2">
           <label className="flex flex-col gap-1 text-sm font-medium">
@@ -349,43 +365,24 @@ export function HeroLive(props: HeroLiveProps) {
           </fieldset>
         </div>
 
-        {/* Two-tier action group. Row 1 is the conversion pair (Start free + See full card),
-            sized tall and claiming the thumb zone. Row 2 is the demo utility tray (Download +
-            Share) — compact, icon-forward, visibly subordinate so the primary CTA stays the
-            loudest element on the hero. */}
-        <div className="flex flex-col gap-3 pt-2">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <a
-              href={props.primary.href}
-              onClick={() => emit('home_hero_cta_primary')}
-              className="inline-flex min-h-[3.25rem] flex-1 items-center justify-center rounded-full bg-ks-green-700 px-7 text-base font-semibold text-white shadow-[0_8px_20px_-10px_rgb(15_92_77/0.6)] transition hover:bg-ks-green-700/90 sm:min-w-[11rem] sm:flex-initial"
-            >
-              {props.primary.label}
-            </a>
-            <a
-              href={secondaryHref}
-              target="_blank"
-              rel="noopener"
-              onClick={() => emit('home_hero_cta_secondary')}
-              className="inline-flex min-h-[3.25rem] flex-1 items-center justify-center rounded-full border border-ks-green-700/60 bg-white px-7 text-base font-semibold text-ks-green-700 transition hover:border-ks-green-700 sm:min-w-[11rem] sm:flex-initial"
-            >
-              {props.secondaryLabel}
-            </a>
-          </div>
-          <div
-            className="flex items-center gap-2"
-            role="group"
-            aria-label={props.form.utilityTrayAria}
-          >
+        {/* Utility action row: open the full-template card in a new tab, download the SVG, or
+            share. The primary conversion CTA ("Start free") lives on the Hero component above —
+            this island is for "try it yourself", not for conversion. */}
+        <div
+          className="flex flex-col gap-3 pt-2"
+          role="group"
+          aria-label={props.form.utilityTrayAria}
+        >
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={downloadCard}
               disabled={downloading}
               aria-label={props.form.downloadAria}
               data-testid="home-hero-download"
-              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-ks-ink/10 bg-white px-4 text-sm font-medium text-ks-ink transition hover:border-ks-ink/25 disabled:opacity-60 sm:flex-initial"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ks-green-700 px-5 text-sm font-semibold text-white shadow-[0_8px_20px_-10px_rgb(15_92_77/0.5)] transition hover:bg-ks-green-700/90 disabled:opacity-60"
             >
-              <Download className="size-4 text-ks-muted" strokeWidth={2} aria-hidden="true" />
+              <Download className="size-4" strokeWidth={2} aria-hidden="true" />
               {props.form.downloadCta}
             </button>
             <button
@@ -394,14 +391,22 @@ export function HeroLive(props: HeroLiveProps) {
               onClick={shareCard}
               aria-label={props.form.shareAria}
               data-testid="home-hero-share"
-              className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-ks-ink/10 bg-white px-4 text-sm font-medium text-ks-ink transition hover:border-ks-ink/25 sm:flex-initial"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-ks-ink/15 bg-white px-5 text-sm font-semibold text-ks-ink transition hover:border-ks-ink/30"
             >
               <Share2 className="size-4 text-ks-muted" strokeWidth={2} aria-hidden="true" />
               {props.form.shareCta}
             </button>
+            <a
+              href={secondaryHref}
+              target="_blank"
+              rel="noopener"
+              onClick={() => emit('home_hero_cta_secondary')}
+              className="inline-flex h-12 items-center text-sm font-semibold text-ks-green-700 underline underline-offset-4 hover:text-ks-green-700/80"
+            >
+              {props.secondaryLabel}
+            </a>
           </div>
         </div>
-        <p className="text-sm text-ks-muted">{props.footnote}</p>
       </div>
 
       <div className="flex justify-center md:justify-end">

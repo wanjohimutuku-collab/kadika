@@ -144,8 +144,10 @@ export function Hero(props: HeroProps) {
             <div className="h-10" aria-hidden="true" />
             {/* Ornamental inner card on warm ivory, inset so the gold edges can breathe. */}
             <div className="relative mx-5 mb-6 mt-5 flex h-[calc(100%-2.5rem-2.75rem)] flex-col items-center justify-between overflow-hidden rounded-[22px] bg-[#FBF8F1] px-5 pb-5 pt-7 text-center text-ks-ink">
-              {/* Gold scroll corners — one copperplate-filigree SVG, mirrored to the four
-                  corners via transforms. Stronger stroke so they read as ornament, not scribble. */}
+              {/* Gold corner ornaments — a classic certificate/invitation frame: double-line
+                  L-bracket in gold with a small four-point star at the meeting corner. One SVG
+                  mirrored to all four corners. Reads instantly as formal invitation corner,
+                  not as a decorative eye. */}
               {([
                 ['left-1.5 top-1.5', ''],
                 ['right-1.5 top-1.5', '-scale-x-100'],
@@ -156,35 +158,42 @@ export function Hero(props: HeroProps) {
                   key={i}
                   aria-hidden="true"
                   viewBox="0 0 40 40"
-                  className={`pointer-events-none absolute ${pos} ${flip} size-10 text-ks-gold-500`}
+                  className={`pointer-events-none absolute ${pos} ${flip} size-11 text-ks-gold-500`}
                   fill="none"
                   stroke="currentColor"
                   strokeLinecap="round"
                 >
-                  {/* Outer scroll */}
-                  <path d="M3 20 Q 3 3 20 3" strokeWidth="1.6" />
-                  {/* Inner curl into a round terminal */}
+                  {/* Outer L-bracket with gently rounded inside corner */}
+                  <path d="M4 36 L4 10 Q 4 4 10 4 L36 4" strokeWidth="1.4" />
+                  {/* Inner parallel L, shorter and softer */}
                   <path
-                    d="M3 20 Q 3 10 10 10 Q 15 10 15 15 Q 15 18 12 18"
-                    strokeWidth="1.1"
-                    opacity=".8"
+                    d="M9 32 L9 14 Q 9 9 14 9 L32 9"
+                    strokeWidth="0.9"
+                    opacity=".6"
                   />
-                  {/* Leafy flourish along the diagonal */}
-                  <path d="M20 3 Q 24 7 22 12" strokeWidth="0.9" opacity=".6" />
-                  <path d="M3 20 Q 7 24 12 22" strokeWidth="0.9" opacity=".6" />
-                  {/* Small accent dot */}
-                  <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+                  {/* Four-point star at the frame's meeting corner */}
+                  <g transform="translate(14 14)" stroke="none" fill="currentColor">
+                    <path d="M0 -3.4 L0.7 -0.7 L3.4 0 L0.7 0.7 L0 3.4 L-0.7 0.7 L-3.4 0 L-0.7 -0.7 Z" />
+                  </g>
                 </svg>
               ))}
 
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-1.5">
                 <span className="font-serif text-[12px] italic text-ks-green-900/80">
                   ~ Harusi ya ~
                 </span>
-                <span className="h-px w-10 bg-ks-gold-500/60" />
+                {/* Small gold diamond ornament — a quiet pivot between eyebrow and names. */}
+                <span className="inline-flex items-center gap-1.5 text-ks-gold-500/70">
+                  <span aria-hidden="true" className="h-px w-6 bg-current" />
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 rotate-45 bg-ks-gold-500"
+                  />
+                  <span aria-hidden="true" className="h-px w-6 bg-current" />
+                </span>
               </div>
               <div className="flex flex-col gap-2">
-                <p className="font-serif text-[27px] leading-[1.02] text-ks-green-900">
+                <p className="font-serif text-[28px] leading-[1.02] text-ks-green-900">
                   Asha
                   <span className="mx-1.5 align-middle font-serif text-ks-gold-500 italic">
                     &amp;
@@ -194,24 +203,13 @@ export function Hero(props: HeroProps) {
                 <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-ks-muted">
                   14 · Desemba · 2026
                 </p>
-                {/* Venue + dress code — fills the quiet middle of the kadi the way a real
-                    printed invitation would, and reinforces that this is wedding-shaped. */}
-                <div className="mt-2 flex flex-col items-center gap-1.5 text-ks-muted">
-                  <span className="font-serif text-[12px] italic">Ukumbi wa Mwanga, Kibaha</span>
-                  <span className="inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.2em]">
-                    <span
-                      aria-hidden="true"
-                      className="inline-block size-1.5 rounded-full bg-ks-green-700"
-                    />
-                    Kijani
-                    <span className="opacity-40">·</span>
-                    <span
-                      aria-hidden="true"
-                      className="inline-block size-1.5 rounded-full bg-ks-gold-500"
-                    />
-                    Dhahabu
-                  </span>
-                </div>
+                {/* Venue line in italic Fraunces — one quiet detail that makes the kadi feel
+                    wedding-shaped instead of generic. */}
+                <p className="mt-1 font-serif text-[12px] italic leading-tight text-ks-muted">
+                  Ukumbi wa Mwanga,
+                  <br />
+                  Kibaha
+                </p>
               </div>
 
               {/* Abstracted QR plate + short code, side by side in a thin gold-bordered band —

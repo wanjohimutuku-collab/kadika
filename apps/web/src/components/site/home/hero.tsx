@@ -68,14 +68,14 @@ export function Hero(props: HeroProps) {
         </p>
       </div>
 
-      <div className="relative flex min-h-[560px] items-center justify-center md:min-h-[600px] md:justify-end">
-        {/* Soft blurred backdrop so the stat cards feel grounded. */}
+      <div className="relative flex flex-col items-center gap-6 md:min-h-[600px] md:items-stretch md:justify-end">
+        {/* Soft blurred backdrop so the stat cards feel grounded (desktop only). */}
         <div
           aria-hidden="true"
-          className="absolute inset-y-10 right-0 w-[82%] rounded-[3rem] bg-gradient-to-br from-ks-green-100/70 via-white to-ks-gold-100/60 blur-md"
+          className="absolute inset-y-10 right-0 hidden w-[82%] rounded-[3rem] bg-gradient-to-br from-ks-green-100/70 via-white to-ks-gold-100/60 blur-md md:block"
         />
-        {/* Floating stat: guest list funnel (top-left of phone). */}
-        <div className="absolute left-0 top-6 z-10 w-[11rem] rounded-2xl border border-ks-border/50 bg-white/95 p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur sm:top-10 md:w-[12rem]">
+        {/* Floating stat: guest list funnel (top-left of phone, desktop only). */}
+        <div className="absolute left-0 top-6 z-10 hidden w-[12rem] rounded-2xl border border-ks-border/50 bg-white/95 p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur md:block">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-muted">
             <Users className="size-3.5 text-ks-green-700" aria-hidden="true" />
             {s.guestsTitle}
@@ -148,8 +148,8 @@ export function Hero(props: HeroProps) {
             </div>
           </div>
         </div>
-        {/* Floating stat: contributions (right of phone). */}
-        <div className="absolute right-0 top-28 z-10 w-[12rem] rounded-2xl border border-ks-border/50 bg-white/95 p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur sm:top-36 md:w-[13rem]">
+        {/* Floating stat: contributions (right of phone, desktop only). */}
+        <div className="absolute right-0 top-28 z-10 hidden w-[13rem] rounded-2xl border border-ks-border/50 bg-white/95 p-3 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur md:block md:top-36">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-muted">
             <Wallet className="size-3.5 text-ks-gold-600" aria-hidden="true" />
             {s.michangoTitle}
@@ -170,8 +170,8 @@ export function Hero(props: HeroProps) {
           </div>
           <p className="mt-1 text-[11px] text-ks-muted">{s.michangoPercent}</p>
         </div>
-        {/* Floating stat: gate check-in (bottom-left of phone). */}
-        <div className="absolute bottom-10 left-2 z-10 flex items-center gap-2 rounded-full border border-ks-border/50 bg-white/95 py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur">
+        {/* Floating stat: gate check-in (bottom-left of phone, desktop only). */}
+        <div className="absolute bottom-10 left-2 z-10 hidden items-center gap-2 rounded-full border border-ks-border/50 bg-white/95 py-2 pl-2 pr-4 shadow-[0_20px_40px_-24px_rgb(10_63_53/0.3)] backdrop-blur md:flex">
           <span className="inline-flex size-9 items-center justify-center rounded-full bg-ks-green-700 text-white">
             <CheckCircle2 className="size-5" aria-hidden="true" />
           </span>
@@ -182,6 +182,35 @@ export function Hero(props: HeroProps) {
               {s.checkedInOffline}
             </span>
           </span>
+        </div>
+
+        {/* Mobile-only stat row: a tidy 3-up grid under the phone that carries the same product
+            story as the floating cards on desktop. */}
+        <div className="grid w-full grid-cols-3 gap-2 md:hidden">
+          <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
+            <Users className="mx-auto size-4 text-ks-green-700" aria-hidden="true" />
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
+              {s.guestsTitle}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-ks-ink">214/320</p>
+          </div>
+          <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
+            <Wallet className="mx-auto size-4 text-ks-gold-500" aria-hidden="true" />
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
+              {s.michangoTitle}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-ks-ink">70%</p>
+          </div>
+          <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
+            <CheckCircle2 className="mx-auto size-4 text-ks-green-700" aria-hidden="true" />
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
+              {s.checkedInTitle}
+            </p>
+            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-ks-green-700">
+              <Wifi className="size-3" aria-hidden="true" />
+              {s.checkedInOffline}
+            </p>
+          </div>
         </div>
       </div>
     </section>

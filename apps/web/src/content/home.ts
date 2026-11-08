@@ -111,6 +111,8 @@ export interface HomeCopy {
   trySection: TrySectionCopy;
   /** Three alternating feature rows between TrySection and PricingTeaser. */
   featureRows: [FeatureRowCopy, FeatureRowCopy, FeatureRowCopy];
+  /** Promo tile shown alongside the FeatureStrip. */
+  featurePromo: { title: string; body: string };
   /** Live pricing teaser shown on the home before the CTA band. */
   pricingTeaser: PricingTeaserCopy;
   answerLabel: string;
@@ -323,6 +325,10 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
         bullets: ['M-Pesa, Mixx, Airtel Money', 'Ripoti ya CSV', 'Siri: wewe tu ndiye unaona'],
       },
     ],
+    featurePromo: {
+      title: 'Kadi 5 BURE',
+      body: 'Kuanza. Unalipa tu ukishaanza kutuma kadi.',
+    },
     pricingTeaser: {
       title: 'Chagua kifurushi',
       sub: 'Hulipi mpaka utume kadi.',
@@ -602,6 +608,10 @@ function en(p: PriceFacts, domain: string): HomeCopy {
         bullets: ['M-Pesa, Mixx, Airtel Money', 'CSV reports', 'Private: only you see the figures'],
       },
     ],
+    featurePromo: {
+      title: '5 FREE cards',
+      body: 'To start. You only pay once you’re actually sending invitations.',
+    },
     pricingTeaser: {
       title: 'Pick a pack',
       sub: 'You don’t pay until you send.',
@@ -877,6 +887,10 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
         ],
       },
     ],
+    featurePromo: {
+      title: 'Join the Kenya pilot',
+      body: 'Early committees ride along at zero cost while we shape the service.',
+    },
     pricingTeaser: {
       title: 'Pick a pack',
       sub: 'You only pay for the cards you send.',

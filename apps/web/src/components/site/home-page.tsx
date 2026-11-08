@@ -11,11 +11,11 @@ import { PRICING_PATH } from '@/lib/server-pricing';
 import type { SiteEdition } from '@/lib/site-nav';
 import { AnswerBlock, Container, Faq, PillLink, SectionHeading } from './blocks';
 import { JsonLd } from './json-ld';
-import { AppMockup, GateChip, MichangoBar, SmsBubble } from './mockups';
+import { AppMockup } from './mockups';
 import { Hero } from './home/hero';
 import { HeroLive } from './home/hero-live';
 import { TrySection } from './home/try-section';
-import { FeatureRow } from './home/feature-row';
+import { FeatureStrip } from './home/feature-strip';
 import { PricingTeaser } from './home/pricing-teaser';
 import { CtaBand } from './home/cta-band';
 
@@ -163,49 +163,16 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         rsvpCopy={rsvpCopy}
       />
 
-      <FeatureRow
-        eyebrow={c.featureRows[0].eyebrow}
-        title={c.featureRows[0].title}
-        bullets={c.featureRows[0].bullets}
-        linkLabel={c.featureRows[0].linkLabel}
-        linkHref={
+      <FeatureStrip
+        rows={c.featureRows}
+        promoTitle={c.featurePromo.title}
+        promoBody={c.featurePromo.body}
+        learnMoreLabel={c.featureRows[0].linkLabel}
+        learnMoreHref={
           c.featureRows[0].linkSlug && getPage(c.featureRows[0].linkSlug)
             ? localeUrl(pagePath(getPage(c.featureRows[0].linkSlug)!, locale), locale)
             : undefined
         }
-        visual={<SmsBubble {...c.sms} />}
-      />
-
-      <FeatureRow
-        eyebrow={c.featureRows[1].eyebrow}
-        title={c.featureRows[1].title}
-        bullets={c.featureRows[1].bullets}
-        reverse
-        visual={
-          <div className="flex flex-col items-center gap-4">
-            <img
-              src="/site/gate-scanner-admit.svg"
-              width={168}
-              height={344}
-              alt={c.gate.screenshotAlt}
-              loading="lazy"
-              decoding="async"
-              className="max-w-[12rem] rounded-[2rem] shadow-[0_18px_40px_-16px_rgb(10_63_53/0.4)]"
-            />
-            <div className="flex flex-col items-start gap-2" aria-hidden="true">
-              <GateChip state="ok" label={c.gate.chips.ok} />
-              <GateChip state="duplicate" label={c.gate.chips.duplicate} />
-              <GateChip state="missing" label={c.gate.chips.missing} />
-            </div>
-          </div>
-        }
-      />
-
-      <FeatureRow
-        eyebrow={c.featureRows[2].eyebrow}
-        title={c.featureRows[2].title}
-        bullets={c.featureRows[2].bullets}
-        visual={<MichangoBar rows={c.michango.rows} currency={currency} labels={c.michango.bar} />}
       />
 
       {market === 'tz' ? (

@@ -40,7 +40,7 @@ export function Hero(props: HeroProps) {
       <div className="flex flex-col gap-7">
         <h1 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] md:text-5xl">
           {pre}
-          {accent ? <span className="text-ks-gold-500">{accent}</span> : null}
+          {accent ? <span className="text-ks-green-700">{accent}</span> : null}
           {post}
         </h1>
         <p className="max-w-xl text-lg leading-relaxed text-ks-muted">{props.sub}</p>

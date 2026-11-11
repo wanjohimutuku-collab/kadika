@@ -46,7 +46,7 @@ export function CtaBand({ copy, primaryHref, demoHref }: CtaBandProps) {
       <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-7 px-6 text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-ks-green-900/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
           <span aria-hidden="true" className="size-1.5 rounded-full bg-ks-green-900" />
-          Tangaza harusi
+          Tangaza sherehe
         </span>
         <h2 className="font-serif text-[32px] leading-[1.05] tracking-[-0.02em] text-balance md:text-[52px]">
           {copy.text}

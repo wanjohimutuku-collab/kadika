@@ -45,15 +45,34 @@ export function Hero(props: HeroProps) {
       />
       <div className="relative mx-auto grid max-w-6xl gap-10 px-6 pt-16 pb-20 md:grid-cols-[1.05fr_1fr] md:gap-16 md:pt-24 md:pb-28">
         <div className="flex flex-col gap-7">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/70 py-1.5 pl-2 pr-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.14)] backdrop-blur-sm">
-            <span
-              aria-hidden="true"
-              className="inline-flex size-5 items-center justify-center rounded-full bg-ks-magenta text-[9px] text-white"
-            >
-              TZ
-            </span>
-            Kadi ya harusi · yako kabisa
-          </span>
+          {/* Kicker row — one card, every celebration. Each event label picks up the same
+              kanga key used by its celebration pill further down the page, so the colour
+              story is coherent and the service's reach is unmissable. */}
+          <ul className="-mx-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
+            {([
+              ['Harusi', 'text-ks-magenta'],
+              ['Send-off', 'text-ks-saffron'],
+              ['Kitchen party', 'text-ks-green-700'],
+              ['Nikah', 'text-ks-indigo'],
+              ['Mahafali', 'text-ks-terracotta'],
+              ['Biashara', 'text-ks-magenta'],
+            ] as const).map(([label, color], i) => (
+              <li key={label} className="inline-flex items-center gap-3">
+                {i > 0 ? (
+                  <span aria-hidden="true" className="text-ks-ink/30">
+                    ·
+                  </span>
+                ) : null}
+                <span className={`inline-flex items-center gap-1.5 ${color}`}>
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 rounded-full bg-current opacity-80"
+                  />
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ul>
           <h1 className="font-serif text-[44px] leading-[1.02] tracking-[-0.035em] text-ks-ink md:text-[64px] xl:text-[72px]">
             {pre}
             {accent ? (
@@ -224,7 +243,7 @@ export function Hero(props: HeroProps) {
 
               <div className="flex flex-col items-center gap-1.5">
                 <span className="font-serif text-[12px] italic text-ks-green-900/80">
-                  ~ Harusi ya ~
+                  ~ Sherehe ya ~
                 </span>
                 {/* Small gold diamond ornament — a quiet pivot between eyebrow and names. */}
                 <span className="inline-flex items-center gap-1.5 text-ks-gold-500/70">

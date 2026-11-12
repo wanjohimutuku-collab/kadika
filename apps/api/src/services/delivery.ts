@@ -14,8 +14,12 @@ import { pledgeSummaryOf } from './pledges';
 import { composeSms, dateText, senderOf } from './messages';
 import type { Country } from '@harusi/schemas/country';
 import { routeCountry, shortBaseFor, smsFor } from '../sms-routing';
-import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
-import type { MessageChannel, MessagingProvider } from '@harusi/messaging';
+import type {
+  DeliveryState,
+  MessageChannel,
+  MessageTemplate,
+  MessagingProvider,
+} from '@harusi/messaging';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';

@@ -78,6 +78,51 @@ describe('auth', () => {
     expect(r2.status).toBe(401);
   });
 
+  it('gives one new session when a refresh token is used twice at the same moment', async () => {
+    const s = await loginAs(ctx, '0688100299');
+    const use = () =>
+      api(ctx, 'POST', '/v1/auth/refresh', { body: { refreshToken: s.refreshToken } });
+    const statuses = (await Promise.all([use(), use()])).map((r) => r.status).sort();
+    expect(statuses).toEqual([200, 401]);
+  });
+
+  it("locks out the client that guesses, not the phone's owner, and voids a code after 15 wrong guesses", async () => {
+    const phone = '0754555666';
+    const from = (ip: string, path: string, body: unknown) =>
+      ctx.app.request(path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+        body: JSON.stringify(body),
+      });
+    const guess = (ip: string, code = '000000') => from(ip, '/v1/auth/otp/verify', { phone, code });
+    expect((await from('10.0.0.9', '/v1/auth/otp/request', { phone })).status).toBe(200);
+    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255754555666')!)![1]!;
+    // someone else burns their five tries: they are locked out, and may not ask for codes either
+    for (let i = 0; i < 4; i++) expect((await guess('10.0.0.1')).status).toBe(400);
+    expect((await guess('10.0.0.1')).status).toBe(423);
+    expect((await guess('10.0.0.1', code)).status).toBe(423);
+    ctx.clock.now += 31_000;
+    expect((await from('10.0.0.1', '/v1/auth/otp/request', { phone })).status).toBe(423);
+    // the owner, on their own connection, still signs in with the same code
+    expect((await guess('10.0.0.9', code)).status).toBe(200);
+
+    // guesses spread over many addresses: the code is void after 15 in total
+    expect((await from('10.0.0.9', '/v1/auth/otp/request', { phone })).status).toBe(200);
+    const second = /(\d{6})/.exec(ctx.sms.lastTo('+255754555666')!)![1]!;
+    for (let i = 0; i < 15; i++) await guess(`10.0.1.${i}`);
+    const late = await guess('10.0.0.9', second);
+    expect(late.status).toBe(400);
+    expect((await late.json()).error.details.reason).toBe('expired');
+  });
+
+  it('keeps no state for a code guess at a number that never asked for one', async () => {
+    const r = await api(ctx, 'POST', '/v1/auth/otp/verify', {
+      body: { phone: '0711000999', code: '123456' },
+    });
+    expect(r.status).toBe(400);
+    expect(r.body?.error.details.reason).toBe('expired');
+  });
+
   it('expires access tokens after 15 minutes', async () => {
     const s = await loginAs(ctx, '0688100201');
     ctx.clock.now += 16 * 60_000;

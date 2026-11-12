@@ -233,4 +233,32 @@ describe('SMS reminders only (ADR 055)', () => {
     const owner = await api(ctx, 'GET', '/v1/ops/sms-customers', { token: s.t });
     expect(owner.status).toBe(403);
   });
+
+  it('personalises bulk SMS attributes per recipient and rejects unknown placeholders', async () => {
+    const s = await setup();
+    await api(ctx, 'PATCH', `/v1/events/${s.evId}`, {
+      token: s.t,
+      body: { venueName: 'Ukumbi wa Mwanga' },
+    });
+    await s.add(1, { displayName: 'Asha Juma', groupLabel: 'Kamati', language: 'sw' });
+    await s.add(2, { displayName: 'Neema', language: 'en' });
+    const bad = await s.send({ body: 'Habari {nope}', target: 'all' });
+    expect(bad.status).toBe(400);
+
+    const before = ctx.sms.sent.length;
+    const r = await s.send({
+      body: 'Habari {firstName} {lastName} ({group}), tukutane {venue} — {title}',
+      target: 'all',
+    });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ sent: 2, failed: 0 });
+    const out = ctx.sms.sent
+      .slice(before)
+      .map((m) => m.body)
+      .sort();
+    expect(out).toEqual([
+      'Habari Asha Juma (Kamati), tukutane Ukumbi wa Mwanga — Kikao cha harusi',
+      'Habari Neema (), tukutane Ukumbi wa Mwanga — Kikao cha harusi',
+    ]);
+  });
 });

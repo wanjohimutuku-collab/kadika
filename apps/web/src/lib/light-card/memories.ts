@@ -11,6 +11,7 @@ import {
   trustStrip,
   type LightCardOptions,
   type Msg,
+  LANG_SCRIPT,
 } from './render';
 
 export interface MemoriesOptions extends LightCardOptions {
@@ -34,7 +35,9 @@ dialog.viewer button{position:absolute;top:8px;right:8px;min-width:48px;min-heig
 `;
 
 /** The language chip reloads the page with the chosen language, as on the problem pages. */
-const SCRIPT = `<script>(function(){var d=document.getElementById('hp-viewer');if(d&&d.showModal){var i=d.querySelector('img');document.querySelectorAll('[data-full]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();i.src=a.getAttribute('href');i.alt=a.querySelector('img').alt;d.showModal()})});d.querySelector('button').onclick=function(){d.close()};d.addEventListener('close',function(){i.removeAttribute('src')})}document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})})()</script>`;
+export const MEMORIES_SCRIPT =
+  "(function(){var d=document.getElementById('hp-viewer');if(d&&d.showModal){var i=d.querySelector('img');document.querySelectorAll('[data-full]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();i.src=a.getAttribute('href');i.alt=a.querySelector('img').alt;d.showModal()})});d.querySelector('button').onclick=function(){d.close()};d.addEventListener('close',function(){i.removeAttribute('src')})}document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})})()";
+const SCRIPT = `<script>${MEMORIES_SCRIPT}</script>`;
 
 /**
  * Kumbukumbu (ADR 050): the couple's photos for one guest, as plain HTML like the card (ADR 014).
@@ -98,6 +101,6 @@ export function renderMemoriesUnavailable(
     body: `<main class="problem" data-testid="memories-unavailable">${brandLogo(o.brand)}
 <h1>${esc(t.unavailableTitle)}</h1><p>${esc(t.unavailableBody)}</p>
 <p class="muted" style="font-size:14px">${esc(o.domain)}</p>${langChip(o.locale)}</main>
-<script>document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})</script>`,
+<script>${LANG_SCRIPT}</script>`,
   });
 }

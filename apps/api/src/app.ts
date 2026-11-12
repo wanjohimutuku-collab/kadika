@@ -22,6 +22,12 @@ import { ApiError } from './errors';
 import { AuthService, parsePhone } from './auth/service';
 import { SIGN_IN_COUNTRIES } from '@harusi/schemas/country';
 import { verifyAccessToken, verifyGateToken, type GateClaims } from './auth/tokens';
+import {
+  clearCookieSession,
+  cookieOrigin,
+  cookieRefreshToken,
+  toCookieSession,
+} from './auth/session-cookie';
 import { EventService } from './services/events';
 import { GuestService } from './services/guests';
 import { MemberService } from './services/members';
@@ -33,7 +39,7 @@ import { PrintService } from './services/print';
 import { AuditService, PrivacyService } from './services/audit';
 import { GateService, type GateActor } from './services/gate';
 import { cardContentSchema, cardKindSchema } from '@harusi/schemas/card-content';
-import { fromLegacyKeys, withLegacyAliases } from './compat';
+import { fromLegacyKeys, mayNeedLegacyAliases, withLegacyAliases } from './compat';
 import { PilotMetricsService } from './services/pilot-metrics';
 import { OpsService } from './services/ops';
 import { requireStaff, type StaffCaller } from './services/staff-guard';
@@ -77,7 +83,25 @@ async function body(c: Context): Promise<unknown> {
   const json = await c.req.json().catch(() => {
     throw new ApiError('validation', 'Body must be JSON');
   });
+  assertSaneCollections(json);
   return fromLegacyKeys(json); // deprecated `*Tzs` names, see compat.ts
+}
+
+/** No request legitimately carries more: the largest list any route accepts is 5,000 guest ids. */
+const MAX_COLLECTION = 5_000;
+const MAX_DEPTH = 12;
+
+/**
+ * Refuses a body with a huge array, a huge object or deep nesting before any schema runs. zod 3
+ * validates every element of a collection before it applies `.max()`, so an oversized one costs
+ * memory even though it is rejected (GHSA-mrhx-c7xc-m3w5, fixed only in zod 4).
+ */
+export function assertSaneCollections(value: unknown, depth = 0): void {
+  if (typeof value !== 'object' || value === null) return;
+  const items = Array.isArray(value) ? value : Object.values(value);
+  if (depth > MAX_DEPTH || items.length > MAX_COLLECTION)
+    throw new ApiError('validation', 'Invalid input', { reason: 'collection_too_large' });
+  for (const v of items) assertSaneCollections(v, depth + 1);
 }
 
 const phone = z.string().min(1).max(30);
@@ -145,7 +169,7 @@ export function createApp(deps: Deps) {
     const res = c.res;
     if (!res.headers.get('content-type')?.includes('application/json')) return;
     const text = await res.clone().text();
-    if (!text) return;
+    if (!text || !mayNeedLegacyAliases(text)) return;
     const headers = new Headers(res.headers);
     headers.delete('content-length');
     c.res = new Response(JSON.stringify(withLegacyAliases(JSON.parse(text))), {
@@ -202,7 +226,10 @@ export function createApp(deps: Deps) {
     '*',
     cors({
       origin: deps.config.corsOrigins,
-      allowHeaders: ['authorization', 'content-type', 'idempotency-key'],
+      allowHeaders: ['authorization', 'content-type', 'idempotency-key', 'x-session-transport'],
+      // Only for the refresh cookie on /v1/auth (auth/session-cookie.ts). The origin list is explicit,
+      // never `*`, so allowing credentials opens nothing to other sites.
+      credentials: true,
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       exposeHeaders: ['idempotent-replayed'],
       maxAge: 600,
@@ -293,6 +320,9 @@ export function createApp(deps: Deps) {
   const firebaseSignIns = new RateLimiter(deps.now, 30, 600_000, 'firebase-signin', deps.rateStore);
   // Firebase codes per phone number per hour, like the SMS route's own cap (auth/otp.ts).
   const firebaseCodes = new RateLimiter(deps.now, 5, 3_600_000, 'firebase-code', deps.rateStore);
+  // Code guesses and token swaps per IP: the per-number lock stops guessing one number, this stops one
+  // client walking many numbers (or hammering refresh/logout with made-up tokens).
+  const authAttempts = new RateLimiter(deps.now, 60, 600_000, 'auth-attempt', deps.rateStore);
   let otpAlertAt = 0; // one alert per 10 minutes, not one per refused request
 
   const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
@@ -355,6 +385,8 @@ export function createApp(deps: Deps) {
   });
 
   // ---- auth
+  /** The web origin asking for its refresh token in an HttpOnly cookie (M-05), else null. */
+  const webSession = (c: Context) => cookieOrigin(c, deps.config.corsOrigins);
   /** The login-code budget, shared by our SMS codes and Firebase's (each one is a paid SMS). */
   const codeBudget = async (c: Context) => {
     await otpByIp.check(`ip:${client(c)}`);
@@ -383,14 +415,16 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p, fallback, language));
+    return c.json(await auth.requestOtp(p, fallback, language, client(c)));
   });
   app.post('/v1/auth/otp/verify', async (c) => {
+    await authAttempts.check(`ip:${client(c)}`);
     const { phone: p, code } = parse(
       z.object({ phone, code: z.string().regex(/^\d{6}$/) }),
       await body(c),
     );
-    return c.json(await auth.verifyOtp(p, code));
+    const web = webSession(c);
+    return c.json(toCookieSession(c, web, await auth.verifyOtp(p, code, client(c))));
   });
   // Which sign-in flow clients use (ADR 048); the Firebase web values are public by design.
   app.get('/v1/auth/config', (c) => {
@@ -422,11 +456,22 @@ export function createApp(deps: Deps) {
   app.post('/v1/auth/firebase', async (c) => {
     await firebaseSignIns.check(`ip:${client(c)}`);
     const { idToken } = parse(z.object({ idToken: z.string().min(20).max(4096) }), await body(c));
-    return c.json(await auth.verifyFirebase(idToken));
+    const web = webSession(c);
+    return c.json(toCookieSession(c, web, await auth.verifyFirebase(idToken)));
   });
   app.post('/v1/auth/refresh', async (c) => {
-    const { refreshToken } = parse(z.object({ refreshToken: z.string().min(10) }), await body(c));
-    return c.json(await auth.refresh(refreshToken));
+    await authAttempts.check(`ip:${client(c)}`);
+    const web = webSession(c);
+    const input = parse(z.object({ refreshToken: z.string().min(10).optional() }), await body(c));
+    const refreshToken = input.refreshToken ?? (web ? cookieRefreshToken(c, web) : undefined);
+    if (!refreshToken) throw new ApiError('unauthorized', 'Invalid refresh token');
+    try {
+      return c.json(toCookieSession(c, web, await auth.refresh(refreshToken)));
+    } catch (e) {
+      // a spent or expired cookie is of no further use to the browser
+      if (web && !input.refreshToken) clearCookieSession(c, web);
+      throw e;
+    }
   });
   // Staff second factor (ADR 040): the challenge from /otp/verify, never an access token.
   const challenge = z.string().min(20).max(2000);
@@ -439,11 +484,18 @@ export function createApp(deps: Deps) {
   app.post('/v1/auth/staff/totp/verify', async (c) => {
     await staffFactor.check(`ip:${client(c)}`);
     const input = parse(z.object({ challenge, code: z.string().regex(/^\d{6}$/) }), await body(c));
-    return c.json(await auth.verifyStaffSecondFactor(input.challenge, input.code));
+    const web = webSession(c);
+    return c.json(
+      toCookieSession(c, web, await auth.verifyStaffSecondFactor(input.challenge, input.code)),
+    );
   });
   app.post('/v1/auth/logout', async (c) => {
-    const { refreshToken } = parse(z.object({ refreshToken: z.string().min(10) }), await body(c));
-    await auth.logout(refreshToken);
+    await authAttempts.check(`ip:${client(c)}`);
+    const web = webSession(c);
+    const input = parse(z.object({ refreshToken: z.string().min(10).optional() }), await body(c));
+    const refreshToken = input.refreshToken ?? (web ? cookieRefreshToken(c, web) : undefined);
+    if (refreshToken) await auth.logout(refreshToken);
+    if (web) clearCookieSession(c, web);
     return c.json({ ok: true });
   });
 
@@ -594,9 +646,10 @@ export function createApp(deps: Deps) {
     return c.json({ ok: true, known });
   });
   // Africa's Talking delivery reports are form-encoded callbacks and cannot carry custom headers, so
-  // the shared secret rides in the query string (never logged: the route pattern is logged, not the URL).
+  // the secret rides in the query string (never logged by us: the route pattern is logged, not the URL).
+  // Proxies do log URLs, so this callback takes its own secret when one is set (AT_WEBHOOK_SECRET).
   app.post('/v1/webhooks/sms/africastalking', async (c) => {
-    const want = deps.config.webhookSecret;
+    const want = deps.config.atWebhookSecret ?? deps.config.webhookSecret;
     if (!want) throw new ApiError('forbidden', 'Webhooks are not configured');
     const a = Buffer.from(c.req.query('secret') ?? '');
     const b = Buffer.from(want);

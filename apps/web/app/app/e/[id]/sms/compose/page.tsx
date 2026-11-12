@@ -1,15 +1,23 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClock, Send, Smartphone, X } from 'lucide-react';
 import { isRepositoryError } from '@harusi/api-client';
-import { SMS_MAX_SEGMENTS, smsSegments, type SmsTarget } from '@harusi/schemas/sms';
+import { renderTemplate, splitName, templatePlaceholders } from '@harusi/schemas/card-content';
+import {
+  SMS_CAMPAIGN_VARS,
+  SMS_MAX_SEGMENTS,
+  smsCampaignProblem,
+  smsSegments,
+  type SmsTarget,
+} from '@harusi/schemas/sms';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
+import { TemplateVarChips } from '@/components/console/template-var-chips';
 import { useQuotaToast } from '@/components/console/quota';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Banner, Card, Skeleton } from '@/components/ui/display';
@@ -19,7 +27,14 @@ import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { qk, useEvent } from '@/lib/queries';
-import { formatDateTimeShort, formatNumber, fromLocalInput } from '@/lib/format';
+import {
+  formatClock,
+  formatDateShort,
+  formatDateTimeShort,
+  formatNumber,
+  formatPhone,
+  fromLocalInput,
+} from '@/lib/format';
 import { readDraft, readPicked, saveDraft, savePicked } from '@/components/sms/shared';
 
 type To = 'all' | 'group' | 'picked';
@@ -43,6 +58,7 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
   const event = useEvent(id);
 
   const [body, setBody] = useState('');
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [to, setTo] = useState<To>('all');
   const [picked, setPicked] = useState<string[]>([]);
   const [group, setGroup] = useState('');
@@ -76,8 +92,42 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
     if (!group && groups.data?.length) setGroup(groups.data[0]!);
   }, [groups.data, group]);
 
-  const seg = smsSegments(body || ' ');
+  const sender = event.data?.senderName || event.data?.title || '';
+  const sampleVars = useMemo(() => {
+    const sampleGuest = 'Asha Juma';
+    const { firstName, lastName } = splitName(sampleGuest);
+    const ev = event.data;
+    const hosts = ev?.coupleNames || ev?.title || '';
+    const [hostA = '', hostB = ''] = hosts.split('&').map((x) => x.trim());
+    return {
+      guest: sampleGuest,
+      firstName,
+      lastName,
+      group: group || 'Kamati',
+      title: ev?.title || '',
+      hosts,
+      hostA,
+      hostB,
+      kind: ev?.eventKind || '',
+      date: ev?.dateStart ? formatDateShort(ev.dateStart, locale) : '',
+      time: ev?.dateStart ? formatClock(ev.dateStart) : '',
+      venue: ev?.venueName || 'Ukumbi wa Mwanga',
+      mapUrl: ev?.venueMapUrl || '',
+      dress: ev?.dressCode || '',
+      sender,
+      phone: ev?.committeePhone ? formatPhone(ev.committeePhone, ev.country) : '',
+    };
+  }, [event.data, group, locale, sender]);
+  const hasVars = templatePlaceholders(body).length > 0;
+  const previewText = body.trim() ? (hasVars ? renderTemplate(body, sampleVars) : body.trim()) : '';
+  const seg = smsSegments(previewText || ' ');
   const tooLong = seg.segments > SMS_MAX_SEGMENTS;
+  const varProblem = body ? smsCampaignProblem(body) : null;
+  const bodyError = varProblem
+    ? te('unknownVar', { name: varProblem.split(':')[1] ?? '' })
+    : tooLong
+      ? t('tooLong', { max: SMS_MAX_SEGMENTS })
+      : undefined;
   const target: SmsTarget | null =
     to === 'all'
       ? 'all'
@@ -101,7 +151,13 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
   const scheduleIso = when === 'later' && at ? fromLocalInput(at) : undefined;
   const timeOk = when === 'now' || (!!scheduleIso && Date.parse(scheduleIso) > Date.now() + 60_000);
   const canSend =
-    body.trim().length >= 2 && !tooLong && !!target && recipients > 0 && !short && timeOk;
+    body.trim().length >= 2 &&
+    !tooLong &&
+    !varProblem &&
+    !!target &&
+    recipients > 0 &&
+    !short &&
+    timeOk;
 
   const send = useMutation({
     mutationFn: () =>
@@ -137,14 +193,15 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
       const title =
         reason.reason === 'no_recipients'
           ? te('no_recipients')
-          : reason.field === 'scheduleAt'
-            ? te('scheduleAt')
-            : ts('errorTitle');
+          : reason.reason?.startsWith('placeholder_unknown:')
+            ? te('unknownVar', { name: reason.reason.split(':')[1] ?? '' })
+            : reason.field === 'scheduleAt'
+              ? te('scheduleAt')
+              : ts('errorTitle');
       toast({ tone: 'error', title });
     },
   });
 
-  const sender = event.data?.senderName || event.data?.title || '';
   // Recomputed when the datetime picker opens, so the floor never drifts into the past while the page sits.
   const { minLocal, maxLocal } = useMemo(() => {
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -165,17 +222,27 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
       <div className="grid grid-cols-1 gap-4 pb-28 md:grid-cols-[1fr_320px] md:pb-0">
         <div className="flex flex-col gap-4">
           <Card>
+            <TemplateVarChips
+              vars={SMS_CAMPAIGN_VARS}
+              locale={locale}
+              label={t('placeholders')}
+              hint={t('insert')}
+              textareaRef={bodyRef}
+              value={body}
+              onChange={setBody}
+            />
             <Textarea
+              ref={bodyRef}
               label={t('message')}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder={t('placeholder')}
               rows={6}
               maxLength={1000}
-              error={tooLong ? t('tooLong', { max: SMS_MAX_SEGMENTS }) : undefined}
+              error={bodyError}
               hint={
                 <span className="tabular" data-testid="sms-counter">
-                  {t('counter', { chars: body.length, parts: seg.segments })}
+                  {t('counter', { chars: previewText.length, parts: seg.segments })}
                 </span>
               }
             />
@@ -267,8 +334,13 @@ export default function SmsComposePage({ params }: { params: Promise<{ id: strin
                 className="max-w-full rounded-2xl rounded-tl-sm bg-surface p-3 break-words whitespace-pre-line shadow-sm"
                 data-testid="sms-bubble"
               >
-                {body.trim() || t('placeholder')}
+                {previewText || t('placeholder')}
               </p>
+              {hasVars ? (
+                <p className="mt-2 text-xs text-muted">
+                  {t('sampleNote', { name: sampleVars.guest })}
+                </p>
+              ) : null}
             </div>
           </Card>
           <Card title={t('preview')} titleId="sms-summary">

@@ -12,6 +12,13 @@ const securityHeaders = [
   // HTTPS only from here on (§9). No includeSubDomains: other names under the domain (mail, Coolify)
   // are not ours to pin from this app. Browsers ignore it on plain-http local development.
   { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+  // Baseline CSP (security review M-04). These directives restrict nothing the app does today, so
+  // they are safe on every surface: no framing, no <base> hijack of relative URLs, no plugins, and
+  // forms post only to us. A nonce-based script-src is the next step (it needs dynamic rendering).
+  {
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'",
+  },
 ];
 
 /** Belt and braces with robots.txt and meta tags: these surfaces must never be indexed. */

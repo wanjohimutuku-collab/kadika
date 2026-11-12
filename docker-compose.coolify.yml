@@ -65,6 +65,8 @@ services:
       SHORT_BASE_URL: ${SHORT_BASE_URL:?}
       # Delivery webhooks send this in the x-webhook-secret header.
       WEBHOOK_SECRET: ${SERVICE_PASSWORD_WEBHOOK}
+      # Africa's Talking callback only (its secret is in the URL). Empty: WEBHOOK_SECRET is used.
+      AT_WEBHOOK_SECRET: ${AT_WEBHOOK_SECRET:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       # Behind Cloudflare the real client IP is in cf-connecting-ip; rate limits key on it. Without the
       # header (no Cloudflare in front) the API falls back to the last X-Forwarded-For hop.
@@ -85,6 +87,7 @@ services:
       FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY:-}
       FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}
       FIREBASE_WEB_APP_ID: ${FIREBASE_WEB_APP_ID:-}
+      FIREBASE_ALLOWED_PROJECT_IDS: ${FIREBASE_ALLOWED_PROJECT_IDS:-}
       # Providers: everything is `fake` until filled in (fake = nothing is really sent or charged).
       # With SMS fake (and AUTH_OTP_PROVIDER=sms), organizers never receive their login OTP.
       # SMS, WhatsApp and the payment gateway are set in /ops/settings (ADR 031, 036), encrypted in the
@@ -111,6 +114,8 @@ services:
       WHATSAPP_TEMPLATE_MEMORIES: ${WHATSAPP_TEMPLATE_MEMORIES:-}
       WHATSAPP_FALLBACK_HOURS: ${WHATSAPP_FALLBACK_HOURS:-6}
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-fake}
+      # The fake provider is refused in production; 1 allows it on a staging stack.
+      ALLOW_FAKE_PAYMENTS: ${ALLOW_FAKE_PAYMENTS:-}
       # Payments stay off while this is empty.
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-}
       KENYA_ENABLED: ${KENYA_ENABLED:-0}

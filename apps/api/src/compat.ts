@@ -29,6 +29,14 @@ export const LEGACY_MONEY_KEYS: Readonly<Record<string, string>> = {
 
 const OLD_TO_NEW = Object.fromEntries(Object.entries(LEGACY_MONEY_KEYS).map(([n, o]) => [o, n]));
 
+const NEW_KEY_IN_JSON = new RegExp(`"(?:${Object.keys(LEGACY_MONEY_KEYS).join('|')})":`);
+
+/**
+ * Whether serialised JSON holds any renamed money field. Most responses hold none, and those are sent
+ * as they are instead of being parsed and serialised a second time.
+ */
+export const mayNeedLegacyAliases = (json: string): boolean => NEW_KEY_IN_JSON.test(json);
+
 const isPlain = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && !(v instanceof Date);
 

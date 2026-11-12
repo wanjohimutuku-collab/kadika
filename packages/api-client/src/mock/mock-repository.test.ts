@@ -806,5 +806,15 @@ describe('SMS reminders only (ADR 055)', () => {
     await expect(
       repo.sendSmsCampaign(cardEvent.id, { body: 'Habari', target: 'all' }, 'k3'),
     ).rejects.toMatchObject({ code: 'conflict' });
+    // bulk SMS allows customisation attributes without {link} and rejects unknown ones
+    const custom = await repo.sendSmsCampaign(
+      e.id,
+      { body: 'Habari {firstName}, tukutane {venue}', target: 'all' },
+      'k4',
+    );
+    expect(custom.status).toBe('done');
+    await expect(
+      repo.sendSmsCampaign(e.id, { body: 'Habari {nope}', target: 'all' }, 'k5'),
+    ).rejects.toMatchObject({ code: 'validation' });
   });
 });

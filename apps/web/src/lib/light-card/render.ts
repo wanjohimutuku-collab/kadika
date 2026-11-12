@@ -57,6 +57,13 @@ export function brandLogo(brand?: LightBrand): string {
   return `<a class="brand" href="/" data-testid="card-brand"><img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}" height="28" style="height:28px;width:auto;max-width:160px;object-fit:contain"></a>`;
 }
 
+/**
+ * The language chip: remembers the choice and reloads. Like every inline script of the light pages it
+ * is a constant with no page data in it, so its hash can be allowed by the page's CSP (route-utils.ts).
+ */
+export const LANG_SCRIPT =
+  "document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})";
+
 /** Safe inside <script type="application/json">: `<` can never close the tag. */
 const jsonForScript = (v: unknown): string => JSON.stringify(v).replace(/</g, '\\u003c');
 
@@ -225,7 +232,7 @@ export function renderProblem(
 <a class="btn" href="/k">${esc(m.card.enterCodeInstead)}</a>
 <p class="muted" style="font-size:14px">${icon('shield')} ${esc(m.card.trustNever)}</p>
 <p class="muted" style="font-size:14px">${esc(o.domain)}</p>${langChip(o.locale)}</main>
-<script>document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})</script>`,
+<script>${LANG_SCRIPT}</script>`,
   });
 }
 

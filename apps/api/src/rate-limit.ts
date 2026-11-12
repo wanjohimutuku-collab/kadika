@@ -22,7 +22,12 @@ export class MemoryRateStore implements RateStore {
     if (!h || h.resetAt <= t) {
       const fresh = { count: 1, resetAt: t + windowMs };
       this.hits.set(key, fresh);
-      if (this.hits.size > 50_000) this.hits.clear(); // bound memory under attack
+      // Bound memory under attack: drop finished windows first, so live counters (and the limits they
+      // enforce) survive a flood of throwaway keys; clear everything only if that is not enough.
+      if (this.hits.size > 50_000) {
+        for (const [k, v] of this.hits) if (v.resetAt <= t) this.hits.delete(k);
+        if (this.hits.size > 50_000) this.hits.clear();
+      }
       return fresh;
     }
     h.count++;

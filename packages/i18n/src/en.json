@@ -1136,7 +1136,7 @@
       "ok": "OK",
       "duplicate": "Duplicate",
       "invalid_sig": "Invalid signature",
-      "wrong_event": "Other event",
+      "wrong_event": "Other wedding",
       "not_found": "Not found",
       "manual_ok": "Manual",
       "manual_denied": "Denied"
@@ -1177,7 +1177,7 @@
     "invited": "{name} invited",
     "revoke": "Remove",
     "revokeTitle": "Remove {name} from the team?",
-    "revokeBody": "{name} will no longer be able to open this event or run the gate.",
+    "revokeBody": "{name} will no longer be able to open this wedding or run the gate.",
     "revoked": "{name} removed",
     "gateLink": "Gate link and PIN",
     "gateLinkHelp": "Gate agents open this link in the app and enter the PIN.",
@@ -1221,17 +1221,17 @@
     "arrivals": "Arrivals per hour",
     "exportCsv": "Download CSV",
     "exportPdf": "Download PDF",
-    "postEvent": "After the event",
+    "postEvent": "After the wedding",
     "thankYou": "Thank-you message",
-    "thankYouDefault": "Thank you so much for celebrating with us. God bless you! — {couple}",
+    "thankYouDefault": "Thank you so much for being with us on our wedding day. God bless you! — {couple}",
     "thankYouAudience": "Will be sent to {count, plural, one {# guest} other {# guests}} who confirmed or attended.",
     "sendThankYou": "Send thank-you",
     "thankYouSent": "Thank-you message is being sent",
-    "notYet": "The thank-you message is available after the event day."
+    "notYet": "The thank-you message is available after the wedding day."
   },
   "settings": {
     "title": "Settings",
-    "event": "Event details",
+    "event": "Wedding details",
     "venue": "Venue",
     "rsvp": "Replies",
     "trust": "Sender (shown on every card)",
@@ -1245,17 +1245,17 @@
     "save": "Save",
     "saved": "Settings saved",
     "danger": "Danger zone",
-    "archive": "Archive event",
+    "archive": "Archive wedding",
     "archiveHelp": "New replies and payments are turned off. Data stays readable.",
     "archiveTitle": "Archive {name}?",
-    "archived": "Event archived",
-    "delete": "Delete event",
-    "deleteHelp": "Deletes the event, guests, cards and all records. This cannot be undone.",
+    "archived": "Wedding archived",
+    "delete": "Delete wedding",
+    "deleteHelp": "Deletes the wedding, guests, cards and all records. This cannot be undone.",
     "deleteTitle": "Permanently delete {name}?",
     "deleteBody": "All {count} cards will stop working and guest data will be permanently deleted. This cannot be undone.",
     "deleteType": "Type {word} to confirm",
     "deleteWord": "FUTA",
-    "deleted": "Event deleted",
+    "deleted": "Wedding deleted",
     "pledgesEnabled": "Allow contributions on cards",
     "fallbackHours": "Hours to wait before SMS",
     "payToTitle": "Where guests send contributions",
@@ -1264,7 +1264,23 @@
     "payToAccount": "Number or account",
     "payToName": "Name shown",
     "payToAdd": "Add a method",
-    "payToRemove": "Remove"
+    "payToRemove": "Remove",
+    "templates": {
+      "title": "SMS templates",
+      "hint": "Write your own text. Tap a chip to insert a value; WhatsApp still uses Meta-approved templates.",
+      "inviteSms": "Invitation",
+      "reminderSms": "Reminder",
+      "contributionSms": "Contribution",
+      "pledgeReminderSms": "Pledge reminder",
+      "swahili": "Swahili",
+      "english": "English",
+      "placeholders": "Allowed values",
+      "insert": "Tap to insert",
+      "preview": "Preview",
+      "reset": "Use the default",
+      "linkRequired": "Include {link} so guests can open the card.",
+      "unknownVar": "Unknown value \"{name}\"."
+    }
   },
   "account": {
     "title": "Account",
@@ -1280,7 +1296,7 @@
     "exportDone": "Request received ({date}). We will send a download link by SMS.",
     "deletion": "Request account deletion",
     "deletionTitle": "Request deletion of your account?",
-    "deletionBody": "We will delete your account and the events you own within 30 days, as required by the Personal Data Protection Act. You will receive an SMS confirmation.",
+    "deletionBody": "We will delete your account and the weddings you own within 30 days, as required by the Personal Data Protection Act. You will receive an SMS confirmation.",
     "deletionDone": "Deletion request received ({date}).",
     "signOut": "Sign out",
     "privacyLink": "Read the privacy notice"
@@ -2549,7 +2565,10 @@
       "confirmTitle": "Send to {count, plural, one {# person} other {# people}}?",
       "confirmBody": "It will use {credits} SMS. A sent message cannot be taken back.",
       "phonePreview": "This is how it will look",
-      "senderLine": "From: {sender}"
+      "senderLine": "From: {sender}",
+      "placeholders": "Personalise",
+      "insert": "tap to insert",
+      "sampleNote": "Sample for {name}"
     },
     "history": {
       "title": "Message history",
@@ -2605,7 +2624,8 @@
         "tooLong": "The message is too long"
       },
       "no_recipients": "None of the chosen contacts has a phone number.",
-      "scheduleAt": "Pick a time at least a minute from now."
+      "scheduleAt": "Pick a time at least a minute from now.",
+      "unknownVar": "Unknown attribute \"{name}\"."
     }
   }
 }

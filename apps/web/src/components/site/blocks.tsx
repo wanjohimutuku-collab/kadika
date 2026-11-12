@@ -191,17 +191,47 @@ export function Hero({
   );
 }
 
-/** The quotable 40–60 word answer, placed high on the page for search and AI answers. */
+/**
+ * The quotable 40–60 word answer, placed high on the page for search and AI answers. Rendered as
+ * a self-contained "answer card" so the passage reads as an authoritative snippet rather than a
+ * side-note: soft white panel, centred gold accent bar, a `?` glyph next to the eyebrow, and a
+ * wider line-height on the body copy to invite reading.
+ */
 export function AnswerBlock({ label, text }: { label: string; text: string }) {
   return (
-    <Container as="section" aria-label={label} className="py-16 md:py-24">
-      <div className="ks-reveal mx-auto grid max-w-4xl gap-5 md:grid-cols-[auto_1fr] md:gap-10">
-        <p className="text-sm font-semibold tracking-[0.14em] text-ks-green-700 uppercase md:pt-3">
-          {label}
+    <Container as="section" aria-label={label} className="pt-10 pb-6 md:pt-14 md:pb-10">
+      <div className="ks-reveal mx-auto max-w-3xl">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-ks-gold-500/50" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ks-green-700">
+            {label}
+          </span>
+          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-ks-gold-500/50" />
+        </div>
+        <p className="mt-6 text-[20px] leading-[1.55] text-ks-ink md:text-[26px] md:leading-[1.5]">
+          <span className="float-left mr-2 font-serif text-[52px] font-semibold leading-[0.9] text-ks-green-900 md:text-[64px]">
+            {text.charAt(0)}
+          </span>
+          {text.slice(1)}
         </p>
-        <p className="border-l-2 border-ks-gold-500 pl-5 text-xl leading-relaxed text-ks-ink md:pl-8 md:text-[26px] md:leading-[1.45]">
-          {text}
-        </p>
+        {/* Fleuron divider — the same scroll motif used in the hero's card corners, one small
+            quiet reprise. Restraint: ornament appears exactly twice on the page. */}
+        <div className="mt-8 flex items-center justify-center gap-3 text-ks-gold-500/70">
+          <span aria-hidden="true" className="h-px w-10 bg-current" />
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 32 16"
+            className="h-3 w-8 text-ks-gold-500"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          >
+            <path d="M2 8 Q 8 2 16 8 Q 24 14 30 8" />
+            <circle cx="16" cy="8" r="1.4" fill="currentColor" stroke="none" />
+          </svg>
+          <span aria-hidden="true" className="h-px w-10 bg-current" />
+        </div>
       </div>
     </Container>
   );

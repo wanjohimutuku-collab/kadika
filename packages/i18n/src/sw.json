@@ -1140,7 +1140,7 @@
       "ok": "Sawa",
       "duplicate": "Marudio",
       "invalid_sig": "Saini batili",
-      "wrong_event": "Tukio lingine",
+      "wrong_event": "Harusi nyingine",
       "not_found": "Hayupo",
       "manual_ok": "Kwa mkono",
       "manual_denied": "Amekataliwa"
@@ -1157,7 +1157,7 @@
     "title": "Timu",
     "members": "Wanatimu",
     "role": {
-      "owner": "Mwenyeji",
+      "owner": "Mwenye harusi",
       "committee": "Kamati",
       "gate": "Mlinda lango"
     },
@@ -1181,7 +1181,7 @@
     "invited": "{name} amealikwa",
     "revoke": "Ondoa",
     "revokeTitle": "Ondoa {name} kwenye timu?",
-    "revokeBody": "{name} hataweza tena kuingia kwenye tukio hili wala kuendesha lango.",
+    "revokeBody": "{name} hataweza tena kuingia kwenye harusi hii wala kuendesha lango.",
     "revoked": "{name} ameondolewa",
     "gateLink": "Kiungo cha lango na PIN",
     "gateLinkHelp": "Walinda lango wanafungua kiungo hiki kwenye programu na kuweka PIN.",
@@ -1225,17 +1225,17 @@
     "arrivals": "Waliofika kwa saa",
     "exportCsv": "Pakua CSV",
     "exportPdf": "Pakua PDF",
-    "postEvent": "Baada ya tukio",
+    "postEvent": "Baada ya harusi",
     "thankYou": "Ujumbe wa shukrani",
-    "thankYouDefault": "Asanteni sana kwa kuwa nasi. Mungu awabariki! — {couple}",
+    "thankYouDefault": "Asanteni sana kwa kuwa nasi siku yetu ya harusi. Mungu awabariki! — {couple}",
     "thankYouAudience": "Utatumwa kwa {count, plural, one {mgeni #} other {wageni #}} waliothibitisha au kufika.",
     "sendThankYou": "Tuma shukrani",
     "thankYouSent": "Ujumbe wa shukrani umeanza kutumwa",
-    "notYet": "Ujumbe wa shukrani unapatikana baada ya siku ya tukio."
+    "notYet": "Ujumbe wa shukrani unapatikana baada ya siku ya harusi."
   },
   "settings": {
     "title": "Mipangilio",
-    "event": "Taarifa za tukio",
+    "event": "Taarifa za harusi",
     "venue": "Ukumbi",
     "rsvp": "Majibu",
     "trust": "Mtumaji (kinaonekana kwenye kila kadi)",
@@ -1249,17 +1249,17 @@
     "save": "Hifadhi",
     "saved": "Mipangilio imehifadhiwa",
     "danger": "Eneo la hatari",
-    "archive": "Hifadhi tukio kwenye kumbukumbu",
+    "archive": "Hifadhi harusi kwenye kumbukumbu",
     "archiveHelp": "Majibu na malipo mapya yatazimwa. Data zitabaki kusomeka.",
     "archiveTitle": "Hifadhi {name} kwenye kumbukumbu?",
-    "archived": "Tukio limehifadhiwa kwenye kumbukumbu",
-    "delete": "Futa tukio",
-    "deleteHelp": "Inafuta tukio, wageni, kadi na kumbukumbu zote. Haiwezi kutenduliwa.",
+    "archived": "Harusi imehifadhiwa kwenye kumbukumbu",
+    "delete": "Futa harusi",
+    "deleteHelp": "Inafuta harusi, wageni, kadi na kumbukumbu zote. Haiwezi kutenduliwa.",
     "deleteTitle": "Futa {name} kabisa?",
     "deleteBody": "Kadi zote {count} zitaacha kufanya kazi, na data za wageni zitafutwa kabisa. Hatua hii haiwezi kutenduliwa.",
     "deleteType": "Andika {word} ili kuthibitisha",
     "deleteWord": "FUTA",
-    "deleted": "Tukio limefutwa",
+    "deleted": "Harusi imefutwa",
     "pledgesEnabled": "Ruhusu michango kwenye kadi",
     "fallbackHours": "Subiri saa ngapi kabla ya SMS",
     "payToTitle": "Mahali pa kutuma michango",
@@ -1268,7 +1268,23 @@
     "payToAccount": "Namba au akaunti",
     "payToName": "Jina linaloonekana",
     "payToAdd": "Ongeza njia",
-    "payToRemove": "Ondoa"
+    "payToRemove": "Ondoa",
+    "templates": {
+      "title": "Violezo vya SMS",
+      "hint": "Andika maandishi yako mwenyewe. Bonyeza alama hapa chini kuingiza thamani; WhatsApp inatumia violezo vilivyoidhinishwa na Meta.",
+      "inviteSms": "Mwaliko",
+      "reminderSms": "Kumbusho",
+      "contributionSms": "Mchango",
+      "pledgeReminderSms": "Kumbusho la ahadi",
+      "swahili": "Kiswahili",
+      "english": "Kiingereza",
+      "placeholders": "Thamani zinazoruhusiwa",
+      "insert": "Bonyeza kuingiza",
+      "preview": "Onyesho",
+      "reset": "Rudisha chaguomsingi",
+      "linkRequired": "Jumuisha {link} ili wageni waweze kufungua kadi.",
+      "unknownVar": "Thamani \"{name}\" haijulikani."
+    }
   },
   "account": {
     "title": "Akaunti",
@@ -1284,7 +1300,7 @@
     "exportDone": "Ombi limepokelewa ({date}). Tutakutumia kiungo cha kupakua kwa SMS.",
     "deletion": "Omba kufuta akaunti",
     "deletionTitle": "Omba kufuta akaunti yako?",
-    "deletionBody": "Tutafuta akaunti yako na matukio unayomiliki ndani ya siku 30, kwa mujibu wa Sheria ya Ulinzi wa Taarifa Binafsi. Utapokea SMS ya uthibitisho.",
+    "deletionBody": "Tutafuta akaunti yako na harusi unazomiliki ndani ya siku 30, kwa mujibu wa Sheria ya Ulinzi wa Taarifa Binafsi. Utapokea SMS ya uthibitisho.",
     "deletionDone": "Ombi la kufuta limepokelewa ({date}).",
     "signOut": "Toka",
     "privacyLink": "Soma sera ya faragha"
@@ -2553,7 +2569,10 @@
       "confirmTitle": "Tuma kwa {count, plural, one {mtu #} other {watu #}}?",
       "confirmBody": "Itatumia SMS {credits}. Ujumbe uliotumwa hauwezi kurudishwa.",
       "phonePreview": "Hivi ndivyo utakavyoonekana",
-      "senderLine": "Kutoka: {sender}"
+      "senderLine": "Kutoka: {sender}",
+      "placeholders": "Binafsisha",
+      "insert": "gusa kuingiza",
+      "sampleNote": "Mfano kwa {name}"
     },
     "history": {
       "title": "Historia ya ujumbe",
@@ -2609,7 +2628,8 @@
         "tooLong": "Ujumbe ni mrefu mno"
       },
       "no_recipients": "Hakuna mpokeaji mwenye namba katika uliowachagua.",
-      "scheduleAt": "Chagua muda angalau dakika moja kuanzia sasa."
+      "scheduleAt": "Chagua muda angalau dakika moja kuanzia sasa.",
+      "unknownVar": "Sifa \"{name}\" haijulikani."
     }
   }
 }

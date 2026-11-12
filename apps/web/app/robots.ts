@@ -7,7 +7,19 @@ import { SITE_URL } from '@/lib/seo';
  * `/kadi-…` and `/ku…` page (robots.test.ts checks every sitemap URL stays allowed). `/icons/` is not
  * listed: it holds the logo the structured data points to.
  */
-export const PRIVATE = ['/app', '/ops', '/c/', '/s/', '/k$', '/en/k$', '/login', '/dev', '/api/'];
+export const PRIVATE = [
+  '/app',
+  '/ops',
+  '/c/',
+  '/s/',
+  '/k$',
+  '/en/k$',
+  '/login',
+  '/dev',
+  '/api/',
+  '/jaribu',
+  '/en/jaribu',
+];
 
 /**
  * Search and answer engines named in the kit (sitemap.md § Technical), allowed explicitly. A crawler

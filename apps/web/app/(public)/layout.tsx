@@ -1,141 +1,169 @@
 import { BrandMark } from '@/components/brand/brand-provider';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
+import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
-import { getLocale, getTranslations } from 'next-intl/server';
+import { getLocale } from 'next-intl/server';
 import { pickMessages, type Locale } from '@harusi/i18n';
-import { LanguageChip } from '@/components/ui/language-chip';
-import { OrnamentBand } from '@/components/card/ornament';
+import { cn } from '@/lib/cn';
+import { figtree, fraunces } from '@/lib/fonts';
 import { localeUrl } from '@/lib/seo';
+import { editionTargets, type SiteEdition } from '@/lib/site-nav';
 import { SiteNav } from '@/components/public/site-nav';
+import { LocaleSwitch } from '@/components/site/locale-switch';
+import { FOOTER_LINE, SiteFooter, type FooterColumn } from '@/components/site/site-footer';
 import { getPage, pagePath, pagesIn, pagesOf, textOf } from '@/content';
-import type { PageGroup } from '@/content/types';
+import type { ContentPageDef } from '@/content/types';
+import { SITE_UI } from '@/content/site-ui';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
 
-const FOOTER_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
-  { group: 'product', sw: 'Huduma', en: 'Services' },
-  { group: 'guide', sw: 'Miongozo', en: 'Guides' },
-  { group: 'company', sw: 'Kampuni', en: 'Company' },
-  { group: 'legal', sw: 'Sheria', en: 'Legal' },
-];
-const NAV_GROUPS: { group: PageGroup; sw: string; en: string }[] = [
-  { group: 'product', sw: 'Huduma', en: 'Services' },
-  { group: 'guide', sw: 'Miongozo', en: 'Guides' },
-];
-const NAV_LINKS = [
-  { slug: 'maswali', sw: 'Maswali', en: 'FAQ' },
-  { slug: 'kuhusu', sw: 'Kuhusu', en: 'About' },
-] as const;
-const NAV_LABELS = {
-  sw: { menu: 'Fungua menyu', close: 'Funga menyu', main: 'Menyu kuu' },
-  en: { menu: 'Open menu', close: 'Close menu', main: 'Main navigation' },
-} as const;
-const KENYA_LABEL = { sw: 'Kenya', en: 'Kenya' } as const;
-const APP_LABEL = { sw: 'Programu', en: 'App' } as const;
-const PRICING_LABEL = { sw: 'Bei', en: 'Pricing' } as const;
-const APP_FOOTER_LABEL = { sw: 'Pakua programu ya Android', en: 'Get the Android app' } as const;
+const link = (p: ContentPageDef, locale: Locale) => ({
+  href: localeUrl(pagePath(p, locale), locale),
+  label: textOf(p, locale).nav,
+});
 
+/**
+ * Public site shell (kit brand.md + sitemap.md): `.ks` brand scope, Figtree, header with at most five
+ * items plus the call to action, the locale switch, and the market's own footer.
+ */
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = (await getLocale()) as Locale;
-  const t = await getTranslations('common');
-  const tl = await getTranslations('landing');
+  const h = await headers();
+  const market = h.get('x-hp-market') === 'ke' ? 'ke' : 'tz';
+  const path = h.get('x-hp-path') ?? (market === 'ke' ? '/ke' : '/');
+  const edition: SiteEdition = market === 'ke' ? 'ke' : locale;
+  const ui = SITE_UI[edition];
+  const targets = editionTargets(path, locale);
+  const tzPage = (slug: string) => getPage(slug);
+  const about = tzPage('kuhusu');
+  const contact = tzPage('mawasiliano');
+  const faq = tzPage('maswali');
+
+  const groups =
+    market === 'ke'
+      ? [
+          {
+            id: 'guides',
+            label: ui.guides,
+            links: pagesOf('ke')
+              .filter((p) => p.slug && p.group !== 'legal')
+              .map((p) => link(p, 'en')),
+          },
+        ]
+      : [
+          {
+            id: 'services',
+            label: ui.services,
+            links: pagesIn('product').map((p) => link(p, locale)),
+          },
+          { id: 'guides', label: ui.guides, links: pagesIn('guide').map((p) => link(p, locale)) },
+        ];
+  const links = [
+    ...(market === 'tz' ? [{ href: localeUrl(PRICING_PATH, locale), label: ui.pricing }] : []),
+    ...(about
+      ? [
+          {
+            href: localeUrl(
+              pagePath(about, market === 'ke' ? 'en' : locale),
+              market === 'ke' ? 'en' : locale,
+            ),
+            label: ui.about,
+          },
+        ]
+      : []),
+  ];
+  const cta =
+    market === 'ke'
+      ? { href: contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/', label: ui.cta }
+      : { href: '/login', label: ui.cta };
+
+  const footerLocale: Locale = market === 'ke' ? 'en' : locale;
+  const columns: FooterColumn[] =
+    market === 'ke'
+      ? [
+          {
+            title: ui.guides,
+            links: pagesOf('ke')
+              .filter((p) => p.group !== 'legal')
+              .map((p) => link(p, 'en')),
+          },
+          { title: ui.company, links: pagesIn('company').map((p) => link(p, 'en')) },
+          {
+            title: ui.legal,
+            links: pagesOf('ke')
+              .filter((p) => p.group === 'legal')
+              .map((p) => link(p, 'en')),
+          },
+        ]
+      : [
+          { title: ui.services, links: pagesIn('product').map((p) => link(p, locale)) },
+          { title: ui.guides, links: pagesIn('guide').map((p) => link(p, locale)) },
+          {
+            title: ui.company,
+            links: [
+              ...pagesIn('company').map((p) => link(p, locale)),
+              { href: localeUrl(PRICING_PATH, locale), label: ui.pricing },
+              { href: localeUrl(APP_DOWNLOAD_PATH, locale), label: ui.app },
+            ],
+          },
+          { title: ui.legal, links: pagesIn('legal').map((p) => link(p, locale)) },
+        ];
+  const bottomLinks = [
+    { href: '/k', label: ui.card },
+    ...(faq ? [{ href: localeUrl(pagePath(faq, footerLocale), footerLocale), label: ui.faq }] : []),
+    ...(market === 'tz' ? [{ href: '/ke', label: ui.kenya }] : []),
+  ];
+
   return (
     <NextIntlClientProvider
       locale={locale}
       messages={pickMessages(locale, ['common', 'auth', 'validation', 'states'])}
     >
-      <a
-        href="#main"
-        className="sr-only z-50 rounded-input bg-primary px-4 py-3 text-on-primary focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      <div
+        className={cn('ks min-h-dvh', figtree.variable, fraunces.variable)}
+        lang={edition === 'sw' ? 'sw' : 'en'}
       >
-        {t('skipToContent')}
-      </a>
-      <header>
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-ks bg-ks-green-700 px-4 py-3 text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        >
+          {ui.skip}
+        </a>
         <SiteNav
           brand={
-            <Link href="/" className="text-xl">
+            <Link
+              href={market === 'ke' ? '/ke' : localeUrl('/', locale)}
+              className="inline-flex min-h-11 items-center text-xl"
+            >
               <BrandMark />
             </Link>
           }
-          groups={NAV_GROUPS.map((g) => ({
-            id: g.group,
-            label: g[locale],
-            links: pagesIn(g.group).map((p) => ({
-              href: localeUrl(pagePath(p), locale),
-              label: textOf(p, locale).nav,
-            })),
-          }))}
-          links={[
-            ...NAV_LINKS.flatMap((l) => {
-              const p = getPage(l.slug);
-              return p ? [{ href: localeUrl(pagePath(p), locale), label: l[locale] }] : [];
-            }),
-            { href: localeUrl(PRICING_PATH, locale), label: PRICING_LABEL[locale] },
-            { href: localeUrl(APP_DOWNLOAD_PATH, locale), label: APP_LABEL[locale] },
-          ]}
-          cardLink={{ href: '/k', label: tl('openCard') }}
-          cta={{ href: '/login', label: tl('cta') }}
-          labels={NAV_LABELS[locale]}
+          groups={groups}
+          links={links}
+          cardLink={{ href: '/k', label: ui.card }}
+          cta={cta}
+          labels={ui.menu}
+          localeSwitch={<LocaleSwitch current={edition} targets={targets} label={ui.switchLabel} />}
         />
-      </header>
-      <div id="main">{children}</div>
-      <footer className="mt-12 bg-surface">
-        <OrnamentBand id="footer-band" />
-        <nav
-          aria-label="Footer"
-          className="mx-auto grid max-w-5xl gap-6 px-4 pt-8 text-sm sm:grid-cols-2 md:grid-cols-5"
-        >
-          {FOOTER_GROUPS.map((g) => (
-            <div key={g.group}>
-              <p className="mb-2 font-semibold">{g[locale]}</p>
-              <ul className="space-y-1">
-                {pagesIn(g.group).map((p) => (
-                  <li key={p.slug}>
-                    <Link
-                      href={localeUrl(pagePath(p), locale)}
-                      className="inline-flex min-h-8 items-center underline"
-                    >
-                      {textOf(p, locale).nav}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-          <div>
-            <p className="mb-2 font-semibold">{KENYA_LABEL[locale]}</p>
-            <ul className="space-y-1">
-              {pagesOf('ke').map((p) => (
-                <li key={p.slug || 'ke'}>
-                  <Link
-                    href={localeUrl(pagePath(p), locale)}
-                    className="inline-flex min-h-8 items-center underline"
-                  >
-                    {textOf(p, locale).nav}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 text-sm md:flex-row md:items-center md:justify-between">
-          <p className="text-muted">{tl('footerTagline')}</p>
-          <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link href="/k" className="inline-flex min-h-10 items-center underline">
-              {tl('openCard')}
-            </Link>
-            <Link
-              href={localeUrl(APP_DOWNLOAD_PATH, locale)}
-              className="inline-flex min-h-10 items-center underline"
-              data-testid="footer-app-download"
-            >
-              {APP_FOOTER_LABEL[locale]}
-            </Link>
-            <LanguageChip />
-          </nav>
-        </div>
-      </footer>
+        <div id="main">{children}</div>
+        <SiteFooter
+          market={market}
+          line={FOOTER_LINE[edition]}
+          columns={columns}
+          brand={<BrandMark />}
+          bottomLinks={bottomLinks}
+          localeSwitch={
+            <LocaleSwitch
+              current={edition}
+              targets={targets}
+              label={ui.switchLabel}
+              up
+              align="left"
+            />
+          }
+        />
+      </div>
     </NextIntlClientProvider>
   );
 }

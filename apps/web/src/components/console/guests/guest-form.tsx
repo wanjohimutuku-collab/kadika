@@ -1,6 +1,7 @@
 'use client';
 
-import { useId, useRef } from 'react';
+import { useId, useRef, useState } from 'react';
+import { ContactRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +22,9 @@ import { eventScopedKeys, qk } from '@/lib/queries';
 import { useFieldError } from '@/lib/use-field-error';
 import { formatPhone } from '@/lib/format';
 import { CardKindPicker } from './card-kind-picker';
+import { ContactsPrefillSheet } from './contacts-prefill';
 import { useQuotaToast } from '@/components/console/quota';
+import { parsePhone, usePhoneCountry } from '@/lib/country';
 
 export function guestToInput(g: Guest): GuestInput {
   return {
@@ -76,6 +79,8 @@ export function GuestForm({
   const quota = useQuotaToast(eventId);
   const queryClient = useQueryClient();
   const listId = useId();
+  const country = usePhoneCountry();
+  const [prefill, setPrefill] = useState(false);
   const groups = useQuery({
     queryKey: qk.groups(eventId),
     queryFn: () => getRepository().listGroups(eventId),
@@ -139,163 +144,197 @@ export function GuestForm({
   const addAnother = useRef(false);
 
   return (
-    <form
-      noValidate
-      className="flex flex-col gap-4"
-      data-testid="guest-form"
-      onSubmit={handleSubmit(async () => {
-        // The repository validates and normalises again (E.164), so send the raw form values.
-        const v = getValues();
-        const g = await save.mutateAsync(v).catch(() => null);
-        if (!g) return;
-        if (addAnother.current)
-          reset({ ...EMPTY, cardKind: v.cardKind ?? 'invitation', groupLabel: v.groupLabel });
-        else onDone(g);
-      })}
-    >
-      <CardKindPicker
-        name="cardKind"
-        testId="guest-card-kind"
-        legend={t('cardKind')}
-        help={t('cardKindHelp')}
-        labels={{
-          invitation: t('cardKinds.invitation'),
-          contribution: t('cardKinds.contribution'),
-        }}
-        value={cardKind}
-        onChange={(k) => {
-          setValue('cardKind', k, { shouldDirty: true });
-          // a contribution card has no reply, so there is no party to count
-          if (k === 'contribution') setValue('partySizeAllowed', 1);
-        }}
-      />
-      <TextField
-        label={t('name')}
-        hint={t('nameHint')}
-        autoComplete="off"
-        {...register('displayName')}
-        error={fieldError(formState.errors.displayName)}
-      />
-      <Controller
-        control={control}
-        name="phone"
-        render={({ field }) => (
-          <PhoneField
-            label={t('phone')}
-            hint={t('phoneHint')}
-            optionalLabel={tc('optional')}
-            value={field.value ?? ''}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            name={field.name}
-            error={phoneErr}
-          />
-        )}
-      />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField
-          label={t('group')}
-          hint={t('groupHint')}
-          list={listId}
-          optionalLabel={tc('optional')}
-          {...register('groupLabel')}
-        />
-        <datalist id={listId}>
-          {(groups.data ?? []).map((g) => (
-            <option key={g} value={g} />
-          ))}
-        </datalist>
-        {cardKind === 'invitation' ? (
-          <Controller
-            control={control}
-            name="partySizeAllowed"
-            render={({ field }) => (
-              <Stepper
-                value={Number(field.value)}
-                min={1}
-                max={10}
-                onChange={field.onChange}
-                label={t('party')}
-                decreaseLabel={t('decrease')}
-                increaseLabel={t('increase')}
-              />
-            )}
-          />
+    <>
+      <form
+        noValidate
+        className="flex flex-col gap-4"
+        data-testid="guest-form"
+        onSubmit={handleSubmit(async () => {
+          // The repository validates and normalises again (E.164), so send the raw form values.
+          const v = getValues();
+          const g = await save.mutateAsync(v).catch(() => null);
+          if (!g) return;
+          if (addAnother.current)
+            reset({ ...EMPTY, cardKind: v.cardKind ?? 'invitation', groupLabel: v.groupLabel });
+          else onDone(g);
+        })}
+      >
+        {!guest ? (
+          <div>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              icon={<ContactRound className="size-4" aria-hidden="true" />}
+              onClick={() => setPrefill(true)}
+              data-testid="guest-form-prefill"
+            >
+              {t('prefill')}
+            </Button>
+          </div>
         ) : null}
-      </div>
-      <Controller
-        control={control}
-        name="hasSmartphone"
-        render={({ field }) => (
-          <Checkbox
-            label={t('noSmartphone')}
-            description={t('noSmartphoneHelp')}
-            checked={!field.value}
-            onChange={(e) => {
-              field.onChange(!e.target.checked);
-              setValue('inviteChannelPref', e.target.checked ? 'sms' : 'whatsapp');
-            }}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="printCard"
-        render={({ field }) => (
-          <Checkbox
-            label={t('printCard')}
-            description={t('printCardHelp')}
-            checked={!!field.value}
-            onChange={(e) => field.onChange(e.target.checked)}
-          />
-        )}
-      />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Select
-          label={t('channel')}
-          {...register('inviteChannelPref')}
-          options={(phone?.trim()
-            ? hasSmartphone
-              ? (['whatsapp', 'sms', 'print', 'mixed'] as const)
-              : (['sms', 'print'] as const)
-            : (['print'] as const)
-          ).map((c) => ({ value: c, label: tch(c) }))}
+        <CardKindPicker
+          name="cardKind"
+          testId="guest-card-kind"
+          legend={t('cardKind')}
+          help={t('cardKindHelp')}
+          labels={{
+            invitation: t('cardKinds.invitation'),
+            contribution: t('cardKinds.contribution'),
+          }}
+          value={cardKind}
+          onChange={(k) => {
+            setValue('cardKind', k, { shouldDirty: true });
+            // a contribution card has no reply, so there is no party to count
+            if (k === 'contribution') setValue('partySizeAllowed', 1);
+          }}
         />
-        <Select
-          label={t('language')}
-          {...register('language')}
-          options={[
-            { value: 'sw', label: tl('sw') },
-            { value: 'en', label: tl('en') },
-          ]}
+        <TextField
+          label={t('name')}
+          hint={t('nameHint')}
+          autoComplete="off"
+          {...register('displayName')}
+          error={fieldError(formState.errors.displayName)}
         />
-      </div>
-      <Textarea label={t('notes')} optionalLabel={tc('optional')} rows={2} {...register('notes')} />
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        {allowAddAnother && !guest ? (
+        <Controller
+          control={control}
+          name="phone"
+          render={({ field }) => (
+            <PhoneField
+              label={t('phone')}
+              hint={t('phoneHint')}
+              optionalLabel={tc('optional')}
+              value={field.value ?? ''}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              name={field.name}
+              error={phoneErr}
+            />
+          )}
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField
+            label={t('group')}
+            hint={t('groupHint')}
+            list={listId}
+            optionalLabel={tc('optional')}
+            {...register('groupLabel')}
+          />
+          <datalist id={listId}>
+            {(groups.data ?? []).map((g) => (
+              <option key={g} value={g} />
+            ))}
+          </datalist>
+          {cardKind === 'invitation' ? (
+            <Controller
+              control={control}
+              name="partySizeAllowed"
+              render={({ field }) => (
+                <Stepper
+                  value={Number(field.value)}
+                  min={1}
+                  max={10}
+                  onChange={field.onChange}
+                  label={t('party')}
+                  decreaseLabel={t('decrease')}
+                  increaseLabel={t('increase')}
+                />
+              )}
+            />
+          ) : null}
+        </div>
+        <Controller
+          control={control}
+          name="hasSmartphone"
+          render={({ field }) => (
+            <Checkbox
+              label={t('noSmartphone')}
+              description={t('noSmartphoneHelp')}
+              checked={!field.value}
+              onChange={(e) => {
+                field.onChange(!e.target.checked);
+                setValue('inviteChannelPref', e.target.checked ? 'sms' : 'whatsapp');
+              }}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="printCard"
+          render={({ field }) => (
+            <Checkbox
+              label={t('printCard')}
+              description={t('printCardHelp')}
+              checked={!!field.value}
+              onChange={(e) => field.onChange(e.target.checked)}
+            />
+          )}
+        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Select
+            label={t('channel')}
+            {...register('inviteChannelPref')}
+            options={(phone?.trim()
+              ? hasSmartphone
+                ? (['whatsapp', 'sms', 'print', 'mixed'] as const)
+                : (['sms', 'print'] as const)
+              : (['print'] as const)
+            ).map((c) => ({ value: c, label: tch(c) }))}
+          />
+          <Select
+            label={t('language')}
+            {...register('language')}
+            options={[
+              { value: 'sw', label: tl('sw') },
+              { value: 'en', label: tl('en') },
+            ]}
+          />
+        </div>
+        <Textarea
+          label={t('notes')}
+          optionalLabel={tc('optional')}
+          rows={2}
+          {...register('notes')}
+        />
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          {allowAddAnother && !guest ? (
+            <Button
+              type="submit"
+              variant="secondary"
+              onClick={() => {
+                addAnother.current = true;
+              }}
+              loading={save.isPending}
+            >
+              {t('saveAndAdd')}
+            </Button>
+          ) : null}
           <Button
             type="submit"
-            variant="secondary"
-            onClick={() => {
-              addAnother.current = true;
-            }}
             loading={save.isPending}
+            loadingLabel={tc('saving')}
+            data-testid="guest-save"
+            onClick={() => {
+              addAnother.current = false;
+            }}
           >
-            {t('saveAndAdd')}
+            {t('save')}
           </Button>
-        ) : null}
-        <Button
-          type="submit"
-          loading={save.isPending}
-          loadingLabel={tc('saving')}
-          data-testid="guest-save"
-          onClick={() => {
-            addAnother.current = false;
-          }}
-        >
-          {t('save')}
-        </Button>
-      </div>
-    </form>
+        </div>
+      </form>
+      <ContactsPrefillSheet
+        open={prefill}
+        onOpenChange={setPrefill}
+        onPick={(c) => {
+          setValue('displayName', c.name, { shouldDirty: true, shouldValidate: true });
+          const p = parsePhone(c.phone, country);
+          // keep what the picker gave if the phone cannot be normalised; the field re-validates on blur
+          setValue('phone', p.ok ? formatPhone(p.e164).slice(1) : c.phone, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }}
+      />
+    </>
   );
 }

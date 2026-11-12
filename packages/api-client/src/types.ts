@@ -1,3 +1,4 @@
+import type { EventProduct } from '@harusi/schemas/sms';
 import type { OpsPurchase } from '@harusi/schemas/billing';
 import type {
   CardContent,
@@ -52,6 +53,22 @@ export interface User {
   createdAt?: ISODate;
   lastLoginAt?: ISODate | null;
 }
+
+/**
+ * Which sign-in flow to use (GET /v1/auth/config, ADR 048). `firebase`: the client gets the code from
+ * Firebase Phone Auth and trades the Firebase ID token for a session. The web values are public.
+ */
+export type AuthConfig =
+  | { otpProvider: 'sms' }
+  | {
+      otpProvider: 'firebase';
+      firebase: {
+        projectId: string;
+        apiKey: string | null;
+        authDomain: string | null;
+        appId: string | null;
+      };
+    };
 
 export interface Session {
   user: User;
@@ -125,6 +142,8 @@ export interface WeddingEvent {
   senderName: string;
   committeePhone: string;
   pledgesEnabled: boolean;
+  /** Kumbukumbu page shown to guests (ADR 050); absent means on. */
+  memoriesEnabled?: boolean;
   /** §7.5 policy toggle, default OFF. */
   requirePledgeBeforeCard: boolean;
   greeting: string;
@@ -132,6 +151,8 @@ export interface WeddingEvent {
   reminders: ReminderSettings;
   whatsappFallbackHours: number;
   plan: 'free' | 'paid';
+  /** `sms`: an SMS-reminders-only customer with its own console (ADR 055). Absent means `cards`. */
+  product?: EventProduct;
   createdAt: ISODate;
   updatedAt: ISODate;
   stats: EventStats;
@@ -183,10 +204,12 @@ export interface MessageLogEntry {
   guestId: string;
   channel: MessageChannel;
   provider: string;
-  kind: 'invite' | 'reminder' | 'thank_you' | 'test';
+  kind: 'invite' | 'reminder' | 'thank_you' | 'test' | 'memories' | 'sms_campaign';
   status: MessageStatus;
   error: string | null;
   cost: number;
+  /** SMS parts; one reminder credit each (ADR 055). Absent means one. */
+  segments?: number;
   createdAt: ISODate;
 }
 
@@ -360,8 +383,40 @@ export interface CardView {
   pledge: PledgeSummary | null;
   rsvpOpen: boolean;
   eventPassed: boolean;
+  /** The card links to a Kumbukumbu page with photos (ADR 050). */
+  memoriesAvailable?: boolean;
   isMock: boolean;
 }
+
+/** One Kumbukumbu photo (ADR 050). `takenOn` is `YYYY-MM-DD`. */
+export interface Memory {
+  id: string;
+  caption: string | null;
+  takenOn: string | null;
+  sortOrder: number;
+  width: number;
+  height: number;
+}
+
+export interface MemoriesAdminView {
+  /** A paid card order unlocks the page. */
+  unlocked: boolean;
+  enabled: boolean;
+  limit: number;
+  count: number;
+  memories: Memory[];
+}
+
+export interface GuestMemoriesView {
+  card: CardView;
+  memories: Memory[];
+}
+
+/** 320 px for lists, 640 px shown inline (sharp on 2× screens), 1280 px for the full view. */
+export type MemoryPhotoSize = 'thumb' | 'medium' | 'full';
+
+/** A photo to upload: a Blob on the web, a file reference from the React Native image picker. */
+export type MemoryUpload = Blob | { uri: string; name: string; type: string };
 
 export interface SendRequest {
   audience:
@@ -496,6 +551,15 @@ export interface EventReport {
   headcountTarget: number;
 }
 
+/** The Android app staff uploaded for /programu (ADR 047). */
+export interface AndroidRelease {
+  version: string;
+  /** Bytes. */
+  size: number;
+  sha256: string;
+  uploadedAt: ISODate;
+}
+
 export interface GateOverview {
   admittedGuests: number;
   admittedPeople: number;
@@ -554,6 +618,8 @@ export interface OpsEvent {
   dateStart: ISODate;
   status: EventStatus;
   plan: 'free' | 'paid';
+  /** ADR 055; absent means `cards`. */
+  product?: EventProduct;
   ownerId: string;
   ownerName: string;
   guests: number;
@@ -627,6 +693,7 @@ export interface OpsAuditEntry {
     | 'messaging'
     | 'payments'
     | 'branding'
+    | 'signin'
     | 'pricing'
     | 'grant'
     | 'purchase_paid';

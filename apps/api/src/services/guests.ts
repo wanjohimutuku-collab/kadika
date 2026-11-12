@@ -1,5 +1,15 @@
-import { and, asc, eq, gt, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
-import { guests, invitations, newId, retiredCardTokens, shortOf, signingKeys } from '@harusi/db';
+import { and, asc, desc, eq, gt, ilike, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import {
+  auditLog,
+  guests,
+  invitations,
+  messageLog,
+  newId,
+  retiredCardTokens,
+  shortOf,
+  signingKeys,
+  users,
+} from '@harusi/db';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { signQrTokenFast as signQrToken } from '../qr-sign';
@@ -39,6 +49,41 @@ export interface ImportRow {
   phone?: string;
   groupLabel?: string;
   partySizeAllowed?: number;
+}
+
+/** The message kinds the console shows; the automatic reminder kinds are all "reminder". */
+function messageKind(kind: string): 'invite' | 'reminder' | 'thank_you' | 'test' {
+  if (kind === 'invite' || kind === 'fallback') return 'invite';
+  if (kind === 'thank_you' || kind === 'test') return kind;
+  return 'reminder';
+}
+
+const MESSAGE_STATUSES = ['queued', 'sent', 'delivered', 'read', 'failed'] as const;
+
+function messageStatus(status: string): (typeof MESSAGE_STATUSES)[number] {
+  return MESSAGE_STATUSES.find((s) => s === status) ?? 'sent';
+}
+
+/** One line for the guest's history (Swahili, as the console shows it). Never a phone or token. */
+function guestHistoryText(action: string, diff: Record<string, unknown>): string {
+  switch (action) {
+    case 'guest.note':
+      return String(diff.note ?? '');
+    case 'guest.reissue':
+      return 'Kadi mpya imetolewa; QR ya zamani imefutwa.';
+    case 'guest.delete':
+      return 'Mgeni ameondolewa kwenye orodha.';
+    case 'guest.restore':
+      return 'Mgeni amerudishwa kwenye orodha.';
+    case 'guest.group':
+      return diff.group ? `Kikundi: ${String(diff.group)}` : 'Kikundi kimeondolewa.';
+    case 'guest.export':
+      return 'Taarifa za mgeni zimepakuliwa.';
+    case 'gate.manual_check_in':
+      return `Ameingizwa kwa mkono langoni (watu ${Number(diff.partySize ?? 1)}).`;
+    default:
+      return action;
+  }
 }
 
 export class GuestService {
@@ -334,6 +379,143 @@ export class GuestService {
       entity: 'guest',
       entityId: guestId,
     });
+  }
+
+  /** Guests by id with their events checked: the caller must manage every event involved. */
+  private async manageable(guestIds: string[], userId: string, deleted: boolean) {
+    const rows = await this.deps.db
+      .select()
+      .from(guests)
+      .where(
+        and(
+          inArray(guests.id, guestIds),
+          deleted ? isNotNull(guests.deletedAt) : isNull(guests.deletedAt),
+        ),
+      );
+    for (const eventId of new Set(rows.map((g) => g.eventId)))
+      await this.canManage(eventId, userId);
+    return rows;
+  }
+
+  /**
+   * Undo for a delete (the "Tendua" snackbar). A guest whose phone is now on the list again (added
+   * after the delete) stays deleted, so the list never holds the same number twice.
+   */
+  async restore(guestIds: string[], userId: string) {
+    const rows = await this.manageable(guestIds, userId, true);
+    let restored = 0;
+    for (const g of rows) {
+      if (g.phoneE164) {
+        const [dupe] = await this.deps.db
+          .select({ id: guests.id })
+          .from(guests)
+          .where(
+            and(
+              eq(guests.eventId, g.eventId),
+              eq(guests.phoneE164, g.phoneE164),
+              isNull(guests.deletedAt),
+            ),
+          );
+        if (dupe) continue;
+      }
+      await this.deps.db.update(guests).set({ deletedAt: null }).where(eq(guests.id, g.id));
+      await recordAudit(this.deps.db, {
+        eventId: g.eventId,
+        actorId: userId,
+        action: 'guest.restore',
+        entity: 'guest',
+        entityId: g.id,
+      });
+      restored++;
+    }
+    return { restored };
+  }
+
+  /** Moves many guests to one group ("Badilisha kikundi"); an empty name clears the group. */
+  async setGroup(guestIds: string[], group: string, userId: string) {
+    const rows = await this.manageable(guestIds, userId, false);
+    const label = group.trim() || null;
+    if (!rows.length) return { updated: 0 };
+    await this.deps.db
+      .update(guests)
+      .set({ groupLabel: label })
+      .where(
+        inArray(
+          guests.id,
+          rows.map((g) => g.id),
+        ),
+      );
+    for (const g of rows)
+      await recordAudit(this.deps.db, {
+        eventId: g.eventId,
+        actorId: userId,
+        action: 'guest.group',
+        entity: 'guest',
+        entityId: g.id,
+        diff: { group: label },
+      });
+    return { updated: rows.length };
+  }
+
+  /** A note on the guest's history, written by the host or committee. */
+  async addNote(guestId: string, userId: string, note: string) {
+    const g = await this.get(guestId, userId);
+    await this.canManage(g.eventId, userId);
+    const text = note.trim();
+    if (!text) throw new ApiError('validation', 'Write a note', { field: 'note' });
+    await recordAudit(this.deps.db, {
+      eventId: g.eventId,
+      actorId: userId,
+      action: 'guest.note',
+      entity: 'guest',
+      entityId: guestId,
+      diff: { note: text },
+    });
+    const [entry] = await this.history(guestId, userId, 1);
+    return entry!;
+  }
+
+  /** What happened to this guest, newest first, in words for the detail screen. */
+  async history(guestId: string, userId: string, limit = 100) {
+    const g = await this.get(guestId, userId);
+    await this.canManage(g.eventId, userId);
+    const rows = await this.deps.db
+      .select({ a: auditLog, actor: users.name })
+      .from(auditLog)
+      .leftJoin(users, eq(users.id, auditLog.actorId))
+      .where(and(eq(auditLog.entity, 'guest'), eq(auditLog.entityId, guestId)))
+      .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
+      .limit(limit);
+    return rows.map(({ a, actor }) => ({
+      id: a.id,
+      at: a.createdAt.toISOString(),
+      actorName: a.actorId ? actor?.trim() || 'Kamati' : 'Mfumo',
+      action: a.action.replace(/^(guest|gate)\./, ''),
+      details: guestHistoryText(a.action, (a.diff ?? {}) as Record<string, unknown>),
+    }));
+  }
+
+  /** Every message sent to this guest, newest first (no message text: only channel and status). */
+  async messages(guestId: string, userId: string) {
+    const g = await this.get(guestId, userId);
+    await this.canManage(g.eventId, userId);
+    const rows = await this.deps.db
+      .select()
+      .from(messageLog)
+      .where(eq(messageLog.guestId, guestId))
+      .orderBy(desc(messageLog.createdAt), desc(messageLog.id))
+      .limit(200);
+    return rows.map((m) => ({
+      id: m.id,
+      guestId: m.guestId,
+      channel: m.channel,
+      provider: m.provider,
+      kind: messageKind(m.kind),
+      status: messageStatus(m.status),
+      error: m.error,
+      cost: m.cost ?? 0,
+      createdAt: m.createdAt.toISOString(),
+    }));
   }
 
   /**

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { Locale } from '@harusi/i18n';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
-import { absoluteLocaleUrl } from '@/lib/seo';
+import { absoluteLocaleUrl, ogImages } from '@/lib/seo';
 import { marketOf, pagePath, textOf } from './index';
 import type { ContentPageDef } from './types';
 
@@ -17,7 +17,8 @@ export function pageMetadata(page: ContentPageDef, locale: Locale): Metadata {
       title: t.title,
       description: t.description,
       locale: `${locale}_${region}`,
-      url: absoluteLocaleUrl(pagePath(page), locale),
+      url: absoluteLocaleUrl(pagePath(page, locale), locale),
+      images: ogImages(locale, marketOf(page)),
     },
   };
 }

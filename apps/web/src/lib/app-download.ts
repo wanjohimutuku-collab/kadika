@@ -7,6 +7,9 @@
 /** The page itself; `/app-download` redirects here. */
 export const APP_DOWNLOAD_PATH = '/programu';
 
+/** The APK staff uploaded in /ops, streamed from our own domain (ADR 047). */
+export const APP_APK_PATH = '/programu/kadi-sasa.apk';
+
 export interface AppLinks {
   /** The Google Play listing. */
   play: string | null;

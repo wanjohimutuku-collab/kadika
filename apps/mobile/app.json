@@ -3,6 +3,7 @@
     "name": "Kadi Sasa",
     "slug": "harusi-pass",
     "version": "0.6.0",
+    "version": "0.1.0",
     "scheme": "harusipass",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -19,6 +20,8 @@
         "backgroundColor": "#FBF8F3"
       },
       "permissions": []
+      "permissions": [],
+      "blockedPermissions": ["android.permission.WRITE_CONTACTS"]
     },
     "plugins": [
       "expo-router",
@@ -30,7 +33,21 @@
         }
       ],
       "expo-sqlite",
-      "expo-audio"
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Kadi Sasa inasoma majina na namba za simu unazochagua ili uwaongeze kama wageni. Hazitumwi popote mpaka uthibitishe."
+        }
+      ],
+      "expo-audio",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kadi Sasa inahitaji picha zako ili uweke kumbukumbu za harusi.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {},
     "web": {

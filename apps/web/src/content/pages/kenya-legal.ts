@@ -12,6 +12,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     market: 'ke',
     counterpart: { market: 'tz', slug: 'privacy' },
     slug: 'privacy',
+    slugEn: 'privacy',
     group: 'legal',
     schema: 'WebPage',
     draft: true,
@@ -333,6 +334,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     market: 'ke',
     counterpart: { market: 'tz', slug: 'terms' },
     slug: 'terms',
+    slugEn: 'terms',
     group: 'legal',
     schema: 'WebPage',
     draft: true,
@@ -585,6 +587,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     market: 'ke',
     counterpart: { market: 'tz', slug: 'ombi-la-data' },
     slug: 'data-requests',
+    slugEn: 'data-requests',
     group: 'legal',
     schema: 'WebPage',
     draft: true,
@@ -592,7 +595,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     related: ['privacy', 'terms', 'tz:cookies', ''],
     en: {
       nav: 'Data requests (Kenya)',
-      title: 'Data Requests for Kenya: Copy, Correction or Deletion | Kadi Sasa',
+      title: 'Kenya Data Requests: Copy, Correct or Delete | Kadi Sasa',
       description:
         'How to ask Kadi Sasa for a copy of your information, to correct it or to delete it for events in Kenya, how we verify you, and how to complain to the ODPC.',
       h1: 'Data requests for Kenya: copy, correction and deletion',
@@ -674,7 +677,7 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Maombi ya data (Kenya)',
-      title: 'Maombi ya Data kwa Kenya: Nakala, Marekebisho au Kufuta | Kadi Sasa',
+      title: 'Maombi ya Data Kenya: Nakala au Kufuta | Kadi Sasa',
       description:
         'Jinsi ya kuomba Kadi Sasa nakala ya taarifa zako, kuzisahihisha au kuzifuta kwa matukio ya Kenya, jinsi tunavyokuthibitisha, na jinsi ya kulalamika kwa ODPC.',
       h1: 'Maombi ya data kwa Kenya: nakala, marekebisho na kufuta',

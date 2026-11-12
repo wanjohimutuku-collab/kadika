@@ -5,9 +5,11 @@ import {
   pick,
   renderTemplate,
   senderKindOf,
+  splitName,
   templatePlaceholders,
   templateProblem,
 } from './card-content';
+import { smsBodySchema, smsCampaignProblem } from './sms';
 import { defaultSender } from './domain';
 
 describe('message templates', () => {
@@ -31,6 +33,20 @@ describe('message templates', () => {
       'content.placeholder_unknown:target',
     );
     expect(templateProblem('inviteSms', '   ')).toBeNull();
+  });
+
+  it('splits names and validates bulk SMS placeholders without requiring {link}', () => {
+    expect(splitName('Asha Juma')).toEqual({ firstName: 'Asha', lastName: 'Juma' });
+    expect(splitName('Neema')).toEqual({ firstName: 'Neema', lastName: '' });
+    expect(splitName('  Juma   Ali Hassan  ')).toEqual({
+      firstName: 'Juma',
+      lastName: 'Ali Hassan',
+    });
+    expect(smsCampaignProblem('Habari {firstName} {lastName}, ukumbi: {venue}')).toBeNull();
+    expect(smsCampaignProblem('Karibu {group} saa {time} {date}')).toBeNull();
+    expect(smsCampaignProblem('Habari {nope}')).toBe('placeholder_unknown:nope');
+    expect(smsBodySchema.safeParse('Habari {firstName}, tukutane {venue}').success).toBe(true);
+    expect(smsBodySchema.safeParse('Habari {nope}').success).toBe(false);
   });
 });
 

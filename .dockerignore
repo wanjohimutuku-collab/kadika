@@ -1,10 +1,14 @@
 **/node_modules
 **/.next
+**/.next-live
+**/.next-prod
+**/storybook-static
 **/dist
 **/.turbo
 **/.expo
 .tooling
 .git
+.github
 .env
 .env.*
 !.env.example
@@ -12,3 +16,19 @@
 .deploy.env
 .docker-cache
 .claude
+.impeccable
+docs
+kadisasa-site-kit
+apps/web/e2e
+/*.md
+# Local data and loose files in the repo root (uploads, invoices, sample cards, screenshots): never
+# needed by a build, and personal data must not sit in builder cache layers.
+apps/api/data
+**/test-results
+**/playwright-report
+**/coverage
+**/*.tsbuildinfo
+*.pdf
+*.png
+*.jpg
+*.jpeg

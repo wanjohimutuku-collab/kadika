@@ -169,7 +169,7 @@ function SwatchRow({
           }}
           onBlur={() => setDraft(null)}
           className={cn(
-            'mt-1 min-h-10 w-32 rounded-input border bg-surface px-2 font-mono text-base uppercase',
+            'mt-1 min-h-11 w-32 rounded-input border bg-surface px-2 font-mono text-base uppercase',
             invalid ? 'border-danger' : 'border-border',
           )}
           data-testid={`palette-hex-${id}`}

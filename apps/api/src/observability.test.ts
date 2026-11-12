@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { scrubEvent, scrubText, scrubValue } from './observability';
+import { DrizzleQueryError } from 'drizzle-orm';
+import { safeErrorMessage, scrubEvent, scrubText, scrubValue } from './observability';
 
 describe('Sentry scrubbing', () => {
   it('hides card links, gate codes, payment references and phone numbers in text', () => {
@@ -12,6 +13,31 @@ describe('Sentry scrubbing', () => {
     expect(scrubText('sms to +255712345678 and 0712345678 failed')).toBe(
       'sms to [phone] and [phone] failed',
     );
+    // Kenya (ADR 025) and any other E.164 number
+    expect(scrubText('to +254712345678, 254712345678, 0112345678 and +447700900123')).toBe(
+      'to [phone], [phone], [phone] and [phone]',
+    );
+  });
+
+  it('logs a failed query as its SQL and reason, never the bound values', () => {
+    const err = new DrizzleQueryError(
+      'insert into "users" ("id", "name", "phone_e164") values ($1, $2, $3)',
+      ['0190a1b2-c3d4', 'Asha Juma', '+255712345678'],
+      new Error('duplicate key value violates unique constraint "users_phone_e164_unique"'),
+    );
+    expect(err.message).toContain('+255712345678'); // what drizzle itself puts in the message
+    const safe = safeErrorMessage(err);
+    expect(safe).toBe(
+      'Failed query: insert into "users" ("id", "name", "phone_e164") values ($1, $2, $3): ' +
+        'duplicate key value violates unique constraint "users_phone_e164_unique"',
+    );
+    expect(safe).not.toMatch(/Asha|2557|0190a1b2/);
+    // the same message reaching Sentry as plain text loses its params too
+    expect(scrubText(err.message)).not.toMatch(/Asha|params/);
+    expect(safeErrorMessage(new Error('sms to +254712345678 failed'))).toBe(
+      'sms to [phone] failed',
+    );
+    expect(safeErrorMessage('boom')).toBe('boom');
   });
 
   it('redacts sensitive keys at any depth', () => {

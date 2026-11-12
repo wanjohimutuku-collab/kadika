@@ -20,7 +20,10 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @harusi/web... --config.node-linker=isolated
 
 FROM deps AS build
-COPY . .
+# Copy only what the web app builds from so API/mobile/doc edits never invalidate the web build cache.
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/web ./apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
 # Next.js bakes NEXT_PUBLIC_* into the bundle at build time, so they are build arguments, not runtime
 # settings. The app falls back to mock data unless NEXT_PUBLIC_USE_MOCKS=0, so an image is never a mock
@@ -30,7 +33,11 @@ ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_DOMAIN
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_KENYA_ENABLED=0
-RUN [ -n "$NEXT_PUBLIC_API_URL" ] || unset NEXT_PUBLIC_API_URL; \
+# 1 = the refresh token lives in an HttpOnly cookie on the API, not in localStorage (review M-05).
+# Needs the API on the same site as the web app and CORS_ORIGINS listing every web host.
+ARG NEXT_PUBLIC_COOKIE_SESSION=0
+RUN --mount=type=cache,id=next-cache,target=/repo/apps/web/.next/cache \
+    [ -n "$NEXT_PUBLIC_API_URL" ] || unset NEXT_PUBLIC_API_URL; \
     [ -n "$NEXT_PUBLIC_APP_DOMAIN" ] || unset NEXT_PUBLIC_APP_DOMAIN; \
     [ -n "$NEXT_PUBLIC_SITE_URL" ] || unset NEXT_PUBLIC_SITE_URL; \
     pnpm --filter @harusi/web build

@@ -1,7 +1,8 @@
 # Build, push and deploy
 
-> **Releases deploy from GitHub Actions again** (`.github/workflows/build-push.yml`): push a `v*` tag on a commit
-> that is green on `main`. The images build while the run checks CI, become `:production` only once CI has
+> **Every green merge to `main` deploys to production** ([ADR 053](../../docs/adr/053-release-on-green-main.md)):
+> `release.yml` tags the next patch version once CI passes and starts `build-push.yml` on that tag. Pushing a `v*`
+> tag by hand still works. The images build while the run checks CI, become `:production` only once CI has
 > passed, and the run waits until the site reports the new commit (about 7 minutes from tag to live).
 > `./scripts/deploy.sh` ([ADR 037](../../docs/adr/037-local-deploys.md)) is the fallback when Actions cannot run,
 > for example when the account's Actions budget is used up; see "Deploying without GitHub Actions" below.
@@ -17,12 +18,12 @@ then waits until the live API and web app report the new commit, so a green run 
 
 ## The flow
 
-| You do                               | Images are tagged                    | Branch moved                           | Coolify deploys |
-| ------------------------------------ | ------------------------------------ | -------------------------------------- | --------------- |
-| Merge or push to `main`              | `staging`, `main`, `sha-<short>`     | `deploy/staging`                       | staging         |
-| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>` | `deploy/production`                    | production      |
-| Run the workflow by hand on `main`   | `staging`, `main`, `sha-<short>`     | `deploy/staging` if "deploy" is ticked | staging         |
-| Run the workflow by hand on a branch | `<branch>`, `sha-<short>`            | none                                   | nothing         |
+| You do                               | Images are tagged                           | Branch moved                           | Coolify deploys |
+| ------------------------------------ | ------------------------------------------- | -------------------------------------- | --------------- |
+| Merge to `main`, CI green            | `production`, `<next patch>`, `sha-<short>` | `deploy/production` (via release.yml)  | production      |
+| Push a tag such as `v1.2.3`          | `production`, `1.2.3`, `sha-<short>`        | `deploy/production`                    | production      |
+| Run the workflow by hand on `main`   | `staging`, `main`, `sha-<short>`            | `deploy/staging` if "deploy" is ticked | staging         |
+| Run the workflow by hand on a branch | `<branch>`, `sha-<short>`                   | none                                   | nothing         |
 
 - A release tag only builds if CI already passed on that commit, so tag a commit that is green on `main`.
 - The images are `ghcr.io/<owner>/<repo>-api` and `ghcr.io/<owner>/<repo>-web` (lower case).
@@ -43,13 +44,14 @@ then waits until the live API and web app report the new commit, so a green run 
 Create two environments, `staging` and `production`, under Settings → Environments. On `production`, add a
 required reviewer and limit it to `v*` tags. The workflow reads these from the environment it deploys to:
 
-| Kind     | Name                        | Value                                                                                                                                                                        |
-| -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Variable | `NEXT_PUBLIC_API_URL`       | Public `https://` address of that environment's API. **Required**; the build stops without it.                                                                               |
-| Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The official link domain; when set it also turns on host routing (below). Set it on `production` only, to `kadisasa.com`. Defaults to `kadisasa.com`, no routing.  |
-| Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                                                                                                |
-| Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                       |
-| Variable | `DEPLOY_WEB_URL`            | Optional. Public `https://` address of that environment's web app, used to confirm the deploy. Defaults to `NEXT_PUBLIC_SITE_URL`; without either only the API is confirmed. |
+| Kind     | Name                         | Value                                                                                                                                                                                                                                    |
+| -------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable | `NEXT_PUBLIC_API_URL`        | Public `https://` address of that environment's API. **Required**; the build stops without it.                                                                                                                                           |
+| Variable | `NEXT_PUBLIC_APP_DOMAIN`     | Optional. The official link domain; when set it also turns on host routing (below). Set it on `production` only, to `kadisasa.com`. Defaults to `kadisasa.com`, no routing.                                                              |
+| Variable | `NEXT_PUBLIC_SITE_URL`       | Optional. Defaults to `https://<app domain>`.                                                                                                                                                                                            |
+| Variable | `NEXT_PUBLIC_KENYA_ENABLED`  | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                                                                                   |
+| Variable | `NEXT_PUBLIC_COOKIE_SESSION` | Optional. `1` keeps the web refresh token in an HttpOnly cookie on the API instead of `localStorage`. Turn it on for staging first: the API must be on the same site as the web hosts, and everyone signs in once more. Defaults to `0`. |
+| Variable | `DEPLOY_WEB_URL`             | Optional. Public `https://` address of that environment's web app, used to confirm the deploy. Defaults to `NEXT_PUBLIC_SITE_URL`; without either only the API is confirmed.                                                             |
 
 The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not
 just a restart. Images are never built in mock mode. No Coolify secret is needed in GitHub: the workflow's own
@@ -62,7 +64,7 @@ personal access token with the `read:packages` scope as a registry credential so
 
 ### 3. Coolify (one stack per environment)
 
-On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coolify.korahost.com), project
+On **coolify.kadisasa.com** (the kadisasa VPS; not the older coolify.korahost.com), project
 `kadika`, for staging (production is the same with the production values):
 
 1. **+ New → Application → Private Repository (with GitHub App)**, branch **`deploy/staging`** (`deploy/production`
@@ -95,8 +97,64 @@ On **coolify.kadisasa.com** (the kadisasa VPS, `77.237.242.5`; not the older coo
 **Migrations.** The stack's `api` command runs `node dist/migrate.js` before the server starts, in the new
 image, so no Coolify pre-deployment hook is needed. Keep one `api` container: the migrator takes no lock.
 
-**Backups.** Postgres lives in the stack's `pgdata` volume. Schedule `infra/backup/pg-backup.sh` (see
-[`RESTORE.md`](RESTORE.md)); Coolify's built-in scheduled backups only cover standalone database resources.
+**Backups.** Postgres lives in the stack's `pgdata` volume. Coolify's built-in scheduled backups only cover
+standalone database resources, so the stack has its own `backup` service: a nightly `pg_dump` (23:00 UTC, 02:00
+in Dar es Salaam) into the `pgbackups` volume, 14 days kept, plus a first dump when it starts. Set
+`BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` (and `BACKUP_S3_ENDPOINT` for R2) so
+each dump is also copied off the server, and `BACKUP_HEARTBEAT_URL` to a monitor's push URL (see
+[`UPTIME.md`](UPTIME.md)). Restore steps: [`RESTORE.md`](RESTORE.md).
+
+## Owner actions (production readiness)
+
+From the audit in [`docs/ops/production-readiness-audit.md`](../../docs/ops/production-readiness-audit.md). None of
+these can be done from the repository.
+
+- [ ] **Backups off the server.** Redeploy so the `backup` service starts, and check its log for
+      `[backup] wrote …`. Set the `BACKUP_S3_*` variables, with a 30-day lifecycle rule on the bucket. Run the
+      drill in `RESTORE.md` and fill in its log. Production is a pasted compose: paste the `backup` service and
+      the `pgbackups` volume into it by hand.
+- [ ] **Sentry.** Create a project, set `SENTRY_DSN` on the api service (staging and production), and add alert
+      rules for new issues, "Message volume alert" and "OTP hourly limit reached".
+- [ ] **Provider spend alerts.** Low-balance alerts in NextSMS and Africa's Talking; a spending limit and billing
+      alerts for WhatsApp in Meta Business Manager; failed-payment and payout notifications in Snippe. Keep prepaid
+      balances to about one busy week.
+- [ ] **Uptime and backup heartbeat.** The monitors in `UPTIME.md`, with `BACKUP_HEARTBEAT_URL` set to the
+      heartbeat monitor's push URL.
+- [ ] **Origin firewall.** Allow 80/443 only from Cloudflare's IP ranges, so `cf-connecting-ip` (the
+      `CLIENT_IP_HEADER` rate limits key on) cannot be forged. On a stack not behind Cloudflare, set
+      `CLIENT_IP_HEADER` empty.
+- [ ] **Firebase sign-in** (only with `AUTH_OTP_PROVIDER=firebase`): SMS region policy limited to +255 (and
+      +254 with Kenya on), App Check on, and a Google Cloud budget alert. Firebase sends these codes, so the
+      API's OTP caps do not apply to them.
+- [ ] **Tune the guards** after the first busy week: `OTP_IP_HOURLY_LIMIT` (20), `OTP_GLOBAL_HOURLY_LIMIT` (500),
+      `MESSAGE_DAILY_ALERT` (5,000).
+
+## Switching sign-in codes to Firebase (ADR 048, 049)
+
+Optional. Until Firebase is chosen in /ops → Settings → Sign-in, login codes go through the SMS route as
+before. No Coolify variable or redeploy is needed for steps 6–7.
+
+1. **Firebase console:** create a project (or add Firebase to an existing Google Cloud project) and move it
+   to the **Blaze** plan (phone sign-in needs billing). Add a Cloud Billing budget alert.
+2. **Authentication → Sign-in method:** enable **Phone**. Under **Settings → SMS region policy** allow only
+   Tanzania (and Kenya if `KENYA_ENABLED`).
+3. **Authentication → Settings → Authorized domains:** add `kadisasa.com`, `app.kadisasa.com` and
+   `my.kadisasa.com` (plus the staging hosts).
+4. **Project settings → Your apps → Web app:** register one; copy `apiKey`, `authDomain`, `projectId`, `appId`.
+5. **Project settings → Your apps → Android app:** package `app.harusipass.mobile`, and add the release key's
+   SHA-256 `77:14:37:3C:EF:5B:E7:A8:FC:EE:53:D8:A2:BF:C5:8A:B7:B3:80:1C:5E:A4:87:F6:E7:81:5E:36:E6:05:F2:2F`
+   (and SHA-1 from the same keystore, `keytool -list -v`). Enable the Play Integrity API in the Google Cloud
+   project. Download `google-services.json` and store it as an EAS **file** environment variable named
+   `GOOGLE_SERVICES_JSON` (never commit it). Build a new APK and upload it in /ops (ADR 047).
+6. **/ops → Settings → Sign-in** (admin staff): enter the project ID, web API key and app ID with "Login
+   codes" still on SMS, save, and press **Test with Firebase**. It reports the project and any of our web
+   hosts missing from the authorized domains. Test sign-in on staging with numbers on each network.
+7. **Switch:** choose Firebase Phone Auth and save. It applies on every API instance within a minute. Apps
+   older than the Firebase APK cannot sign in after this, so switch only once organizers have updated.
+8. **Rollback:** choose our SMS route and save. If nobody can sign in to do that, set `AUTH_FORCE_SMS=1` on
+   the api service and redeploy (break-glass: codes go by SMS whatever is saved), then remove it.
+
+The `AUTH_OTP_PROVIDER` and `FIREBASE_*` variables are only the fallback while nothing is saved in /ops.
 
 ## Production hostnames (kadisasa.com)
 
@@ -124,6 +182,12 @@ Environment variables for the production stack's `api` service (see [`/.env.exam
 | -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `CORS_EXTRA_ORIGINS` | `https://www.kadisasa.com,https://app.kadisasa.com,https://my.kadisasa.com` | The browser calls the API from every web host; the stack already allows the `web` service's first domain. |
 | `SHORT_BASE_URL`     | `https://kadisasa.com`                                                      | Card links in SMS and WhatsApp messages open on the public host.                                          |
+
+For the `web` service, `GOOGLE_CONTACTS_CLIENT_ID` (optional, read at runtime so a restart is enough) turns on
+"Google Contacts" in the console's contacts import. Create an OAuth client of type _Web application_ in the
+Firebase project's Google Cloud console, with `https://app.kadisasa.com` (and the staging console host) as
+authorised JavaScript origins, and the `contacts.readonly` scope on the consent screen. Until Google verifies that
+scope, only listed test users can use it. Setup and security notes: [ADR 051](../../docs/adr/051-contacts-import.md).
 
 A staff member signs in at `my.kadisasa.com` and a customer at `app.kadisasa.com`. The session belongs to the host,
 so signing in on the wrong one sends you to the right host to sign in again.
@@ -191,6 +255,10 @@ workflow.
 
 Set the stack's `IMAGE_TAG` to an earlier `sha-<short>` or version tag and redeploy. Database migrations do not
 roll back with the image, so check an old image still works with the current schema first.
+
+Keep migrations expand-only (add columns and tables; drop or rename only in a later release, once no image in
+use reads them), so any recent image can run on the current schema. Before tagging a release that migrates, take
+a fresh dump: `docker exec <backup container> sh -c 'pg_dump --no-owner --no-acl | gzip > /backups/pre-release.sql.gz'`.
 
 ## Keeping deploys fast
 

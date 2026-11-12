@@ -335,7 +335,12 @@
     "gateNoConsoleTitle": "No dashboard access",
     "opsLink": "Staff dashboard",
     "content": "Card text",
-    "billing": "Plan"
+    "billing": "Plan",
+    "memories": "Memories",
+    "contacts": "Contacts",
+    "compose": "Send SMS",
+    "history": "History",
+    "credits": "Packages"
   },
   "auth": {
     "title": "Sign in to {brand}",
@@ -354,6 +359,10 @@
     "resent": "We sent a new code",
     "changePhone": "Change number",
     "wrongCode": "The code is not correct. {attempts, plural, one {# attempt left} other {# attempts left}}.",
+    "wrongCodeRetry": "The code is not correct. Please try again.",
+    "codeExpired": "The code has expired. Request a new one.",
+    "tooManyRequests": "Too many attempts. Please wait a while and try again.",
+    "updateApp": "Please update the app to sign in.",
     "locked": "Too many attempts. For your security, wait until {time} and try again.",
     "rateLimited": "Wait {seconds} seconds before requesting a new code.",
     "mockHint": "Demo build: use the code 123456.",
@@ -376,7 +385,15 @@
     "enrolLoading": "Preparing your authenticator code…",
     "staffLocked": "Too many wrong codes. For your security, wait until {time} and try again.",
     "staffWrongCode": "The code is not correct. {attempts, plural, one {# attempt left} other {# attempts left}}.",
-    "staffExpired": "This sign-in has expired. Sign in again with a new SMS code."
+    "staffExpired": "This sign-in has expired. Sign in again with a new SMS code.",
+    "otpHeading": "Verify your phone",
+    "otpSentTo": "6-digit code sent to <b>{phone}</b>",
+    "otpEdit": "Edit",
+    "otpVerified": "Verified",
+    "otpNoCode": "No code?",
+    "otpResendTimer": "Resend in {time}",
+    "otpTrust": "Never share this code. We will never ask for it.",
+    "otpSecure": "Secure connection · {host}"
   },
   "landing": {
     "metaTitle": "Digital Invitation Cards Tanzania | {brand}",
@@ -504,9 +521,9 @@
     "auto": "Per guest"
   },
   "events": {
-    "title": "My events",
-    "new": "New event",
-    "empty": "You have no events yet. Start by creating your first event.",
+    "title": "My weddings",
+    "new": "New wedding",
+    "empty": "You have no weddings yet. Start by creating your first wedding.",
     "daysLeft": "{days, plural, =0 {Today} one {# day left} other {# days left}}",
     "daysAgo": "{days, plural, one {# day ago} other {# days ago}}",
     "statusPill": {
@@ -518,10 +535,11 @@
     "statInvited": "Invited",
     "statConfirmed": "Confirmed",
     "statCollected": "Contributions",
-    "open": "Open {name}"
+    "open": "Open {name}",
+    "smsBadge": "SMS only"
   },
   "wizard": {
-    "title": "New event",
+    "title": "New wedding",
     "stepOf": "Step {current} of {total}",
     "steps": {
       "names": "Names & date",
@@ -533,8 +551,8 @@
     "kindHint": "Choose one or write your own, for example Graduation or Kitchen party",
     "hostA": "Host name (or first name)",
     "hostB": "Second name (optional)",
-    "partnerA": "Host name (or first name)",
-    "partnerB": "Second name (optional)",
+    "partnerA": "Bride's name",
+    "partnerB": "Groom's name",
     "titleHint": "Shown on the dashboard only",
     "date": "Date and time",
     "dateHint": "East Africa Time (EAT)",
@@ -561,11 +579,11 @@
     "draftSaved": "Draft saved on this device",
     "draftRestored": "We restored your draft",
     "discardDraft": "Start over",
-    "create": "Create event",
-    "created": "Event created",
+    "create": "Create wedding",
+    "created": "Wedding created",
     "reviewEdit": "Edit",
     "preview": "This is how the card will look",
-    "eventTitle": "Event title",
+    "eventTitle": "Wedding title",
     "coverSunset": "Sample photo: Sunset",
     "coverGarden": "Sample photo: Garden"
   },
@@ -749,7 +767,9 @@
     },
     "cardKindHelp": "A contribution card has no reply buttons or QR code, and the person is not admitted at the gate.",
     "printCard": "Printed card",
-    "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once."
+    "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once.",
+    "prefill": "Pick from contacts",
+    "prefillTitle": "Pick one person"
   },
   "import": {
     "title": "Import guest list",
@@ -759,15 +779,15 @@
       "confirm": "Confirm"
     },
     "sourcePaste": "Paste a list",
-    "sourceCsv": "Upload CSV",
+    "sourceCsv": "Upload file",
     "sourceContacts": "Phone contacts",
     "pasteLabel": "Paste names and numbers",
     "pasteHint": "One guest per line, e.g. \"Asha Mwinyi, 0712 345 678, Friends\"",
-    "csvLabel": "Upload a CSV file",
-    "csvHint": "Columns: Name, Phone, Group, People",
+    "csvLabel": "Upload a CSV or vCard file",
+    "csvHint": "Our CSV (Name, Phone, Group, Party), a Google Contacts CSV or an iPhone vCard (.vcf)",
     "chooseFile": "Choose file",
     "template": "Download CSV template",
-    "notCsv": "This file cannot be read as CSV",
+    "notCsv": "This file can't be read as CSV or vCard",
     "defaultGroup": "Group (for everyone without one)",
     "read": "Read list",
     "mapping": "File columns",
@@ -830,8 +850,10 @@
       "invite": "Invitation",
       "reminder": "Reminder",
       "thank_you": "Thank you",
+      "memories": "Memories",
       "test": "Test",
-      "contribution": "Contribution card"
+      "contribution": "Contribution card",
+      "sms_campaign": "SMS message"
     },
     "msgStatus": {
       "queued": "Queued",
@@ -1114,7 +1136,7 @@
       "ok": "OK",
       "duplicate": "Duplicate",
       "invalid_sig": "Invalid signature",
-      "wrong_event": "Other event",
+      "wrong_event": "Other wedding",
       "not_found": "Not found",
       "manual_ok": "Manual",
       "manual_denied": "Denied"
@@ -1155,7 +1177,7 @@
     "invited": "{name} invited",
     "revoke": "Remove",
     "revokeTitle": "Remove {name} from the team?",
-    "revokeBody": "{name} will no longer be able to open this event or run the gate.",
+    "revokeBody": "{name} will no longer be able to open this wedding or run the gate.",
     "revoked": "{name} removed",
     "gateLink": "Gate link and PIN",
     "gateLinkHelp": "Gate agents open this link in the app and enter the PIN.",
@@ -1199,17 +1221,17 @@
     "arrivals": "Arrivals per hour",
     "exportCsv": "Download CSV",
     "exportPdf": "Download PDF",
-    "postEvent": "After the event",
+    "postEvent": "After the wedding",
     "thankYou": "Thank-you message",
-    "thankYouDefault": "Thank you so much for celebrating with us. God bless you! — {couple}",
+    "thankYouDefault": "Thank you so much for being with us on our wedding day. God bless you! — {couple}",
     "thankYouAudience": "Will be sent to {count, plural, one {# guest} other {# guests}} who confirmed or attended.",
     "sendThankYou": "Send thank-you",
     "thankYouSent": "Thank-you message is being sent",
-    "notYet": "The thank-you message is available after the event day."
+    "notYet": "The thank-you message is available after the wedding day."
   },
   "settings": {
     "title": "Settings",
-    "event": "Event details",
+    "event": "Wedding details",
     "venue": "Venue",
     "rsvp": "Replies",
     "trust": "Sender (shown on every card)",
@@ -1223,17 +1245,17 @@
     "save": "Save",
     "saved": "Settings saved",
     "danger": "Danger zone",
-    "archive": "Archive event",
+    "archive": "Archive wedding",
     "archiveHelp": "New replies and payments are turned off. Data stays readable.",
     "archiveTitle": "Archive {name}?",
-    "archived": "Event archived",
-    "delete": "Delete event",
-    "deleteHelp": "Deletes the event, guests, cards and all records. This cannot be undone.",
+    "archived": "Wedding archived",
+    "delete": "Delete wedding",
+    "deleteHelp": "Deletes the wedding, guests, cards and all records. This cannot be undone.",
     "deleteTitle": "Permanently delete {name}?",
     "deleteBody": "All {count} cards will stop working and guest data will be permanently deleted. This cannot be undone.",
     "deleteType": "Type {word} to confirm",
     "deleteWord": "FUTA",
-    "deleted": "Event deleted",
+    "deleted": "Wedding deleted",
     "pledgesEnabled": "Allow contributions on cards",
     "fallbackHours": "Hours to wait before SMS",
     "payToTitle": "Where guests send contributions",
@@ -1242,7 +1264,23 @@
     "payToAccount": "Number or account",
     "payToName": "Name shown",
     "payToAdd": "Add a method",
-    "payToRemove": "Remove"
+    "payToRemove": "Remove",
+    "templates": {
+      "title": "SMS templates",
+      "hint": "Write your own text. Tap a chip to insert a value; WhatsApp still uses Meta-approved templates.",
+      "inviteSms": "Invitation",
+      "reminderSms": "Reminder",
+      "contributionSms": "Contribution",
+      "pledgeReminderSms": "Pledge reminder",
+      "swahili": "Swahili",
+      "english": "English",
+      "placeholders": "Allowed values",
+      "insert": "Tap to insert",
+      "preview": "Preview",
+      "reset": "Use the default",
+      "linkRequired": "Include {link} so guests can open the card.",
+      "unknownVar": "Unknown value \"{name}\"."
+    }
   },
   "account": {
     "title": "Account",
@@ -1258,7 +1296,7 @@
     "exportDone": "Request received ({date}). We will send a download link by SMS.",
     "deletion": "Request account deletion",
     "deletionTitle": "Request deletion of your account?",
-    "deletionBody": "We will delete your account and the events you own within 30 days, as required by the Personal Data Protection Act. You will receive an SMS confirmation.",
+    "deletionBody": "We will delete your account and the weddings you own within 30 days, as required by the Personal Data Protection Act. You will receive an SMS confirmation.",
     "deletionDone": "Deletion request received ({date}).",
     "signOut": "Sign out",
     "privacyLink": "Read the privacy notice"
@@ -1291,7 +1329,8 @@
       "pilot": "Pilot",
       "messaging": "SMS & WhatsApp",
       "settings": "Settings",
-      "billing": "Billing"
+      "billing": "Billing",
+      "sms": "SMS customers"
     },
     "overview": {
       "organizers": "Customers",
@@ -1368,7 +1407,10 @@
       "markPaid": "Mark as paid",
       "markFree": "Set back to free",
       "planChanged": "Plan for {name} changed",
-      "billingNote": "Pricing (per wedding or per card) is still undecided — for now the default is marking weddings as paid by hand."
+      "billingNote": "Pricing (per wedding or per card) is still undecided — for now the default is marking weddings as paid by hand.",
+      "product": "Service",
+      "productCards": "Cards",
+      "productSms": "SMS only"
     },
     "usage": {
       "title": "Usage and costs (30 days)",
@@ -1471,7 +1513,8 @@
         "branding": "Changed branding",
         "pricing": "Changed prices",
         "grant": "Granted credit",
-        "purchase_paid": "Confirmed an order payment"
+        "purchase_paid": "Confirmed an order payment",
+        "signin": "Changed sign-in settings"
       },
       "empty": "No entries."
     },
@@ -1594,10 +1637,12 @@
         "templateReminder": "Reminder",
         "templatePledge": "Pledge",
         "templateContribution": "Contribution card",
+        "templateMemories": "Memories",
         "templateInviteKe": "Invitation (Kenya)",
         "templateReminderKe": "Reminder (Kenya)",
         "templatePledgeKe": "Pledge (Kenya)",
-        "templateContributionKe": "Contribution card (Kenya)"
+        "templateContributionKe": "Contribution card (Kenya)",
+        "templateMemoriesKe": "Memories (Kenya)"
       },
       "missing": "Fill in these fields first: {fields}",
       "importEnv": {
@@ -1615,7 +1660,9 @@
       "tabs": {
         "branding": "Branding",
         "messaging": "SMS and WhatsApp",
-        "payments": "Payments"
+        "payments": "Payments",
+        "app": "Android app",
+        "signin": "Sign-in"
       },
       "noPermission": "Only admin staff can open the settings."
     },
@@ -1801,6 +1848,97 @@
       "grantButton": "Grant credit",
       "cards": "Cards",
       "messages": "Reminders"
+    },
+    "appRelease": {
+      "title": "Android app",
+      "intro": "Upload the signed APK. It downloads from {domain}/programu/kadi-sasa.apk and the App page shows the download button straight away.",
+      "current": "Downloading now",
+      "none": "No app yet. The App page says \"Coming soon\".",
+      "version": "Version",
+      "versionHelp": "Like 0.6.0; it must match the version inside the APK.",
+      "file": "APK file",
+      "choose": "Choose the .apk file",
+      "upload": "Upload",
+      "uploaded": "App uploaded",
+      "size": "Size: {size} MB",
+      "checksum": "SHA-256",
+      "uploadedAt": "Uploaded {when}",
+      "open": "Open the download link",
+      "remove": "Remove the app",
+      "removed": "App removed",
+      "confirmTitle": "Remove the app?",
+      "confirmBody": "The download button leaves the App page until you upload again."
+    },
+    "signInSettings": {
+      "intro": "Who sends the 6-digit login codes to organizers and staff. Changes apply at once on every server, without a restart. Card invitations and other messages always use the SMS and WhatsApp settings.",
+      "provider": "Login codes",
+      "providers": {
+        "sms": "Our SMS route (NextSMS / Africa's Talking)",
+        "firebase": "Firebase Phone Auth"
+      },
+      "source": {
+        "database": "Saved {when} by {by}.",
+        "environment": "Nothing saved yet; the server's variables are in use."
+      },
+      "activeSms": "In use now: our SMS route.",
+      "activeFirebase": "In use now: Firebase Phone Auth.",
+      "forced": "AUTH_FORCE_SMS is on at the server, so codes go by SMS whatever is saved here.",
+      "firebaseTitle": "Firebase project",
+      "firebaseIntro": "From Firebase console → Project settings → Your apps → Web app. You can save and test these while codes still go by SMS, then switch.",
+      "field": {
+        "projectId": "Project ID",
+        "apiKey": "Web API key",
+        "appId": "App ID",
+        "authDomain": "Auth domain"
+      },
+      "fieldHint": {
+        "projectId": "For example kadi-sasa-prod.",
+        "apiKey": "Starts with AIza.",
+        "appId": "For example 1:1234567890:web:abc123.",
+        "authDomain": "Leave empty to use the project ID followed by .firebaseapp.com."
+      },
+      "secretSaved": "Saved: {hint}. Leave empty to keep using it.",
+      "secretNew": "It is shown masked after saving.",
+      "missing": "Fill in: {fields}",
+      "switchWarning": "Installed apps older than the Firebase build cannot sign in after this switch. Test first, and keep a staff member signed in to switch back if needed.",
+      "save": "Save sign-in settings",
+      "saved": "Sign-in settings saved",
+      "reset": "Back to the server environment",
+      "resetTitle": "Go back to the server environment?",
+      "resetBody": "The saved settings are deleted. The server uses its own variables (AUTH_OTP_PROVIDER, FIREBASE_*) until you save again.",
+      "resetDone": "Sign-in settings removed",
+      "test": "Test with Firebase",
+      "testBody": "Asks Firebase which project the saved key belongs to and which domains may sign in. No SMS is sent.",
+      "testOk": "Firebase answered: project {project}, and every web address is authorized.",
+      "testFailed": "The test failed: {error}",
+      "domains": "Authorized domains: {domains}"
+    },
+    "sms": {
+      "title": "SMS reminder customers",
+      "subtitle": "Customers who chose the SMS-only package. Package prices are under Pricing.",
+      "customers": "Customers",
+      "sent30": "SMS (30 days)",
+      "remaining": "SMS left across all",
+      "low": "Running low",
+      "search": "Search name or customer",
+      "empty": "No SMS customer yet.",
+      "colCustomer": "Customer",
+      "colContacts": "Contacts",
+      "colSent": "SMS sent",
+      "colCredits": "Left / total",
+      "colLast": "Last sent",
+      "never": "Not yet",
+      "scheduled": "{count} waiting",
+      "grant": "Add SMS",
+      "grantTitle": "Add SMS for {name}",
+      "grantAmount": "Number of SMS",
+      "grantNote": "Reason (e.g. bank reference)",
+      "grantSave": "Add",
+      "granted": "{count} SMS added",
+      "lowBadge": "Low",
+      "filterAll": "All",
+      "filterLow": "Running low",
+      "filterActive": "Active (30 days)"
     }
   },
   "mobile": {
@@ -1894,7 +2032,12 @@
     "linkCode": "Link code",
     "linkPin": "PIN",
     "linkUrl": "Link",
-    "openGate": "Open the scanner"
+    "openGate": "Open the scanner",
+    "welcomeGate": "I'm running the gate",
+    "codeOrLink": "Link code or the whole link",
+    "linkQrHelp": "The gate agent scans this QR with their phone camera, or opens the link. Give them the PIN separately.",
+    "linkQrAlt": "Gate link QR code; code {code}",
+    "share": "Send link"
   },
   "content": {
     "title": "Card text and messages",
@@ -2031,6 +2174,7 @@
     "play": "Get it on Google Play",
     "apk": "Download the APK directly",
     "apkHelp": "For phones without Google Play. Your phone will ask permission to install apps from this source. Only download from {host}.",
+    "apkMeta": "Version {version} · {size} MB",
     "requirements": "Android 8 or newer · Works on everyday phones",
     "soonBadge": "Coming soon",
     "soonTitle": "The app is not out yet",
@@ -2169,5 +2313,319 @@
     },
     "buy": "Buy {n} cards · {total}",
     "skip": "Start with {n} free cards"
+  },
+  "memories": {
+    "title": "Memories",
+    "intro": "Photos of your journey, for your guests only. Each guest opens them from their own card link.",
+    "lockedTitle": "Memories open once you buy cards",
+    "lockedBody": "Share photos of your journey with your guests. Buy cards to unlock this page.",
+    "lockedCta": "Buy cards",
+    "count": "{count} of {limit} photos",
+    "add": "Add photo",
+    "caption": "Caption (optional)",
+    "takenOn": "Date (optional)",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete photo",
+    "deleteConfirm": "Delete the photo \"{caption}\"? Guests will no longer see it.",
+    "deleteConfirmNoCaption": "Delete this photo? Guests will no longer see it.",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "empty": "No memories yet",
+    "emptyBody": "Add the first photo of your journey.",
+    "enabled": "Guests can see this page",
+    "preview": "View as a guest",
+    "full": "You have reached the limit of {limit} photos",
+    "uploading": "Uploading…",
+    "uploadFailed": "Upload failed. Please try again.",
+    "invalidImage": "This file is not a photo we can use (JPEG, PNG or WebP).",
+    "tooLarge": "Photos can be at most 8 MB.",
+    "share": "Share on WhatsApp",
+    "shareUnavailable": "This guest has no card yet. Send the card first.",
+    "sendTitle": "Send memories",
+    "sendBody": "Each guest gets their own link. Each message uses 1 message credit.",
+    "sendDone": "Sent: {sent}. Failed: {failed}.",
+    "guestPageTitle": "{hosts}'s memories",
+    "backToCard": "Back to the card",
+    "unavailableTitle": "This page is not available right now",
+    "unavailableBody": "Contact the committee if you need help.",
+    "openCardMemories": "Memories",
+    "photoAlt": "Photo: {caption}",
+    "photoAltNoCaption": "Memory photo",
+    "close": "Close",
+    "limitLabel": "Photo limit",
+    "limitSaved": "Limit saved",
+    "chooseMany": "Choose one or more photos. Then add a caption and date to each before uploading.",
+    "draftTitle": "New photos",
+    "uploadAll": "{count, plural, one {Upload # photo} other {Upload # photos}}",
+    "removeDraft": "Remove this photo",
+    "tooMany": "There is room for only {count} more, so the extra photos were left out.",
+    "uploadedCount": "{count, plural, one {# photo uploaded} other {# photos uploaded}}",
+    "dateFormat": "Write the date like 2019-03-02",
+    "editCaption": "Edit caption",
+    "sendShort": "Send to guests"
+  },
+  "contacts": {
+    "sourcesTitle": "Where are your contacts?",
+    "thisPhone": "This phone's contacts",
+    "thisPhoneHelp": "Pick people straight from your phone.",
+    "google": "Google Contacts",
+    "googleHelp": "Google will ask you for read-only access. We remove it as soon as we have finished reading.",
+    "file": "Contacts file",
+    "fileHelp": "vCard (.vcf) file or Google Contacts CSV. Up to 5 MB.",
+    "chooseFile": "Choose file",
+    "notContacts": "This file has no readable contacts",
+    "tooLarge": "The file is too large (over 5 MB)",
+    "privacy": "Your contacts are read on this device only. We keep the name and number only of the people you pick.",
+    "search": "Search contacts",
+    "selectAll": "Select all ({count})",
+    "selectNone": "Clear all",
+    "selected": "{count} selected",
+    "loading": "Reading contacts…",
+    "googleDenied": "Google did not grant access. Try again or use a file.",
+    "googleFailed": "Couldn't read your Google contacts. Please try again.",
+    "empty": "No contacts with names",
+    "noMatch": "No one matches your search",
+    "another": "Choose another source",
+    "permPhone": "Allow Kadi Sasa to read contacts in your phone settings, or paste a list instead.",
+    "limited": "You allowed only some contacts. You can allow more in your phone settings.",
+    "read": "Read contacts",
+    "readHelp": "Kadi Sasa will ask for permission to read your contacts. Nothing is sent until you confirm.",
+    "back": "Back",
+    "sources": {
+      "phone": {
+        "label": "This phone's contacts",
+        "help": "Pick straight from the address book on this device.",
+        "fallbackHelp": "This browser can't read phone contacts directly. Use the Kadi Sasa Android app, or export a .vcf file from your phone and upload it here.",
+        "upload": "Upload contacts file (.vcf)",
+        "steps": "On your phone:\n1. Open Contacts\n2. Tap ⋮ → Export or Share\n3. Pick vCard (.vcf) format\n4. Send the file to this computer and choose it below."
+      },
+      "google": {
+        "label": "Google Contacts",
+        "help": "Sign in with Google and read contacts directly. We ask for read-only access and remove it as soon as we're done.",
+        "fallbackHelp": "Google Contacts sign-in isn't set up on this instance yet. In the meantime, export your contacts from Google and upload the file here.",
+        "upload": "Upload Google export",
+        "steps": "On a computer:\n1. Open contacts.google.com\n2. Click ⋮ (menu) → Export\n3. Choose Google CSV or vCard (.vcf)\n4. Upload the file below."
+      },
+      "icloud": {
+        "label": "iCloud contacts (iPhone)",
+        "fallbackHelp": "Apple has no direct web API. Export a vCard from iCloud or your iPhone and upload it here.",
+        "upload": "Upload iCloud vCard",
+        "steps": "On a computer:\n1. Open icloud.com/contacts (sign in with your Apple ID)\n2. Select all contacts (Ctrl+A or Cmd+A)\n3. Click ⚙ (gear) → Export vCard\n4. Upload the .vcf file below.\n\nOn iPhone:\n• Contacts → choose a card → Share Contact → AirDrop/Email a .vcf file."
+      },
+      "other": {
+        "label": "Other source (Outlook, Yahoo, file)",
+        "fallbackHelp": "vCard (.vcf, versions 2.1/3.0/4.0) or Google Contacts CSV. Works for Outlook, Yahoo and most other apps.",
+        "upload": "Upload contacts file",
+        "steps": "Open your contacts app (Outlook, Yahoo, etc.), choose Export and pick vCard (.vcf) or Google Contacts CSV. Then upload the file below."
+      }
+    }
+  },
+  "gateJoinPage": {
+    "metaTitle": "Gate link · {brand}",
+    "eyebrow": "Gate link",
+    "title": "You've been asked to run the gate",
+    "body": "The gate runs in the {brand} Android app. You don't need an account: this link code and the PIN the hosts gave you are enough.",
+    "codeLabel": "Link code",
+    "open": "Open in the app",
+    "download": "Download the app",
+    "stepsTitle": "Steps",
+    "step1": "Download and install the {brand} app (Android 8 or newer).",
+    "step2": "Come back to this page and tap \"Open in the app\", or open the app, choose \"I'm running the gate\" and enter code {code}.",
+    "step3": "Enter the PIN you were given. The guest list downloads, then you can scan even without a network.",
+    "trust": "We will never ask for a password or your phone's PIN. The gate PIN only comes from the hosts."
+  },
+  "appWelcome": {
+    "eyebrow": "Invitation cards · Tanzania",
+    "sample": "Sample guest card",
+    "points": {
+      "cards": {
+        "title": "A card for every guest",
+        "body": "By WhatsApp, SMS or paper, even on a basic phone."
+      },
+      "pledges": {
+        "title": "Clear contributions",
+        "body": "Every guest’s pledge and payments, ready for the meeting."
+      },
+      "gate": {
+        "title": "A gate with no network",
+        "body": "Your phone becomes the gate and scans even when the network drops."
+      }
+    }
+  },
+  "sms": {
+    "chooser": {
+      "title": "What do you need?",
+      "cards": "Invitation cards",
+      "cardsBody": "QR cards, guest replies, contributions and gate check-in.",
+      "sms": "SMS reminders only",
+      "smsBody": "Write your own message and send it to all your people by SMS. No cards.",
+      "current": "Selected"
+    },
+    "new": {
+      "title": "Start SMS reminders",
+      "subtitle": "Buy SMS in bulk, write your message and send it now or later.",
+      "name": "Name of the occasion",
+      "nameHint": "For example: Asha's wedding committee, Parents' meeting",
+      "sender": "Messages are from",
+      "senderHint": "Your name or the committee's. You and our staff see it.",
+      "date": "Date of the occasion",
+      "language": "Language of screens and messages",
+      "create": "Start",
+      "creating": "Starting…",
+      "free": "You start with {count} free SMS to try it out.",
+      "back": "I want invitation cards"
+    },
+    "overview": {
+      "credits": "SMS left",
+      "unlimited": "No limit",
+      "creditsSub": "{used} used",
+      "contacts": "Contacts",
+      "sent30": "SMS sent",
+      "scheduled": "Waiting",
+      "nextTitle": "Next message",
+      "nextNone": "No message is scheduled.",
+      "recent": "Recent messages",
+      "seeAll": "See all",
+      "noContacts": "You have no contacts yet. Add people first.",
+      "addContacts": "Add contacts",
+      "compose": "Write a message",
+      "buy": "Buy SMS",
+      "lowCredits": "Your SMS are running low ({count} left).",
+      "eventOn": "Occasion: {date}"
+    },
+    "contacts": {
+      "title": "Contacts",
+      "subtitle": "{count, plural, one {# person} other {# people}} · {withPhone} with a number",
+      "search": "Search name, number or group",
+      "add": "Add one",
+      "paste": "Paste a list",
+      "name": "Name",
+      "phone": "Phone number",
+      "group": "Group",
+      "groupHint": "Optional. For example: Committee, Family. You can send to one group.",
+      "save": "Save",
+      "saved": "{name} added",
+      "noPhone": "No number",
+      "empty": "No contacts yet · Paste a list of names and numbers",
+      "noMatch": "Nobody matches the search.",
+      "delete": "Remove",
+      "deleteTitle": "Remove {count, plural, one {# contact} other {# contacts}}?",
+      "deleteConsequence": "They will not get messages sent from now on.",
+      "deleted": "{count, plural, one {# contact removed} other {# contacts removed}}",
+      "undo": "Undo",
+      "select": "Select {name}",
+      "selected": "{count} selected",
+      "showing": "{count, plural, one {# contact} other {# contacts}} shown",
+      "selectAll": "Select all shown",
+      "selectNone": "Clear selection",
+      "sendToSelected": "Send to selected",
+      "pasteTitle": "Paste a list",
+      "pasteHint": "One person per line: name and number. For example: Juma Ali 0712 345 678",
+      "pasteLabel": "List",
+      "pasteGroup": "Group for this list",
+      "pasteSummary": "{ok} ready · {noPhone} without a number · {invalid} with errors · {duplicate} repeated",
+      "pasteSave": "Add {count}",
+      "pasteDone": "{count, plural, one {# person added} other {# people added}}",
+      "pasteNothing": "No valid line to add.",
+      "fromContacts": "From contacts"
+    },
+    "compose": {
+      "title": "Write a message",
+      "subtitle": "Your message goes as an SMS to every contact with a number.",
+      "message": "Message",
+      "placeholder": "For example: Hello! The wedding committee meets on Saturday at 4 pm, Mwanga hall. Welcome.",
+      "counter": "{chars} characters · {parts, plural, one {# SMS} other {# SMS}} per person",
+      "unicode": "Special characters (like emoji) make one SMS carry only 70 characters.",
+      "tooLong": "The message is too long: at most {max} SMS per person.",
+      "to": "Send to",
+      "toAll": "Everyone",
+      "toGroup": "A group",
+      "toPicked": "Selected ({count})",
+      "pickedSummary": "{count} selected people",
+      "clearPicked": "Clear selection",
+      "pickGroup": "Choose a group",
+      "noGroups": "No groups yet. Give contacts a group.",
+      "when": "When",
+      "now": "Right now",
+      "later": "Later",
+      "at": "Date and time",
+      "preview": "Summary",
+      "recipients": "{count, plural, one {# contact} other {# contacts}}",
+      "withoutPhone": "{count} have no number and will not get it",
+      "credits": "SMS it will use: {count}",
+      "remaining": "Left: {count}",
+      "short": "Not enough SMS. You need {needed} and have {remaining}.",
+      "buy": "Buy SMS",
+      "send": "Send now",
+      "schedule": "Schedule",
+      "sending": "Sending…",
+      "sent": "Sent to {sent}{failed, plural, =0 {} other { · # failed}}",
+      "scheduled": "Scheduled for {when}",
+      "confirmTitle": "Send to {count, plural, one {# person} other {# people}}?",
+      "confirmBody": "It will use {credits} SMS. A sent message cannot be taken back.",
+      "phonePreview": "This is how it will look",
+      "senderLine": "From: {sender}",
+      "placeholders": "Personalise",
+      "insert": "tap to insert",
+      "sampleNote": "Sample for {name}"
+    },
+    "history": {
+      "title": "Message history",
+      "empty": "No messages sent yet · Write your first message",
+      "status": {
+        "scheduled": "Scheduled",
+        "running": "Sending",
+        "done": "Sent",
+        "cancelled": "Cancelled"
+      },
+      "toAll": "To everyone",
+      "toGroup": "Group: {group}",
+      "toPicked": "{count} selected people",
+      "counts": "{sent} handed to the network · {failed} failed · {skipped} not sent",
+      "credits": "{count} SMS",
+      "at": "Goes out {when}",
+      "sentAt": "Sent {when}",
+      "cancel": "Cancel",
+      "cancelTitle": "Cancel this message?",
+      "cancelBody": "It will not be sent. No SMS will be used.",
+      "cancelled": "Message cancelled",
+      "error": {
+        "missed": "Its time passed before it could go out",
+        "quota_exceeded": "SMS ran out part way",
+        "no provider configured": "The SMS service is not set up",
+        "sending paused": "Sending is paused for now",
+        "other": "Not sent: {error}"
+      },
+      "reuse": "Use again"
+    },
+    "credits": {
+      "title": "SMS packages",
+      "subtitle": "One SMS is 160 characters. A longer message uses more SMS per person.",
+      "left": "SMS left",
+      "pack": "{count} SMS",
+      "each": "{price} per SMS"
+    },
+    "settings": {
+      "title": "Settings",
+      "save": "Save",
+      "saved": "Saved",
+      "product": "Service",
+      "productValue": "SMS reminders only",
+      "productHint": "If you need invitation cards, start a new card event.",
+      "delete": "Delete this SMS account",
+      "deleteTitle": "Delete {name}?",
+      "deleteConsequence": "Contacts and scheduled messages are removed. Remaining SMS are not refunded.",
+      "deleted": "Deleted"
+    },
+    "errors": {
+      "body": {
+        "required": "Write the message",
+        "tooLong": "The message is too long"
+      },
+      "no_recipients": "None of the chosen contacts has a phone number.",
+      "scheduleAt": "Pick a time at least a minute from now.",
+      "unknownVar": "Unknown attribute \"{name}\"."
+    }
   }
 }

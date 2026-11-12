@@ -22,7 +22,10 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @harusi/api... --config.node-linker=isolated
 
 FROM deps AS build
-COPY . .
+# Copy only what the API builds from so web/mobile/doc edits never invalidate the API build cache.
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/api ./apps/api
 RUN pnpm --filter @harusi/api build
 # Production-only node_modules for the API (workspace deps are bundled by tsup).
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
@@ -35,6 +38,13 @@ COPY --from=build --chown=node:node /out/node_modules ./node_modules
 COPY --from=build --chown=node:node /repo/apps/api/dist ./dist
 COPY --from=build --chown=node:node /repo/packages/db/drizzle ./drizzle
 ENV MIGRATIONS_DIR=/app/drizzle
+# Staff-uploaded app files (the Android APK, ADR 047) live on a volume mounted here; a named volume
+# copies this folder's owner on first use, so the API (user node) can write to it.
+RUN mkdir -p /data/app-files && chown node:node /data/app-files
+ENV APP_FILES_DIR=/data/app-files
+# Kumbukumbu photos (ADR 050): same arrangement, on their own volume.
+RUN mkdir -p /data/photo-files && chown node:node /data/photo-files
+ENV PHOTO_FILES_DIR=/data/photo-files
 # The commit this image was built from, reported by /health so a deploy can be confirmed (ADR 035).
 # Set last so it never invalidates the build layers above.
 ARG GIT_SHA=dev

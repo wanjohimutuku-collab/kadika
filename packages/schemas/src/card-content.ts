@@ -23,25 +23,111 @@ const ltext = (max: number) =>
     .strict()
     .optional();
 
+/**
+ * Named placeholders every message variable has. Each entry carries a short label per language so the
+ * editor can list them without hard-coding strings. New vars go here and in `TEMPLATE_VARS` below.
+ */
+export const TEMPLATE_VAR_META = {
+  // Guest
+  guest: { sw: 'Jina kamili la mgeni', en: 'Guest full name' },
+  firstName: { sw: 'Jina la kwanza', en: 'First name' },
+  lastName: { sw: 'Jina la ukoo', en: 'Last / family name' },
+  group: { sw: 'Kikundi', en: 'Group' },
+  code: { sw: 'Namba ya kadi', en: 'Card number' },
+  // Hosts
+  title: { sw: 'Jina la tukio', en: 'Event title' },
+  hosts: { sw: 'Majina ya wenyeji', en: 'Host names' },
+  hostA: { sw: 'Mwenyeji wa kwanza', en: 'First host' },
+  hostB: { sw: 'Mwenyeji wa pili', en: 'Second host' },
+  kind: { sw: 'Aina ya tukio', en: 'Event kind' },
+  // When / where
+  date: { sw: 'Tarehe', en: 'Date' },
+  time: { sw: 'Muda', en: 'Time' },
+  venue: { sw: 'Ukumbi', en: 'Venue' },
+  mapUrl: { sw: 'Kiungo cha ramani', en: 'Map link' },
+  dress: { sw: 'Mavazi', en: 'Dress code' },
+  // Call to action
+  link: { sw: 'Kiungo cha kadi', en: 'Card link' },
+  // Sender
+  sender: { sw: 'Mtumaji', en: 'Sender' },
+  phone: { sw: 'Simu ya kamati', en: 'Committee phone' },
+  // Reminders / contributions
+  days: { sw: 'Siku zilizobaki', en: 'Days left' },
+  target: { sw: 'Lengo la mchango', en: 'Contribution target' },
+  deadline: { sw: 'Tarehe ya mwisho', en: 'Contribution deadline' },
+  pledged: { sw: 'Ahadi', en: 'Pledged amount' },
+  balance: { sw: 'Salio', en: 'Balance' },
+} as const;
+export type TemplateVar = keyof typeof TEMPLATE_VAR_META;
+
 /** Placeholders a message template may use, per template. Anything else is rejected. */
 export const TEMPLATE_VARS = {
-  inviteSms: ['guest', 'hosts', 'kind', 'date', 'time', 'venue', 'link', 'code', 'sender', 'phone'],
-  reminderSms: [
+  inviteSms: [
     'guest',
+    'firstName',
+    'lastName',
     'hosts',
+    'hostA',
+    'hostB',
     'kind',
     'date',
     'time',
     'venue',
+    'mapUrl',
+    'dress',
+    'link',
+    'code',
+    'sender',
+    'phone',
+  ],
+  reminderSms: [
+    'guest',
+    'firstName',
+    'lastName',
+    'hosts',
+    'hostA',
+    'hostB',
+    'kind',
+    'date',
+    'time',
+    'venue',
+    'mapUrl',
+    'dress',
     'link',
     'code',
     'sender',
     'phone',
     'days',
   ],
-  contributionSms: ['guest', 'hosts', 'kind', 'link', 'sender', 'phone', 'target', 'deadline'],
-  pledgeReminderSms: ['guest', 'hosts', 'kind', 'link', 'sender', 'phone', 'pledged', 'balance'],
-} as const;
+  contributionSms: [
+    'guest',
+    'firstName',
+    'lastName',
+    'hosts',
+    'hostA',
+    'hostB',
+    'kind',
+    'link',
+    'sender',
+    'phone',
+    'target',
+    'deadline',
+  ],
+  pledgeReminderSms: [
+    'guest',
+    'firstName',
+    'lastName',
+    'hosts',
+    'hostA',
+    'hostB',
+    'kind',
+    'link',
+    'sender',
+    'phone',
+    'pledged',
+    'balance',
+  ],
+} as const satisfies Record<string, readonly TemplateVar[]>;
 export type TemplateKey = keyof typeof TEMPLATE_VARS;
 
 const PLACEHOLDER = /\{(\w+)\}/g;
@@ -59,6 +145,13 @@ export function templateProblem(key: TemplateKey, template: string): string | nu
   // Without the link a guest has no way to open the card or pay.
   if (template.trim() && !used.includes('link')) return 'content.link_required';
   return null;
+}
+
+/** `"Asha Juma"` → `{ firstName: "Asha", lastName: "Juma" }`. A one-word name has no last name. */
+export function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length < 2) return { firstName: parts[0] ?? '', lastName: '' };
+  return { firstName: parts[0]!, lastName: parts.slice(1).join(' ') };
 }
 
 /** Fills `{name}` placeholders. Missing values become empty text; extra spaces from them are tidied. */

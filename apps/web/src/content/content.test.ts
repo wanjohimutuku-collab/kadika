@@ -7,8 +7,10 @@ describe('content pages', () => {
   it('has unique slugs per market, valid related links and counterparts', () => {
     const keys = ALL_PAGES.map((p) => `${marketOf(p)}:${p.slug}`);
     expect(new Set(keys).size).toBe(keys.length);
-    const paths = ALL_PAGES.map(pagePath);
-    expect(new Set(paths).size).toBe(paths.length);
+    const enPaths = ALL_PAGES.map((p) => pagePath(p, 'en'));
+    expect(new Set(enPaths).size).toBe(enPaths.length);
+    const swPaths = ALL_PAGES.map((p) => pagePath(p, 'sw'));
+    expect(new Set(swPaths).size).toBe(swPaths.length);
     for (const p of ALL_PAGES) {
       for (const r of p.related) expect(resolveRelated(p, r), `${p.slug} -> ${r}`).toBeDefined();
       if (p.counterpart) {
@@ -19,7 +21,7 @@ describe('content pages', () => {
     }
   });
 
-  it.each(ALL_PAGES.map((p) => [pagePath(p), p] as const))(
+  it.each(ALL_PAGES.map((p) => [pagePath(p, 'en'), p] as const))(
     '%s is complete in both languages',
     (_slug, p) => {
       for (const l of ['sw', 'en'] as const) {
@@ -40,7 +42,7 @@ describe('content pages', () => {
   it('makes counterparts reciprocal', () => {
     for (const p of ALL_PAGES) {
       const c = counterpartOf(p);
-      if (c) expect(counterpartOf(c), `${pagePath(p)} <-> ${pagePath(c)}`).toBe(p);
+      if (c) expect(counterpartOf(c), `${pagePath(p, 'en')} <-> ${pagePath(c, 'en')}`).toBe(p);
     }
   });
 });

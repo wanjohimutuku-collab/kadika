@@ -42,8 +42,10 @@ export interface ContentPageDef {
   market?: Market;
   /** Same-topic page in the other market, for cross-market hreflang. */
   counterpart?: { market: Market; slug: string };
-  /** URL slug, used for both languages (`?lang=sw` switches). Empty for the market home. */
+  /** URL slug in Swahili. For TZ this is the `/sw/<slug>` path segment; KE pages reuse their EN slug. Empty for the market home. */
   slug: string;
+  /** URL slug in English. For TZ this is the `/<slugEn>` path segment; on KE it equals `slug`. */
+  slugEn: string;
   group: PageGroup;
   schema: 'Article' | 'WebPage';
   /** ISO date; shown on the page, in structured data and in the sitemap. */

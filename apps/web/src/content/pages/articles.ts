@@ -6,6 +6,7 @@ const UPDATED = '2026-10-20';
 export const ARTICLE_PAGES: ContentPageDef[] = [
   {
     slug: 'jinsi-ya-kuunda-kadi-ya-harusi-tanzania',
+    slugEn: 'how-to-create-a-wedding-invitation-in-tanzania',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -166,6 +167,7 @@ export const ARTICLE_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-mtandaoni-vs-karatasi',
+    slugEn: 'online-vs-paper-wedding-invitations',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -289,6 +291,7 @@ export const ARTICLE_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kutuma-kadi-za-mwaliko-whatsapp',
+    slugEn: 'send-wedding-invitations-whatsapp',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -421,6 +424,7 @@ export const ARTICLE_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kusimamia-majibu-ya-rsvp',
+    slugEn: 'managing-rsvp-responses',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,

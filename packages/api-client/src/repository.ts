@@ -1,4 +1,12 @@
 import type {
+  OpsSmsCustomer,
+  SmsCampaignInput,
+  SmsCampaignPreview,
+  SmsCampaignView,
+  SmsEventInput,
+  SmsTarget,
+} from '@harusi/schemas/sms';
+import type {
   MessagingRoute,
   MessagingSettingsInput,
   MessagingSettingsView,
@@ -8,6 +16,11 @@ import type {
   PaymentSettingsInput,
   PaymentSettingsView,
 } from '@harusi/schemas/payment-settings';
+import type {
+  SignInSettingsInput,
+  SignInSettingsView,
+  SignInTestResult,
+} from '@harusi/schemas/signin-settings';
 import type { BrandingInput, BrandingView, PublicBranding } from '@harusi/schemas/branding';
 import type {
   Allowance,
@@ -31,6 +44,7 @@ import type {
 } from '@harusi/schemas';
 import type {
   Activity,
+  AndroidRelease,
   AuditEntry,
   CardView,
   EventReport,
@@ -53,6 +67,7 @@ import type {
   SendPreview,
   SendRequest,
   Session,
+  AuthConfig,
   WeddingEvent,
   DataRequest,
   OpsAuditEntry,
@@ -61,6 +76,11 @@ import type {
   OpsOrganizer,
   OpsOverview,
   OpsUsage,
+  GuestMemoriesView,
+  MemoriesAdminView,
+  Memory,
+  MemoryUpload,
+  MemoryPhotoSize,
 } from './types';
 
 /**
@@ -70,8 +90,27 @@ import type {
  */
 export interface Repository {
   // Auth — POST /v1/auth/otp/request, /verify, /refresh
-  requestOtp(phoneE164: string): Promise<{ resendAfterSeconds: number }>;
+  /**
+   * `fallback`: Firebase would not send the code, so ask for our own SMS code instead (ADR 048).
+   * `language`: the visitor's site or app language, which the SMS is written in.
+   */
+  requestOtp(
+    phoneE164: string,
+    opts?: { fallback?: boolean; language?: 'sw' | 'en' },
+  ): Promise<{ resendAfterSeconds: number }>;
   verifyOtp(phoneE164: string, code: string): Promise<Session>;
+  /** GET /v1/auth/config: our own SMS code or Firebase Phone Auth (ADR 048). */
+  getAuthConfig(): Promise<AuthConfig>;
+  /**
+   * POST /v1/auth/firebase/start: asked before Firebase is told to text a code, so Firebase codes
+   * spend the same per-IP, per-number and hourly budget as SMS codes. Returns the number in E.164.
+   */
+  startFirebaseSignIn(phone: string): Promise<{ phone: string }>;
+  /**
+   * POST /v1/auth/firebase: trades a Firebase ID token from a phone sign-in for our session. Same
+   * result as `verifyOtp`, including `needsSecondFactor` for staff.
+   */
+  signInWithFirebase(idToken: string): Promise<Session>;
   /**
    * Staff only (ADR 040): second step after the SMS code — POST /v1/auth/staff/totp/verify with the
    * authenticator code. The first good code also completes the authenticator setup.
@@ -200,6 +239,54 @@ export interface Repository {
   getPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
   cancelPurchase(eventId: string, purchaseId: string): Promise<PurchaseView>;
 
+  // SMS reminders only (ADR 055) — a customer with no cards: contacts are guests, texts are their own
+  /** Starts an SMS-only account (POST /v1/events with `product: 'sms'`). */
+  createSmsEvent(input: SmsEventInput): Promise<WeddingEvent>;
+  /** Who a text would reach, its SMS parts and the credits it needs. Nothing is sent. */
+  previewSmsCampaign(
+    eventId: string,
+    input: { body: string; target: SmsTarget },
+  ): Promise<SmsCampaignPreview>;
+  /** Sends now, or later with `scheduleAt`. Refused with `payment_required` when credits are short. */
+  sendSmsCampaign(
+    eventId: string,
+    input: SmsCampaignInput,
+    idempotencyKey: string,
+  ): Promise<SmsCampaignView>;
+  /** Newest first. */
+  listSmsCampaigns(eventId: string): Promise<SmsCampaignView[]>;
+  /** Stops a scheduled text; `conflict` once it has started. */
+  cancelSmsCampaign(eventId: string, campaignId: string): Promise<SmsCampaignView>;
+  /** Staff: every SMS-only customer with credits and usage. */
+  opsListSmsCustomers(): Promise<OpsSmsCustomer[]>;
+
+  // Kumbukumbu (ADR 050) — the couple's photos for their guests; owner and committee manage them
+  listMemories(eventId: string): Promise<MemoriesAdminView>;
+  /** `photo` is a Blob on the web, or `{ uri, name, type }` from the React Native image picker. */
+  addMemory(
+    eventId: string,
+    photo: MemoryUpload,
+    input: { caption?: string; takenOn?: string },
+  ): Promise<Memory>;
+  updateMemory(
+    memoryId: string,
+    patch: { caption?: string | null; takenOn?: string | null; sortOrder?: number },
+  ): Promise<Memory>;
+  deleteMemory(memoryId: string): Promise<void>;
+  /** The photo for the console (it needs the Bearer token, so it is fetched, not linked). */
+  fetchMemoryPhoto(eventId: string, memoryId: string, size: MemoryPhotoSize): Promise<Blob>;
+  /** Sends each guest (all with a phone, or these) their own link; one message credit each. */
+  sendMemories(
+    eventId: string,
+    guestIds?: string[],
+  ): Promise<{ sent: number; failed: number; skipped: number }>;
+  /** The guest's own link and a wa.me link the host opens on their phone (free). */
+  getMemoriesLink(guestId: string): Promise<{ url: string; waUrl: string | null }>;
+  /** Public: the guest's page by card token. */
+  getGuestMemories(token: string): Promise<GuestMemoriesView>;
+  /** Staff with the `plan` permission: how many photos the event may hold. */
+  opsSetMemoriesLimit(eventId: string, limit: number, note: string): Promise<{ limit: number }>;
+
   // Guest card (public) — GET /v1/c/:token, POST …/rsvp, POST …/pay
   getCard(token: string): Promise<CardView>;
   rsvp(token: string, input: RsvpInput, idempotencyKey: string): Promise<CardView>;
@@ -266,6 +353,12 @@ export interface Repository {
   opsTestPayment(
     route: PaymentRoute,
   ): Promise<{ ok: boolean; provider: string | null; status: number | null; error: string | null }>;
+  /** Sign-in codes: SMS or Firebase Phone Auth (ADR 049), admin staff only. The API key comes back masked. */
+  opsSignInSettings(): Promise<SignInSettingsView>;
+  opsSaveSignIn(input: SignInSettingsInput): Promise<SignInSettingsView>;
+  opsResetSignIn(): Promise<SignInSettingsView>;
+  /** Asks Firebase about the saved key: its project and authorized domains. Sends no SMS. */
+  opsTestSignIn(): Promise<SignInTestResult>;
   /** Prices for cards and messages (ADR 042); every staff level may read, billing and admin change. */
   opsPricing(): Promise<PricingView>;
   opsSavePricing(catalog: PricingCatalog): Promise<PricingView>;
@@ -282,4 +375,8 @@ export interface Repository {
   /** `data` is the SVG source, or base64 for PNG, JPEG and WebP. Refused (`validation`) if unsafe. */
   opsSetLogo(file: { mime: string; data: string }): Promise<BrandingView>;
   opsRemoveLogo(): Promise<BrandingView>;
+  /** The Android APK on /programu (ADR 047): null until admin staff upload one. */
+  opsAndroidRelease(): Promise<AndroidRelease | null>;
+  opsUploadAndroidApp(file: Blob, version: string): Promise<AndroidRelease>;
+  opsRemoveAndroidApp(): Promise<void>;
 }

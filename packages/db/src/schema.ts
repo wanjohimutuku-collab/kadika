@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   integer,
   jsonb,
   pgEnum,
@@ -36,6 +37,35 @@ export const cardKindEnum = pgEnum('card_kind', ['invitation', 'contribution']);
 export const countryEnum = pgEnum('country', ['TZ', 'KE']);
 export const currencyEnum = pgEnum('currency', ['TZS', 'KES']);
 export const eventPlanEnum = pgEnum('event_plan', ['free', 'paid']);
+/** What the customer bought (ADR 055): the full card product, or SMS reminders only. */
+export const eventProductEnum = pgEnum('event_product', ['cards', 'sms']);
+/**
+ * First-party anonymous event names (ADR 057). Adding a name needs an ADR amendment.
+ * The ingest service rejects any name outside this list.
+ */
+export const analyticsEventEnum = pgEnum('analytics_event', [
+  'page_view',
+  'start_registration',
+  'complete_registration',
+  'create_event',
+  'complete_event_setup',
+  'create_invitation',
+  'share_invitation',
+  'add_guest',
+  'receive_rsvp',
+  'record_contribution',
+  'scan_qr',
+  'complete_checkin',
+]);
+/** Visitor's device class, from the User-Agent, bucketed before the hash so it is never free text. */
+export const analyticsDeviceEnum = pgEnum('analytics_device', ['mobile', 'tablet', 'desktop']);
+/** Where the visit arrived from, derived from the referrer host (ADR 057 §3). */
+export const analyticsSourceEnum = pgEnum('analytics_source', [
+  'direct',
+  'search',
+  'social',
+  'referral',
+]);
 export const memberRoleEnum = pgEnum('member_role', ['owner', 'committee', 'gate']);
 export const languageEnum = pgEnum('language', ['sw', 'en']);
 export const channelPrefEnum = pgEnum('invite_channel_pref', ['whatsapp', 'sms', 'print', 'mixed']);
@@ -124,7 +154,22 @@ export const events = pgTable('events', {
   contributionTarget: integer('contribution_target'),
   /** Whether guests may pledge and pay from their card (§7.3). */
   pledgesEnabled: boolean('pledges_enabled').notNull().default(true),
+  /** Kumbukumbu (ADR 050): the host can hide the page without deleting photos. */
+  memoriesEnabled: boolean('memories_enabled').notNull().default(true),
+  /** Most photos the page may hold; staff with the `plan` permission change it. */
+  memoriesLimit: integer('memories_limit').notNull().default(30),
   plan: eventPlanEnum('plan').notNull().default('free'),
+  /**
+   * `cards`: invitations, RSVP, gate and contributions. `sms`: a bulk SMS reminder customer (ADR 055) who
+   * only keeps a contact list and sends their own texts; the console shows them a different, smaller UI.
+   * Chosen when the event is created and never changed by the owner.
+   */
+  product: eventProductEnum('product').notNull().default('cards'),
+  /**
+   * Set when the owner deletes the event. Its members, cards and gate stop working at once; the rows
+   * stay for billing records and PDPA requests and can be restored by staff.
+   */
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
   ...timestamps,
 });
 
@@ -250,9 +295,17 @@ export const messageLog = pgTable(
     cost: integer('cost'),
     /** Mobile network (MCC+MNC) the delivery report named, when the provider says (Phase 5 metrics). */
     network: text('network'),
+    /**
+     * SMS parts the message took. Reminder credits are spent per part (ADR 055); every message before
+     * custom SMS campaigns was a single part, hence the default.
+     */
+    segments: integer('segments').notNull().default(1),
+    /** The SMS campaign this message belongs to (ADR 055), for its counts. */
+    campaignId: uuid('campaign_id'),
     ...timestamps,
   },
   (t) => [
+    index('message_log_campaign_idx').on(t.campaignId),
     index('message_log_provider_msg_idx').on(t.providerMsgId),
     index('message_log_guest_idx').on(t.guestId),
   ],
@@ -528,6 +581,18 @@ export const paymentSettings = pgTable('payment_settings', {
 });
 
 /**
+ * Sign-in code settings (ADR 049): a single row (`id = 'default'`). `config_enc` holds the Firebase web
+ * config as encrypted JSON, kept even while the provider is `sms` so it can be tested before switching.
+ */
+export const signinSettings = pgTable('signin_settings', {
+  id: text('id').primaryKey(),
+  provider: text('provider').notNull(),
+  configEnc: text('config_enc').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
+  ...timestamps,
+});
+
+/**
  * Business branding (ADR 036): a single row (`id = 'default'`). Public by design: name, colours and fonts
  * are served to every visitor, and the logo at /v1/branding/logo. `logo_data` is the SVG source, or
  * base64 for PNG/JPEG/WebP; `logo_version` changes on every upload so caches refresh.
@@ -634,5 +699,105 @@ export const eventPurchases = pgTable(
     index('event_purchases_event_idx').on(t.eventId, t.createdAt),
     index('event_purchases_status_idx').on(t.status, t.createdAt),
     uniqueIndex('event_purchases_ref_uq').on(t.providerRef),
+  ],
+);
+
+/**
+ * Kumbukumbu (ADR 050): the couple's past photos, shown to their guests by card token. Files live in
+ * the `PhotoStore`; these rows hold only keys, never anything built from user input.
+ */
+export const memories = pgTable(
+  'memories',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    photoKey: text('photo_key').notNull(),
+    thumbKey: text('thumb_key').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    caption: text('caption'),
+    takenOn: date('taken_on', { mode: 'string' }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps,
+  },
+  (t) => [index('memories_event_idx').on(t.eventId, t.sortOrder)],
+);
+
+export const smsCampaignStatusEnum = pgEnum('sms_campaign_status', [
+  'scheduled',
+  'running',
+  'done',
+  'cancelled',
+]);
+
+/**
+ * A text an SMS-only customer (ADR 055) sent, or asked to send later, to their contacts. The audience is
+ * a rule (everyone, a group, picked contacts) resolved when it runs, like scheduled sends (ADR 030).
+ * The message itself is the customer's own words; every part of every SMS spends one reminder credit.
+ */
+export const smsCampaigns = pgTable(
+  'sms_campaigns',
+  {
+    id: id(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    body: text('body').notNull(),
+    /** `all` | `{ group }` | `{ guestIds }`. */
+    target: jsonb('target').$type<string | Record<string, unknown>>().notNull(),
+    status: smsCampaignStatusEnum('status').notNull().default('scheduled'),
+    /** Null for a send that went out at once. */
+    scheduledFor: timestamp('scheduled_for', { withTimezone: true }),
+    /** SMS parts one copy of the text takes. */
+    segments: integer('segments').notNull().default(1),
+    /** Contacts the audience matched when it was created; the outcome is in the counts below. */
+    recipientCount: integer('recipient_count').notNull().default(0),
+    sentCount: integer('sent_count').notNull().default(0),
+    failedCount: integer('failed_count').notNull().default(0),
+    skippedCount: integer('skipped_count').notNull().default(0),
+    error: text('error'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index('sms_campaigns_due_idx').on(t.status, t.scheduledFor),
+    index('sms_campaigns_event_idx').on(t.eventId, t.createdAt),
+  ],
+);
+
+/**
+ * Anonymous first-party analytics (ADR 057). Guarded behind `ANALYTICS_ENABLED`. No user id, no
+ * guest id, no event id, no phone, no amount; `sessionHash` is a daily-rotating BLAKE2b-256 digest
+ * of ip + user-agent + a secret, so it cannot be joined with other logs and does not survive the
+ * day. Retention is 180 days, trimmed by a daily worker (ADR 057 §6).
+ */
+export const analyticsEvents = pgTable(
+  'analytics_events',
+  {
+    id: id(),
+    name: analyticsEventEnum('name').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    /** 32-byte BLAKE2b-256 digest. Grouping key only; never joinable with other identity logs. */
+    sessionHash: text('session_hash').notNull(),
+    market: text('market').notNull(),
+    locale: text('locale').notNull(),
+    edition: text('edition').notNull(),
+    /** Public page path, query stripped, at most 160 chars. */
+    path: text('path').notNull(),
+    /** Referrer host only, never the path or query; at most 80 chars. */
+    referrerHost: text('referrer_host'),
+    device: analyticsDeviceEnum('device').notNull(),
+    source: analyticsSourceEnum('source').notNull().default('direct'),
+    /** Whitelisted small values only; the ingest service strips any other key. */
+    properties: jsonb('properties').$type<Record<string, string>>().notNull().default({}),
+  },
+  (t) => [
+    index('analytics_events_name_time_idx').on(t.name, t.occurredAt),
+    index('analytics_events_time_idx').on(t.occurredAt),
   ],
 );

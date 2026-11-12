@@ -1,0 +1,192 @@
+'use client';
+
+import { isRepositoryError, type AuthConfig } from '@harusi/api-client';
+import type { ConfirmationResult, RecaptchaVerifier } from 'firebase/auth';
+import { USE_MOCKS } from './env';
+import { getRepository } from './repo';
+
+/**
+ * Firebase Phone Auth for sign-in (ADR 048). The API decides the flow (`GET /v1/auth/config`) and
+ * hands out the public Firebase web config, so one switch moves web and mobile together and the image
+ * needs no rebuild. The SDK loads only on the login pages, only when Firebase is on.
+ */
+
+export type PhoneSignInError = 'invalid_phone' | 'wrong_code' | 'expired' | 'too_many' | 'failed';
+
+/** A Firebase failure in terms the login screens show. */
+export class FirebasePhoneError extends Error {
+  constructor(readonly reason: PhoneSignInError) {
+    super(reason);
+  }
+}
+
+let config: Promise<AuthConfig> | null = null;
+/** The pending code from `startPhoneSignIn`; lost on reload, then the visitor starts again. */
+let pending: {
+  phone: string;
+  confirmation: ConfirmationResult;
+  signOut: () => Promise<void>;
+} | null = null;
+let verifier: RecaptchaVerifier | null = null;
+
+/** Mock mode and a failed lookup both mean our own SMS code, which still works then. */
+export function loadAuthConfig(): Promise<AuthConfig> {
+  if (USE_MOCKS) return Promise.resolve({ otpProvider: 'sms' });
+  config ??= getRepository()
+    .getAuthConfig()
+    .catch((): AuthConfig => {
+      config = null; // ask again next time
+      return { otpProvider: 'sms' };
+    });
+  return config;
+}
+
+async function firebaseAuth(cfg: Extract<AuthConfig, { otpProvider: 'firebase' }>['firebase']) {
+  const [{ getApps, initializeApp }, auth] = await Promise.all([
+    import('firebase/app'),
+    import('firebase/auth'),
+  ]);
+  const app =
+    getApps()[0] ??
+    initializeApp({
+      projectId: cfg.projectId,
+      apiKey: cfg.apiKey ?? undefined,
+      authDomain: cfg.authDomain ?? undefined,
+      appId: cfg.appId ?? undefined,
+    });
+  return { auth, instance: auth.getAuth(app) };
+}
+
+function reasonOf(err: unknown): PhoneSignInError {
+  const code = (err as { code?: string } | null)?.code ?? '';
+  if (code === 'auth/invalid-phone-number' || code === 'auth/missing-phone-number')
+    return 'invalid_phone';
+  if (code === 'auth/invalid-verification-code' || code === 'auth/missing-verification-code')
+    return 'wrong_code';
+  if (code === 'auth/code-expired' || code === 'auth/session-expired') return 'expired';
+  if (code === 'auth/too-many-requests' || code === 'auth/quota-exceeded') return 'too_many';
+  return 'failed';
+}
+
+/**
+ * Our API's go-ahead before Firebase texts a code: Firebase codes spend the same per-IP, per-number
+ * and hourly budget as our own SMS codes (docs/ops/production-readiness-audit.md, finding 23).
+ */
+async function allowCode(phone: string): Promise<void> {
+  try {
+    await getRepository().startFirebaseSignIn(phone);
+  } catch (err) {
+    const code = isRepositoryError(err) ? err.code : '';
+    throw new FirebasePhoneError(
+      code === 'rate_limited' || code === 'locked'
+        ? 'too_many'
+        : code === 'validation'
+          ? 'invalid_phone'
+          : 'failed',
+    );
+  }
+}
+
+/** The number whose code came as our own SMS because Firebase would not send; survives a reload. */
+const FALLBACK_KEY = 'harusi.login.smsFallback';
+
+function setSmsFallback(phone: string | null) {
+  try {
+    if (phone) sessionStorage.setItem(FALLBACK_KEY, phone);
+    else sessionStorage.removeItem(FALLBACK_KEY);
+  } catch {
+    // storage blocked: the code screen then asks for a new code after a reload
+  }
+}
+
+/** True when the code for `phone` is our own SMS code (Firebase refused to send it). */
+export function usesSmsFallback(phone: string): boolean {
+  try {
+    return sessionStorage.getItem(FALLBACK_KEY) === phone;
+  } catch {
+    return false;
+  }
+}
+
+/** The language our own SMS code is written in: the one the visitor has the site in. */
+export function smsLanguage(locale: string): 'sw' | 'en' {
+  return locale === 'en' ? 'en' : 'sw';
+}
+
+/** Our own SMS code instead of Firebase's; errors are the API's, as in the SMS flow. */
+export async function requestSmsFallback(phone: string, locale: string): Promise<void> {
+  await getRepository().requestOtp(phone, { fallback: true, language: smsLanguage(locale) });
+  pending = null;
+  setSmsFallback(phone);
+}
+
+/**
+ * Asks Firebase to text a code to `phone` (E.164). `container` hosts the invisible reCAPTCHA; it must
+ * stay in the page until the code is sent. Firebase writes the SMS in `locale`.
+ *
+ * Firebase can pass the reCAPTCHA and still refuse to send (a 503, "error code 39": its anti-abuse
+ * block, seen on Tanzanian numbers while reCAPTCHA Enterprise is off). The visitor then gets our own
+ * SMS code instead, and the code screen checks it with our API (`'sms'`).
+ */
+export async function startPhoneSignIn(
+  phone: string,
+  container: HTMLElement,
+  locale: string,
+): Promise<'firebase' | 'sms'> {
+  const cfg = await loadAuthConfig();
+  if (cfg.otpProvider !== 'firebase') throw new FirebasePhoneError('failed');
+  if (usesSmsFallback(phone)) {
+    // A resend after a fallback: Firebase just refused this number, ask our API again.
+    await requestSmsFallback(phone, locale);
+    return 'sms';
+  }
+  await allowCode(phone);
+  const { auth, instance } = await firebaseAuth(cfg.firebase);
+  instance.languageCode = locale;
+  try {
+    verifier?.clear();
+    // A fresh element every attempt: a cleared verifier leaves its widget behind in the old one, and
+    // rendering again there fails in the browser ("already rendered") without reaching Firebase.
+    const host = document.createElement('div');
+    container.replaceChildren(host);
+    verifier = new auth.RecaptchaVerifier(instance, host, { size: 'invisible' });
+    const confirmation = await auth.signInWithPhoneNumber(instance, phone, verifier);
+    pending = { phone, confirmation, signOut: () => auth.signOut(instance) };
+    setSmsFallback(null);
+    return 'firebase';
+  } catch (err) {
+    verifier?.clear();
+    verifier = null;
+    const reason = reasonOf(err);
+    // A wrong number stays an error; any refusal on Firebase's side falls back to our SMS code.
+    if (reason === 'invalid_phone') throw new FirebasePhoneError(reason);
+    await requestSmsFallback(phone, locale);
+    return 'sms';
+  }
+}
+
+/** True while a Firebase code for `phone` is waiting to be typed. */
+export function hasPendingCode(phone: string): boolean {
+  return pending?.phone === phone;
+}
+
+/** After a sign-in with the fallback SMS code. */
+export function clearSmsFallback() {
+  setSmsFallback(null);
+}
+
+/** Checks the typed code with Firebase and returns the ID token the API trades for a session. */
+export async function confirmPhoneCode(code: string): Promise<string> {
+  if (!pending) throw new FirebasePhoneError('expired');
+  try {
+    const { confirmation, signOut } = pending;
+    const cred = await confirmation.confirm(code);
+    const idToken = await cred.user.getIdToken();
+    pending = null;
+    // Our own session takes over; the Firebase one is not kept in this browser.
+    await signOut().catch(() => undefined);
+    return idToken;
+  } catch (err) {
+    throw new FirebasePhoneError(reasonOf(err));
+  }
+}

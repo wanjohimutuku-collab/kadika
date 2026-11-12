@@ -22,7 +22,12 @@ export class MemoryRateStore implements RateStore {
     if (!h || h.resetAt <= t) {
       const fresh = { count: 1, resetAt: t + windowMs };
       this.hits.set(key, fresh);
-      if (this.hits.size > 50_000) this.hits.clear(); // bound memory under attack
+      // Bound memory under attack: drop finished windows first, so live counters (and the limits they
+      // enforce) survive a flood of throwaway keys; clear everything only if that is not enough.
+      if (this.hits.size > 50_000) {
+        for (const [k, v] of this.hits) if (v.resetAt <= t) this.hits.delete(k);
+        if (this.hits.size > 50_000) this.hits.clear();
+      }
       return fresh;
     }
     h.count++;
@@ -96,4 +101,19 @@ export class RateLimiter {
       });
     }
   }
+}
+
+/**
+ * The caller's IP for rate limiting. A configured edge header (`cf-connecting-ip`) wins; otherwise the
+ * LAST X-Forwarded-For entry, the one our own proxy appended. The first entry is whatever the client
+ * sent, so keying on it would let anyone pick a fresh address per request and skip every limit.
+ */
+export function clientIp(header: (name: string) => string | undefined, edgeHeader: string | null) {
+  const edge = edgeHeader ? header(edgeHeader)?.trim() : undefined;
+  if (edge) return edge;
+  const hops = header('x-forwarded-for')
+    ?.split(',')
+    .map((h) => h.trim())
+    .filter(Boolean);
+  return hops?.at(-1) ?? 'local';
 }

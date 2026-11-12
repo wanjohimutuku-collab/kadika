@@ -4,10 +4,11 @@ A backup you have never restored is a hope, not a backup. Run this drill once be
 
 ## What is backed up
 
-`infra/backup/pg-backup.sh` writes `harusi-<UTC timestamp>.sql.gz` (plain SQL, gzip) to the S3-compatible bucket nightly and keeps 14 days. It covers Postgres only. These live elsewhere and need their own care:
+The Coolify stack's `backup` service (`docker-compose.coolify.yml`) writes `harusi-<UTC timestamp>.sql.gz` (plain SQL, gzip) nightly into its `pgbackups` volume, keeps 14 days, and copies each dump to the S3-compatible bucket when `BACKUP_S3_BUCKET` is set. `infra/backup/pg-backup.sh` does the same from any host with cron. To take a dump from the volume instead of the bucket: `docker cp <backup container>:/backups/harusi-<stamp>.sql.gz .` It covers Postgres only. These live elsewhere and need their own care:
 
 - **Redis** (queues, nothing durable: safe to lose; unsent queued messages are re-run by retrying failed sends).
 - **Object storage** (card images, PDFs): replicate the bucket or accept that PDFs are regenerated on demand.
+- **Kumbukumbu photos** (ADR 050): the `photofiles` volume (`/data/photo-files` in the `api` container). Copy it off the server with the dumps, e.g. nightly `docker run --rm -v <stack>_photofiles:/p:ro -v /backups:/b alpine tar czf /b/photos-$(date +%F).tgz -C /p .`; restore by extracting into an empty volume before the API starts. Rows without files show empty frames; files without rows are never served.
 - **Secrets** (`KEY_ENC_SECRET`, `JWT_SECRET`, aggregator keys): in the secret store. **Without `KEY_ENC_SECRET` the event signing keys in a restored database cannot be decrypted and every printed QR becomes unverifiable**, so keep that secret backed up separately and never in the same place as the dumps.
 
 ## Drill (about 20 minutes)

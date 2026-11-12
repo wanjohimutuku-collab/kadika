@@ -11,6 +11,7 @@ import {
   CalendarHeart,
   FileClock,
   LifeBuoy,
+  MessageSquareText,
   ShieldAlert,
   ShieldCheck,
   Users,
@@ -37,6 +38,8 @@ const ITEMS = [
   { key: 'pilot', href: '/ops/pilot', icon: Gauge },
   /** Card bundles and message packs hosts buy, and their prices (ADR 042). */
   { key: 'billing', href: '/ops/billing', icon: Wallet },
+  /** Customers who bought SMS reminders only (ADR 055). */
+  { key: 'sms', href: '/ops/sms', icon: MessageSquareText },
   { key: 'support', href: '/ops/support', icon: LifeBuoy },
   { key: 'requests', href: '/ops/requests', icon: ShieldCheck },
   { key: 'audit', href: '/ops/audit', icon: FileClock },

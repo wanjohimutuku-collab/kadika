@@ -5,6 +5,7 @@ const UPDATED = '2026-10-15';
 export const COMPANY_PAGES: ContentPageDef[] = [
   {
     slug: 'maswali',
+    slugEn: 'faq',
     group: 'company',
     schema: 'WebPage',
     updated: UPDATED,
@@ -46,7 +47,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
         },
         {
           q: 'Michango inalipwaje?',
-          a: 'Kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kutoka kwenye kadi ya mgeni. Kamati inaweza pia kurekodi taslimu na benki.',
+          a: 'Moja kwa moja kwa wenye sherehe, kwa M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, benki au taslimu. Kamati inarekodi kila malipo dhidi ya ahadi. Kadi Sasa haishiki pesa za michango.',
         },
         {
           q: 'Michango ni lazima ili mgeni apate kadi?',
@@ -161,6 +162,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kuhusu',
+    slugEn: 'about',
     group: 'company',
     schema: 'WebPage',
     updated: UPDATED,
@@ -304,13 +306,14 @@ export const COMPANY_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'mawasiliano',
+    slugEn: 'contact',
     group: 'company',
     schema: 'WebPage',
     updated: UPDATED,
     related: ['maswali', 'ombi-la-data', 'usalama-wa-kadi-za-mtandaoni', 'kuhusu'],
     sw: {
       nav: 'Mawasiliano',
-      title: 'Wasiliana na Kadi Sasa',
+      title: 'Wasiliana na Kadi Sasa: Msaada, Kadi na Maombi ya Data',
       description:
         'Wasiliana na Kadi Sasa kwa maswali ya huduma, kuthibitisha kadi, au maombi ya data na faragha. Barua pepe: faragha@kadisasa.com.',
       h1: 'Wasiliana nasi',
@@ -356,7 +359,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     },
     en: {
       nav: 'Contact',
-      title: 'Contact Kadi Sasa',
+      title: 'Contact Kadi Sasa: Support, Card Checks and Data Requests',
       description:
         'Contact Kadi Sasa for service questions, to verify a card, or for data and privacy requests. Email: faragha@kadisasa.com.',
       h1: 'Contact us',

@@ -1,3 +1,4 @@
+import type { SmsCampaignView } from '@harusi/schemas/sms';
 import type { PricingCatalog, PurchaseView } from '@harusi/schemas/billing';
 import type { BrandingInput } from '@harusi/schemas/branding';
 import {
@@ -19,6 +20,7 @@ import type {
   SendJob,
   User,
   WeddingEvent,
+  Memory,
 } from '../types';
 import { STATUS_RANK } from '../domain/funnel';
 import { mulberry32, Rng } from './prng';
@@ -135,6 +137,13 @@ export interface MockState {
       { provider: string; fields: Record<string, string>; updatedAt: string; updatedBy: string }
     >
   >;
+  /** Sign-in code settings saved in /ops (ADR 049); without them the env default (sms) shows. */
+  signInSettings?: {
+    provider: 'sms' | 'firebase';
+    fields: Record<string, string>;
+    updatedAt: string;
+    updatedBy: string;
+  };
   /** Business branding saved in /ops (ADR 036); undefined shows the defaults. */
   branding?: {
     input: BrandingInput;
@@ -145,12 +154,20 @@ export interface MockState {
     updatedAt: string;
     updatedBy: string;
   };
+  /** The Android app uploaded in /ops (ADR 047); the mock keeps its details, not the file. */
+  androidRelease?: { version: string; size: number; sha256: string; uploadedAt: string };
   /** Staff session passed the second factor. Reset on sign-out. */
   staffVerified: boolean;
   /** Prices saved in /ops (ADR 042); undefined uses `DEFAULT_PRICING`. */
   pricing?: { catalog: PricingCatalog; updatedAt: string; updatedBy: string };
   /** Card bundles, message packs and staff grants per event (ADR 042). */
   purchases?: (PurchaseView & { eventId: string; phone: string | null })[];
+  /** Kumbukumbu photos per event (ADR 050); the image bytes live in memory only. */
+  memories?: Record<string, Memory[]>;
+  /** Staff-changed photo limits per event; 30 otherwise. */
+  memoriesLimit?: Record<string, number>;
+  /** Texts SMS-only customers sent or scheduled (ADR 055). */
+  smsCampaigns?: SmsCampaignView[];
 }
 
 /** Midnight in Dar es Salaam for the given instant, as epoch ms (UTC). */

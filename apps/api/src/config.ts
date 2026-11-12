@@ -9,6 +9,10 @@ export interface Config {
   /** Public URL of this API (`API_PUBLIC_URL`), where gateways post callbacks. Null until set. */
   apiPublicUrl: string | null;
   shortBaseUrl: string;
+  /** Where staff-uploaded app files (the Android APK, ADR 047) are kept: a persistent volume. */
+  appFilesDir?: string;
+  /** Kumbukumbu photos (ADR 050): a persistent volume. */
+  photoFilesDir: string;
   /** Kenya support (+254, KES, Nairobi) is off unless this is on (ADR 025). */
   kenyaEnabled: boolean;
   /** Rollback levers for Kenya without turning it off (docs/ops/kenya-pilot-runbook.md): no new Kenyan
@@ -20,6 +24,13 @@ export interface Config {
    * committee records it. Webhooks and reconciliation still settle payments already in flight.
    */
   guestPaymentsEnabled: boolean;
+  /**
+   * Anonymous first-party analytics (ADR 057). Off by default, no cookies, no third party.
+   * When off, the service is a no-op and writes nothing.
+   */
+  analyticsEnabled: boolean;
+  /** 32-byte base64 secret used to hash visitor IP + user-agent into the daily session key. */
+  analyticsSessionSecret: string | null;
   /** Link domain per country (`SHORT_BASE_URL_KE`); a country without one uses `shortBaseUrl`. */
   shortBaseUrls: Partial<Record<Country, string>>;
   /** SMS provider for Kenyan numbers: `fake` or `africastalking` (only used when Kenya is enabled). */
@@ -38,10 +49,22 @@ export interface Config {
   smsProvider: string;
   whatsappProvider: string;
   paymentProvider: string;
+  /**
+   * The fake payment provider collects nothing, and anyone holding its webhook secret can mark an order
+   * paid, so in production it is refused (review I-03) unless `ALLOW_FAKE_PAYMENTS=1` says this is a
+   * staging stack. Payments are then simply off until a real gateway is saved in /ops.
+   */
+  fakePaymentsAllowed?: boolean;
   /** Shared secret the aggregator signs webhooks with; payments are off without it. */
   paymentWebhookSecret: string | null;
   /** Shared secret for delivery webhooks (header `x-webhook-secret`); webhooks are off without it. */
   webhookSecret: string | null;
+  /**
+   * Secret for Africa's Talking delivery reports only (`AT_WEBHOOK_SECRET`). That callback cannot send
+   * headers, so its secret rides in the URL and ends up in proxy logs (review L-03); with its own value a
+   * leak there cannot forge the other providers' callbacks. Unset: `webhookSecret` is used, as before.
+   */
+  atWebhookSecret?: string | null;
   evolution: { baseUrl: string; instance: string; apiKey: string } | null;
   /** Official WhatsApp Business Cloud API (alternative to Evolution). */
   whatsappCloud: {
@@ -50,12 +73,24 @@ export interface Config {
     apiVersion: string;
     verifyToken: string | null;
     appSecret: string | null;
-    templates: { invite?: string; reminder?: string; pledge?: string; contribution?: string };
+    templates: {
+      invite?: string;
+      reminder?: string;
+      pledge?: string;
+      contribution?: string;
+      memories?: string;
+    };
     /** Templates approved per country; Kenya's use a one-host-field parameter layout (ADR 026). */
     templatesByCountry: Partial<
       Record<
         Country,
-        { invite?: string; reminder?: string; pledge?: string; contribution?: string }
+        {
+          invite?: string;
+          reminder?: string;
+          pledge?: string;
+          contribution?: string;
+          memories?: string;
+        }
       >
     >;
   } | null;
@@ -72,12 +107,61 @@ export interface Config {
   cardReadLimit: number;
   /** Sentry project DSN; error reporting is off without it. */
   sentryDsn: string | null;
+  /**
+   * Header that carries the real client IP, set by the edge proxy (e.g. `cf-connecting-ip` behind
+   * Cloudflare). Without it the last X-Forwarded-For entry is used: the one the nearest proxy added,
+   * which a client cannot forge. Rate limits key on this IP.
+   */
+  clientIpHeader: string | null;
+  /** Login codes one IP may request per hour, across all phone numbers (SMS pumping guard). */
+  otpIpHourlyLimit: number;
+  /** Login codes the whole API sends per hour; past it requests fail and staff are alerted. */
+  otpGlobalHourlyLimit: number;
+  /** SMS + WhatsApp messages in 24 hours above which an alert is reported (spend guard; 0 = off). */
+  messageDailyAlert: number;
+  /**
+   * Who sends sign-in codes (ADR 048): `sms` is our own code through the SMS route; `firebase` is
+   * Firebase Phone Auth, and our SMS routes then carry only transactional messages.
+   */
+  authOtpProvider: 'sms' | 'firebase';
+  /** Break-glass (ADR 049): codes go by SMS whatever is saved in /ops, e.g. while Firebase is broken. */
+  authForceSms: boolean;
+  /**
+   * Firebase projects staff may save in /ops (`FIREBASE_ALLOWED_PROJECT_IDS`, comma-separated). The
+   * project vouches for phone numbers, so whoever picks it can sign in as anyone; with a list here a
+   * taken-over admin session cannot point sign-in at a project of its own. Empty = any project.
+   */
+  firebaseAllowedProjectIds?: string[];
+  /** Firebase project for phone sign-in. The web values are public; clients read them from the API. */
+  firebase: {
+    projectId: string;
+    apiKey: string | null;
+    authDomain: string | null;
+    appId: string | null;
+  } | null;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
   const v = env[key];
   if (!v) throw new Error(`${key} is required`);
   return v;
+}
+
+/**
+ * A numeric setting. A value that is not a number stops startup: `Number('abc')` is NaN, and a NaN
+ * rate limit compares false against every count, which would silently switch the limit off.
+ */
+function num(
+  env: Record<string, string | undefined>,
+  key: string,
+  fallback: number,
+  min = 0,
+): number {
+  const raw = env[key];
+  if (raw === undefined) return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < min) throw new Error(`${key} must be a number of at least ${min}`);
+  return n;
 }
 
 export function loadConfig(input: Record<string, string | undefined> = process.env): Config {
@@ -91,6 +175,11 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     throw new Error('JWT_SECRET and KEY_ENC_SECRET must be set to real secrets in production');
   }
   if (jwtSecret.length < 16) throw new Error('JWT_SECRET must be at least 16 characters');
+  const authOtpProvider = env.AUTH_OTP_PROVIDER ?? 'sms';
+  if (authOtpProvider !== 'sms' && authOtpProvider !== 'firebase')
+    throw new Error('AUTH_OTP_PROVIDER must be sms or firebase');
+  if (authOtpProvider === 'firebase' && !env.FIREBASE_PROJECT_ID)
+    throw new Error('AUTH_OTP_PROVIDER=firebase needs FIREBASE_PROJECT_ID');
   return {
     databaseUrl: required(env, 'DATABASE_URL'),
     jwtSecret,
@@ -98,11 +187,15 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     appBaseUrl: env.APP_BASE_URL ?? 'http://localhost:3000',
     apiPublicUrl: env.API_PUBLIC_URL ? env.API_PUBLIC_URL.replace(/\/$/, '') : null,
     shortBaseUrl: env.SHORT_BASE_URL ?? env.APP_BASE_URL ?? 'http://localhost:3000',
+    appFilesDir: env.APP_FILES_DIR ?? 'data/app-files',
+    photoFilesDir: env.PHOTO_FILES_DIR ?? 'data/photo-files',
     kenyaEnabled: env.KENYA_ENABLED === '1' || env.KENYA_ENABLED === 'true',
     kenyaSendingPaused: env.KENYA_SENDING_PAUSED === '1' || env.KENYA_SENDING_PAUSED === 'true',
     kenyaPaymentsPaused: env.KENYA_PAYMENTS_PAUSED === '1' || env.KENYA_PAYMENTS_PAUSED === 'true',
     guestPaymentsEnabled:
       env.GUEST_PAYMENTS_ENABLED === '1' || env.GUEST_PAYMENTS_ENABLED === 'true',
+    analyticsEnabled: env.ANALYTICS_ENABLED === '1' || env.ANALYTICS_ENABLED === 'true',
+    analyticsSessionSecret: env.ANALYTICS_SESSION_SECRET ?? null,
     shortBaseUrls: env.SHORT_BASE_URL_KE ? { KE: env.SHORT_BASE_URL_KE } : {},
     paymentProviderKe: env.PAYMENT_PROVIDER_KE ?? 'fake',
     paymentKe:
@@ -131,8 +224,11 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     smsProvider: env.SMS_PROVIDER ?? 'fake',
     whatsappProvider: env.WHATSAPP_PROVIDER ?? 'fake',
     paymentProvider: env.PAYMENT_PROVIDER ?? 'fake',
+    fakePaymentsAllowed:
+      !production || env.ALLOW_FAKE_PAYMENTS === '1' || env.ALLOW_FAKE_PAYMENTS === 'true',
     paymentWebhookSecret: env.PAYMENT_WEBHOOK_SECRET ?? null,
     webhookSecret: env.WEBHOOK_SECRET ?? null,
+    atWebhookSecret: env.AT_WEBHOOK_SECRET ?? null,
     evolution:
       env.EVOLUTION_BASE_URL && env.EVOLUTION_INSTANCE && env.EVOLUTION_API_KEY
         ? {
@@ -154,18 +250,21 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,
               pledge: env.WHATSAPP_TEMPLATE_PLEDGE,
               contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION,
+              memories: env.WHATSAPP_TEMPLATE_MEMORIES,
             },
             templatesByCountry:
               env.WHATSAPP_TEMPLATE_INVITE_KE ||
               env.WHATSAPP_TEMPLATE_REMINDER_KE ||
               env.WHATSAPP_TEMPLATE_PLEDGE_KE ||
-              env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE
+              env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE ||
+              env.WHATSAPP_TEMPLATE_MEMORIES_KE
                 ? {
                     KE: {
                       invite: env.WHATSAPP_TEMPLATE_INVITE_KE,
                       reminder: env.WHATSAPP_TEMPLATE_REMINDER_KE,
                       pledge: env.WHATSAPP_TEMPLATE_PLEDGE_KE,
                       contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE,
+                      memories: env.WHATSAPP_TEMPLATE_MEMORIES_KE,
                     },
                   }
                 : {},
@@ -180,7 +279,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
           }
         : null,
     redisUrl: env.REDIS_URL ?? null,
-    whatsappFallbackHours: Number(env.WHATSAPP_FALLBACK_HOURS ?? 6),
+    whatsappFallbackHours: num(env, 'WHATSAPP_FALLBACK_HOURS', 6),
     // CORS_EXTRA_ORIGINS adds hosts to the list, e.g. the console and staff hosts in production (ADR 032).
     corsOrigins: [
       env.CORS_ORIGINS ?? env.APP_BASE_URL ?? 'http://localhost:3000',
@@ -190,9 +289,27 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),
-    port: Number(env.API_PORT ?? env.PORT ?? 3001),
+    port: num(env, env.API_PORT ? 'API_PORT' : 'PORT', 3001),
     logRequests: env.LOG_REQUESTS !== '0',
-    cardReadLimit: Number(env.CARD_READ_LIMIT ?? 120),
+    cardReadLimit: num(env, 'CARD_READ_LIMIT', 120, 1),
     sentryDsn: env.SENTRY_DSN || null,
+    clientIpHeader: env.CLIENT_IP_HEADER ? env.CLIENT_IP_HEADER.toLowerCase() : null,
+    otpIpHourlyLimit: num(env, 'OTP_IP_HOURLY_LIMIT', 20, 1),
+    otpGlobalHourlyLimit: num(env, 'OTP_GLOBAL_HOURLY_LIMIT', 500, 1),
+    messageDailyAlert: num(env, 'MESSAGE_DAILY_ALERT', 5000),
+    authOtpProvider,
+    authForceSms: env.AUTH_FORCE_SMS === '1' || env.AUTH_FORCE_SMS === 'true',
+    firebaseAllowedProjectIds: (env.FIREBASE_ALLOWED_PROJECT_IDS ?? '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean),
+    firebase: env.FIREBASE_PROJECT_ID
+      ? {
+          projectId: env.FIREBASE_PROJECT_ID,
+          apiKey: env.FIREBASE_WEB_API_KEY ?? null,
+          authDomain: env.FIREBASE_AUTH_DOMAIN ?? `${env.FIREBASE_PROJECT_ID}.firebaseapp.com`,
+          appId: env.FIREBASE_WEB_APP_ID ?? null,
+        }
+      : null,
   };
 }

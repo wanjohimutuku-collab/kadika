@@ -10,6 +10,8 @@ const UPDATED = '2026-10-20';
 export const OCCASION_PAGES: ContentPageDef[] = [
   {
     slug: 'kadi-za-mwaliko-mtandaoni',
+
+    slugEn: 'online-invitations',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -186,6 +188,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-kuzaliwa',
+
+    slugEn: 'birthday-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -301,6 +305,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-kitchen-party',
+
+    slugEn: 'kitchen-party-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -341,7 +347,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Kamati ikiwa na michango, ahadi na malipo yanaonekana kwa kila mgeni na mgeni analipa kwa simu kutoka kwenye kadi. Soma zaidi kwenye ukurasa wa michango ya harusi.',
+              text: 'Kamati ikiwa na michango, ahadi na malipo yanaonekana kwa kila mgeni. Mgeni analipa moja kwa moja kwa kamati, na mweka hazina anarekodi malipo. Soma zaidi kwenye ukurasa wa michango ya harusi.',
             },
           ],
         },
@@ -388,7 +394,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'If the committee collects contributions, pledges and payments show per guest and guests pay by phone from the card. Read more on the wedding contributions page.',
+              text: 'If the committee collects contributions, pledges and payments show per guest. Guests pay the committee directly and the treasurer records each payment. Read more on the wedding contributions page.',
             },
           ],
         },
@@ -407,6 +413,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-mahafali',
+
+    slugEn: 'graduation-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -506,6 +514,8 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-za-mwaliko-biashara',
+
+    slugEn: 'business-event-invitations',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,

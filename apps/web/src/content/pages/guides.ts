@@ -5,6 +5,7 @@ const UPDATED = '2026-10-15';
 export const GUIDE_PAGES: ContentPageDef[] = [
   {
     slug: 'kadi-ya-harusi-bila-smartphone',
+    slugEn: 'wedding-invitation-without-a-smartphone',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -175,6 +176,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'usalama-wa-kadi-za-mtandaoni',
+    slugEn: 'security-of-online-invitations',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -336,6 +338,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'lango-la-harusi-qr',
+    slugEn: 'wedding-gate-qr-check-in',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -538,6 +541,7 @@ export const GUIDE_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'maneno-ya-kadi-ya-harusi',
+    slugEn: 'wedding-invitation-wording',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,

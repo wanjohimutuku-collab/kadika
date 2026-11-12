@@ -1,5 +1,7 @@
-import { defaultLocale, type Locale } from '@harusi/i18n';
+import type { Locale } from '@harusi/i18n';
+import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { APP_DOMAIN } from './env';
+import { swPath } from './site-locale';
 
 /** Public origin used for canonical URLs, hreflang, the sitemap and structured data. */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${APP_DOMAIN}`).replace(
@@ -9,46 +11,105 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${APP_DOMA
 
 export type Market = 'tz' | 'ke';
 
+/** The site's link-preview images, one per edition (`app/og/[file]/route.tsx`). */
+export const OG_EDITIONS = ['sw', 'en', 'ke'] as const;
+export type OgEdition = (typeof OG_EDITIONS)[number];
+export const OG_SIZE = { width: 1200, height: 630 };
+
+/**
+ * `openGraph.images` for a public page. Next copies them into the Twitter card, which then becomes
+ * `summary_large_image`. Every page that sets `openGraph` must pass these, because a page's `openGraph`
+ * replaces the parent's whole object.
+ */
+export function ogImages(locale: Locale, market: Market = 'tz') {
+  const edition: OgEdition = market === 'ke' ? 'ke' : locale;
+  return [
+    {
+      url: `${SITE_URL}/og/${edition}.png`,
+      ...OG_SIZE,
+      alt:
+        edition === 'sw'
+          ? 'Kadi Sasa: kadi moja kwa kila mgeni'
+          : 'Kadi Sasa: one card for every guest',
+    },
+  ];
+}
+
+/** The organisation node every page's structured data shares, by `@id` (one entity, not one per page). */
+export const ORG_ID = `${SITE_URL}/#org`;
+export function organizationNode(description?: string) {
+  return {
+    '@type': 'Organization',
+    '@id': ORG_ID,
+    name: DEFAULT_BRANDING.businessName,
+    url: SITE_URL,
+    logo: { '@type': 'ImageObject', url: `${SITE_URL}/icons/512.png`, width: 512, height: 512 },
+    ...(description ? { description } : {}),
+    areaServed: ['TZ', 'KE'],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      email: 'faragha@kadisasa.com',
+      availableLanguage: ['sw', 'en'],
+    },
+  };
+}
+
 /** Kenya content lives under `/ke`; everything else is Tanzania. */
 export function marketOfPath(path: string): Market {
   return path === '/ke' || path.startsWith('/ke/') ? 'ke' : 'tz';
 }
 
-/** English is the default everywhere; Swahili is one tap away. */
+/** English on both markets (English-default scheme). */
 export function defaultLocaleFor(_market: Market): Locale {
-  return defaultLocale;
+  return 'en';
 }
 
-/** The default language has the clean URL; the other one is `?lang=`. */
+/** Kenya pages are English only; Swahili may not be served there. */
+export function localesFor(market: Market): readonly Locale[] {
+  return market === 'ke' ? ['en'] : ['sw', 'en'];
+}
+
+/**
+ * The URL of a site page in a language. Tanzania: English at the plain path, Swahili under `/sw`.
+ * Kenya: always the plain `/ke` path. The caller is responsible for passing a slug-correct path
+ * via `pagePath(p, locale)`.
+ */
 export function localeUrl(path: string, locale: Locale): string {
-  return locale === defaultLocaleFor(marketOfPath(path)) ? path : `${path}?lang=${locale}`;
+  if (marketOfPath(path) === 'ke' || locale === 'en') return path;
+  return swPath(path);
 }
 
-/** Absolute form for metadata: relative URLs lose their query string when Next resolves them. */
 export function absoluteLocaleUrl(path: string, locale: Locale): string {
   return `${SITE_URL}${localeUrl(path, locale)}`;
 }
 
 /**
- * hreflang for one page. Pages with a counterpart in the other market get region-specific codes
- * (sw-TZ, en-TZ, sw-KE, en-KE); Tanzania-only pages use plain sw and en; Kenya-only pages use
- * en-KE and sw-KE.
+ * hreflang for one page: `en-TZ` and `sw-TZ` for a Tanzania page, `en-KE` for a Kenya page, both
+ * markets when the page has a same-topic counterpart. `x-default` is the Tanzania English page
+ * (the default edition), or the Kenya page when there is no Tanzania one.
+ *
+ * `path` is the English TZ URL (slug-correct for EN). When the TZ page's SW slug differs from
+ * its EN slug, the caller MUST pass `swOverride` with the SW-slug TZ path (bare, no `/sw`
+ * prefix); the function wraps it with `/sw` internally. Without an override, SW uses the same
+ * slug as EN.
  */
-export function hreflangMap(path: string, counterpartPath?: string): Record<string, string> {
+export function hreflangMap(
+  path: string,
+  counterpartPath?: string,
+  swOverride?: string,
+): Record<string, string> {
   const abs = absoluteLocaleUrl;
   const market = marketOfPath(path);
-  if (!counterpartPath) {
-    return market === 'tz'
-      ? { sw: abs(path, 'sw'), en: abs(path, 'en'), 'x-default': abs(path, 'en') }
-      : { 'en-KE': abs(path, 'en'), 'sw-KE': abs(path, 'sw'), 'x-default': abs(path, 'en') };
-  }
   const tz = market === 'tz' ? path : counterpartPath;
+  const tzSw = market === 'tz' ? (swOverride ?? path) : (swOverride ?? counterpartPath);
   const ke = market === 'ke' ? path : counterpartPath;
-  return {
-    'sw-TZ': abs(tz, 'sw'),
-    'en-TZ': abs(tz, 'en'),
-    'sw-KE': abs(ke, 'sw'),
-    'en-KE': abs(ke, 'en'),
-    'x-default': abs(tz, 'en'),
-  };
+  const map: Record<string, string> = {};
+  if (tz) {
+    map['en-TZ'] = abs(tz, 'en');
+    map['sw-TZ'] = tzSw ? abs(tzSw, 'sw') : abs(tz, 'sw');
+  }
+  if (ke) map['en-KE'] = abs(ke, 'en');
+  map['x-default'] = tz ? abs(tz, 'en') : abs(ke!, 'en');
+  return map;
 }

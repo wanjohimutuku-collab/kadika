@@ -1,0 +1,48 @@
+{
+  "sw": {
+    "gateApp": {
+      "welcomeGate": "Ninalinda lango",
+      "codeOrLink": "Namba ya kiungo au kiungo chote",
+      "linkQrHelp": "Mlinda lango askani QR hii kwa kamera ya simu yake, au afungue kiungo. Mpe PIN kwa njia nyingine.",
+      "linkQrAlt": "Msimbo wa QR wa kiungo cha lango; namba {code}",
+      "share": "Tuma kiungo"
+    },
+    "gateJoinPage": {
+      "metaTitle": "Kiungo cha lango · {brand}",
+      "eyebrow": "Kiungo cha lango",
+      "title": "Umealikwa kulinda lango",
+      "body": "Lango linaendeshwa kwenye programu ya {brand} ya Android. Huhitaji akaunti: namba hii ya kiungo na PIN uliyopewa na mwenye harusi zinatosha.",
+      "codeLabel": "Namba ya kiungo",
+      "open": "Fungua kwenye programu",
+      "download": "Pakua programu",
+      "stepsTitle": "Hatua",
+      "step1": "Pakua na usakinishe programu ya {brand} (Android 8 au mpya zaidi).",
+      "step2": "Rudi kwenye ukurasa huu ubonyeze \"Fungua kwenye programu\", au fungua programu uchague \"Ninalinda lango\" na uweke namba {code}.",
+      "step3": "Weka PIN uliyopewa. Orodha ya wageni itapakuliwa, kisha unaweza kuskani hata bila mtandao.",
+      "trust": "Hatutakuomba nenosiri wala namba ya siri ya simu yako. PIN ya lango unapewa na mwenye harusi tu."
+    }
+  },
+  "en": {
+    "gateApp": {
+      "welcomeGate": "I'm running the gate",
+      "codeOrLink": "Link code or the whole link",
+      "linkQrHelp": "The gate agent scans this QR with their phone camera, or opens the link. Give them the PIN separately.",
+      "linkQrAlt": "Gate link QR code; code {code}",
+      "share": "Send link"
+    },
+    "gateJoinPage": {
+      "metaTitle": "Gate link · {brand}",
+      "eyebrow": "Gate link",
+      "title": "You've been asked to run the gate",
+      "body": "The gate runs in the {brand} Android app. You don't need an account: this link code and the PIN the hosts gave you are enough.",
+      "codeLabel": "Link code",
+      "open": "Open in the app",
+      "download": "Download the app",
+      "stepsTitle": "Steps",
+      "step1": "Download and install the {brand} app (Android 8 or newer).",
+      "step2": "Come back to this page and tap \"Open in the app\", or open the app, choose \"I'm running the gate\" and enter code {code}.",
+      "step3": "Enter the PIN you were given. The guest list downloads, then you can scan even without a network.",
+      "trust": "We will never ask for a password or your phone's PIN. The gate PIN only comes from the hosts."
+    }
+  }
+}

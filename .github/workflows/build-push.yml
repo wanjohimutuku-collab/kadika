@@ -4,7 +4,7 @@
 # The run then waits until the live API and web app report the new commit on /health, so a red run
 # means the deploy did not land, and GitHub emails whoever pushed (ADR 035).
 #
-#   push to main    ->  :staging       (+ :main, :sha-<short>)    moves deploy/staging
+#   green main      ->  release.yml tags the next patch version and starts this workflow on that tag
 #   tag v1.2.3      ->  :production    (+ :1.2.3, :sha-<short>)   moves deploy/production
 #   manual run      ->  :sha-<short> and :<branch> (+ :staging on main); moves deploy/staging only
 #                       when run on main with "deploy" ticked
@@ -16,7 +16,7 @@
 name: Build and push images
 
 on:
-  # Only releases (v* tags) and manual runs, to spend few Actions minutes. Pushes to main do not build.
+  # Releases (v* tags, pushed by hand or by release.yml after a green merge to main) and manual runs.
   push:
     tags: ['v*.*.*']
   workflow_dispatch:
@@ -110,9 +110,9 @@ jobs:
           echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
           echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -122,7 +122,7 @@ jobs:
       # No :production here: the deploy job adds it once CI has passed.
       - name: API image tags
         id: meta-api
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ${{ steps.names.outputs.prefix }}-api
           bake-target: meta-api
@@ -134,7 +134,7 @@ jobs:
 
       - name: Web image tags
         id: meta-web
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
           images: ${{ steps.names.outputs.prefix }}-web
           bake-target: meta-web
@@ -147,12 +147,13 @@ jobs:
       # Both images in one BuildKit run, in parallel, with the layer cache in GHCR (see the bake file).
       # The dependency install is reused until the lockfile or a manifest changes.
       - name: Build and push the API and web images
-        uses: docker/bake-action@v7
+        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_APP_DOMAIN: ${{ vars.NEXT_PUBLIC_APP_DOMAIN }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_KENYA_ENABLED: ${{ vars.NEXT_PUBLIC_KENYA_ENABLED || '0' }}
+          NEXT_PUBLIC_COOKIE_SESSION: ${{ vars.NEXT_PUBLIC_COOKIE_SESSION || '0' }}
           GIT_SHA: ${{ github.sha }}
           CACHE_PREFIX: ${{ steps.names.outputs.prefix }}
         with:
@@ -184,7 +185,7 @@ jobs:
                 if [ "$(echo "$body" | jq -r .version)" = "$GITHUB_SHA" ]; then echo "$1 is up."; return 0; fi
                 echo "::error::$1 reports version $(echo "$body" | jq -r .version), expected $GITHUB_SHA"; return 1
               fi
-              sleep 2
+              sleep 1
             done
             echo "::error::$1 did not answer $2"; docker logs "$1"; return 1
           }
@@ -263,7 +264,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -291,7 +292,9 @@ jobs:
           DEPLOY_BRANCH: deploy/${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
         run: |
           # A manual run on another branch has no :staging image, so the stack would redeploy the old one.
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+          # A run on a version tag (started by release.yml) deploys to production like a tag push.
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_REF" != refs/heads/main ] &&
+            [[ "$GITHUB_REF" != refs/tags/v* ]]; then
             echo "::warning::Deploys only run from main. The images are pushed as :sha-${GITHUB_SHA::7}; nothing was deployed."
             exit 0
           fi
@@ -323,7 +326,7 @@ jobs:
           for target in $targets; do
             name=${target%%=*}; url=${target#*=}
             until [ "$(live "$url")" = "$GITHUB_SHA" ]; do
-              sleep 10
+              sleep 5
               echo "Waiting for $name ($url): live version is '$(live "$url")' after $(( $(date +%s) - start ))s"
             done
             echo "$name is live on ${GITHUB_SHA::7}."

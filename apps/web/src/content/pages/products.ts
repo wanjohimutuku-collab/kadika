@@ -5,6 +5,7 @@ const UPDATED = '2026-10-15';
 export const PRODUCT_PAGES: ContentPageDef[] = [
   {
     slug: 'kadi-ya-harusi-mtandaoni',
+    slugEn: 'online-wedding-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -214,6 +215,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'michango-ya-harusi',
+    slugEn: 'wedding-contributions',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -227,10 +229,10 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       nav: 'Michango ya harusi',
       title: 'Michango ya Harusi: Fuatilia Ahadi na Malipo | Kadi Sasa',
       description:
-        'Rekodi ahadi na malipo ya michango ya harusi kwa kila mgeni. Wageni wanalipa kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kutoka kwenye kadi yao.',
+        'Rekodi ahadi na malipo ya michango ya harusi kwa kila mgeni. Wageni wanalipa wenye sherehe moja kwa moja kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa.',
       h1: 'Michango ya harusi: ahadi na malipo mahali pamoja',
       answer:
-        'Kadi Sasa inaweka michango ndani ya kadi ya mwaliko. Kamati inarekodi ahadi ya kila mgeni, mgeni analipa kwa simu kutoka kwenye kadi yake, na kamati inaona kilichokusanywa, kilichoahidiwa na salio la kila mtu. Malipo ya taslimu yanarekodiwa pia.',
+        'Kadi Sasa inaipa kamati daftari la michango lililo salama. Kamati inarekodi ahadi ya kila mgeni, mgeni analipa wenye sherehe moja kwa moja kwa simu au taslimu, na mweka hazina anaona kilichoahidiwa, kilicholipwa na salio la kila mtu. Kadi Sasa haishiki pesa za michango.',
       sections: [
         {
           id: 'tatizo',
@@ -250,9 +252,9 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
               t: 'ol',
               items: [
                 'Kamati inarekodi ahadi ya mgeni (kiasi na maelezo) kwenye wasifu wake.',
-                'Mgeni anaona ahadi na salio lake kwenye kadi yake, na anabonyeza “Lipa kwa simu”.',
-                'Analipa kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa. Hatuombi PIN; anathibitisha kwenye simu yake.',
-                'Malipo yanaingia kwenye orodha na salio linapungua. Kamati inaweza pia kurekodi taslimu au benki.',
+                'Mgeni anapokea kadi ya michango inayoonyesha ahadi yake, salio na namba za kamati za kulipia (M-Pesa, Lipa Namba au benki).',
+                'Analipa wenye sherehe moja kwa moja. Pesa haipiti kwetu, na hatumwombi PIN.',
+                'Mweka hazina anarekodi malipo na salio linapungua. Taslimu na benki zinarekodiwa vilevile.',
                 'Mgeni anayedaiwa anapokea ukumbusho kwa heshima, si zaidi ya mara chache.',
               ],
             },
@@ -288,15 +290,15 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       faq: [
         {
           q: 'Michango inalipwaje?',
-          a: 'Kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kutoka kwenye kadi ya mgeni. Taslimu na benki zinarekodiwa na kamati.',
+          a: 'Moja kwa moja kwa wenye sherehe, kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa. Taslimu na benki zinarekodiwa na kamati pia. Kadi Sasa haishiki pesa za michango.',
         },
         {
           q: 'Pesa zinaenda wapi?',
-          a: 'Malipo yanapita kwa mtoa huduma wa malipo aliyeidhinishwa. Mpangilio wa kupokea pesa kwa kamati bado unakamilishwa wakati wa majaribio; tutaeleza hapa utakapokuwa tayari.',
+          a: 'Moja kwa moja kwa wenye sherehe, kwenye namba au akaunti walizoweka wenyewe. Kadi Sasa inahifadhi kumbukumbu tu, zimefungwa kwa usimbaji fiche, na ni kamati na mwenyeji tu wanaoziona.',
         },
         {
           q: 'Je, Kadi Sasa inahifadhi PIN za malipo?',
-          a: 'Hapana. Mgeni anathibitisha kwenye simu yake na hatuombi PIN wala nenosiri.',
+          a: 'Hapana. Malipo yanafanyika kati ya mgeni na wenye sherehe, na hatuombi PIN wala nenosiri.',
         },
         {
           q: 'Je, inaweza kutumika kwa mchango wa send-off au uchumba?',
@@ -308,10 +310,10 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       nav: 'Wedding contributions',
       title: 'Wedding Contributions (Michango): Track Pledges | Kadi Sasa',
       description:
-        'Record pledges and payments for each wedding guest. Guests pay with M-Pesa, Mixx by Yas, Airtel Money or HaloPesa straight from their card.',
+        'Record pledges and payments for each wedding guest. Guests pay the hosts directly by M-Pesa, Mixx by Yas, Airtel Money or HaloPesa.',
       h1: 'Wedding contributions (michango): pledges and payments in one place',
       answer:
-        'Kadi Sasa puts contributions inside the invitation. The committee records each guest’s pledge, the guest pays by phone from their card, and the committee sees collected, pledged and balance per person. Cash payments are recorded too.',
+        'Kadi Sasa gives the committee a secure contributions ledger. The committee records each guest’s pledge, the guest pays the hosts directly by phone or cash, and the treasurer sees pledged, paid and balance per person. Kadi Sasa never holds contribution money.',
       sections: [
         {
           id: 'problem',
@@ -331,9 +333,9 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
               t: 'ol',
               items: [
                 'The committee records a guest’s pledge (amount and note) on their profile.',
-                'The guest sees the pledge and balance on their card and taps “Pay by phone”.',
-                'They pay with M-Pesa, Mixx by Yas, Airtel Money or HaloPesa. We never ask for a PIN; they confirm on their own phone.',
-                'The payment lands in the list and the balance drops. The committee can also record cash or bank payments.',
+                'The guest receives a contribution card showing the pledge, the balance and the committee’s own payment numbers (M-Pesa, Lipa Namba or bank).',
+                'They pay the hosts directly. The money never passes through us, and we never ask for a PIN.',
+                'The treasurer records the payment and the balance drops. Cash and bank payments are recorded the same way.',
                 'A guest who owes receives a polite reminder, only a few times.',
               ],
             },
@@ -369,15 +371,15 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       faq: [
         {
           q: 'How are contributions paid?',
-          a: 'With M-Pesa, Mixx by Yas, Airtel Money or HaloPesa from the guest’s card. Cash and bank payments are recorded by the committee.',
+          a: 'Directly to the hosts, by M-Pesa, Mixx by Yas, Airtel Money or HaloPesa. Cash and bank payments are recorded by the committee too. Kadi Sasa never holds contribution money.',
         },
         {
           q: 'Where does the money go?',
-          a: 'Payments pass through an approved payment provider. How the committee receives funds is still being finalised during the pilot; we will explain it here when ready.',
+          a: 'Straight to the hosts, to the numbers or accounts they set themselves. Kadi Sasa keeps only the records, encrypted, and only the committee and hosts can see them.',
         },
         {
           q: 'Does Kadi Sasa store payment PINs?',
-          a: 'No. The guest confirms on their own phone and we never ask for a PIN or password.',
+          a: 'No. Payments happen between the guest and the hosts, and we never ask for a PIN or password.',
         },
         {
           q: 'Can I use it for a send-off or engagement?',
@@ -388,6 +390,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-send-off',
+    slugEn: 'send-off-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -544,6 +547,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-ya-uchumba',
+    slugEn: 'engagement-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,

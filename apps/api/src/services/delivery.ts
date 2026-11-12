@@ -1,22 +1,39 @@
-import { and, eq, gt, inArray, isNull, lt, sql } from 'drizzle-orm';
-import { events, guests, invitations, messageLog, newId, retiredCardTokens } from '@harusi/db';
+import { and, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
+import {
+  events,
+  guests,
+  invitations,
+  messageLog,
+  newId,
+  retiredCardTokens,
+  users,
+} from '@harusi/db';
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { formatMoney, hostNames, toZoned, type CardKind } from '@harusi/schemas';
 import { pledgeSummaryOf } from './pledges';
 import { composeSms, dateText, senderOf } from './messages';
 import type { Country } from '@harusi/schemas/country';
 import { routeCountry, shortBaseFor, smsFor } from '../sms-routing';
-import type { DeliveryState, MessageTemplate } from '@harusi/messaging';
-import type { MessageChannel, MessagingProvider } from '@harusi/messaging';
+import type {
+  DeliveryState,
+  MessageChannel,
+  MessageTemplate,
+  MessagingProvider,
+} from '@harusi/messaging';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import type { EventService } from './events';
 import { BillingService, type CreditBudget } from './billing';
+import { BrandingService } from './branding';
+import { recordAudit } from './audit';
+import { MemoriesService } from './memories';
 import { CARD_DELIVERY_KINDS } from '@harusi/schemas/billing';
 
 const MAX_ATTEMPTS = 3;
 const BACKOFF_MS = [500, 2_000];
+/** A `queued` claim older than this belongs to a send that died; the guest counts as unsent again. */
+const CLAIM_STALE_MS = 15 * 60_000;
 
 /**
  * Who a send goes to. `remaining` and `failed` fit invitations; `unanswered` (invited, no reply yet) and
@@ -267,7 +284,7 @@ export class DeliveryService {
           })
           .where(
             kind === 'invite'
-              ? and(eq(invitations.id, inv.id), eq(invitations.status, 'created'))
+              ? and(eq(invitations.id, inv.id), inArray(invitations.status, ['created', 'queued']))
               : eq(invitations.id, inv.id),
           );
         return { ok: true, channel: ch };
@@ -361,7 +378,11 @@ export class DeliveryService {
   async sendReminders(): Promise<{ sent: number; failed: number }> {
     const now = this.deps.now();
     const dayOf = (d: Date, tz: string) => Math.floor(toZoned(d, tz).getTime() / 86_400_000);
-    const evs = await this.deps.db.select().from(events).where(eq(events.status, 'active'));
+    // SMS-reminder-only accounts (ADR 055) have no cards to remind about; they send their own texts.
+    const evs = await this.deps.db
+      .select()
+      .from(events)
+      .where(and(eq(events.status, 'active'), eq(events.product, 'cards')));
     const out = { sent: 0, failed: 0 };
     for (const event of evs) {
       // Only between 08:00 and 20:00 in the event's own time zone: nobody wants a reminder at night.
@@ -514,8 +535,93 @@ export class DeliveryService {
     return out;
   }
 
+  /**
+   * Kumbukumbu (ADR 050): each guest with a phone gets their own memories link. Spends one reminder
+   * credit per message that is not a failure (ADR 042), refused up front when credits are short.
+   */
+  async sendMemories(eventId: string, userId: string, guestIds: string[] | 'all') {
+    const role = await this.eventsSvc.role(eventId, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot send messages');
+    const memoriesSvc = new MemoriesService(this.deps, this.eventsSvc);
+    if (!(await memoriesSvc.unlocked(eventId)))
+      throw new ApiError('payment_required', 'Buy cards to unlock memories', {
+        reason: 'feature_locked',
+        feature: 'memories',
+      });
+    if (!(await memoriesSvc.availableFor(eventId)))
+      throw new ApiError('validation', 'Add photos and switch the page on first', {
+        reason: 'no_memories',
+      });
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    if (!event) throw new ApiError('not_found', 'Event not found');
+    const rows = await this.deps.db
+      .select({ guest: guests, inv: invitations })
+      .from(guests)
+      .innerJoin(invitations, eq(invitations.guestId, guests.id))
+      .where(
+        and(
+          eq(guests.eventId, eventId),
+          isNull(guests.deletedAt),
+          isNotNull(guests.phoneE164),
+          ...(guestIds === 'all' ? [] : [inArray(guests.id, guestIds)]),
+        ),
+      );
+    const targets = rows.filter((r) => this.channelsFor(r.guest, 'auto').length > 0);
+    await this.billing.assertCanUse(eventId, { messages: targets.length });
+    const budget = await this.billing.budget(eventId);
+    const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
+    const hosts = hostNames(a, b);
+    const out = { sent: 0, failed: 0, skipped: rows.length - targets.length };
+    for (const { guest, inv } of targets) {
+      const link = `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}/k`;
+      const r = await this.dispatch(
+        guest,
+        inv,
+        event,
+        'memories',
+        this.channelsFor(guest, 'auto'),
+        undefined,
+        {
+          text: composeSms('memories', { event, guest, link }),
+          template: {
+            kind: 'memories',
+            locale: guest.language,
+            country: event.country,
+            params: [hosts, link],
+          },
+        },
+        budget,
+      );
+      out[r.ok ? 'sent' : 'failed']++;
+    }
+    return out;
+  }
+
+  /** The guest's own memories link, and a wa.me link the host opens on their own phone (free). */
+  async memoriesLink(guestId: string, userId: string) {
+    const [row] = await this.deps.db
+      .select({ guest: guests, inv: invitations, event: events })
+      .from(guests)
+      .innerJoin(events, eq(events.id, guests.eventId))
+      .leftJoin(invitations, eq(invitations.guestId, guests.id))
+      .where(and(eq(guests.id, guestId), isNull(guests.deletedAt)));
+    if (!row) throw new ApiError('not_found', 'Guest not found');
+    const role = await this.eventsSvc.role(row.event.id, userId);
+    if (role === 'gate') throw new ApiError('forbidden', 'Gate agents cannot share links');
+    if (!row.inv)
+      throw new ApiError('conflict', 'This guest has no card yet', { reason: 'no_invitation' });
+    // The country's short domain, as in the SMS; `/s/<token>/k` opens `/c/<token>/kumbukumbu`.
+    const url = `${shortBaseFor(this.deps.config, row.event.country)}/s/${await this.cardToken(row.inv)}/k`;
+    const text = composeSms('memories', { event: row.event, guest: row.guest, link: url });
+    const waUrl = row.guest.phoneE164
+      ? `https://wa.me/${row.guest.phoneE164.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`
+      : null;
+    return { url, waUrl };
+  }
+
   async send(eventId: string, userId: string, input: SendInput): Promise<SendSummary> {
     await this.assertCanSend(eventId, userId);
+    await this.eventsSvc.assertCardsProduct(eventId);
     // Refuse up front (402) when the event cannot generate every card, or pay for every reminder, that
     // this send would need (ADR 042).
     await this.billing.assertCanUse(eventId, await this.needs(eventId, input));
@@ -590,14 +696,58 @@ export class DeliveryService {
             ).map((r) => r.guestId),
           )
         : null;
+    const unsent = (inv: typeof invitations.$inferSelect) => this.unsent(inv);
     const picked = rows.filter(({ guest, inv }) => {
-      if (t === 'remaining') return inv.status === 'created';
-      if (t === 'failed') return inv.status === 'created' && failedIds!.has(guest.id);
+      if (t === 'remaining') return unsent(inv);
+      if (t === 'failed') return unsent(inv) && failedIds!.has(guest.id);
       if (typeof t === 'string') return false;
       if ('guestIds' in t) return t.guestIds.includes(guest.id);
-      return guest.groupLabel === t.group && inv.status === 'created';
+      return guest.groupLabel === t.group && unsent(inv);
     });
     return { event, kind, picked };
+  }
+
+  /** Not sent yet: `created`, or `queued` by a send that died before finishing (claim gone stale). */
+  private unsent(inv: typeof invitations.$inferSelect): boolean {
+    if (inv.status === 'created') return true;
+    return (
+      inv.status === 'queued' &&
+      inv.updatedAt.getTime() < this.deps.now().getTime() - CLAIM_STALE_MS
+    );
+  }
+
+  /**
+   * Claims an unsent invitation for this run (`created` → `queued`) with a conditional update, so two
+   * sends running at once (a retried request, a scheduled send next to a manual one, two committee
+   * members) never text the same guest twice. False: another run has it.
+   */
+  private async claim(inv: typeof invitations.$inferSelect): Promise<boolean> {
+    const now = this.deps.now();
+    const [row] = await this.deps.db
+      .update(invitations)
+      .set({ status: 'queued', updatedAt: now })
+      .where(
+        and(
+          eq(invitations.id, inv.id),
+          or(
+            eq(invitations.status, 'created'),
+            and(
+              eq(invitations.status, 'queued'),
+              lt(invitations.updatedAt, new Date(now.getTime() - CLAIM_STALE_MS)),
+            ),
+          ),
+        ),
+      )
+      .returning({ id: invitations.id });
+    return !!row;
+  }
+
+  /** Gives a claimed invitation back when nothing reached the guest, so a later send retries it. */
+  private async unclaim(inv: typeof invitations.$inferSelect): Promise<void> {
+    await this.deps.db
+      .update(invitations)
+      .set({ status: 'created' })
+      .where(and(eq(invitations.id, inv.id), eq(invitations.status, 'queued')));
   }
 
   /** How many guests an audience matches right now (a scheduled send stores this as its estimate). */
@@ -695,7 +845,21 @@ export class DeliveryService {
         summary.skipped++;
         continue;
       }
-      const r = await this.dispatch(guest, inv, event, kind, channels, daysLeft, undefined, budget);
+      // A first invitation is claimed before it goes out; a resend to someone already invited is not.
+      const claimed = kind === 'invite' && this.unsent(inv);
+      const takenElsewhere = kind === 'invite' && inv.status === 'queued' && !claimed;
+      if (takenElsewhere || (claimed && !(await this.claim(inv)))) {
+        summary.skipped++; // another send is reaching this guest right now
+        continue;
+      }
+      let r: Awaited<ReturnType<DeliveryService['dispatch']>>;
+      try {
+        r = await this.dispatch(guest, inv, event, kind, channels, daysLeft, undefined, budget);
+      } catch (e) {
+        if (claimed) await this.unclaim(inv);
+        throw e;
+      }
+      if (claimed && !r.ok) await this.unclaim(inv);
       if (r.ok) {
         summary.sent++;
         summary.byChannel[r.channel === 'whatsapp' ? 'whatsapp' : 'sms']++;
@@ -705,6 +869,37 @@ export class DeliveryService {
       }
     }
     return summary;
+  }
+
+  /**
+   * "Tuma ujumbe wa majaribio": one message to the caller's own phone, so the host sees how cards
+   * arrive before sending to guests. Free, nothing goes to a guest, and the number is never shown
+   * in full or logged (§12).
+   */
+  async sendTest(eventId: string, userId: string, channel: MessageChannel) {
+    await this.assertCanSend(eventId, userId);
+    const [event] = await this.deps.db.select().from(events).where(eq(events.id, eventId));
+    const [me] = await this.deps.db.select().from(users).where(eq(users.id, userId));
+    if (!event || !me) throw new ApiError('not_found', 'Event not found');
+    const to = me.phoneE164;
+    const p = this.provider(channel, to, event.country);
+    if (!p) throw new ApiError('validation', 'This channel is not available', { field: 'channel' });
+    const brand = await new BrandingService(this.deps).businessName();
+    const r = await this.attempt(
+      p,
+      to,
+      `${brand}: ujumbe wa majaribio kwa ${event.title}. Wageni wako watapokea kadi zao hivi.`,
+    );
+    await recordAudit(this.deps.db, {
+      eventId,
+      actorId: userId,
+      action: 'send.test',
+      entity: 'event',
+      entityId: eventId,
+      diff: { channel, provider: p.name, ok: r.ok },
+    });
+    if (!r.ok) throw new ApiError('unavailable', 'The test message could not be sent');
+    return { to: `…${to.slice(-3)} (${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'})` };
   }
 
   /** Funnel counts by invitation status (§7.7). */

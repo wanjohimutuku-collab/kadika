@@ -29,6 +29,9 @@ export default async function OpsLayout({ children }: { children: ReactNode }) {
         'pay',
         'guestDetail',
         'wizard',
+        'memories',
+        // status pills on the events table (and its SMS-only column, ADR 055)
+        'events',
       ])}
     >
       <ConsoleProviders>

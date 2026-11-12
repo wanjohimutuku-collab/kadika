@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHttpRepository, memoryTokenStore, type Repository } from '@harusi/api-client';
+import {
+  cookieSessionTokenStore,
+  createHttpRepository,
+  memoryTokenStore,
+  type Repository,
+} from '@harusi/api-client';
 import { createTestContext, type TestContext } from './testing/test-app';
 
 let ctx: TestContext;
@@ -44,6 +49,59 @@ describe('HttpRepository against the real API', () => {
     ctx.clock.now += 16 * 60_000; // access token expired, refresh token still valid
     expect((await r.getSession())?.user.phoneE164).toBe('+255712100101');
     expect(tokens.get()?.refreshToken).toBeTruthy();
+  });
+
+  it('keeps the session when two tabs refresh an expired token at the same time', async () => {
+    // Browser tabs share the tokens in localStorage, and a reused refresh token revokes the whole
+    // session; before the shared lock this signed staff out and every /v1/ops call answered 401.
+    let queue: Promise<unknown> = Promise.resolve();
+    const lock = <T>(fn: () => Promise<T>): Promise<T> => {
+      const run = queue.then(fn);
+      queue = run.catch(() => undefined);
+      return run;
+    };
+    const tokens = memoryTokenStore();
+    const tab = () =>
+      createHttpRepository('http://api.test', {
+        tokens,
+        refreshLock: lock,
+        fetchImpl: ((url: string, init?: RequestInit) =>
+          ctx.app.request(url.replace('http://api.test', ''), init)) as typeof fetch,
+      });
+    const a = tab();
+    const b = tab();
+    const s = await login(a, '0712 100 130');
+    ctx.clock.now += 16 * 60_000;
+    const [sa, sb] = await Promise.all([a.getSession(), b.getSession()]);
+    expect(sa?.user.id).toBe(s.user.id);
+    expect(sb?.user.id).toBe(s.user.id);
+    // Still signed in afterwards: nothing tripped the reuse detection.
+    ctx.clock.now += 16 * 60_000;
+    expect((await tab().getSession())?.user.id).toBe(s.user.id);
+  });
+
+  it('a failed refresh in one tab does not clear the pair another tab just stored', async () => {
+    const tokens = memoryTokenStore();
+    const a = repo(tokens);
+    const s = await login(a, '0712 100 131');
+    ctx.clock.now += 16 * 60_000;
+    const fresh = repo(tokens);
+    // This tab's refresh is refused (as when the token was rotated elsewhere); meanwhile the other
+    // tab stores a good pair. The refused tab must leave that pair alone.
+    const refused = createHttpRepository('http://api.test', {
+      tokens,
+      fetchImpl: (async (url: string, init?: RequestInit) => {
+        const path = url.replace('http://api.test', '');
+        if (path === '/v1/auth/refresh') {
+          await fresh.getSession();
+          return new Response(JSON.stringify({ error: { code: 'unauthorized' } }), { status: 401 });
+        }
+        return ctx.app.request(path, init);
+      }) as typeof fetch,
+    });
+    expect(await refused.getSession()).toBeNull();
+    expect(tokens.get()).not.toBeNull();
+    expect((await repo(tokens).getSession())?.user.id).toBe(s.user.id);
   });
 
   it('maps API errors to RepositoryError codes', async () => {
@@ -225,10 +283,116 @@ describe('HttpRepository against the real API', () => {
     expect((await guestView.getCard('nope')).state).toBe('invalid');
   });
 
+  it('runs the console Gate page: overview, scan log and a manual check-in (§17.8)', async () => {
+    const r = repo();
+    await login(r, '0712 100 109');
+    const ev = await r.createEvent({
+      title: 'Harusi ya Gate',
+      partnerA: 'Neema',
+      partnerB: 'Daudi',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Mlimani City Hall',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 0,
+    });
+    const g = await r.createGuest(ev.id, {
+      displayName: 'Bibi Pendo',
+      phone: '0712 100 199',
+      partySizeAllowed: 2,
+      inviteChannelPref: 'sms',
+      hasSmartphone: true,
+      language: 'sw',
+      notes: '',
+    });
+    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 0, expectedGuests: 0 });
+    expect(await r.listScans(ev.id)).toEqual([]);
+    const entry = await r.manualCheckIn(ev.id, g.id, { partySize: 2, reason: 'Mlango wa nyuma' });
+    expect(entry).toMatchObject({ guestName: 'Bibi Pendo', result: 'manual_ok', partyAdmitted: 2 });
+    expect(await r.getGateOverview(ev.id)).toMatchObject({ admittedGuests: 1, admittedPeople: 2 });
+    expect((await r.listScans(ev.id)).map((s) => s.result)).toEqual(['manual_ok']);
+  });
+
   it('rejects not-yet-built features with not_implemented', async () => {
     const r = repo();
-    await expect(r.getReport('x')).rejects.toMatchObject({ code: 'not_implemented' });
-    await expect(r.listScans('x')).rejects.toMatchObject({ code: 'not_implemented' });
+    // the console's "show card" link is mock-only: the API never hands out raw card tokens
+    await expect(r.getGuestCardLink('x')).rejects.toMatchObject({ code: 'not_implemented' });
+  });
+
+  it('runs the rest of the console: activity, report, guest history, groups, undo and delete', async () => {
+    const r = repo();
+    await login(r, '0712 100 111');
+    const ev = await r.createEvent({
+      title: 'Harusi ya Dashibodi',
+      partnerA: 'Rehema',
+      partnerB: 'Musa',
+      dateStart: '2027-03-20T15:00:00+03:00',
+      venueName: 'Ukumbi',
+      venueMapUrl: '',
+      dressCode: '',
+      languageDefault: 'sw',
+      themeId: 'emerald-gold',
+      coverGradient: '',
+      rsvpDeadline: '',
+      contributionTarget: 0,
+    });
+    const guest = (name: string, phone: string) =>
+      r.createGuest(ev.id, {
+        displayName: name,
+        phone,
+        partySizeAllowed: 2,
+        inviteChannelPref: 'sms',
+        hasSmartphone: true,
+        language: 'sw',
+        notes: '',
+      });
+    const a = await guest('Bibi Pendo', '0712 100 201');
+    const b = await guest('Babu Salim', '0712 100 202');
+
+    // Overview and Reports
+    expect(await r.listActivity(ev.id, 12)).toEqual([]);
+    await r.manualCheckIn(ev.id, a.id, { partySize: 2 });
+    const act = await r.listActivity(ev.id, 12);
+    expect(act).toHaveLength(1);
+    expect(act[0]).toMatchObject({ kind: 'checked_in', guestName: 'Bibi Pendo', count: 2 });
+    const rep = await r.getReport(ev.id);
+    expect(rep.stats.invited).toBe(2);
+    expect(rep.headcountTarget).toBe(4);
+    expect(rep.channels.map((c) => c.channel)).toEqual(['whatsapp', 'sms', 'print']);
+    expect(rep.arrivalsByHour.reduce((n, h) => n + h.count, 0)).toBe(2);
+    expect(rep.pledgeReconciliation).toMatchObject({ pledged: 0, collected: 0, outstanding: 0 });
+
+    // Guest detail: note, history, messages
+    const note = await r.addGuestNote(a.id, '  Anakuja na mjukuu  ');
+    expect(note).toMatchObject({ action: 'note', details: 'Anakuja na mjukuu' });
+    const history = await r.listGuestAudit(a.id);
+    expect(history.map((h) => h.action)).toEqual(['note', 'manual_check_in']);
+    expect(history[0]!.actorName).not.toBe('');
+    expect(await r.listGuestMessages(a.id)).toEqual([]);
+
+    // Guests: move to a group, delete, undo
+    expect(await r.setGuestsGroup([a.id, b.id], ' Familia ')).toEqual({ updated: 2 });
+    expect((await r.getGuest(b.id)).groupLabel).toBe('Familia');
+    await r.deleteGuests([b.id]);
+    expect(await r.restoreGuests([b.id])).toEqual({ restored: 1 });
+    expect((await r.listGuests(ev.id)).map((g) => g.displayName).sort()).toEqual([
+      'Babu Salim',
+      'Bibi Pendo',
+    ]);
+    expect((await r.listGuestAudit(b.id)).map((h) => h.action)).toEqual([
+      'restore',
+      'delete',
+      'group',
+    ]);
+
+    // Settings: delete the event; it is gone for its owner
+    await r.deleteEvent(ev.id);
+    expect((await r.listEvents()).map((e) => e.id)).not.toContain(ev.id);
+    await expect(r.getEvent(ev.id)).rejects.toMatchObject({ code: 'not_found' });
   });
 
   it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {
@@ -545,5 +709,97 @@ describe('HttpRepository against the real API', () => {
     const csv = await (await r.exportCsv(ev.id, 'payments')).text();
     expect(csv).toContain('"Bibi Pendo"');
     await expect(r.exportCsv(ev.id, 'scans')).rejects.toMatchObject({ code: 'not_implemented' });
+  });
+});
+
+describe('HttpRepository with a cookie session (security review M-05)', () => {
+  const ORIGIN = 'http://localhost:3000'; // the test API's default allowed origin
+
+  /** localStorage, as far as the token store needs it. */
+  function fakeStorage() {
+    const data = new Map<string, string>();
+    return {
+      data,
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k),
+    } as unknown as Storage & { data: Map<string, string> };
+  }
+
+  /** A browser: one cookie jar and one localStorage shared by its tabs; `tab()` is a page load. */
+  function browser() {
+    const jar = new Map<string, string>();
+    const storage = fakeStorage();
+    const sent: { path: string; credentials?: string; body: string }[] = [];
+    const fetchImpl = (async (url: string, init: RequestInit = {}) => {
+      const path = url.replace('http://api.test', '');
+      const withCookies = init.credentials === 'include';
+      sent.push({ path, credentials: init.credentials, body: String(init.body ?? '') });
+      const res = await ctx.app.request(path, {
+        ...init,
+        headers: {
+          ...(init.headers as Record<string, string>),
+          origin: ORIGIN,
+          ...(withCookies && jar.size
+            ? { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') }
+            : {}),
+        },
+      });
+      if (withCookies)
+        for (const line of res.headers.getSetCookie()) {
+          const [name, value = ''] = line.split(';')[0]!.split('=');
+          if (value && !/max-age=0/i.test(line)) jar.set(name!, value);
+          else jar.delete(name!);
+        }
+      return res;
+    }) as typeof fetch;
+    const tab = () =>
+      createHttpRepository('http://api.test', {
+        tokens: cookieSessionTokenStore(storage),
+        cookieSession: true,
+        fetchImpl,
+      });
+    return { jar, storage, sent, tab };
+  }
+
+  it('signs in without the refresh token ever reaching the page, and survives a reload', async () => {
+    const b = browser();
+    b.storage.setItem('harusi.auth.v1', '{"accessToken":"old","refreshToken":"old-long-lived"}');
+    const first = b.tab();
+    const s = await login(first, '0712 100 301');
+    expect(b.jar.size).toBe(1);
+    const refreshToken = [...b.jar.values()][0]!;
+    // nothing a script can read holds a token: only the marker, and the old build's tokens are gone
+    expect([...b.storage.data.entries()]).toEqual([['harusi.session.v1', '1']]);
+    expect(JSON.stringify(b.sent)).not.toContain(refreshToken);
+
+    // a reload: a new page with no access token in memory gets one through the cookie
+    const reloaded = b.tab();
+    expect((await reloaded.getSession())?.user.id).toBe(s.user.id);
+    expect([...b.jar.values()][0]).not.toBe(refreshToken); // rotated
+    // only the auth routes are sent the cookie
+    expect(
+      b.sent
+        .filter((r) => r.credentials === 'include')
+        .every((r) => r.path.startsWith('/v1/auth/')),
+    ).toBe(true);
+    expect(b.sent.some((r) => r.path === '/v1/me' && r.credentials === undefined)).toBe(true);
+  });
+
+  it('refreshes an expired access token through the cookie, and signing out ends every tab', async () => {
+    const b = browser();
+    const one = b.tab();
+    const two = b.tab();
+    await login(one, '0712 100 302');
+    expect(await two.getSession()).not.toBeNull();
+    ctx.clock.now += 16 * 60_000; // access tokens last 15 minutes
+    expect(await one.getSession()).not.toBeNull();
+    expect(await two.getSession()).not.toBeNull();
+
+    await one.signOut();
+    expect(b.jar.size).toBe(0);
+    expect(b.storage.data.size).toBe(0);
+    expect(await two.getSession()).toBeNull();
+    expect(await b.tab().getSession()).toBeNull();
   });
 });

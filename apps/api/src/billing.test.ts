@@ -242,6 +242,27 @@ describe('enforced allowances', () => {
     expect((await s.billing()).allowance.cards).toBe(2);
   });
 
+  it('a success that does not say how much arrived leaves the order for staff too', async () => {
+    const s = await setup();
+    const p = (await (
+      await s.order({ cards: 5 }, 'order-key-cards-noamt', {
+        method: 'mobile',
+        phone: '0712 345 678',
+        mobileMethod: 'mpesa',
+      })
+    ).json()) as { reference: string };
+    const body = ctx.payments.webhookBody({ reference: p.reference, status: 'success' });
+    await ctx.app.request('/v1/payments/webhook/fake', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...body.headers },
+      body: body.raw,
+    });
+    expect((await s.billing()).purchases[0]).toMatchObject({ status: 'pending' });
+    expect((await s.billing()).allowance.cards).toBe(2);
+    const [e] = await ctx.db.select().from(events).where(eq(events.id, s.evId));
+    expect(e!.plan).not.toBe('paid');
+  });
+
   it('only real orders; staff can grant credit with a reason', async () => {
     const s = await setup();
     expect((await s.order({ packKey: 'nope' }, 'order-key-unknown')).status).toBe(400);

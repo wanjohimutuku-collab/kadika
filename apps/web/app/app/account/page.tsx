@@ -122,7 +122,7 @@ export default function AccountPage() {
             </Button>
             <Link
               href="/privacy"
-              className="inline-flex min-h-10 items-center self-start text-primary underline"
+              className="inline-flex min-h-11 items-center self-start text-primary underline"
             >
               {t('privacyLink')}
             </Link>

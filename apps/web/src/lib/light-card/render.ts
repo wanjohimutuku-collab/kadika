@@ -45,17 +45,24 @@ export interface LightCardOptions {
   apiUrl: string;
 }
 
-const esc = (v: unknown): string =>
+export const esc = (v: unknown): string =>
   String(v ?? '').replace(
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
 
 /** The business logo as a link home, or nothing when there is none. Height is fixed so nothing jumps as it loads. */
-function brandLogo(brand?: LightBrand): string {
+export function brandLogo(brand?: LightBrand): string {
   if (!brand?.logoSrc) return '';
   return `<a class="brand" href="/" data-testid="card-brand"><img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}" height="28" style="height:28px;width:auto;max-width:160px;object-fit:contain"></a>`;
 }
+
+/**
+ * The language chip: remembers the choice and reloads. Like every inline script of the light pages it
+ * is a constant with no page data in it, so its hash can be allowed by the page's CSP (route-utils.ts).
+ */
+export const LANG_SCRIPT =
+  "document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})";
 
 /** Safe inside <script type="application/json">: `<` can never close the tag. */
 const jsonForScript = (v: unknown): string => JSON.stringify(v).replace(/</g, '\\u003c');
@@ -73,7 +80,7 @@ const ICONS = {
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.1-17.1 1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   x: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6m0-6 6 6"/>',
 };
-const icon = (name: keyof typeof ICONS, cls = ''): string =>
+export const icon = (name: keyof typeof ICONS, cls = ''): string =>
   `<svg class="ic ${cls}" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 
 const c = lightColors;
@@ -107,7 +114,7 @@ h2{font-size:18px;font-weight:600}
 .btn.block{width:100%}
 .btn.primary{background:var(--hp-primary);border-color:var(--hp-primary);color:var(--hp-on-primary)}
 .btn.accent{background:var(--surface);border:2px solid var(--hp-primary);color:var(--hp-primary)}
-.btn.ghost{border-color:transparent;min-height:40px}
+.btn.ghost{border-color:transparent;min-height:44px}
 .btn.lg{min-height:56px;font-size:18px}
 .btn:focus-visible,a:focus-visible{outline:3px solid var(--info);outline-offset:2px}
 .row{display:flex;align-items:flex-start;gap:12px}
@@ -138,10 +145,10 @@ h2{font-size:18px;font-weight:600}
 .problem h1{font-size:24px}
 footer{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 20px;font-size:14px;background:var(--bg)}
 footer nav{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center}
-footer nav a{min-height:40px;display:inline-flex;align-items:center}
+footer nav a{min-height:44px;display:inline-flex;align-items:center}
 .brand{display:inline-flex;align-items:center;min-height:40px;margin-bottom:4px}
 .lang{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
-.lang button{min-height:40px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
+.lang button{min-height:44px;min-width:56px;border:0;background:var(--surface);color:var(--ink);font:600 14px inherit;font-family:inherit;cursor:pointer}
 .lang button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
 .msg{display:flex;flex-direction:column;gap:8px}
 .prog{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
@@ -154,7 +161,7 @@ footer nav a{min-height:40px;display:inline-flex;align-items:center}
 @media print{.no-print{display:none!important}.card{border:0;margin:0}}
 `;
 
-type Msg = Record<string, string>;
+export type Msg = Record<string, string>;
 
 /** Every colour the page uses, resolved once: preset + the event's overrides + banner tints. */
 function paletteCss(p: Palette): string {
@@ -183,15 +190,15 @@ function fmt(tpl: string, values: Record<string, string | number> = {}): string 
   return formatIcu(tpl, values);
 }
 
-function langChip(locale: Locale): string {
+export function langChip(locale: Locale): string {
   const common = messages[locale].common as unknown as Record<string, unknown>;
   const names = common.languageName as Record<Locale, string>;
   const b = (l: Locale) =>
-    `<button type="button" data-lang="${l}" aria-pressed="${locale === l}" lang="${l}" aria-label="${esc(fmt(String(common.switchTo), { lang: names[l] }))}">${l.toUpperCase()}</button>`;
+    `<button type="button" data-lang="${l}" aria-pressed="${locale === l}" lang="${l}" aria-label="${l.toUpperCase()}, ${esc(fmt(String(common.switchTo), { lang: names[l] }))}">${l.toUpperCase()}</button>`;
   return `<div class="lang no-print" role="group" aria-label="${esc(String(common.language))}">${b('sw')}${b('en')}</div>`;
 }
 
-function shell(opts: {
+export function shell(opts: {
   locale: Locale;
   title: string;
   description?: string;
@@ -225,8 +232,27 @@ export function renderProblem(
 <a class="btn" href="/k">${esc(m.card.enterCodeInstead)}</a>
 <p class="muted" style="font-size:14px">${icon('shield')} ${esc(m.card.trustNever)}</p>
 <p class="muted" style="font-size:14px">${esc(o.domain)}</p>${langChip(o.locale)}</main>
-<script>document.querySelectorAll('[data-lang]').forEach(function(b){b.onclick=function(){document.cookie='NEXT_LOCALE='+b.getAttribute('data-lang')+'; path=/; max-age=31536000; samesite=lax';location.reload()}})</script>`,
+<script>${LANG_SCRIPT}</script>`,
   });
+}
+
+/**
+ * Who sent this, how to call them, and that we never ask for secrets (§17.6, P1/P7). Shared by the
+ * card and the Kumbukumbu page (ADR 050).
+ */
+export function trustStrip(view: CardView, locale: Locale, domain: string): string {
+  const event = view.event!;
+  const t = (pickMessages(locale, ['card'], event.country ?? 'TZ') as unknown as { card: Msg })
+    .card;
+  const content = (event.cardContent ?? {}) as CardContent;
+  const sender = senderNameFor(event, locale);
+  const phoneRaw = content.sender?.phone?.trim() || event.committeePhone || '';
+  const phone = formatPhone(phoneRaw, event.country ?? 'TZ');
+  const telHref = phoneRaw.replace(/[^\d+]/g, '');
+  const fromCommittee = senderKindOf(content) === 'committee';
+  const trustLine = pick(content.sender?.trustLine, locale);
+  return `<section id="hp-trust-section" style="padding-top:16px"><div class="trust" data-testid="trust-strip"><div>${icon('shield')}<div><p><b>${esc(trustLine ? renderTemplate(trustLine, { sender }) : fmt(t.trustSender!, { sender }))}</b></p>${phoneRaw ? `<p>${esc(fmt(fromCommittee ? t.trustCommitteePhone! : t.trustContactPhone!, { phone }))}</p>` : ''}<p class="muted">${esc(fmt(t.trustDomain!, { domain }))}</p><p class="muted" style="margin-top:4px">${esc(t.trustNever)}</p></div></div>
+${phoneRaw ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(fmt(fromCommittee ? t.callCommittee! : t.callContact!, { phone }))}">${icon('phone').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.call)}</a>` : ''}</div></section>`;
 }
 
 export function renderCard(view: CardView, o: LightCardOptions): string {
@@ -234,12 +260,13 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const event = view.event!;
   const m = pickMessages(
     locale,
-    ['card', 'states', 'common'],
+    ['card', 'states', 'common', 'memories'],
     event.country ?? 'TZ',
   ) as unknown as {
     card: Msg;
     states: Msg;
     common: Msg;
+    memories: Msg;
   };
   const t = m.card;
   const cur = event.currency ?? 'TZS';
@@ -413,9 +440,10 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
 
   const hasPhone = !!phoneRaw;
   const fromCommittee = senderKind === 'committee';
-  const trustLine = L(content.sender?.trustLine);
-  const trust = `<section id="hp-trust-section" style="padding-top:16px"><div class="trust" data-testid="trust-strip"><div>${icon('shield')}<div><p><b>${esc(trustLine ? renderTemplate(trustLine, { sender }) : fmt(t.trustSender!, { sender }))}</b></p>${hasPhone ? `<p>${esc(fmt(fromCommittee ? t.trustCommitteePhone! : t.trustContactPhone!, { phone }))}</p>` : ''}<p class="muted">${esc(fmt(t.trustDomain!, { domain: o.domain }))}</p><p class="muted" style="margin-top:4px">${esc(t.trustNever)}</p></div></div>
-${hasPhone ? `<a class="btn block" href="tel:${esc(telHref)}" aria-label="${esc(fmt(fromCommittee ? t.callCommittee! : t.callContact!, { phone }))}">${icon('phone').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.call)}</a>` : ''}</div></section>`;
+  const trust = trustStrip(view, locale, o.domain);
+  const memoriesLink = view.memoriesAvailable
+    ? `<section class="no-print"><a class="btn block" href="/c/${encodeURIComponent(view.token)}/kumbukumbu" data-testid="card-memories">${esc(m.memories.openCardMemories)}</a></section>`
+    : '';
 
   const confirmed = view.rsvp.status === 'confirmed';
   const rsvpSection =
@@ -482,6 +510,7 @@ ${showWhen ? `<p class="when">${esc(formatWeekday(event.dateStart, locale))} ${e
 ${lead}
 ${message}
 ${trust}
+${memoriesLink}
 ${confirmed ? qrSection : ''}
 ${venueSection}
 ${programme}

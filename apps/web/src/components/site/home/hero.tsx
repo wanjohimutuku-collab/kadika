@@ -21,6 +21,7 @@ export interface HeroProps {
   howHref: string;
   howLabel: string;
   trustLine: string;
+  kickerEvents: readonly [string, string, string, string, string, string];
   previewFrameAlt: string;
   statCards: HeroStatCardsCopy;
 }
@@ -51,12 +52,12 @@ export function Hero(props: HeroProps) {
           <ul className="-mx-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
             {(
               [
-                ['Harusi', 'text-ks-magenta'],
-                ['Send-off', 'text-ks-saffron'],
-                ['Kitchen party', 'text-ks-green-700'],
-                ['Nikah', 'text-ks-indigo'],
-                ['Mahafali', 'text-ks-terracotta'],
-                ['Biashara', 'text-ks-magenta'],
+                [props.kickerEvents[0], 'text-ks-magenta'],
+                [props.kickerEvents[1], 'text-ks-saffron'],
+                [props.kickerEvents[2], 'text-ks-green-700'],
+                [props.kickerEvents[3], 'text-ks-indigo'],
+                [props.kickerEvents[4], 'text-ks-terracotta'],
+                [props.kickerEvents[5], 'text-ks-magenta'],
               ] as const
             ).map(([label, color], i) => (
               <li key={label} className="inline-flex items-center gap-3">

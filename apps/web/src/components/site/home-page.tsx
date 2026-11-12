@@ -32,6 +32,23 @@ const TZ_EVENTS = [
   'kadi-za-mwaliko-tanzania',
 ] as const;
 
+/** Pillar guides and comparison articles linked from the home page to pass internal PageRank. */
+const TZ_GUIDES = [
+  'jinsi-ya-kuunda-kadi-ya-harusi-tanzania',
+  'kutuma-kadi-za-mwaliko-whatsapp',
+  'kadi-ya-mtandaoni-vs-karatasi',
+  'kusimamia-majibu-ya-rsvp',
+  'lango-la-harusi-qr',
+  'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko',
+] as const;
+
+const KE_GUIDES = [
+  'wedding-committee-guide',
+  'wedding-contributions-guide',
+  'wedding-invitation-wording',
+  'is-a-digital-wedding-invitation-safe',
+] as const;
+
 const domainOf = (url: string) => url.replace(/^https?:\/\//, '');
 
 /** Server-computed seed so SSR and the hero island's client state start in agreement. */
@@ -63,6 +80,9 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
     market === 'ke'
       ? ALL_PAGES.filter((p) => marketOf(p) === 'ke' && p.slug && p.group !== 'legal')
       : TZ_EVENTS.map((s) => getPage(s)).filter((p) => !!p);
+  const guides = (market === 'ke' ? KE_GUIDES : TZ_GUIDES)
+    .map((s) => getPage(s, market))
+    .filter((p) => !!p);
   const pageUrl = absoluteLocaleUrl(path, locale);
   const rsvpCopy = {
     yes: locale === 'sw' ? 'Nitahudhuria' : 'I will attend',
@@ -110,6 +130,28 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
               description: c.description,
             },
             {
+              '@type': 'SoftwareApplication',
+              name,
+              applicationCategory: 'LifestyleApplication',
+              operatingSystem: 'Web, Android',
+              url: SITE_URL,
+              inLanguage: market === 'ke' ? ['en-KE'] : ['sw-TZ', 'en-TZ'],
+              featureList: [
+                'WhatsApp and SMS digital invitation cards',
+                'Printable A6, A5 and A4 QR cards',
+                'RSVP tracking and reminders',
+                'Michango and pledge tracking',
+                'Offline Android QR gate check-in',
+              ],
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: currency,
+                description: c.heroTrustLine,
+              },
+              publisher: { '@id': ORG_ID },
+            },
+            {
               '@type': 'HowTo',
               name: c.trySection.title,
               inLanguage: market === 'ke' ? 'en-KE' : `${locale}-TZ`,
@@ -132,6 +174,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         howHref="#jaribu-mwenyewe"
         howLabel={c.heroHowLink}
         trustLine={c.heroTrustLine}
+        kickerEvents={c.kickerEvents}
         previewFrameAlt={c.hero.h1}
         statCards={c.heroStatCards}
       />
@@ -165,14 +208,20 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
 
       <FeatureStrip
         rows={c.featureRows}
+        rowHrefs={[
+          c.featureRows[0].linkSlug && getPage(c.featureRows[0].linkSlug, market)
+            ? localeUrl(pagePath(getPage(c.featureRows[0].linkSlug, market)!, locale), locale)
+            : undefined,
+          c.featureRows[1].linkSlug && getPage(c.featureRows[1].linkSlug, market)
+            ? localeUrl(pagePath(getPage(c.featureRows[1].linkSlug, market)!, locale), locale)
+            : undefined,
+          c.featureRows[2].linkSlug && getPage(c.featureRows[2].linkSlug, market)
+            ? localeUrl(pagePath(getPage(c.featureRows[2].linkSlug, market)!, locale), locale)
+            : undefined,
+        ]}
         promoTitle={c.featurePromo.title}
         promoBody={c.featurePromo.body}
-        learnMoreLabel={c.featureRows[0].linkLabel}
-        learnMoreHref={
-          c.featureRows[0].linkSlug && getPage(c.featureRows[0].linkSlug)
-            ? localeUrl(pagePath(getPage(c.featureRows[0].linkSlug)!, locale), locale)
-            : undefined
-        }
+        sectionLabel={locale === 'sw' ? 'Vipengele vikuu' : 'Key features'}
       />
 
       {market === 'tz' ? (
@@ -296,6 +345,48 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
           })}
         </ul>
       </Container>
+
+      {guides.length ? (
+        <Container
+          as="section"
+          aria-labelledby="miongozo"
+          className="flex flex-col gap-8 pb-12 md:pb-16"
+        >
+          <SectionHeading id="miongozo" eyebrow={c.guidesEyebrow}>
+            {c.guidesTitle}
+          </SectionHeading>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {guides.map((g) => {
+              const gt = textOf(g, locale);
+              return (
+                <li key={g.slug} className="ks-reveal flex">
+                  <Link
+                    href={localeUrl(pagePath(g, locale), locale)}
+                    className="group ks-ease flex w-full flex-col justify-between gap-4 rounded-[1.5rem] bg-white p-6 shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.5)] active:scale-[0.99]"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <h3 className="text-lg leading-snug font-semibold text-ks-ink group-hover:text-ks-green-700">
+                        {gt.nav}
+                      </h3>
+                      <p className="line-clamp-3 text-sm leading-relaxed text-ks-muted">
+                        {gt.description}
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ks-green-700">
+                      {gt.h1.split('—')[0]}
+                      <ArrowUpRight
+                        aria-hidden="true"
+                        className="size-4 shrink-0 transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px"
+                        strokeWidth={1.75}
+                      />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </Container>
+      ) : null}
 
       <Faq title={c.faqTitle} items={c.faq} eyebrow={c.eyebrows.faq} />
 

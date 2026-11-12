@@ -97,6 +97,8 @@ export interface HomeCopy {
   heroHowLink: string;
   /** Short trust line placed tight under the hero CTA. */
   heroTrustLine: string;
+  /** Six occasion labels in the hero kicker row, matched to the visitor's language. */
+  kickerEvents: readonly [string, string, string, string, string, string];
   /** Labels on the three floating stat cards around the hero phone. */
   heroStatCards: HeroStatCardsCopy;
   /** Inputs on the live hero (ADR for the home overhaul). */
@@ -148,6 +150,8 @@ export interface HomeCopy {
   };
   trust: { title: string; items: string[]; cta: string };
   eventsTitle: string;
+  guidesEyebrow: string;
+  guidesTitle: string;
   /** Kenya only: where the service stands. */
   status?: { h2: string; body: string; cta: string };
   /** Small tags shown over the section headings. */
@@ -174,6 +178,7 @@ export interface HomeCopy {
   faqTitle: string;
   faq: { q: string; a: string }[];
   ctaBand: {
+    badge: string;
     text: string;
     primary: string;
     secondary: string;
@@ -211,9 +216,9 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
     ? `Kila tukio linaanza na kadi ${p.free} bure. Baada ya hapo ni ${p.from} kwa kadi, na bei inashuka hadi ${p.lowest} ukinunua kadi ${p.lowestMin} au zaidi. SMS za ziada zina vifurushi vyake.`
     : `Wakati wa majaribio huduma ni bure. Malipo yakianza, kadi itakuwa ${p.from}, na bei inashuka hadi ${p.lowest} ukinunua kadi ${p.lowestMin} au zaidi. Tutatangaza kabla.`;
   return {
-    title: 'Kadi za Harusi za Kidigitali na Michango | Kadi Sasa',
+    title: 'Kadi za Mwaliko na Harusi za Kidigitali Tanzania | Kadi Sasa',
     description:
-      'Kila mgeni anapata kadi yake kwa WhatsApp, SMS au karatasi. Kamati inaona nani amejibu, nani amechangia na nani ameingia, hata mtandao ukikatika.',
+      'Tengeneza kadi za mwaliko wa harusi, send-off, birthday na matukio Tanzania. Tuma kwa WhatsApp, SMS au karatasi, fuatilia RSVP na michango, na skani QR bila mtandao.',
     hero: {
       h1: 'Kadi moja kwa kila mgeni. Michango wazi. Lango lisilokwama.',
       sub: 'Tuma kadi kwa WhatsApp, SMS au karatasi. Kamati inafuatilia majibu na michango, na mlangoni mnaskani hata bila mtandao.',
@@ -223,6 +228,7 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
     heroAccent: 'kila mgeni',
     heroHowLink: 'Angalia jinsi inavyofanya kazi',
     heroTrustLine: 'Kadi 5 bure · Hulipi mpaka utume',
+    kickerEvents: ['Harusi', 'Send-off', 'Kitchen party', 'Nikah', 'Mahafali', 'Biashara'],
     heroStatCards: {
       guestsTitle: 'Orodha ya wageni',
       guestsInvited: '320 waalikwa',
@@ -318,11 +324,15 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
           'Duplicate inajulikana mara moja',
           'PIN tofauti kwa kila lango',
         ],
+        linkLabel: 'Jifunze zaidi',
+        linkSlug: 'lango-la-harusi-qr',
       },
       {
         eyebrow: 'Michango',
         title: 'Ahadi na malipo zinajiangalia zenyewe.',
         bullets: ['M-Pesa, Mixx, Airtel Money', 'Ripoti ya CSV', 'Siri: wewe tu ndiye unaona'],
+        linkLabel: 'Jifunze zaidi',
+        linkSlug: 'michango-ya-harusi',
       },
     ],
     featurePromo: {
@@ -418,6 +428,8 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       cta: 'Fungua kadi kwa namba yake',
     },
     eventsTitle: 'Kwa kila sherehe',
+    guidesEyebrow: 'Miongozo',
+    guidesTitle: 'Miongozo kwa waandaaji na kamati',
     eyebrows: {
       hero: 'Kadi za mwaliko za kidijitali · Tanzania',
       steps: 'Hatua nne',
@@ -477,8 +489,17 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
         q: 'Mtu akipiga picha ya QR ya mwenzake?',
         a: 'QR moja inaingiza mara moja. Picha ikiskaniwa baada ya mwenye kadi kuingia, simu inaonyesha "Tayari ameingia" na saa aliyoingia.',
       },
+      {
+        q: 'Je, inafaa kwa send-off, birthday, mahafali au matukio ya biashara?',
+        a: 'Ndiyo. Inafaa kwa harusi, send-off, kitchen party, nikah, birthday, mahafali na mialiko ya biashara. Kwa matukio ya biashara, inasimamia mialiko, majibu (RSVP) na kuingia mlangoni bila kuuza tiketi au kupanga viti.',
+      },
+      {
+        q: 'Tunaweza kutuma kwa WhatsApp, SMS na kuchapisha pamoja?',
+        a: 'Ndiyo. Kila mgeni anapata kadi yenye kiungo, namba ya kadi na QR ileile — unaweza kutuma kwa WhatsApp, kutuma SMS kwa wasio na smartphone, na kuchapisha PDF za A6, A5 au A4 kwa wazee.',
+      },
     ],
     ctaBand: {
+      badge: 'Tangaza sherehe',
       text: 'Kikao kijacho, waonyeshe kamati.',
       primary: 'Anza bure',
       secondary: 'Nina namba ya kadi',
@@ -494,9 +515,9 @@ function en(p: PriceFacts, domain: string): HomeCopy {
     ? `Every event starts with ${p.free} free cards. After that it is ${p.from} a card, dropping to ${p.lowest} when you buy ${p.lowestMin} or more. Extra SMS reminders come in packs.`
     : `It is free during the pilot. When charging starts, a card will cost ${p.from}, dropping to ${p.lowest} when you buy ${p.lowestMin} or more. We will announce it first.`;
   return {
-    title: 'Digital Wedding Cards and QR Check-in | Kadi Sasa',
+    title: 'Digital Invitation & Wedding Cards in Tanzania | Kadi Sasa',
     description:
-      'Every guest gets their own card by WhatsApp, SMS or paper. The committee sees who replied, who contributed and who came in, even when the network drops.',
+      'Create digital invitation cards for weddings, send-offs, birthdays & corporate events in Tanzania. Share on WhatsApp or SMS, track RSVPs & michango, scan QR offline.',
     hero: {
       h1: 'One card for every guest. Michango in the open. A gate that keeps moving.',
       sub: 'Send cards by WhatsApp, SMS or paper. The committee tracks replies and pledges, and the gate scans guests in even without network.',
@@ -506,6 +527,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
     heroAccent: 'every guest',
     heroHowLink: 'See how it works',
     heroTrustLine: '5 cards free · You don’t pay until you send',
+    kickerEvents: ['Wedding', 'Send-off', 'Kitchen party', 'Nikah', 'Graduation', 'Business'],
     heroStatCards: {
       guestsTitle: 'Guest list',
       guestsInvited: '320 invited',
@@ -601,11 +623,15 @@ function en(p: PriceFacts, domain: string): HomeCopy {
           'Duplicates caught instantly',
           'A different PIN for every gate',
         ],
+        linkLabel: 'Learn more',
+        linkSlug: 'lango-la-harusi-qr',
       },
       {
         eyebrow: 'Michango',
         title: 'Pledges and payments that watch themselves.',
         bullets: ['M-Pesa, Mixx, Airtel Money', 'CSV reports', 'Private: only you see the figures'],
+        linkLabel: 'Learn more',
+        linkSlug: 'michango-ya-harusi',
       },
     ],
     featurePromo: {
@@ -698,6 +724,8 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       cta: 'Open a card by its number',
     },
     eventsTitle: 'For every celebration',
+    guidesEyebrow: 'Guides',
+    guidesTitle: 'Guides for organisers and committees',
     eyebrows: {
       hero: 'Digital invitation cards · Tanzania',
       steps: 'Four steps',
@@ -757,8 +785,17 @@ function en(p: PriceFacts, domain: string): HomeCopy {
         q: 'What if someone takes a photo of another guest’s QR?',
         a: 'One QR admits once. If the photo is scanned after the real guest is in, the phone shows "Already admitted" with the time.',
       },
+      {
+        q: 'Does it work for birthdays, send-offs, graduations, or business events?',
+        a: 'Yes. It works for weddings, send-offs, kitchen parties, nikah, birthdays, graduations, and corporate invitations. For business events, it handles invitations, RSVPs, and gate check-in without ticket sales or seating.',
+      },
+      {
+        q: 'Can we send by WhatsApp, SMS, and printed cards together?',
+        a: 'Yes. Every guest gets one card with the same link, short code, and QR — you can send on WhatsApp, reach feature phones by SMS, and print A6, A5, or A4 PDFs for elders.',
+      },
     ],
     ctaBand: {
+      badge: 'Send your invites',
       text: 'Show it to the committee at the next meeting.',
       primary: 'Start free',
       secondary: 'I have a card number',
@@ -771,9 +808,9 @@ function en(p: PriceFacts, domain: string): HomeCopy {
 
 function ke(p: PriceFacts, domain: string): HomeCopy {
   return {
-    title: 'Digital Wedding Invitations in Kenya | Kadi Sasa',
+    title: 'Digital Wedding & Event Invitations in Kenya | Kadi Sasa',
     description:
-      'Send every guest their own card on WhatsApp or SMS, track harambee pledges on M-Pesa, and check guests in at the gate, even with no network.',
+      'Send digital wedding and event invitations in Kenya by WhatsApp, SMS or print. Track RSVPs, harambee pledges via M-Pesa & Airtel Money, and scan QR codes offline.',
     hero: {
       h1: 'The wedding committee’s app. Invites, harambee and the gate.',
       sub: 'Every guest gets their own card on WhatsApp or SMS. The committee sees who’s coming, who’s pledged and who’s paid, and the gate works offline.',
@@ -783,6 +820,7 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
     heroAccent: 'every guest',
     heroHowLink: 'See how it works',
     heroTrustLine: 'Kenya pilot · You don’t pay until you send',
+    kickerEvents: ['Wedding', 'Ruracio', 'Send-off', 'Nikah', 'Graduation', 'Business'],
     heroStatCards: {
       guestsTitle: 'Guest list',
       guestsInvited: '320 invited',
@@ -867,6 +905,8 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
           'Print-ready PDF',
           'Works offline once opened',
         ],
+        linkLabel: 'Learn more',
+        linkSlug: 'wedding-invitation-wording',
       },
       {
         eyebrow: 'Gate',
@@ -876,6 +916,8 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
           'Duplicates caught instantly',
           'A different PIN for every gate',
         ],
+        linkLabel: 'Learn more',
+        linkSlug: 'wedding-committee-guide',
       },
       {
         eyebrow: 'Harambee',
@@ -885,6 +927,8 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
           'CSV reports',
           'Private: only the committee sees figures',
         ],
+        linkLabel: 'Learn more',
+        linkSlug: 'wedding-contributions-guide',
       },
     ],
     featurePromo: {
@@ -982,6 +1026,8 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       cta: 'Open a card by its number',
     },
     eventsTitle: 'Guides for Kenyan committees',
+    guidesEyebrow: 'Guides',
+    guidesTitle: 'Guides for Kenyan committees',
     status: {
       h2: 'Where Kenya stands',
       body: 'Kenya support is built and being tested: +254 numbers, KES, M-Pesa pledges, SMS and WhatsApp cards. It opens once live SMS and WhatsApp approvals, a payment provider and a Kenyan legal review are in place. Tell us if your committee wants to be in the first pilot.',
@@ -1047,8 +1093,13 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
         q: 'What if someone screenshots a QR?',
         a: 'One QR admits once. If the screenshot comes after the real guest is in, the phone shows "Already admitted" with the time.',
       },
+      {
+        q: 'Can we use it for ruracio, birthdays, graduations, or corporate events?',
+        a: 'Yes. It supports weddings, ruracio, send-offs, birthdays, graduations, and corporate invitations. For business events, it handles invitations, RSVPs, and gate check-in without ticket sales or seating.',
+      },
     ],
     ctaBand: {
+      badge: 'Invite your guests',
       text: 'Show it at the next committee meeting.',
       primary: 'Join the Kenya pilot',
       secondary: 'I have a card number',

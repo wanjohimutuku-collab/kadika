@@ -11,26 +11,27 @@ import { Container } from '@/components/site/blocks';
 
 export interface FeatureStripProps {
   rows: readonly [FeatureRowCopy, FeatureRowCopy, FeatureRowCopy];
+  rowHrefs?: readonly [string | undefined, string | undefined, string | undefined];
   promoTitle: string;
   promoBody: string;
-  learnMoreLabel?: string;
-  learnMoreHref?: string;
+  sectionLabel?: string;
 }
 
 const ICONS = [IdCard, QrCode, Wallet] as const;
 
 export function FeatureStrip({
   rows,
+  rowHrefs,
   promoTitle,
   promoBody,
-  learnMoreLabel,
-  learnMoreHref,
+  sectionLabel = 'Features',
 }: FeatureStripProps) {
   return (
-    <Container as="section" aria-label="Features" className="py-16 md:py-20">
+    <Container as="section" aria-label={sectionLabel} className="py-16 md:py-20">
       <div className="ks-reveal grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {rows.map((row, i) => {
           const Icon = ICONS[i] ?? IdCard;
+          const href = rowHrefs?.[i];
           return (
             <article
               key={row.title}
@@ -41,9 +42,9 @@ export function FeatureStrip({
               </span>
               <h3 className="text-base font-semibold leading-tight text-ks-ink">{row.title}</h3>
               <p className="text-sm leading-relaxed text-ks-muted">{row.bullets[0]}</p>
-              {row.linkLabel && learnMoreHref && i === 0 ? (
+              {row.linkLabel && href ? (
                 <Link
-                  href={learnMoreHref}
+                  href={href}
                   className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-ks-green-700 underline-offset-4 hover:underline"
                 >
                   {row.linkLabel}
@@ -61,7 +62,6 @@ export function FeatureStrip({
           <p className="text-sm leading-relaxed text-ks-ink">{promoBody}</p>
         </article>
       </div>
-      {learnMoreLabel ? <span className="sr-only">{learnMoreLabel}</span> : null}
     </Container>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { SmsOverview } from '@/components/sms/sms-overview';
 import { use } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -72,7 +73,7 @@ const ACT_ICON: Record<Activity['kind'], React.ReactNode> = {
   send: <Send className="size-5 text-primary" aria-hidden="true" />,
 };
 
-export default function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
+function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations('overview');
   const ts = useTranslations('status');
@@ -364,4 +365,12 @@ export default function OverviewPage({ params }: { params: Promise<{ id: string 
       }}
     </QueryState>
   );
+}
+
+/** ADR 055: an SMS-reminders-only account gets its own screen here; card events keep theirs. */
+export default function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const event = useEvent(id);
+  if (event.data?.product === 'sms') return <SmsOverview event={event.data} />;
+  return <CardsOverviewPage params={params} />;
 }

@@ -26,3 +26,9 @@ apps/web/e2e/.auth
 # Local deploys (scripts/deploy.sh)
 .deploy.env
 .docker-cache
+
+# Staff-uploaded app files in local dev (ADR 047)
+apps/api/data/
+
+# Firebase config for Android builds (ADR 048): an EAS file variable, not committed
+apps/mobile/google-services.json

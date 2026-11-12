@@ -97,3 +97,18 @@ export class RateLimiter {
     }
   }
 }
+
+/**
+ * The caller's IP for rate limiting. A configured edge header (`cf-connecting-ip`) wins; otherwise the
+ * LAST X-Forwarded-For entry, the one our own proxy appended. The first entry is whatever the client
+ * sent, so keying on it would let anyone pick a fresh address per request and skip every limit.
+ */
+export function clientIp(header: (name: string) => string | undefined, edgeHeader: string | null) {
+  const edge = edgeHeader ? header(edgeHeader)?.trim() : undefined;
+  if (edge) return edge;
+  const hops = header('x-forwarded-for')
+    ?.split(',')
+    .map((h) => h.trim())
+    .filter(Boolean);
+  return hops?.at(-1) ?? 'local';
+}

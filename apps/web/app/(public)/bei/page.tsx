@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { connection } from 'next/server';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { CheckCircle2, CreditCard, HandCoins, MessageCircle, MessageSquare } from 'lucide-react';
@@ -7,7 +7,8 @@ import type { Locale } from '@harusi/i18n';
 import { SeoLinks } from '@/components/public/seo-links';
 import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
-import { absoluteLocaleUrl } from '@/lib/seo';
+import { JsonLd } from '@/components/site/json-ld';
+import { ORG_ID, absoluteLocaleUrl, ogImages, organizationNode } from '@/lib/seo';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import { getPricingOnServer, PRICING_PATH } from '@/lib/server-pricing';
 import { sortedTiers } from '@harusi/schemas/billing';
@@ -27,6 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: t('metaDescription', { brand }),
       locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
       url: absoluteLocaleUrl(PRICING_PATH, locale),
+      images: ogImages(locale),
     },
   };
 }
@@ -42,10 +44,57 @@ export default async function PricingPage() {
   const locale = (await getLocale()) as Locale;
   const c = await getPricingOnServer();
   const tiers = sortedTiers(c.cardTiers);
+  const brand = (await getBrandingOnServer()).businessName;
+  const url = absoluteLocaleUrl(PRICING_PATH, locale);
+  const prices = tiers.map((x) => x.price.TZS);
 
   return (
     <main data-testid="pricing">
       <SeoLinks path={PRICING_PATH} locale={locale} />
+      {/* Prices come from the same live catalogue as the tiers below; offers only once charging is on. */}
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            organizationNode(),
+            {
+              '@type': 'Service',
+              '@id': `${url}#service`,
+              url,
+              name: t('metaTitle', { brand }).split(' | ')[0],
+              description: t('metaDescription', { brand }),
+              serviceType: 'Digital invitations and guest check-in',
+              provider: { '@id': ORG_ID },
+              areaServed: 'TZ',
+              ...(c.enforced && tiers.length
+                ? {
+                    offers: {
+                      '@type': 'AggregateOffer',
+                      priceCurrency: 'TZS',
+                      lowPrice: Math.min(...prices),
+                      highPrice: Math.max(...prices),
+                      offerCount: tiers.length,
+                      offers: tiers.map((x, i) => {
+                        const next = tiers[i + 1]?.minCards;
+                        return {
+                          '@type': 'Offer',
+                          priceCurrency: 'TZS',
+                          price: x.price.TZS,
+                          eligibleQuantity: {
+                            '@type': 'QuantitativeValue',
+                            minValue: x.minCards,
+                            ...(next ? { maxValue: next - 1 } : {}),
+                            unitText: 'card',
+                          },
+                        };
+                      }),
+                    },
+                  }
+                : {}),
+            },
+          ],
+        }}
+      />
       <section className="bg-primary text-on-primary">
         <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-12 md:py-16">
           <OrnamentDiamond className="[--hp-pattern:#D9B26A]" />

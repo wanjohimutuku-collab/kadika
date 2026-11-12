@@ -12,6 +12,7 @@ import { createApp } from '../app';
 import { parsePhone } from '../auth/service';
 import { base32Decode, hotp, totpStep } from '../auth/totp';
 import { loadConfig } from '../config';
+import { MemoryPhotoStore } from '../photos/store';
 import type { Deps } from '../context';
 
 export const TEST_KEY = Buffer.alloc(32, 7).toString('base64');
@@ -38,7 +39,11 @@ function migratedTemplate() {
 
 /** Real SQL (PGlite, in-process Postgres) + migrations + fake SMS: no Docker needed in unit tests. */
 export async function createTestContext(
-  opts: { now?: () => Date; env?: Record<string, string> } = {},
+  opts: {
+    now?: () => Date;
+    env?: Record<string, string>;
+    firebaseKeys?: Deps['firebaseKeys'];
+  } = {},
 ) {
   const client = (await (await migratedTemplate()).clone()) as PGlite;
   const db = drizzle(client, { schema }) as unknown as Db;
@@ -69,14 +74,17 @@ export async function createTestContext(
     return (t ^ (t >>> 14)) >>> 0;
   };
   const clock = { now: new Date('2026-10-14T09:00:00Z').getTime() };
+  const photos = new MemoryPhotoStore();
   const deps: Deps = {
     db,
+    photos,
     sms,
     smsByCountry: { KE: smsKe },
     whatsapp,
     payments,
     paymentsByCountry: { KE: paymentsKe },
     sleep: async () => {},
+    firebaseKeys: opts.firebaseKeys,
     config: loadConfig({
       DATABASE_URL: 'pglite',
       JWT_SECRET: 'test-secret-at-least-16-chars',
@@ -86,6 +94,9 @@ export async function createTestContext(
       LOG_REQUESTS: '0',
       // The pay-from-card tests predate ADR 043; a test passes '0' to see the default (off).
       GUEST_PAYMENTS_ENABLED: '1',
+      // Every test logs in from the same address; the OTP abuse limits get their own tests.
+      OTP_IP_HOURLY_LIMIT: '100000',
+      OTP_GLOBAL_HOURLY_LIMIT: '100000',
       ...opts.env,
       WHATSAPP_TOKEN: 'cloud-token',
       WHATSAPP_PHONE_ID: '1234567890',
@@ -105,6 +116,7 @@ export async function createTestContext(
     whatsapp,
     payments,
     paymentsKe,
+    photos,
     fail,
     clock,
     db,

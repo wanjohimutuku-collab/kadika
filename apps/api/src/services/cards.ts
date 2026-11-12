@@ -92,7 +92,9 @@ export class CardService {
       .from(invitations)
       .innerJoin(guests, eq(guests.id, invitations.guestId))
       .innerJoin(events, eq(events.id, guests.eventId))
-      .where(and(eq(invitations.tokenHash, hash), isNull(guests.deletedAt)));
+      .where(
+        and(eq(invitations.tokenHash, hash), isNull(guests.deletedAt), isNull(events.deletedAt)),
+      );
     return { hash, row };
   }
 
@@ -230,6 +232,21 @@ export class CardService {
           await this.collectedFor(row),
         )
       : EMPTY('invalid');
+  }
+
+  /** Which guest a token belongs to, or why it does not (Kumbukumbu, ADR 050). */
+  async resolveToken(
+    token: string,
+  ): Promise<
+    { state: 'ok'; eventId: string; guestId: string } | { state: 'reissued' | 'invalid' }
+  > {
+    const { hash, row } = await this.find(token);
+    if (row) return { state: 'ok', eventId: row.event.id, guestId: row.guest.id };
+    const [retired] = await this.deps.db
+      .select({ id: retiredCardTokens.id })
+      .from(retiredCardTokens)
+      .where(eq(retiredCardTokens.tokenHash, hash));
+    return { state: retired ? 'reissued' : 'invalid' };
   }
 
   /** Marks the invitation `opened` (never moves a status backwards) and returns the card. */

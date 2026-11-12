@@ -11,7 +11,6 @@ const UPDATED = '2026-10-15';
 export const KENYA_PAGES: ContentPageDef[] = [
   {
     market: 'ke',
-    counterpart: { market: 'tz', slug: 'kadi-ya-harusi-mtandaoni' },
     slug: '',
     group: 'product',
     schema: 'WebPage',
@@ -337,7 +336,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Mwongozo wa kamati ya harusi',
-      title: 'Jinsi ya Kuendesha Kamati ya Harusi Kenya: Majukumu na Mpango',
+      title: 'Kuendesha Kamati ya Harusi Kenya: Majukumu na Mpango',
       description:
         'Mwongozo wa vitendo wa kuendesha kamati ya harusi Kenya: majukumu, ratiba ya miezi 6, bajeti, kushughulikia michango kwa uwazi na kuepuka migogoro.',
       h1: 'Jinsi ya kuendesha kamati ya harusi Kenya: majukumu, ratiba na hesabu',
@@ -754,7 +753,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
     related: ['wedding-committee-guide', '', 'tz:maneno-ya-kadi-ya-harusi'],
     en: {
       nav: 'Invitation wording for Kenyan weddings',
-      title: 'Wedding Invitation Wording Kenya: Samples for Ruracio and More',
+      title: 'Wedding Invitation Wording in Kenya, With Samples',
       description:
         'Sample wording for Kenyan wedding, ruracio, introduction, kitchen party and bridal shower invitations in English and Swahili, with a checklist of details to include.',
       h1: 'Wedding invitation wording for Kenya: samples in English and Swahili',
@@ -943,7 +942,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
     related: ['wedding-contributions-guide', '', 'tz:usalama-wa-kadi-za-mtandaoni'],
     en: {
       nav: 'Is a digital invitation safe?',
-      title: 'Is a Digital Wedding Invitation Safe? Spotting Scams in Kenya',
+      title: 'Is a Digital Wedding Invitation Safe? Scams in Kenya',
       description:
         'How to tell a genuine digital wedding invitation from a scam in Kenya: red flags, safe checks, and what never to send, including M-Pesa PINs and OTPs.',
       h1: 'Is a digital wedding invitation safe? How to spot a scam',
@@ -1016,7 +1015,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
     },
     sw: {
       nav: 'Je, kadi ya mtandaoni ni salama?',
-      title: 'Je, Kadi ya Harusi ya Mtandaoni ni Salama? Kutambua Ulaghai Kenya',
+      title: 'Je, Kadi ya Harusi Mtandaoni ni Salama? Ulaghai Kenya',
       description:
         'Jinsi ya kutofautisha kadi halali ya harusi ya mtandaoni na ulaghai Kenya: ishara hatari, ukaguzi salama, na vitu usivyopaswa kutuma, ikiwemo PIN za M-Pesa na OTP.',
       h1: 'Je, kadi ya harusi ya mtandaoni ni salama? Jinsi ya kutambua ulaghai',

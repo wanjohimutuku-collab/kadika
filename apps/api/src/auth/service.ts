@@ -1,10 +1,12 @@
 import { and, eq } from 'drizzle-orm';
 import { eventInvites, eventMembers, newId, refreshTokens, users } from '@harusi/db';
 import { hashGuestToken } from '@harusi/crypto';
-import { allowedCountries, type Country } from '@harusi/schemas/country';
+import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
+import { signInOf } from '../services/signin-settings';
+import { verifyFirebaseIdToken } from './firebase';
 import { OtpService } from './otp';
 import { StaffTotpService } from './staff-totp';
 import {
@@ -56,15 +58,38 @@ export class AuthService {
     this.totp = new StaffTotpService(deps);
   }
 
-  async requestOtp(phoneInput: string) {
-    const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
-    const res = await this.otp.request(phone);
+  /**
+   * `fallback`: the client tried Firebase and Firebase would not send (e.g. its 503 "error 39"
+   * anti-abuse refusal for Tanzanian numbers), so our own SMS code is sent instead. It spends the
+   * same login-code budget, so it opens no cheaper path than the SMS flow itself.
+   * `language`: the language the visitor has the site or app in; the SMS is written in it.
+   */
+  async requestOtp(phoneInput: string, fallback = false, language?: 'sw' | 'en') {
+    const phone = parsePhone(phoneInput, 'TZ', SIGN_IN_COUNTRIES);
+    // With Firebase Phone Auth the code comes from Firebase; our SMS routes carry no login codes.
+    if (signInOf(this.deps).provider === 'firebase' && !fallback)
+      throw new ApiError('conflict', 'Sign-in codes are sent by Firebase', {
+        reason: 'use_firebase',
+      });
+    const res = await this.otp.request(phone, language);
     return { phone, ...res };
   }
 
   async verifyOtp(phoneInput: string, code: string): Promise<AuthResult | StaffChallengeResult> {
-    const phone = parsePhone(phoneInput, 'TZ', allowedCountries(this.deps.config.kenyaEnabled));
+    const phone = parsePhone(phoneInput, 'TZ', SIGN_IN_COUNTRIES);
     this.otp.verify(phone, code);
+    return this.signIn(phone);
+  }
+
+  /** Firebase Phone Auth (ADR 048): the verified number from the ID token signs in like an SMS code. */
+  async verifyFirebase(idToken: string): Promise<AuthResult | StaffChallengeResult> {
+    const { phoneE164 } = await verifyFirebaseIdToken(this.deps, idToken);
+    const phone = parsePhone(phoneE164, 'TZ', SIGN_IN_COUNTRIES);
+    return this.signIn(phone);
+  }
+
+  /** After the phone is proven: the account, invitations, then a session or the staff challenge. */
+  private async signIn(phone: string): Promise<AuthResult | StaffChallengeResult> {
     const { db } = this.deps;
     const now = this.deps.now();
     let [user] = await db.select().from(users).where(eq(users.phoneE164, phone));

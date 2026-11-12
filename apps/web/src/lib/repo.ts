@@ -1,6 +1,7 @@
 import {
   createHttpRepository,
   memoryTokenStore,
+  webRefreshLock,
   webStorageTokenStore,
   type Repository,
 } from '@harusi/api-client';
@@ -52,6 +53,8 @@ export function getRepository(): Repository {
     process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
     {
       tokens: store ? webStorageTokenStore(store) : memoryTokenStore(),
+      // Tabs share the tokens in localStorage; only one may refresh them at a time.
+      refreshLock: webRefreshLock(),
     },
   ));
 }

@@ -11,6 +11,7 @@
 #   BACKUP_S3_PREFIX        folder inside the bucket (default: harusi/postgres)
 #   BACKUP_S3_ENDPOINT      optional, for MinIO / Cloudflare R2
 #   BACKUP_RETENTION_DAYS   default 14
+#   BACKUP_HEARTBEAT_URL    optional; pinged after a good upload, so a monitor notices when backups stop
 #   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
 set -euo pipefail
 
@@ -55,4 +56,7 @@ aws s3 ls "s3://$BACKUP_S3_BUCKET/$PREFIX/" "${ENDPOINT_ARGS[@]}" | awk '{print 
       ;;
   esac
 done
+if [ -n "${BACKUP_HEARTBEAT_URL:-}" ]; then
+  curl -fsS -m 10 "$BACKUP_HEARTBEAT_URL" > /dev/null || echo "[backup] heartbeat ping failed" >&2
+fi
 echo "[backup] done"

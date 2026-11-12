@@ -239,7 +239,9 @@
       "saved": "{name} amehifadhiwa",
       "duplicatePhone": "Namba hii tayari ni ya mgeni mwingine",
       "decrease": "Punguza idadi",
-      "increase": "Ongeza idadi"
+      "increase": "Ongeza idadi",
+      "prefill": "Chagua kutoka kwenye anwani",
+      "prefillTitle": "Chagua mtu mmoja"
     }
   },
   "en": {
@@ -482,7 +484,9 @@
       "saved": "{name} saved",
       "duplicatePhone": "This number already belongs to another guest",
       "decrease": "Decrease number",
-      "increase": "Increase number"
+      "increase": "Increase number",
+      "prefill": "Pick from contacts",
+      "prefillTitle": "Pick one person"
     }
   }
 }

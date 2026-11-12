@@ -1,45 +1,8 @@
 import { eventKindOf, hostNames, type Currency } from '@harusi/schemas';
-/** GSM 03.38 basic charset (+ extension chars that cost 2 septets). */
-const GSM_BASIC =
-  '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
-const GSM_EXT = '^{}\\[~]|€';
+import { smsSegments, type SmsSegments } from '@harusi/schemas/sms';
 
-export interface SmsSegments {
-  encoding: 'GSM-7' | 'UCS-2';
-  units: number;
-  segments: number;
-  perSegment: number;
-}
-
-export function smsSegments(text: string): SmsSegments {
-  let septets = 0;
-  let gsm = true;
-  for (const ch of text) {
-    if (GSM_BASIC.includes(ch)) septets += 1;
-    else if (GSM_EXT.includes(ch)) septets += 2;
-    else {
-      gsm = false;
-      break;
-    }
-  }
-  if (gsm) {
-    const segments = septets <= 160 ? 1 : Math.ceil(septets / 153);
-    return {
-      encoding: 'GSM-7',
-      units: septets,
-      segments: Math.max(1, segments),
-      perSegment: septets <= 160 ? 160 : 153,
-    };
-  }
-  const units = [...text].reduce((n, ch) => n + (ch.codePointAt(0)! > 0xffff ? 2 : 1), 0);
-  const segments = units <= 70 ? 1 : Math.ceil(units / 67);
-  return {
-    encoding: 'UCS-2',
-    units,
-    segments: Math.max(1, segments),
-    perSegment: units <= 70 ? 70 : 67,
-  };
-}
+/** Counting moved to `@harusi/schemas/sms` so the API spends credits by the same rule (ADR 055). */
+export { smsSegments, type SmsSegments };
 
 /** Default SMS price per segment in TZS (Tanzanian SMS only until Kenya pricing exists) (assumption until a gateway is chosen — §15.3, ADR 007). */
 export const SMS_PRICE_PER_SEGMENT_TZS = 25;

@@ -1,13 +1,26 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
 import { CARD_KINDS, type CardKind } from '@harusi/schemas';
+import type { ContactLite } from '@harusi/schemas/import';
 import { useCreateGuest } from '../../../../../src/lib/queries';
 import { parsePhone, useEventLocale } from '../../../../../src/lib/country';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
+import { readDeviceContacts } from '../../../../../src/lib/device-contacts';
 import { AppHeader } from '../../../../../src/ui/header';
-import { Banner, Button, Field, Screen, Segmented, Stepper, Txt } from '../../../../../src/ui/kit';
+import {
+  Banner,
+  Button,
+  Field,
+  Screen,
+  SearchBox,
+  Segmented,
+  Sheet,
+  Stepper,
+  Txt,
+} from '../../../../../src/ui/kit';
 import { Chip } from '../../../../../src/ui/kit';
+import { useColors } from '../../../../../src/lib/theme';
 
 export default function NewGuest() {
   const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
@@ -25,6 +38,42 @@ export default function NewGuest() {
   );
   const [smart, setSmart] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; phone?: string; form?: string }>({});
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerContacts, setPickerContacts] = useState<ContactLite[] | null>(null);
+  const [pickerError, setPickerError] = useState<string | null>(null);
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [pickerBusy, setPickerBusy] = useState(false);
+  const c = useColors();
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    setPickerError(null);
+    setPickerContacts(null);
+    setPickerQuery('');
+    setPickerBusy(true);
+    const r = await readDeviceContacts();
+    setPickerBusy(false);
+    if (r.status === 'ok') setPickerContacts(r.contacts);
+    else if (r.status === 'denied') setPickerError(t('contacts.permPhone'));
+    else setPickerError(t('states.errorBody'));
+  };
+
+  const pickContact = (contact: ContactLite) => {
+    setName(contact.name);
+    const p = parsePhone(contact.phone, country);
+    setPhone(p.ok ? p.e164 : contact.phone);
+    setPickerOpen(false);
+  };
+
+  const visibleContacts = (pickerContacts ?? []).filter((contact) => {
+    const q = pickerQuery.trim().toLowerCase();
+    if (!q) return true;
+    const digits = q.replace(/\D/g, '');
+    return (
+      contact.name.toLowerCase().includes(q) ||
+      (digits.length >= 3 && contact.phone.replace(/\D/g, '').includes(digits))
+    );
+  });
 
   const save = async (another: boolean) => {
     const e: typeof errors = {};
@@ -81,6 +130,12 @@ export default function NewGuest() {
         }
       >
         {errors.form ? <Banner tone="danger" text={errors.form} /> : null}
+        <Button
+          variant="secondary"
+          icon="plus"
+          label={t('guestForm.prefill')}
+          onPress={openPicker}
+        />
         <Txt size={14} bold>
           {t('guestForm.cardKind')}
         </Txt>
@@ -133,6 +188,47 @@ export default function NewGuest() {
         />
         {!smart ? <Txt size={14}>{t('guestForm.noSmartphoneHelp')}</Txt> : null}
       </Screen>
+      <Sheet
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={t('guestForm.prefillTitle')}
+      >
+        {pickerError ? <Banner tone="warning" text={pickerError} /> : null}
+        {pickerBusy ? <Txt color={c.muted}>{t('contacts.loading')}</Txt> : null}
+        {pickerContacts && pickerContacts.length > 8 ? (
+          <SearchBox
+            label={t('contacts.search')}
+            value={pickerQuery}
+            onChangeText={setPickerQuery}
+          />
+        ) : null}
+        {pickerContacts && visibleContacts.length === 0 ? (
+          <Txt color={c.muted}>
+            {pickerContacts.length ? t('contacts.noMatch') : t('contacts.empty')}
+          </Txt>
+        ) : null}
+        {(pickerContacts ?? []).length > 0
+          ? visibleContacts.map((contact, i) => (
+              <Pressable
+                key={`${contact.name}-${i}`}
+                onPress={() => pickContact(contact)}
+                accessibilityRole="button"
+                accessibilityLabel={contact.name}
+                style={{
+                  minHeight: 56,
+                  paddingVertical: 10,
+                  borderBottomWidth: 1,
+                  borderColor: c.border,
+                }}
+              >
+                <Txt bold>{contact.name}</Txt>
+                <Txt size={14} color={c.muted}>
+                  {contact.phone || t('guests.noPhone')}
+                </Txt>
+              </Pressable>
+            ))
+          : null}
+      </Sheet>
     </View>
   );
 }

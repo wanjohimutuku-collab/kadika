@@ -1,5 +1,6 @@
 'use client';
 
+import { SmsSettings } from '@/components/sms/sms-settings';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -66,7 +67,7 @@ function toForm(e: WeddingEvent): FormState {
   };
 }
 
-export default function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
+function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const country = usePhoneCountry();
   const cur = useCurrency();
   const { id } = use(params);
@@ -458,4 +459,12 @@ export default function SettingsPage({ params }: { params: Promise<{ id: string 
       }
     </QueryState>
   );
+}
+
+/** ADR 055: an SMS-reminders-only account gets its own screen here; card events keep theirs. */
+export default function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const event = useEvent(id);
+  if (event.data?.product === 'sms') return <SmsSettings event={event.data} />;
+  return <CardsSettingsPage params={params} />;
 }

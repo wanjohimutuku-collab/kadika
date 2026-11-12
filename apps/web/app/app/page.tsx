@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { CalendarHeart, MapPin, Plus } from 'lucide-react';
+import { CalendarHeart, MapPin, MessageSquareText, Plus } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
 import { ConsoleShell } from '@/components/console/shell';
 import { PageHeader } from '@/components/console/page-header';
@@ -52,7 +52,6 @@ export default function EventsPage() {
                 <li key={e.id}>
                   <Link
                     href={`/app/e/${e.id}`}
-                    aria-label={t('open', { name: e.coupleNames })}
                     className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface transition-shadow hover:shadow-md"
                     style={themeStyle(e.themeId, e.palette)}
                   >
@@ -70,10 +69,17 @@ export default function EventsPage() {
                     </div>
                     <div className="flex flex-1 flex-col gap-3 p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="flex min-w-0 items-center gap-1.5 text-muted">
-                          <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                          <span className="truncate">{e.venueName}</span>
-                        </span>
+                        {e.product === 'sms' ? (
+                          <span className="flex min-w-0 items-center gap-1.5 font-medium text-primary">
+                            <MessageSquareText className="size-4 shrink-0" aria-hidden="true" />
+                            <span className="truncate">{t('smsBadge')}</span>
+                          </span>
+                        ) : (
+                          <span className="flex min-w-0 items-center gap-1.5 text-muted">
+                            <MapPin className="size-4 shrink-0" aria-hidden="true" />
+                            <span className="truncate">{e.venueName}</span>
+                          </span>
+                        )}
                         <StatusPill
                           tone={
                             e.status === 'active'
@@ -86,25 +92,27 @@ export default function EventsPage() {
                           {t(`statusPill.${e.status}`)}
                         </StatusPill>
                       </div>
-                      <dl className="grid grid-cols-3 gap-2 text-center">
-                        <div className="rounded-input bg-bg p-2">
-                          <dt className="text-xs text-muted">{t('statInvited')}</dt>
-                          <dd className="tabular text-lg font-bold">{e.stats.invited}</dd>
-                        </div>
-                        <div className="rounded-input bg-bg p-2">
-                          <dt className="text-xs text-muted">{t('statConfirmed')}</dt>
-                          <dd className="tabular text-lg font-bold">{e.stats.confirmed}</dd>
-                        </div>
-                        <div className="rounded-input bg-bg p-2">
-                          <dt className="text-xs text-muted">{t('statCollected')}</dt>
-                          <dd className="tabular text-lg font-bold">
-                            {formatMoneyCompact(e.stats.collected, e.currency).replace(
-                              `${e.currency} `,
-                              '',
-                            )}
-                          </dd>
-                        </div>
-                      </dl>
+                      {e.product === 'sms' ? null : (
+                        <dl className="grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-input bg-bg p-2">
+                            <dt className="text-sm text-muted">{t('statInvited')}</dt>
+                            <dd className="tabular text-lg font-bold">{e.stats.invited}</dd>
+                          </div>
+                          <div className="rounded-input bg-bg p-2">
+                            <dt className="text-sm text-muted">{t('statConfirmed')}</dt>
+                            <dd className="tabular text-lg font-bold">{e.stats.confirmed}</dd>
+                          </div>
+                          <div className="rounded-input bg-bg p-2">
+                            <dt className="text-sm text-muted">{t('statCollected')}</dt>
+                            <dd className="tabular text-lg font-bold">
+                              {formatMoneyCompact(e.stats.collected, e.currency).replace(
+                                `${e.currency} `,
+                                '',
+                              )}
+                            </dd>
+                          </div>
+                        </dl>
+                      )}
                     </div>
                   </Link>
                 </li>

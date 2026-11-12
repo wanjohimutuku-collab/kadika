@@ -2,7 +2,8 @@
 #   - one PR with every npm update
 #   - one PR with every infrastructure update (GitHub Actions, Docker base images, compose images)
 # Major versions are ignored everywhere: Expo SDK, Storybook, Node, Postgres and similar upgrades
-# break things and are planned by hand. The base image digests in infra/docker and
+# break things and are planned by hand, and Expo-managed packages (React, React Native and its
+# native modules) are never bumped here. The base image digests in infra/docker and
 # docker-compose.coolify.yml are kept current by the infrastructure PR.
 version: 2
 
@@ -20,6 +21,17 @@ updates:
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      # Expo-managed: the Expo SDK (apps/mobile) fixes these versions, and a mismatch breaks the
+      # Android build, which CI does not test. 0.x versions slip past the major-version rule above
+      # (React Native 0.79 → 0.88 counts as minor). Upgrade them only with the Expo SDK:
+      # `npx expo install --fix` (#49).
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: 'react-native*'
+      - dependency-name: 'expo*'
+      - dependency-name: '@expo/*'
+      - dependency-name: '@react-native*/*'
+      - dependency-name: '@types/react*'
 
   - package-ecosystem: github-actions
     directory: /

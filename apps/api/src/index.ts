@@ -11,7 +11,7 @@ import { loadConfig } from './config';
 import { systemRandom, type Deps } from './context';
 import { Redis } from 'ioredis';
 import { RedisRateStore } from './rate-limit';
-import { initObservability } from './observability';
+import { initObservability, safeErrorMessage } from './observability';
 import { startWorker } from './worker';
 import { startScheduler } from './scheduler';
 import {
@@ -20,6 +20,7 @@ import {
   MessagingSettingsService,
 } from './services/messaging-settings';
 import { PaymentSettingsService } from './services/payment-settings';
+import { SignInSettingsService } from './services/signin-settings';
 import { ContributionRecords } from './services/contribution-records';
 
 const config = loadConfig();
@@ -36,7 +37,7 @@ void ContributionRecords.of({ config })
       JSON.stringify({
         level: 'error',
         msg: 'sealing contribution records failed',
-        err: e.message,
+        err: safeErrorMessage(e),
       }),
     ),
   );
@@ -95,6 +96,24 @@ const reportError = initObservability(
   config.sentryDsn ?? undefined,
   process.env.NODE_ENV ?? 'development',
 );
+// Errors outside a request (timers, background promises) reach the error tracker too; an uncaught
+// exception still stops the process (Docker restarts it), after it has been reported.
+process.on('unhandledRejection', (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  console.error(
+    JSON.stringify({ level: 'error', msg: 'unhandled rejection', err: safeErrorMessage(err) }),
+  );
+  reportError?.(err);
+});
+process.on('uncaughtException', (err) => {
+  console.error(
+    JSON.stringify({ level: 'fatal', msg: 'uncaught exception', err: safeErrorMessage(err) }),
+  );
+  reportError?.(err);
+  setTimeout(() => process.exit(1), 2_000).unref(); // give the report a moment to leave
+});
+if (!config.sentryDsn && process.env.NODE_ENV === 'production')
+  console.log(JSON.stringify({ level: 'warn', msg: 'SENTRY_DSN not set: errors are only logged' }));
 
 const deps: Deps = {
   db,
@@ -111,7 +130,7 @@ deps.messagingSettings = new MessagingSettingsService(deps, { wrapSms, log });
 await deps.messagingSettings
   .refresh(true)
   .catch((e: Error) =>
-    log({ level: 'error', msg: 'messaging settings not loaded', error: e.message }),
+    log({ level: 'error', msg: 'messaging settings not loaded', error: safeErrorMessage(e) }),
   );
 // Every API instance re-reads the saved settings each minute, so a save on one reaches the others.
 setInterval(() => void deps.messagingSettings?.refresh().catch(() => undefined), 60_000).unref();
@@ -120,9 +139,18 @@ deps.paymentSettings = new PaymentSettingsService(deps, { log });
 await deps.paymentSettings
   .refresh(true)
   .catch((e: Error) =>
-    log({ level: 'error', msg: 'payment settings not loaded', error: e.message }),
+    log({ level: 'error', msg: 'payment settings not loaded', error: safeErrorMessage(e) }),
   );
 setInterval(() => void deps.paymentSettings?.refresh().catch(() => undefined), 60_000).unref();
+// Sign-in code settings (ADR 049): saved in /ops, the AUTH_OTP_PROVIDER / FIREBASE_* variables otherwise.
+deps.signInSettings = new SignInSettingsService(deps, { log });
+await deps.signInSettings
+  .refresh(true)
+  .catch((e: Error) =>
+    log({ level: 'error', msg: 'sign-in settings not loaded', error: safeErrorMessage(e) }),
+  );
+setInterval(() => void deps.signInSettings?.refresh().catch(() => undefined), 60_000).unref();
+let worker: ReturnType<typeof startWorker> | undefined;
 if (config.redisUrl) {
   // Rate-limit counters in Redis so several API instances share one budget (§9).
   const limiterRedis = new Redis(config.redisUrl, {
@@ -131,7 +159,8 @@ if (config.redisUrl) {
   });
   limiterRedis.on('error', () => undefined); // a Redis outage falls back to per-process counters
   deps.rateStore = new RedisRateStore(limiterRedis, deps.now);
-  deps.enqueueSend = startWorker(deps, config.redisUrl).enqueueSend;
+  worker = startWorker(deps, config.redisUrl);
+  deps.enqueueSend = worker.enqueueSend;
 } else {
   console.log(
     JSON.stringify({
@@ -140,10 +169,34 @@ if (config.redisUrl) {
     }),
   );
 }
-// Scheduled invitations and reminders (ADR 030) run with or without Redis.
-startScheduler(deps);
+// Scheduled invitations and reminders (ADR 030) run with or without Redis. Also hosts the
+// analytics retention sweep (ADR 057): a no-op when `ANALYTICS_ENABLED` is off.
+const siteHost = (() => {
+  try {
+    return new URL(deps.config.appBaseUrl).host;
+  } catch {
+    return 'kadisasa.com';
+  }
+})();
+const stopScheduler = startScheduler(deps, { siteHost });
 const app = createApp(deps);
 
-serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {
+const server = serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {
   console.log(JSON.stringify({ level: 'info', msg: 'api listening', port: info.port }));
 });
+
+// Graceful stop on a redeploy (Docker sends SIGTERM, then SIGKILL after 10 s): stop taking requests,
+// let the BullMQ worker finish or hand back its job, then exit. Without it a send in progress is cut off
+// mid-way and its job is only retried after the stalled-job timeout.
+let stopping = false;
+const shutdown = (signal: string) => {
+  if (stopping) return;
+  stopping = true;
+  console.log(JSON.stringify({ level: 'info', msg: 'shutting down', signal }));
+  stopScheduler();
+  setTimeout(() => process.exit(0), 9_000).unref();
+  server.close();
+  void (worker?.close() ?? Promise.resolve()).catch(() => undefined).finally(() => process.exit(0));
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

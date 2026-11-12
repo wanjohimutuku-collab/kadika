@@ -1,5 +1,6 @@
 'use client';
 
+import { SmsCredits } from '@/components/sms/sms-credits';
 import { use, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,7 +22,7 @@ import {
 import { TextField } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
-import { qk, useSession } from '@/lib/queries';
+import { qk, useEvent, useSession } from '@/lib/queries';
 import { formatDateShort, formatMoney, formatNumber } from '@/lib/format';
 
 const STATUS_TONE = {
@@ -32,7 +33,7 @@ const STATUS_TONE = {
 } as const;
 
 /** Kifurushi (ADR 042): what the event may use, what it used, and buying more. Owner only. */
-export default function BillingPage({ params }: { params: Promise<{ id: string }> }) {
+function CardsBillingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations('billing');
   const tn = useTranslations('nav');
@@ -290,4 +291,12 @@ function Packs({ b, onBuy }: { b: EventBillingView; onBuy: (i: BuyItem) => void 
       </ul>
     </Card>
   );
+}
+
+/** ADR 055: an SMS-reminders-only account gets its own screen here; card events keep theirs. */
+export default function BillingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const event = useEvent(id);
+  if (event.data?.product === 'sms') return <SmsCredits id={id} />;
+  return <CardsBillingPage params={params} />;
 }

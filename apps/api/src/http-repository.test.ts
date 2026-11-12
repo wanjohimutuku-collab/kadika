@@ -46,6 +46,59 @@ describe('HttpRepository against the real API', () => {
     expect(tokens.get()?.refreshToken).toBeTruthy();
   });
 
+  it('keeps the session when two tabs refresh an expired token at the same time', async () => {
+    // Browser tabs share the tokens in localStorage, and a reused refresh token revokes the whole
+    // session; before the shared lock this signed staff out and every /v1/ops call answered 401.
+    let queue: Promise<unknown> = Promise.resolve();
+    const lock = <T>(fn: () => Promise<T>): Promise<T> => {
+      const run = queue.then(fn);
+      queue = run.catch(() => undefined);
+      return run;
+    };
+    const tokens = memoryTokenStore();
+    const tab = () =>
+      createHttpRepository('http://api.test', {
+        tokens,
+        refreshLock: lock,
+        fetchImpl: ((url: string, init?: RequestInit) =>
+          ctx.app.request(url.replace('http://api.test', ''), init)) as typeof fetch,
+      });
+    const a = tab();
+    const b = tab();
+    const s = await login(a, '0712 100 130');
+    ctx.clock.now += 16 * 60_000;
+    const [sa, sb] = await Promise.all([a.getSession(), b.getSession()]);
+    expect(sa?.user.id).toBe(s.user.id);
+    expect(sb?.user.id).toBe(s.user.id);
+    // Still signed in afterwards: nothing tripped the reuse detection.
+    ctx.clock.now += 16 * 60_000;
+    expect((await tab().getSession())?.user.id).toBe(s.user.id);
+  });
+
+  it('a failed refresh in one tab does not clear the pair another tab just stored', async () => {
+    const tokens = memoryTokenStore();
+    const a = repo(tokens);
+    const s = await login(a, '0712 100 131');
+    ctx.clock.now += 16 * 60_000;
+    const fresh = repo(tokens);
+    // This tab's refresh is refused (as when the token was rotated elsewhere); meanwhile the other
+    // tab stores a good pair. The refused tab must leave that pair alone.
+    const refused = createHttpRepository('http://api.test', {
+      tokens,
+      fetchImpl: (async (url: string, init?: RequestInit) => {
+        const path = url.replace('http://api.test', '');
+        if (path === '/v1/auth/refresh') {
+          await fresh.getSession();
+          return new Response(JSON.stringify({ error: { code: 'unauthorized' } }), { status: 401 });
+        }
+        return ctx.app.request(path, init);
+      }) as typeof fetch,
+    });
+    expect(await refused.getSession()).toBeNull();
+    expect(tokens.get()).not.toBeNull();
+    expect((await repo(tokens).getSession())?.user.id).toBe(s.user.id);
+  });
+
   it('maps API errors to RepositoryError codes', async () => {
     const r = repo();
     await expect(r.requestOtp('0712')).rejects.toMatchObject({ code: 'validation' });
@@ -272,6 +325,17 @@ describe('HttpRepository against the real API', () => {
       title: 'Harusi',
       partnerA: 'Asha',
       partnerB: 'Juma',
+    // the console's "show card" link is mock-only: the API never hands out raw card tokens
+    await expect(r.getGuestCardLink('x')).rejects.toMatchObject({ code: 'not_implemented' });
+  });
+
+  it('runs the rest of the console: activity, report, guest history, groups, undo and delete', async () => {
+    const r = repo();
+    await login(r, '0712 100 111');
+    const ev = await r.createEvent({
+      title: 'Harusi ya Dashibodi',
+      partnerA: 'Rehema',
+      partnerB: 'Musa',
       dateStart: '2027-03-20T15:00:00+03:00',
       venueName: 'Ukumbi',
       venueMapUrl: '',
@@ -309,6 +373,59 @@ describe('HttpRepository against the real API', () => {
     await r.deleteGuests([g.id]);
     expect(await r.restoreGuests([g.id])).toEqual({ restored: 1 });
     expect((await r.listGuests(ev.id)).map((x) => x.id)).toEqual([g.id]);
+    const guest = (name: string, phone: string) =>
+      r.createGuest(ev.id, {
+        displayName: name,
+        phone,
+        partySizeAllowed: 2,
+        inviteChannelPref: 'sms',
+        hasSmartphone: true,
+        language: 'sw',
+        notes: '',
+      });
+    const a = await guest('Bibi Pendo', '0712 100 201');
+    const b = await guest('Babu Salim', '0712 100 202');
+
+    // Overview and Reports
+    expect(await r.listActivity(ev.id, 12)).toEqual([]);
+    await r.manualCheckIn(ev.id, a.id, { partySize: 2 });
+    const act = await r.listActivity(ev.id, 12);
+    expect(act).toHaveLength(1);
+    expect(act[0]).toMatchObject({ kind: 'checked_in', guestName: 'Bibi Pendo', count: 2 });
+    const rep = await r.getReport(ev.id);
+    expect(rep.stats.invited).toBe(2);
+    expect(rep.headcountTarget).toBe(4);
+    expect(rep.channels.map((c) => c.channel)).toEqual(['whatsapp', 'sms', 'print']);
+    expect(rep.arrivalsByHour.reduce((n, h) => n + h.count, 0)).toBe(2);
+    expect(rep.pledgeReconciliation).toMatchObject({ pledged: 0, collected: 0, outstanding: 0 });
+
+    // Guest detail: note, history, messages
+    const note = await r.addGuestNote(a.id, '  Anakuja na mjukuu  ');
+    expect(note).toMatchObject({ action: 'note', details: 'Anakuja na mjukuu' });
+    const history = await r.listGuestAudit(a.id);
+    expect(history.map((h) => h.action)).toEqual(['note', 'manual_check_in']);
+    expect(history[0]!.actorName).not.toBe('');
+    expect(await r.listGuestMessages(a.id)).toEqual([]);
+
+    // Guests: move to a group, delete, undo
+    expect(await r.setGuestsGroup([a.id, b.id], ' Familia ')).toEqual({ updated: 2 });
+    expect((await r.getGuest(b.id)).groupLabel).toBe('Familia');
+    await r.deleteGuests([b.id]);
+    expect(await r.restoreGuests([b.id])).toEqual({ restored: 1 });
+    expect((await r.listGuests(ev.id)).map((g) => g.displayName).sort()).toEqual([
+      'Babu Salim',
+      'Bibi Pendo',
+    ]);
+    expect((await r.listGuestAudit(b.id)).map((h) => h.action)).toEqual([
+      'restore',
+      'delete',
+      'group',
+    ]);
+
+    // Settings: delete the event; it is gone for its owner
+    await r.deleteEvent(ev.id);
+    expect((await r.listEvents()).map((e) => e.id)).not.toContain(ev.id);
+    await expect(r.getEvent(ev.id)).rejects.toMatchObject({ code: 'not_found' });
   });
 
   it('sends invitations, retries failures and downloads a print PDF through the repository', async () => {

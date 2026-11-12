@@ -33,7 +33,7 @@ test.describe('Android app page', () => {
 
   test('is linked from the site footer, and /app-download redirects to it', async ({ page }) => {
     await page.goto('/');
-    await page.getByTestId('footer-app-download').click();
+    await page.getByRole('contentinfo').getByRole('link', { name: 'Programu ya Android' }).click();
     await expect(page).toHaveURL(/\/programu/);
     await page.goto('/app-download');
     await expect(page).toHaveURL(/\/programu$/);

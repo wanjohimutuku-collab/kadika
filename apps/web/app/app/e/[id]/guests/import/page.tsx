@@ -19,8 +19,13 @@ import {
 } from 'lucide-react';
 import {
   buildPreview,
+  CONTACTS_FILE_MAX_BYTES,
+  contactsToRows,
   CSV_TEMPLATE,
+  fromGoogleContactsCsv,
   guessMapping,
+  isGoogleContactsCsv,
+  parseVCard,
   parseCsv,
   parsePastedList,
   summarizePreview,
@@ -56,6 +61,7 @@ function ImportInner({ id }: { id: string }) {
   const tc = useTranslations('common');
   const tg = useTranslations('guestDetail');
   const ts = useTranslations('states');
+  const tk = useTranslations('contacts');
   const toast = useToast();
   const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
@@ -205,7 +211,7 @@ function ImportInner({ id }: { id: string }) {
         back={
           <Link
             href={`/app/e/${id}/guests`}
-            className="inline-flex min-h-10 items-center gap-1.5 self-start font-semibold text-primary"
+            className="inline-flex min-h-11 items-center gap-1.5 self-start font-semibold text-primary"
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
             {tg('back')}
@@ -293,16 +299,24 @@ function ImportInner({ id }: { id: string }) {
               <FilePicker
                 label={fileName ?? t('csvLabel')}
                 hint={t('csvHint')}
-                accept=".csv,text/csv,text/plain"
+                accept=".csv,text/csv,text/plain,.vcf,.vcard,text/vcard,text/x-vcard"
                 buttonLabel={t('chooseFile')}
                 error={fileError ?? undefined}
                 onFile={async (f) => {
                   setFileError(null);
                   setFileName(f.name);
                   try {
+                    if (f.size > CONTACTS_FILE_MAX_BYTES) {
+                      setFileError(tk('tooLarge'));
+                      return;
+                    }
                     const text = await f.text();
                     const rows = parseCsv(text);
-                    if (!rows.length || text.includes('\u0000')) setFileError(t('notCsv'));
+                    // address-book exports (iPhone/iCloud vCard, Google CSV) become name, phone rows
+                    if (/BEGIN:VCARD/i.test(text)) load(contactsToRows(parseVCard(text)), false);
+                    else if (rows[0] && isGoogleContactsCsv(rows[0]))
+                      load(contactsToRows(fromGoogleContactsCsv(rows)), false);
+                    else if (!rows.length || text.includes('\u0000')) setFileError(t('notCsv'));
                     else load(rows, true);
                   } catch {
                     setFileError(t('notCsv'));
@@ -383,7 +397,7 @@ function ImportInner({ id }: { id: string }) {
           </div>
           {mapping.length > 1 ? (
             <details className="rounded-card border border-border bg-surface p-4" open={hasHeader}>
-              <summary className="min-h-10 cursor-pointer font-semibold">{t('mapping')}</summary>
+              <summary className="min-h-11 cursor-pointer font-semibold">{t('mapping')}</summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {mapping.map((m, i) => (
                   <label key={i} className="flex flex-col gap-1 text-sm font-semibold">

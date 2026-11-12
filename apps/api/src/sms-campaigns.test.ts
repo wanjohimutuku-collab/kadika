@@ -252,7 +252,10 @@ describe('SMS reminders only (ADR 055)', () => {
     });
     expect(r.status).toBe(201);
     expect(r.body).toMatchObject({ sent: 2, failed: 0 });
-    const out = ctx.sms.sent.slice(before).map((m) => m.body).sort();
+    const out = ctx.sms.sent
+      .slice(before)
+      .map((m) => m.body)
+      .sort();
     expect(out).toEqual([
       'Habari Asha Juma (Kamati), tukutane Ukumbi wa Mwanga — Kikao cha harusi',
       'Habari Neema (), tukutane Ukumbi wa Mwanga — Kikao cha harusi',

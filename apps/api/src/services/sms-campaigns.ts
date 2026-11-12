@@ -88,8 +88,7 @@ export class SmsCampaignService {
     if (body.trim().length < 2)
       throw new ApiError('validation', 'Write the message', { field: 'body' });
     const problem = smsCampaignProblem(body);
-    if (problem)
-      throw new ApiError('validation', problem, { field: 'body', reason: problem });
+    if (problem) throw new ApiError('validation', problem, { field: 'body', reason: problem });
     const seg = smsSegments(sample ?? body);
     if (seg.segments > SMS_MAX_SEGMENTS)
       throw new ApiError('validation', `At most ${SMS_MAX_SEGMENTS} SMS parts`, {

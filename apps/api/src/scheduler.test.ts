@@ -28,6 +28,15 @@ function spyAnalytics(enabled: boolean): AnalyticsService & { sweeps: number } {
       this.sweeps += 1;
       return 0;
     },
+    async summary() {
+      return {
+        since: new Date(0).toISOString(),
+        totals: {},
+        byDay: [],
+        byEdition: [],
+        bySource: [],
+      };
+    },
   };
   return svc;
 }

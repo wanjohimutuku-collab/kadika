@@ -50,6 +50,7 @@ import type {
   OpsOrganizer,
   OpsOverview,
   OpsUsage,
+  OpsAnalytics,
   Payment,
   PaymentStart,
   PaymentStatusView,
@@ -641,6 +642,10 @@ export function createHttpRepository(
     },
     async opsUsage() {
       return call<OpsUsage>('GET', '/v1/ops/usage');
+    },
+    async opsAnalytics(days) {
+      const qs = days ? `?days=${encodeURIComponent(days)}` : '';
+      return call<OpsAnalytics>('GET', `/v1/ops/analytics${qs}`);
     },
     async getBilling(eventId) {
       return call<EventBillingView>('GET', `/v1/events/${encodeURIComponent(eventId)}/billing`);

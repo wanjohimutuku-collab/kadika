@@ -76,6 +76,7 @@ import type {
   OpsOrganizer,
   OpsOverview,
   OpsUsage,
+  OpsAnalytics,
   GuestMemoriesView,
   MemoriesAdminView,
   Memory,
@@ -305,6 +306,8 @@ export interface Repository {
   opsListOrganizers(): Promise<OpsOrganizer[]>;
   opsListEvents(): Promise<OpsEvent[]>;
   opsUsage(): Promise<OpsUsage>;
+  /** First-party analytics summary over the last `days` (ADR 057 §7). */
+  opsAnalytics(days?: number): Promise<OpsAnalytics>;
   /** Launch-gate numbers for one country (or all), for the pilot dashboard (Phase 5). */
   opsPilotMetrics(opts?: { country?: Country | 'all'; days?: number }): Promise<PilotMetrics>;
   opsLookup(query: string): Promise<OpsLookupResult>;

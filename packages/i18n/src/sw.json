@@ -1310,6 +1310,7 @@
       "organizers": "Wateja",
       "events": "Harusi",
       "usage": "Matumizi na gharama",
+      "analytics": "Takwimu za tovuti",
       "payments": "Malipo",
       "support": "Msaada",
       "requests": "Maombi ya data",
@@ -1420,6 +1421,34 @@
         "rate_limited": "Ujumbe mwingi kwa wakati mmoja"
       },
       "assumption": "Gharama ya SMS ni makadirio: TZS 25 kwa kila ujumbe hadi mtoa huduma achaguliwe."
+    },
+    "analytics": {
+      "title": "Takwimu za tovuti (siku 30)",
+      "empty": "Hakuna takwimu bado. Zitaanza kuingia baada ya ANALYTICS_ENABLED=1 na siri yake kuwekwa.",
+      "footnote": "Takwimu hazihifadhi jina, simu wala kitambulisho cha mgeni. Data inakaa siku 180 pekee.",
+      "cards": {
+        "pageViews": "Ufunguzi wa kurasa",
+        "startRegistration": "Walioanza usajili",
+        "completeRegistration": "Walikamilisha usajili",
+        "createEvent": "Harusi mpya",
+        "shareInvitation": "Kadi zilizoshirikiwa"
+      },
+      "daily": "Kwa siku",
+      "col": {
+        "day": "Siku",
+        "pageViews": "Ufunguzi",
+        "conversions": "Vitendo",
+        "edition": "Lugha / Nchi",
+        "source": "Chanzo"
+      },
+      "edition": "Kwa lugha",
+      "source": "Chanzo cha trafiki",
+      "sources": {
+        "direct": "Moja kwa moja",
+        "search": "Google / Bing",
+        "social": "Mitandao",
+        "referral": "Kiungo kingine"
+      }
     },
     "payments": {
       "title": "Malipo ya michango",

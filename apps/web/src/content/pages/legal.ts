@@ -1267,12 +1267,22 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'ul',
               items: [
                 'Vidakuzi vya matangazo au vya kukufuatilia kwenye tovuti nyingine.',
-                'Zana za uchanganuzi zinazotuma data kwa makampuni ya nje (kwa sasa).',
+                'Zana za uchanganuzi zinazotuma data kwa makampuni ya nje.',
               ],
+            },
+          ],
+        },
+        {
+          id: 'takwimu',
+          h2: 'Takwimu zisizo na jina',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Ili tujue kurasa zipi zinasaidia na ni ngapi zinaanzisha usajili, tunahifadhi idadi tu — bila kidakuzi, bila kutuma taarifa kwa mtu yeyote. Tunakokotoa alama ya kipindi kutoka IP yako na kivinjari pamoja na tarehe ya leo na siri yetu; IP na kivinjari havihifadhiwi, na alama inabadilika kila siku.',
             },
             {
               t: 'p',
-              text: 'Tukianza kutumia uchanganuzi wa kupima ukurasa, tutasasisha ukurasa huu na kuomba ridhaa kama sheria inavyohitaji.',
+              text: 'Hatuhifadhi jina lako, namba yako ya simu wala kitambulisho cha mwaliko kwenye takwimu hizi. Zinakaa siku 180 pekee, zikisomwa na wafanyakazi wetu peke yao.',
             },
           ],
         },
@@ -1337,12 +1347,22 @@ export const LEGAL_PAGES: ContentPageDef[] = [
               t: 'ul',
               items: [
                 'Advertising cookies or cookies that track you across other sites.',
-                'Analytics tools that send data to outside companies (currently).',
+                'Analytics tools that send data to outside companies.',
               ],
+            },
+          ],
+        },
+        {
+          id: 'anonymous',
+          h2: 'Anonymous counts',
+          blocks: [
+            {
+              t: 'p',
+              text: 'So we know which pages help and how many people start signing up, we keep counts only — no cookies, nothing sent to anyone else. A per-day session key is derived from your IP and user-agent together with today’s date and our secret; the IP and user-agent are never stored, and the key changes every day.',
             },
             {
               t: 'p',
-              text: 'If we start page analytics we will update this page and ask for consent as the law requires.',
+              text: 'We never put your name, phone number or invitation id into these counts. They are kept for 180 days and read only by our own staff.',
             },
           ],
         },

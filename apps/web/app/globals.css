@@ -316,8 +316,7 @@
     radial-gradient(60% 45% at 92% 8%, rgb(232 149 48 / 0.34), transparent 70%),
     radial-gradient(55% 55% at 0% 25%, rgb(200 31 106 / 0.22), transparent 70%),
     radial-gradient(70% 60% at 50% 100%, rgb(15 92 77 / 0.22), transparent 70%),
-    radial-gradient(40% 40% at 70% 70%, rgb(36 50 114 / 0.14), transparent 70%),
-    var(--ks-paper);
+    radial-gradient(40% 40% at 70% 70%, rgb(36 50 114 / 0.14), transparent 70%), var(--ks-paper);
 }
 .ks-mesh-dark {
   background:

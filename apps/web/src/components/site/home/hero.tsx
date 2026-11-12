@@ -49,14 +49,16 @@ export function Hero(props: HeroProps) {
               kanga key used by its celebration pill further down the page, so the colour
               story is coherent and the service's reach is unmissable. */}
           <ul className="-mx-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
-            {([
-              ['Harusi', 'text-ks-magenta'],
-              ['Send-off', 'text-ks-saffron'],
-              ['Kitchen party', 'text-ks-green-700'],
-              ['Nikah', 'text-ks-indigo'],
-              ['Mahafali', 'text-ks-terracotta'],
-              ['Biashara', 'text-ks-magenta'],
-            ] as const).map(([label, color], i) => (
+            {(
+              [
+                ['Harusi', 'text-ks-magenta'],
+                ['Send-off', 'text-ks-saffron'],
+                ['Kitchen party', 'text-ks-green-700'],
+                ['Nikah', 'text-ks-indigo'],
+                ['Mahafali', 'text-ks-terracotta'],
+                ['Biashara', 'text-ks-magenta'],
+              ] as const
+            ).map(([label, color], i) => (
               <li key={label} className="inline-flex items-center gap-3">
                 {i > 0 ? (
                   <span aria-hidden="true" className="text-ks-ink/30">
@@ -98,9 +100,7 @@ export function Hero(props: HeroProps) {
             ) : null}
             {post}
           </h1>
-          <p className="max-w-xl text-lg leading-relaxed text-ks-ink/75 md:text-xl">
-            {props.sub}
-          </p>
+          <p className="max-w-xl text-lg leading-relaxed text-ks-ink/75 md:text-xl">{props.sub}</p>
 
           <div className="flex flex-wrap items-center gap-5 pt-2">
             <Link
@@ -150,190 +150,185 @@ export function Hero(props: HeroProps) {
               <li className="text-ks-muted">{s.guestsAwaiting}</li>
             </ul>
           </div>
-        {/* Phone body — matches the DemoStudio frame visually. */}
-        <div
-          aria-label={props.previewFrameAlt}
-          role="img"
-          className="relative"
-          style={{ width: 280, height: 560 }}
-        >
-          <svg
-            viewBox="0 0 300 600"
-            width={280}
-            height={560}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 drop-shadow-[0_28px_48px_rgb(10_63_53/0.35)]"
+          {/* Phone body — matches the DemoStudio frame visually. */}
+          <div
+            aria-label={props.previewFrameAlt}
+            role="img"
+            className="relative"
+            style={{ width: 280, height: 560 }}
           >
-            <defs>
-              <linearGradient id="hero-bezel" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#1A1E1C" />
-                <stop offset="100%" stopColor="#0B0E0D" />
-              </linearGradient>
-            </defs>
-            <rect x="0" y="118" width="4" height="36" rx="2" fill="#141716" />
-            <rect x="0" y="180" width="4" height="60" rx="2" fill="#141716" />
-            <rect x="0" y="252" width="4" height="60" rx="2" fill="#141716" />
-            <rect x="296" y="168" width="4" height="96" rx="2" fill="#141716" />
-            <rect x="4" y="4" width="292" height="592" rx="44" fill="url(#hero-bezel)" />
-            <rect
-              x="7"
-              y="7"
-              width="286"
-              height="586"
-              rx="41"
-              fill="none"
-              stroke="rgba(255,255,255,0.08)"
-              strokeWidth="1"
-            />
-            <rect x="120" y="22" width="60" height="18" rx="9" fill="#050707" />
-            <circle cx="166" cy="31" r="2.2" fill="#1C2322" />
-          </svg>
-          {/* The signature moment: the phone holds a real wedding-card interior — not a gradient
+            <svg
+              viewBox="0 0 300 600"
+              width={280}
+              height={560}
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 drop-shadow-[0_28px_48px_rgb(10_63_53/0.35)]"
+            >
+              <defs>
+                <linearGradient id="hero-bezel" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1A1E1C" />
+                  <stop offset="100%" stopColor="#0B0E0D" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="118" width="4" height="36" rx="2" fill="#141716" />
+              <rect x="0" y="180" width="4" height="60" rx="2" fill="#141716" />
+              <rect x="0" y="252" width="4" height="60" rx="2" fill="#141716" />
+              <rect x="296" y="168" width="4" height="96" rx="2" fill="#141716" />
+              <rect x="4" y="4" width="292" height="592" rx="44" fill="url(#hero-bezel)" />
+              <rect
+                x="7"
+                y="7"
+                width="286"
+                height="586"
+                rx="41"
+                fill="none"
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth="1"
+              />
+              <rect x="120" y="22" width="60" height="18" rx="9" fill="#050707" />
+              <circle cx="166" cy="31" r="2.2" fill="#1C2322" />
+            </svg>
+            {/* The signature moment: the phone holds a real wedding-card interior — not a gradient
               tile. Hand-drawn gold scroll corners, italic swash eyebrow, Fraunces display names,
               an abstracted QR plate with short code, and a kanga chevron band. The ornament
               motif reappears, hairline, under the AnswerBlock. */}
-          <div
-            className="absolute overflow-hidden"
-            style={{
-              top: 14,
-              bottom: 14,
-              left: 14,
-              right: 14,
-              borderRadius: 34,
-              background:
-                'radial-gradient(120% 80% at 15% 0%, #1b7764 0%, #0F5C4D 55%, #0a3f35 100%)',
-            }}
-          >
-            <div className="h-10" aria-hidden="true" />
-            {/* Ornamental inner card on warm ivory, inset so the gold edges can breathe. */}
-            <div className="relative mx-5 mb-6 mt-5 flex h-[calc(100%-2.5rem-2.75rem)] flex-col items-center justify-between overflow-hidden rounded-[22px] bg-[#FBF8F1] px-5 pb-5 pt-7 text-center text-ks-ink">
-              {/* Gold corner ornaments — a classic certificate/invitation frame: double-line
+            <div
+              className="absolute overflow-hidden"
+              style={{
+                top: 14,
+                bottom: 14,
+                left: 14,
+                right: 14,
+                borderRadius: 34,
+                background:
+                  'radial-gradient(120% 80% at 15% 0%, #1b7764 0%, #0F5C4D 55%, #0a3f35 100%)',
+              }}
+            >
+              <div className="h-10" aria-hidden="true" />
+              {/* Ornamental inner card on warm ivory, inset so the gold edges can breathe. */}
+              <div className="relative mx-5 mb-6 mt-5 flex h-[calc(100%-2.5rem-2.75rem)] flex-col items-center justify-between overflow-hidden rounded-[22px] bg-[#FBF8F1] px-5 pb-5 pt-7 text-center text-ks-ink">
+                {/* Gold corner ornaments — a classic certificate/invitation frame: double-line
                   L-bracket in gold with a small four-point star at the meeting corner. One SVG
                   mirrored to all four corners. Reads instantly as formal invitation corner,
                   not as a decorative eye. */}
-              {([
-                ['left-1.5 top-1.5', ''],
-                ['right-1.5 top-1.5', '-scale-x-100'],
-                ['left-1.5 bottom-1.5', '-scale-y-100'],
-                ['right-1.5 bottom-1.5', '-scale-100'],
-              ] as const).map(([pos, flip], i) => (
-                <svg
-                  key={i}
-                  aria-hidden="true"
-                  viewBox="0 0 40 40"
-                  className={`pointer-events-none absolute ${pos} ${flip} size-11 text-ks-gold-500`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                >
-                  {/* Outer L-bracket with gently rounded inside corner */}
-                  <path d="M4 36 L4 10 Q 4 4 10 4 L36 4" strokeWidth="1.4" />
-                  {/* Inner parallel L, shorter and softer */}
-                  <path
-                    d="M9 32 L9 14 Q 9 9 14 9 L32 9"
-                    strokeWidth="0.9"
-                    opacity=".6"
-                  />
-                  {/* Four-point star at the frame's meeting corner */}
-                  <g transform="translate(14 14)" stroke="none" fill="currentColor">
-                    <path d="M0 -3.4 L0.7 -0.7 L3.4 0 L0.7 0.7 L0 3.4 L-0.7 0.7 L-3.4 0 L-0.7 -0.7 Z" />
-                  </g>
-                </svg>
-              ))}
-
-              <div className="flex flex-col items-center gap-1.5">
-                <span className="font-serif text-[12px] italic text-ks-green-900/80">
-                  ~ Sherehe ya ~
-                </span>
-                {/* Small gold diamond ornament — a quiet pivot between eyebrow and names. */}
-                <span className="inline-flex items-center gap-1.5 text-ks-gold-500/70">
-                  <span aria-hidden="true" className="h-px w-6 bg-current" />
-                  <span
+                {(
+                  [
+                    ['left-1.5 top-1.5', ''],
+                    ['right-1.5 top-1.5', '-scale-x-100'],
+                    ['left-1.5 bottom-1.5', '-scale-y-100'],
+                    ['right-1.5 bottom-1.5', '-scale-100'],
+                  ] as const
+                ).map(([pos, flip], i) => (
+                  <svg
+                    key={i}
                     aria-hidden="true"
-                    className="size-1.5 rotate-45 bg-ks-gold-500"
-                  />
-                  <span aria-hidden="true" className="h-px w-6 bg-current" />
-                </span>
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="font-serif text-[28px] leading-[1.02] text-ks-green-900">
-                  Asha
-                  <span className="mx-1.5 align-middle font-serif text-ks-gold-500 italic">
-                    &amp;
-                  </span>
-                  Juma
-                </p>
-                <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-ks-muted">
-                  14 · Desemba · 2026
-                </p>
-                {/* Venue line in italic Fraunces — one quiet detail that makes the kadi feel
-                    wedding-shaped instead of generic. */}
-                <p className="mt-1 font-serif text-[12px] italic leading-tight text-ks-muted">
-                  Ukumbi wa Mwanga,
-                  <br />
-                  Kibaha
-                </p>
-              </div>
+                    viewBox="0 0 40 40"
+                    className={`pointer-events-none absolute ${pos} ${flip} size-11 text-ks-gold-500`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                  >
+                    {/* Outer L-bracket with gently rounded inside corner */}
+                    <path d="M4 36 L4 10 Q 4 4 10 4 L36 4" strokeWidth="1.4" />
+                    {/* Inner parallel L, shorter and softer */}
+                    <path d="M9 32 L9 14 Q 9 9 14 9 L32 9" strokeWidth="0.9" opacity=".6" />
+                    {/* Four-point star at the frame's meeting corner */}
+                    <g transform="translate(14 14)" stroke="none" fill="currentColor">
+                      <path d="M0 -3.4 L0.7 -0.7 L3.4 0 L0.7 0.7 L0 3.4 L-0.7 0.7 L-3.4 0 L-0.7 -0.7 Z" />
+                    </g>
+                  </svg>
+                ))}
 
-              {/* Abstracted QR plate + short code, side by side in a thin gold-bordered band —
-                  the band is what a committee prints beside the QR on the paper kadi. */}
-              <div className="flex items-center gap-3 rounded-lg bg-white px-2.5 py-1.5 shadow-[inset_0_0_0_1px_rgb(217_164_65/0.4)]">
-                <div
-                  aria-hidden="true"
-                  className="grid size-[54px] shrink-0 grid-cols-7 grid-rows-7 gap-[2px]"
-                >
-                  <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
-                  <span className="bg-ks-ink/85" />
-                  <span />
-                  <span className="bg-ks-ink/60" />
-                  <span className="bg-ks-ink/85" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span className="bg-ks-ink/60" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span />
-                  <span className="bg-ks-ink/85" />
-                  <span className="bg-ks-ink/60" />
-                  <span />
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="font-serif text-[12px] italic text-ks-green-900/80">
+                    ~ Sherehe ya ~
+                  </span>
+                  {/* Small gold diamond ornament — a quiet pivot between eyebrow and names. */}
+                  <span className="inline-flex items-center gap-1.5 text-ks-gold-500/70">
+                    <span aria-hidden="true" className="h-px w-6 bg-current" />
+                    <span aria-hidden="true" className="size-1.5 rotate-45 bg-ks-gold-500" />
+                    <span aria-hidden="true" className="h-px w-6 bg-current" />
+                  </span>
                 </div>
-                <span className="flex flex-col items-start leading-tight">
-                  <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-ks-muted">
-                    Namba
+                <div className="flex flex-col gap-2">
+                  <p className="font-serif text-[28px] leading-[1.02] text-ks-green-900">
+                    Asha
+                    <span className="mx-1.5 align-middle font-serif text-ks-gold-500 italic">
+                      &amp;
+                    </span>
+                    Juma
+                  </p>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-ks-muted">
+                    14 · Desemba · 2026
+                  </p>
+                  {/* Venue line in italic Fraunces — one quiet detail that makes the kadi feel
+                    wedding-shaped instead of generic. */}
+                  <p className="mt-1 font-serif text-[12px] italic leading-tight text-ks-muted">
+                    Ukumbi wa Mwanga,
+                    <br />
+                    Kibaha
+                  </p>
+                </div>
+
+                {/* Abstracted QR plate + short code, side by side in a thin gold-bordered band —
+                  the band is what a committee prints beside the QR on the paper kadi. */}
+                <div className="flex items-center gap-3 rounded-lg bg-white px-2.5 py-1.5 shadow-[inset_0_0_0_1px_rgb(217_164_65/0.4)]">
+                  <div
+                    aria-hidden="true"
+                    className="grid size-[54px] shrink-0 grid-cols-7 grid-rows-7 gap-[2px]"
+                  >
+                    <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
+                    <span className="bg-ks-ink/85" />
+                    <span />
+                    <span className="bg-ks-ink/60" />
+                    <span className="bg-ks-ink/85" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span className="bg-ks-ink/60" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span className="col-span-2 row-span-2 rounded-[1.5px] bg-ks-ink" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span />
+                    <span className="bg-ks-ink/85" />
+                    <span className="bg-ks-ink/60" />
+                    <span />
+                  </div>
+                  <span className="flex flex-col items-start leading-tight">
+                    <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-ks-muted">
+                      Namba
+                    </span>
+                    <span className="font-mono text-[14px] font-semibold tracking-[0.12em] text-ks-green-900">
+                      KH-4826
+                    </span>
                   </span>
-                  <span className="font-mono text-[14px] font-semibold tracking-[0.12em] text-ks-green-900">
-                    KH-4826
-                  </span>
-                </span>
+                </div>
               </div>
+              {/* Kanga chevron band at the bottom of the phone screen. */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-7"
+                style={{
+                  background:
+                    'linear-gradient(135deg,#D9A441 25%,transparent 25%) 0 0/8px 8px,' +
+                    'linear-gradient(225deg,#D9A441 25%,transparent 25%) 4px 0/8px 8px,#0a3f35',
+                }}
+              />
             </div>
-            {/* Kanga chevron band at the bottom of the phone screen. */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 h-7"
-              style={{
-                background:
-                  'linear-gradient(135deg,#D9A441 25%,transparent 25%) 0 0/8px 8px,' +
-                  'linear-gradient(225deg,#D9A441 25%,transparent 25%) 4px 0/8px 8px,#0a3f35',
-              }}
-            />
           </div>
-        </div>
           {/* Floating stat: contributions, saffron key. The progress bar now runs saffron
               → magenta so the michango number carries real colour. */}
           <div className="absolute -right-4 top-28 z-10 hidden w-[13rem] rounded-2xl bg-white p-3 shadow-[0_20px_40px_-18px_rgb(232_149_48/0.4),inset_0_0_0_1px_rgb(232_149_48/0.2)] md:block md:top-40">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-saffron">
-              <Wallet className="size-3.5" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ks-ink/80">
+              <Wallet className="size-3.5 text-ks-saffron" aria-hidden="true" />
               {s.michangoTitle}
             </div>
             <div className="mt-2 flex items-baseline justify-between text-xs text-ks-muted">
@@ -372,34 +367,34 @@ export function Hero(props: HeroProps) {
             </span>
           </div>
 
-        {/* Mobile-only stat row: a tidy 3-up grid under the phone that carries the same product
+          {/* Mobile-only stat row: a tidy 3-up grid under the phone that carries the same product
             story as the floating cards on desktop. */}
-        <div className="grid w-full grid-cols-3 gap-2 md:hidden">
-          <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
-            <Users className="mx-auto size-4 text-ks-green-700" aria-hidden="true" />
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
-              {s.guestsTitle}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-ks-ink">214/320</p>
+          <div className="grid w-full grid-cols-3 gap-2 md:hidden">
+            <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
+              <Users className="mx-auto size-4 text-ks-green-700" aria-hidden="true" />
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
+                {s.guestsTitle}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-ks-ink">214/320</p>
+            </div>
+            <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
+              <Wallet className="mx-auto size-4 text-ks-gold-500" aria-hidden="true" />
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
+                {s.michangoTitle}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-ks-ink">70%</p>
+            </div>
+            <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
+              <CheckCircle2 className="mx-auto size-4 text-ks-green-700" aria-hidden="true" />
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
+                {s.checkedInTitle}
+              </p>
+              <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-ks-green-700">
+                <Wifi className="size-3" aria-hidden="true" />
+                {s.checkedInOffline}
+              </p>
+            </div>
           </div>
-          <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
-            <Wallet className="mx-auto size-4 text-ks-gold-500" aria-hidden="true" />
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
-              {s.michangoTitle}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-ks-ink">70%</p>
-          </div>
-          <div className="rounded-2xl border border-ks-border/60 bg-white p-3 text-center shadow-[0_8px_18px_-14px_rgb(10_63_53/0.25)]">
-            <CheckCircle2 className="mx-auto size-4 text-ks-green-700" aria-hidden="true" />
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-ks-muted">
-              {s.checkedInTitle}
-            </p>
-            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-ks-green-700">
-              <Wifi className="size-3" aria-hidden="true" />
-              {s.checkedInOffline}
-            </p>
-          </div>
-        </div>
         </div>
       </div>
     </section>

@@ -50,6 +50,7 @@ required reviewer and limit it to `v*` tags. The workflow reads these from the e
 | Variable | `NEXT_PUBLIC_APP_DOMAIN`    | Optional. The official link domain; when set it also turns on host routing (below). Set it on `production` only, to `kadisasa.com`. Defaults to `kadisasa.com`, no routing.  |
 | Variable | `NEXT_PUBLIC_SITE_URL`      | Optional. Defaults to `https://<app domain>`.                                                                                                                                |
 | Variable | `NEXT_PUBLIC_KENYA_ENABLED` | Optional. `1` turns Kenya support on. Defaults to `0`.                                                                                                                       |
+| Variable | `NEXT_PUBLIC_COOKIE_SESSION` | Optional. `1` keeps the web refresh token in an HttpOnly cookie on the API instead of `localStorage`. Turn it on for staging first: the API must be on the same site as the web hosts, and everyone signs in once more. Defaults to `0`. |
 | Variable | `DEPLOY_WEB_URL`            | Optional. Public `https://` address of that environment's web app, used to confirm the deploy. Defaults to `NEXT_PUBLIC_SITE_URL`; without either only the API is confirmed. |
 
 The `NEXT_PUBLIC_*` values are baked into the web image when it is built, so changing one needs a new build, not

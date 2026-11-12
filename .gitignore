@@ -32,3 +32,10 @@ apps/api/data/
 
 # Firebase config for Android builds (ADR 048): an EAS file variable, not committed
 apps/mobile/google-services.json
+
+# Loose files dropped in the repo root (invoices, sample cards, screenshots): this repository is public,
+# so they must never be committed by accident. Assets that belong in the repo live under apps/ or docs/.
+/*.pdf
+/*.png
+/*.jpg
+/*.jpeg

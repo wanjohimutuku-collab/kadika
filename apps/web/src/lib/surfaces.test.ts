@@ -231,6 +231,31 @@ describe('middleware with a root domain set', () => {
     expect(ke.headers.get('x-middleware-request-x-hp-market')).toBe('ke');
   });
 
+  it('gives the console, the staff panel and sign-in a fresh script nonce, and nothing else', async () => {
+    const mw = await load(ROOT);
+    const nonceOf = (res: Response) =>
+      /script-src 'nonce-([^']+)' 'strict-dynamic'/.exec(
+        res.headers.get('content-security-policy') ?? '',
+      )?.[1];
+    const seen = new Set<string>();
+    for (const [host, path] of [
+      ['app.kadisasa.com', '/app/events'],
+      ['app.kadisasa.com', '/login'],
+      ['my.kadisasa.com', '/ops/payments'],
+    ] as const) {
+      const res = mw(req(host, path));
+      const nonce = nonceOf(res);
+      expect(nonce, `${host}${path}`).toBeTruthy();
+      // Next.js reads the nonce from the same policy on the request it renders
+      expect(res.headers.get('x-middleware-request-content-security-policy')).toContain(nonce!);
+      expect(res.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+      seen.add(nonce!);
+    }
+    expect(seen.size).toBe(3);
+    for (const path of ['/', '/bei', '/c/token', '/sw/bei', '/application'])
+      expect(mw(req('kadisasa.com', path)).headers.get('content-security-policy'), path).toBeNull();
+  });
+
   it('applies no host rules when no root domain was set at build time', async () => {
     const mw = await load();
     for (const host of ['kadisasa.com', 'my.kadisasa.com', 'localhost:3000'])

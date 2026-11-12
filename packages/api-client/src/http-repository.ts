@@ -95,9 +95,64 @@ export function webStorageTokenStore(storage: Storage, key = 'harusi.auth.v1'): 
   };
 }
 
+/** What a cookie session keeps where a refresh token would be: the real one is in an HttpOnly cookie. */
+const IN_COOKIE = 'cookie';
+
+/**
+ * Token store for cookie sessions (`cookieSession`, security review M-05). The refresh token never
+ * reaches JavaScript, the access token lives in memory only, and `storage` holds just a marker that a
+ * session exists, so a reload or another tab knows to ask the API for an access token. Removing the
+ * marker (sign-out in any tab) ends the session in every tab. Nothing a script could steal is stored.
+ */
+export function cookieSessionTokenStore(
+  storage: Storage | null,
+  key = 'harusi.session.v1',
+  legacyKey = 'harusi.auth.v1',
+): TokenStore {
+  let accessToken = '';
+  let marked = false; // used only when storage is unavailable
+  const has = () => {
+    try {
+      return storage ? storage.getItem(key) === '1' : marked;
+    } catch {
+      return marked;
+    }
+  };
+  try {
+    storage?.removeItem(legacyKey); // tokens an older build left in storage
+  } catch {
+    // storage blocked
+  }
+  return {
+    get() {
+      if (!has()) {
+        accessToken = '';
+        return null;
+      }
+      return { accessToken, refreshToken: IN_COOKIE };
+    },
+    set(v) {
+      accessToken = v?.accessToken ?? '';
+      marked = !!v;
+      try {
+        if (v) storage?.setItem(key, '1');
+        else storage?.removeItem(key);
+      } catch {
+        // storage blocked: the session lasts until the page closes
+      }
+    },
+  };
+}
+
 export interface HttpRepositoryOptions {
   fetchImpl?: typeof fetch;
   tokens?: TokenStore;
+  /**
+   * Browsers only: the API keeps the refresh token in an HttpOnly cookie (the API's
+   * `auth/session-cookie.ts`) instead of handing it to this client. Use with `cookieSessionTokenStore`.
+   * The API and the web app must be on the same site (e.g. `api.` and `app.` of one domain).
+   */
+  cookieSession?: boolean;
   newKey?: () => string;
   /**
    * Runs a token refresh exclusively across every client sharing the token store (browser tabs share
@@ -392,6 +447,12 @@ export function createHttpRepository(
   const tokens = opts.tokens ?? memoryTokenStore();
   const newKey = opts.newKey ?? (() => crypto.randomUUID());
   const refreshLock = opts.refreshLock;
+  const cookieSession = opts.cookieSession === true;
+  /** Only the auth routes see the cookie; every other call carries the access token alone. */
+  const cookieCall = (path: string) => cookieSession && path.startsWith('/v1/auth/');
+  /** The refresh token of a fresh session: the API's, or the cookie marker when it kept it. */
+  const refreshOf = (json: Record<string, unknown>) =>
+    typeof json.refreshToken === 'string' ? json.refreshToken : IN_COOKIE;
   let refreshing: Promise<boolean> | null = null;
   /** Staff sign-in: the challenge between the SMS code and the authenticator code (memory only). */
   let staffChallenge: string | null = null;
@@ -425,9 +486,13 @@ export function createHttpRepository(
                 'content-type':
                   body instanceof Blob ? 'application/octet-stream' : 'application/json',
               }),
-          ...(auth && tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {}),
+          ...(auth && tokens.get()?.accessToken
+            ? { authorization: `Bearer ${tokens.get()!.accessToken}` }
+            : {}),
+          ...(cookieCall(path) ? { 'x-session-transport': 'cookie' } : {}),
           ...extra,
         },
+        ...(cookieCall(path) ? { credentials: 'include' as const } : {}),
         body:
           body === undefined
             ? undefined
@@ -453,16 +518,24 @@ export function createHttpRepository(
       const t = tokens.get();
       if (!t) return false;
       if (sentWith !== undefined && t.accessToken !== sentWith) return true;
-      const r = await raw('POST', '/v1/auth/refresh', { refreshToken: t.refreshToken }, {}, false);
+      const swap = () =>
+        raw(
+          'POST',
+          '/v1/auth/refresh',
+          cookieSession ? {} : { refreshToken: t.refreshToken },
+          {},
+          false,
+        );
+      let r = await swap();
+      // Cookie sessions without Web Locks: another tab may have spent the cookie's token a moment ago,
+      // and the cookie now holds its replacement. One more try uses that one.
+      if (r.status === 401 && cookieSession && !refreshLock) r = await swap();
       if (r.status !== 200) {
         // Only clear the session we tried to refresh, never a newer one another tab just stored.
         if (tokens.get()?.refreshToken === t.refreshToken) tokens.set(null);
         return false;
       }
-      tokens.set({
-        accessToken: r.json!.accessToken as string,
-        refreshToken: r.json!.refreshToken as string,
-      });
+      tokens.set({ accessToken: r.json!.accessToken as string, refreshToken: refreshOf(r.json!) });
       return true;
     }).finally(() => {
       refreshing = null;
@@ -477,7 +550,9 @@ export function createHttpRepository(
     body?: unknown,
     extra?: Record<string, string>,
   ): Promise<T> {
-    const sentWith = tokens.get()?.accessToken;
+    let sentWith = tokens.get()?.accessToken;
+    // A cookie session after a reload (or in a new tab) has no access token yet: fetch one first.
+    if (sentWith === '' && (await refreshTokens(sentWith))) sentWith = tokens.get()?.accessToken;
     let r = await raw(method, path, body, extra);
     if (r.status === 401 && tokens.get() && (await refreshTokens(sentWith)))
       r = await raw(method, path, body, extra);
@@ -518,10 +593,7 @@ export function createHttpRepository(
       };
     }
     staffChallenge = null;
-    tokens.set({
-      accessToken: r.json!.accessToken as string,
-      refreshToken: r.json!.refreshToken as string,
-    });
+    tokens.set({ accessToken: r.json!.accessToken as string, refreshToken: refreshOf(r.json!) });
     return sessionOf(r.json!.user as ApiUser);
   };
 
@@ -580,10 +652,7 @@ export function createHttpRepository(
       );
       if (r.status >= 400) return fail(r.status, r.json as never);
       staffChallenge = null;
-      tokens.set({
-        accessToken: r.json!.accessToken as string,
-        refreshToken: r.json!.refreshToken as string,
-      });
+      tokens.set({ accessToken: r.json!.accessToken as string, refreshToken: refreshOf(r.json!) });
       return sessionOf(r.json!.user as ApiUser);
     },
     async getSession() {
@@ -601,9 +670,13 @@ export function createHttpRepository(
       tokens.set(null);
       staffChallenge = null;
       if (t)
-        await raw('POST', '/v1/auth/logout', { refreshToken: t.refreshToken }, {}, false).catch(
-          () => undefined,
-        );
+        await raw(
+          'POST',
+          '/v1/auth/logout',
+          cookieSession ? {} : { refreshToken: t.refreshToken },
+          {},
+          false,
+        ).catch(() => undefined);
     },
     async updateProfile(patch) {
       await call('PATCH', '/v1/me', patch);

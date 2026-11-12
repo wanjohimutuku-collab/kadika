@@ -35,6 +35,28 @@ function publicUrl(req: NextRequest, pathAndQuery: string): URL {
   return new URL(pathAndQuery, `${proto.split(',')[0]!.trim()}://${host}`);
 }
 
+/** Where sessions live: the console, the staff panel and sign-in. These get the strict script policy. */
+const STRICT_CSP_PATHS = /^\/(app|ops|login)(\/|$)/;
+
+/**
+ * A nonce-based "strict CSP" (security review M-04): only scripts carrying this response's nonce run,
+ * plus what those scripts load themselves ('strict-dynamic'), so markup injected into a page cannot
+ * execute and reach the session. Next.js reads the nonce from the request header and puts it on its
+ * own scripts. 'unsafe-inline' and https: are fallbacks that browsers honouring the nonce ignore.
+ * It names no hosts on purpose: the API, Firebase sign-in and reCAPTCHA keep working without a list
+ * to maintain. The remaining directives repeat the baseline from next.config.ts, which this replaces.
+ */
+function strictCsp(nonce: string): string {
+  const dev = process.env.NODE_ENV !== 'production' ? " 'unsafe-eval'" : '';
+  return [
+    `script-src 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https:${dev}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+  ].join('; ');
+}
+
 /**
  * The public site takes its language from the path: `/` English Tanzania (the default edition),
  * `/sw/...` Swahili Tanzania (rewritten to the same route), `/ke/...` English Kenya. Old `/en`,
@@ -70,10 +92,18 @@ export function middleware(req: NextRequest) {
 
   // Language and market only matter for the public site pages.
   const route = routeSiteLocale(p, req.nextUrl.search);
-  if (!route) return NextResponse.next();
-  if (route.action === 'redirect')
+  if (route?.action === 'redirect')
     return NextResponse.redirect(publicUrl(req, route.location), 301);
   const headers = new Headers(req.headers);
+  const strict = STRICT_CSP_PATHS.test(route?.action === 'rewrite' ? route.path : p);
+  const csp = strict ? strictCsp(btoa(crypto.randomUUID())) : null;
+  // Next.js takes the nonce from the policy on the request; the browser enforces the one on the response.
+  if (csp) headers.set('content-security-policy', csp);
+  const send = (res: NextResponse) => {
+    if (csp) res.headers.set('Content-Security-Policy', csp);
+    return res;
+  };
+  if (!route) return csp ? send(NextResponse.next({ request: { headers } })) : NextResponse.next();
   headers.set('x-hp-lang', route.locale);
   if (route.market === 'ke') headers.set('x-hp-market', 'ke');
   // The route path (without `/en`), so the layout can link to the same page in the other languages.
@@ -81,9 +111,9 @@ export function middleware(req: NextRequest) {
   if (route.action === 'rewrite') {
     const url = req.nextUrl.clone();
     url.pathname = route.path;
-    return NextResponse.rewrite(url, { request: { headers } });
+    return send(NextResponse.rewrite(url, { request: { headers } }));
   }
-  return NextResponse.next({ request: { headers } });
+  return send(NextResponse.next({ request: { headers } }));
 }
 
 /** Everything except Next internals, the API and files with an extension (assets, sw.js, robots.txt). */

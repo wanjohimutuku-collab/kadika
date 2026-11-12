@@ -62,7 +62,14 @@ const wrapSms =
 // secret; without one, payments are simply off. Any other value stops the API at startup.
 let payments: PaymentProvider | undefined;
 if (config.paymentProvider === 'fake') {
-  if (config.paymentWebhookSecret) payments = new FakePaymentProvider(config.paymentWebhookSecret);
+  if (config.fakePaymentsAllowed === false) {
+    if (config.paymentWebhookSecret)
+      log({
+        level: 'warn',
+        msg: 'fake payment provider refused in production: payments are off until a gateway is saved in /ops (ALLOW_FAKE_PAYMENTS=1 for a staging stack)',
+      });
+  } else if (config.paymentWebhookSecret)
+    payments = new FakePaymentProvider(config.paymentWebhookSecret);
 } else {
   throw new Error(
     `Unknown PAYMENT_PROVIDER "${config.paymentProvider}" (fake only, until an aggregator is chosen)`,
@@ -84,7 +91,8 @@ if (config.kenyaEnabled) {
     });
   } else if (config.paymentProviderKe === 'fake') {
     const secret = config.paymentWebhookSecretKe ?? config.paymentWebhookSecret;
-    if (secret) paymentsByCountry.KE = new FakePaymentProvider(secret, undefined, 'fake-ke');
+    if (secret && config.fakePaymentsAllowed !== false)
+      paymentsByCountry.KE = new FakePaymentProvider(secret, undefined, 'fake-ke');
   } else {
     throw new Error(
       `Unknown PAYMENT_PROVIDER_KE "${config.paymentProviderKe}" (fake | aggregator)`,

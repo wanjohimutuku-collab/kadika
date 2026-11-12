@@ -104,7 +104,7 @@ jobs:
           version=$(sed -n 's/^  prettier@\([0-9][0-9.]*\):.*/\1/p' pnpm-lock.yaml | head -n1)
           npx --yes "prettier@$version" --check .
 
-      - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4; pnpm version from package.json "packageManager"
         if: env.CODE == 'true'
       - uses: actions/setup-node@v4
         if: env.CODE == 'true'
@@ -119,7 +119,9 @@ jobs:
       - uses: actions/cache@v4
         if: env.CODE == 'true'
         with:
-          path: .turbo/cache
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
           key: turbo-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-
       - run: pnpm typecheck
@@ -154,9 +156,12 @@ jobs:
           exit 1
       - run: pnpm --filter @harusi/web build-storybook
         if: env.WEB == 'true'
+      # Blocking (security review N-05): a high or critical advisory in a production dependency fails
+      # the build. Fix it with an upgrade or a `pnpm.overrides` entry in package.json; one that has no
+      # safe fix is accepted by adding its id to `pnpm.auditConfig.ignoreGhsas` there, with the reason
+      # recorded in docs/security/2026-10-review.md.
       - run: pnpm audit --prod --audit-level=high
         if: env.CODE == 'true'
-        continue-on-error: true # advisory until Phase 7 hardening
 
   web-e2e:
     needs: changes
@@ -168,13 +173,30 @@ jobs:
     # of the sum of both, at the cost of e2e minutes on a run whose ci job fails.
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4; pnpm version from package.json "packageManager"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @harusi/web exec playwright install --with-deps chromium
+      - name: Cache Playwright browser
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install Playwright Chromium
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" != "true" ]; then
+            pnpm --filter @harusi/web exec playwright install chromium
+          fi
+          pnpm --filter @harusi/web exec playwright install-deps chromium
+      - name: Cache Next.js e2e build
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next-prod/cache
+          key: next-e2e-${{ runner.os }}-${{ github.sha }}
+          restore-keys: next-e2e-${{ runner.os }}-
       - run: pnpm --filter @harusi/web e2e:build
       - run: pnpm --filter @harusi/web e2e
       - run: pnpm --filter @harusi/web lhci

@@ -6,6 +6,15 @@
       "runtimeExecutable": "corepack",
       "runtimeArgs": ["pnpm", "--filter", "@harusi/web", "dev"],
       "port": 3000
+    },
+    {
+      "name": "dev-second",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set NEXT_DIST_DIR=.next-live&& corepack pnpm --filter @harusi/web exec next dev -p 3100"
+      ],
+      "port": 3100
     }
   ]
 }

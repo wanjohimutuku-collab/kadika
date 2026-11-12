@@ -6,6 +6,32 @@
  * this file, so the counting rules cannot disagree.
  */
 import { z } from 'zod';
+import { templatePlaceholders, type TemplateVar } from './card-content';
+
+/** Placeholders a bulk SMS campaign may use (no `{link}` required, since SMS-only events have no cards). */
+export const SMS_CAMPAIGN_VARS = [
+  'firstName',
+  'lastName',
+  'guest',
+  'group',
+  'venue',
+  'date',
+  'time',
+  'title',
+  'hosts',
+  'sender',
+  'phone',
+  'mapUrl',
+  'dress',
+  'kind',
+] as const satisfies readonly TemplateVar[];
+
+/** Why a bulk SMS body is invalid for placeholders, or `null` when it is fine. */
+export function smsCampaignProblem(body: string): string | null {
+  const allowed: readonly string[] = SMS_CAMPAIGN_VARS;
+  const unknown = templatePlaceholders(body).find((p) => !allowed.includes(p));
+  return unknown ? `placeholder_unknown:${unknown}` : null;
+}
 
 export const EVENT_PRODUCTS = ['cards', 'sms'] as const;
 /** `cards`: invitations, RSVP, gate and contributions. `sms`: SMS reminders only. */
@@ -74,7 +100,11 @@ export const smsBodySchema = z
   .trim()
   .min(2, 'body.required')
   .max(1000, 'body.tooLong')
-  .refine((b) => smsSegments(b).segments <= SMS_MAX_SEGMENTS, 'body.tooLong');
+  .refine((b) => smsSegments(b).segments <= SMS_MAX_SEGMENTS, 'body.tooLong')
+  .superRefine((b, ctx) => {
+    const problem = smsCampaignProblem(b);
+    if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+  });
 
 export const smsCampaignInputSchema = z.object({
   body: smsBodySchema,

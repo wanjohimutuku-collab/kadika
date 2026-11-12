@@ -200,6 +200,13 @@ export class SignInSettingsService {
         field: 'fields',
         missing: problem.missing ?? [],
       });
+    // Security review N-09: only projects the environment names may vouch for phone numbers.
+    const allowed = this.deps.config.firebaseAllowedProjectIds ?? [];
+    if (next.provider === 'firebase' && allowed.length && !allowed.includes(fields.projectId ?? ''))
+      throw new ApiError('forbidden', 'This Firebase project is not on the allowed list', {
+        field: 'fields',
+        reason: 'project_not_allowed',
+      });
     const configEnc = await encryptSecret(JSON.stringify(fields), this.deps.config.keyEncSecret);
     const now = this.deps.now();
     await this.deps.db

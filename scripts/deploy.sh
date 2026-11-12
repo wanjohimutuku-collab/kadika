@@ -52,6 +52,7 @@ API_URL="$(pick NEXT_PUBLIC_API_URL)"
 APP_DOMAIN="$(pick NEXT_PUBLIC_APP_DOMAIN)"
 SITE_URL="$(pick NEXT_PUBLIC_SITE_URL)"
 KENYA="$(pick NEXT_PUBLIC_KENYA_ENABLED)"
+COOKIE_SESSION="$(pick NEXT_PUBLIC_COOKIE_SESSION)"
 WEB_URL="$(pick DEPLOY_WEB_URL)"
 [ -n "$WEB_URL" ] || WEB_URL="$SITE_URL"
 [ -n "$API_URL" ] || die "NEXT_PUBLIC_API_URL is empty. The web image bakes it in at build time."
@@ -119,7 +120,7 @@ const out = { target: { api: target("api", e.API_TAGS), web: target("web", e.WEB
 console.log(JSON.stringify(out, null, 2));
 ' > "$OVERRIDE"
 NEXT_PUBLIC_API_URL="$API_URL" NEXT_PUBLIC_APP_DOMAIN="$APP_DOMAIN" NEXT_PUBLIC_SITE_URL="$SITE_URL" \
-NEXT_PUBLIC_KENYA_ENABLED="${KENYA:-0}" GIT_SHA="$SHA" \
+NEXT_PUBLIC_KENYA_ENABLED="${KENYA:-0}" NEXT_PUBLIC_COOKIE_SESSION="${COOKIE_SESSION:-0}" GIT_SHA="$SHA" \
   docker buildx bake --builder kadi-deploy -f infra/docker/docker-bake.hcl -f "$OVERRIDE" --load
 
 # ---- smoke test (same checks as CI) ---------------------------------------------------------

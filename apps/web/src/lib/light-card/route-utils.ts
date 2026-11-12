@@ -1,6 +1,7 @@
 import { defaultLocale, isLocale, LOCALE_COOKIE, type Locale } from '@harusi/i18n';
 import { resolveLogoSrc } from '@/lib/branding';
 import { getBrandingOnServer } from '@/lib/server-branding';
+import { LIGHT_PAGE_CSP } from './csp';
 import type { LightBrand } from './render';
 
 /** The API as browsers reach it: the card's RSVP and the Kumbukumbu photos are fetched from here. */
@@ -16,7 +17,11 @@ export function localeOf(req: Request): Locale {
 export function html(body: string, status = 200): Response {
   return new Response(body, {
     status,
-    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'no-store',
+      'content-security-policy': LIGHT_PAGE_CSP,
+    },
   });
 }
 

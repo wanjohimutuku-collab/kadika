@@ -39,6 +39,7 @@ import { maskPhone } from '@harusi/schemas/phone';
 import {
   SMS_MAX_PENDING,
   SMS_MAX_SEGMENTS,
+  smsCampaignProblem,
   smsEventInputSchema,
   smsSegments,
   type OpsSmsCustomer,
@@ -2688,6 +2689,9 @@ export class MockRepository implements Repository {
       const seg = smsSegments(body);
       if (body.length < 2)
         throw new RepositoryError('validation', 'body.required', { field: 'body' });
+      const problem = smsCampaignProblem(body);
+      if (problem)
+        throw new RepositoryError('validation', problem, { field: 'body', reason: problem });
       if (seg.segments > SMS_MAX_SEGMENTS)
         throw new RepositoryError('validation', 'body.tooLong', { field: 'body' });
       const now = this.now();

@@ -1,27 +1,24 @@
-# Android app for /programu (ADR 045): each release tag builds a signed APK on EAS and attaches it to
-# the release and to the fixed `android-app` release, whose download URL never changes:
+# Android app for /programu (ADR 045): each release tag (`v*.*.*`) builds a signed APK on EAS and
+# attaches it to the release and to the fixed `android-app` release, whose download URL never changes:
 #   https://github.com/wanjohimutuku-collab/kadika/releases/download/android-app/kadi-sasa.apk
 # Needs the EXPO_TOKEN repository secret; without it the job says so and passes, so releases never block.
-# Preview APK on PR when it carries the `eas:preview` label; production AAB on tags like
-# `mobile-v*`. Requires EXPO_TOKEN in repo secrets (Expo access token with EAS build scope).
+# Also: preview APK on a PR that carries the `eas:preview` label; production AAB on tags like `mobile-v*`.
+# Manual runs: give `tag` to build and attach the release APK, or leave it empty to build `profile`.
 name: Mobile EAS
 
 on:
   push:
-    tags: ['v*.*.*']
+    tags: ['v*.*.*', 'mobile-v*']
+  pull_request:
+    types: [labeled, synchronize]
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to build and attach the APK to (e.g. v0.6.1)
-        required: true
-  pull_request:
-    types: [labeled, synchronize]
-  push:
-    tags: ['mobile-v*']
-  workflow_dispatch:
-    inputs:
+        description: Release tag to build and attach the APK to (e.g. v0.6.1); empty builds `profile` instead
+        required: false
+        default: ''
       profile:
-        description: Build profile from eas.json
+        description: Build profile from eas.json (used when no tag is given)
         type: choice
         default: preview
         options: [preview, production]
@@ -30,19 +27,19 @@ permissions:
   contents: write
 
 concurrency:
-  group: mobile-eas
+  group: mobile-eas-${{ github.ref }}
   cancel-in-progress: false
 
 env:
   TAG: ${{ inputs.tag || github.ref_name }}
   FIXED_TAG: android-app
 
-concurrency:
-  group: mobile-eas-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   apk:
+    # Release tags, or a manual run that names a tag.
+    if: |
+      (github.event_name == 'push' && !startsWith(github.ref_name, 'mobile-v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -116,12 +113,14 @@ jobs:
           gh release upload "$FIXED_TAG" kadi-sasa.apk --clobber
           gh release edit "$FIXED_TAG" --notes "The latest Android app ($TAG). The download link stays the same for every version."
           echo "APK: https://github.com/${{ github.repository }}/releases/download/$FIXED_TAG/kadi-sasa.apk" >> "$GITHUB_STEP_SUMMARY"
+
   build:
     # Preview only runs if the PR event carries the eas:preview label (or on resyncs of a PR that
-    # already has it); production and manual dispatches run unconditionally.
+    # already has it); production runs on mobile-v* tags; manual runs without a tag build `profile`.
     if: |
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'eas:preview')
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'eas:preview')) ||
+      (github.event_name == 'push' && startsWith(github.ref_name, 'mobile-v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.tag == '')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:

@@ -32,6 +32,10 @@ updates:
       - dependency-name: '@expo/*'
       - dependency-name: '@react-native*/*'
       - dependency-name: '@types/react*'
+      # PGlite (the API tests' in-process Postgres) 0.5.15 hangs the API test suite: cloned databases
+      # stop answering and CI runs into its 25-minute limit (#102). Pinned at 0.5.9 until a newer
+      # release passes `pnpm --filter @harusi/api test`.
+      - dependency-name: '@electric-sql/pglite'
 
   - package-ecosystem: github-actions
     directory: /

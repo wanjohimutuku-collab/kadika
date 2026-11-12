@@ -615,6 +615,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-za-kanisa',
+    slugEn: 'church-event-invitations',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,

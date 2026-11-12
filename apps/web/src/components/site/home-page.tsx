@@ -29,6 +29,7 @@ const TZ_EVENTS = [
   'kadi-ya-mahafali',
   'kadi-ya-kuzaliwa',
   'kadi-za-mwaliko-biashara',
+  'kadi-za-kanisa',
   'kadi-za-mwaliko-tanzania',
 ] as const;
 

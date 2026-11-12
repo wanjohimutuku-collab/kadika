@@ -613,4 +613,198 @@ export const OCCASION_PAGES: ContentPageDef[] = [
       ],
     },
   },
+  {
+    slug: 'kadi-za-kanisa',
+    group: 'product',
+    schema: 'WebPage',
+    updated: UPDATED,
+    related: [
+      'kadi-za-mwaliko-mtandaoni',
+      'kadi-za-mwaliko-biashara',
+      'lango-la-harusi-qr',
+      'kutuma-kadi-za-mwaliko-whatsapp',
+    ],
+    sw: {
+      nav: 'Kadi za kanisa',
+      title: 'Kadi za Mwaliko kwa Matukio ya Kanisa | Kadi Sasa',
+      description:
+        'Tengeneza kadi za mwaliko mtandaoni kwa makongamano, sherehe za kanisa na mikutano ya wakristo. Kila mgeni ana kadi yake, majibu yanakusanywa, na mapokezi yanaskani QR.',
+      h1: 'Kadi za mwaliko kwa matukio ya kanisa',
+      answer:
+        'Kwa kongamano, ubatizo, kuthibitishwa, ibada ya shukrani au sherehe ya kanisa, unaunda tukio, unaingiza orodha ya waalikwa na kila mmoja anapata kadi yake yenye QR. Majibu yanakusanywa mahali pamoja, na watu wa milangoni wanaingiza wageni kwa kuskani QR au kuandika namba.',
+      sections: [
+        {
+          id: 'ni-nini',
+          h2: 'Kadi ya kanisa ni nini?',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Ni mwaliko wa kidijitali kwa tukio la kanisa. Mgeni anaona jina la kanisa au la familia, aina ya tukio, tarehe, saa, mahali na ramani. Anafungua kiungo kwenye simu, anajibu kama atahudhuria, na siku ya tukio anaonyesha QR au namba yake kwenye mlango.',
+            },
+          ],
+        },
+        {
+          id: 'matukio',
+          h2: 'Matukio yanayofaa',
+          blocks: [
+            {
+              t: 'ul',
+              items: [
+                'Makongamano na semina za wakristo',
+                'Sherehe za ubatizo, kuthibitishwa na kwaresima',
+                'Ibada za shukrani na kumbukumbu',
+                'Mikutano ya vijana, akina mama au familia za kanisa',
+                'Sherehe za kuzindua jengo, nembo au huduma mpya',
+              ],
+            },
+            {
+              t: 'p',
+              text: 'Unapounda tukio, aina ni maandishi huru — unaweza kuandika "Kongamano", "Ibada ya shukrani" au jina lingine linalolingana na kanisa lako. Maneno ya kadi yanafuata aina uliyoandika.',
+            },
+          ],
+        },
+        {
+          id: 'faida',
+          h2: 'Faida kwa kamati ya kanisa',
+          blocks: [
+            {
+              t: 'ul',
+              items: [
+                'Orodha ya waalikwa na majibu yao mahali pamoja',
+                'Kila mgeni ana kadi yake, kwa hiyo kadi iliyosambazwa haitumiki mara mbili',
+                'Mapokezi yanaingiza wageni haraka, hata ukumbi au kanisa lisipokuwa na mtandao',
+                'Idadi ya waliofika inaonekana wakati wa tukio',
+                'Hakuna anayeulizwa nenosiri au kutuma pesa kwetu — ni mwaliko tu',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'hatua',
+          h2: 'Jinsi ya kuanza',
+          blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Chagua mtindo wa kadi na andika jina la kanisa au la kamati.',
+                'Weka tarehe, saa, mahali na ramani.',
+                'Ingiza wageni au ingiza orodha kutoka Excel.',
+                'Chagua njia ya kutuma: WhatsApp, SMS au karatasi.',
+                'Siku ya tukio, mtu wa mlango anaskani QR au anaandika namba.',
+              ],
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Naweza kutumia kwa kongamano la watu wengi?',
+          a: 'Ndiyo. Kila mgeni anapata kadi yake, hata ikiwa wageni ni mamia au elfu. Mapokezi yanatumia simu moja au zaidi kuingiza wageni, na hata bila mtandao kadi ina namba inayotumika.',
+        },
+        {
+          q: 'Wageni wanahitaji kupakua programu?',
+          a: 'Hapana. Wanafungua kiungo kwenye simu. Mwenye simu ndogo anapata SMS yenye namba.',
+        },
+        {
+          q: 'Je kuna uuzaji wa tiketi?',
+          a: 'Hapana. Kadi Sasa ni mwaliko tu. Ikiwa tukio linahitaji ada ya kuingia, kamati inakusanya kwa njia yake ya kawaida.',
+        },
+        {
+          q: 'Taarifa za washiriki zinalindwaje?',
+          a: 'Majina na simu zipo kwenye akaunti ya kamati pekee, zimefungwa kwa funguo zetu. Hatutoi orodha kwa mtu yeyote.',
+        },
+      ],
+    },
+    en: {
+      nav: 'Church invitations',
+      title: 'Church Event Invitations & Guest Management | Kadi Sasa',
+      description:
+        'Create digital invitations for conferences, baptisms, thanksgivings and other church events. Every guest gets their own card, replies are collected and QR scans at the door.',
+      h1: 'Invitations for church events',
+      answer:
+        'For a conference, baptism, confirmation, thanksgiving service or church celebration, you create an event, add your guest list and each person receives their own card with a QR. Replies are collected in one place, and ushers admit guests by scanning the QR or typing the guest number.',
+      sections: [
+        {
+          id: 'what',
+          h2: 'What is a church invitation?',
+          blocks: [
+            {
+              t: 'p',
+              text: 'It is a digital invitation for a church event. The guest sees the church or family name, the type of event, the date, time, venue and a map. They open the link on their phone, reply whether they will attend, and on the day they show their QR or guest number at the door.',
+            },
+          ],
+        },
+        {
+          id: 'events',
+          h2: 'Which events this suits',
+          blocks: [
+            {
+              t: 'ul',
+              items: [
+                'Conferences, seminars and revivals',
+                'Baptisms, confirmations and Lenten services',
+                'Thanksgiving and memorial services',
+                "Youth, women's or family fellowships",
+                'Building, logo or ministry launches',
+              ],
+            },
+            {
+              t: 'p',
+              text: 'When you create the event, the type is free text — you can write "Conference", "Thanksgiving service" or any wording your church uses. The card copy follows the type you set.',
+            },
+          ],
+        },
+        {
+          id: 'benefits',
+          h2: 'Benefits for the church committee',
+          blocks: [
+            {
+              t: 'ul',
+              items: [
+                'The guest list and their replies in one place',
+                'Each guest has their own card, so a forwarded card cannot be used twice',
+                'Ushers admit guests quickly, even when the venue has no network',
+                'Arrival counts are visible during the event',
+                'No one is asked for a password or to send money to us — it is only an invitation',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'steps',
+          h2: 'How to start',
+          blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Pick a card style and set the church or committee name.',
+                'Add the date, time, venue and map.',
+                'Add guests one by one or import a list from Excel.',
+                'Choose how to send: WhatsApp, SMS or paper.',
+                'On the day, an usher scans the QR or types the guest number.',
+              ],
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Can I use it for a large conference?',
+          a: 'Yes. Every guest gets their own card, whether you invite hundreds or thousands. Reception can run on one phone or several, and each card has a number that still works when the venue has no network.',
+        },
+        {
+          q: 'Do guests need to download an app?',
+          a: 'No. They open the link on their phone. A guest on a feature phone gets an SMS with a guest number.',
+        },
+        {
+          q: 'Does it sell tickets?',
+          a: 'No. Kadi Sasa is only an invitation. If the event has an entry fee, the committee collects it the way it already does.',
+        },
+        {
+          q: 'How is guest information protected?',
+          a: "Guest names and phone numbers stay in the committee's own account, encrypted with our keys. We never hand the list to anyone.",
+        },
+      ],
+    },
+  },
 ];

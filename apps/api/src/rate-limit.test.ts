@@ -104,4 +104,14 @@ describe('RedisRateStore', () => {
     await rl.check('ip:1');
     expect(await tooMany(rl.check('ip:1'))).toMatchObject({ code: 'rate_limited' });
   });
+
+  it('keeps live counters when a flood of throwaway keys fills the in-memory store', async () => {
+    const clock = { now: 0 };
+    const store = new MemoryRateStore(() => new Date(clock.now));
+    for (let i = 0; i < 50_000; i++) await store.hit(`old:${i}`, 1_000);
+    clock.now = 2_000; // the flood's windows are over
+    await store.hit('live', 60_000);
+    await store.hit('next', 60_000); // pushes the store past its ceiling: only finished windows go
+    expect((await store.hit('live', 60_000)).count).toBe(2);
+  });
 });

@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHttpRepository, memoryTokenStore, type Repository } from '@harusi/api-client';
+import {
+  cookieSessionTokenStore,
+  createHttpRepository,
+  memoryTokenStore,
+  type Repository,
+} from '@harusi/api-client';
 import { createTestContext, type TestContext } from './testing/test-app';
 
 let ctx: TestContext;
@@ -704,5 +709,97 @@ describe('HttpRepository against the real API', () => {
     const csv = await (await r.exportCsv(ev.id, 'payments')).text();
     expect(csv).toContain('"Bibi Pendo"');
     await expect(r.exportCsv(ev.id, 'scans')).rejects.toMatchObject({ code: 'not_implemented' });
+  });
+});
+
+describe('HttpRepository with a cookie session (security review M-05)', () => {
+  const ORIGIN = 'http://localhost:3000'; // the test API's default allowed origin
+
+  /** localStorage, as far as the token store needs it. */
+  function fakeStorage() {
+    const data = new Map<string, string>();
+    return {
+      data,
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k),
+    } as unknown as Storage & { data: Map<string, string> };
+  }
+
+  /** A browser: one cookie jar and one localStorage shared by its tabs; `tab()` is a page load. */
+  function browser() {
+    const jar = new Map<string, string>();
+    const storage = fakeStorage();
+    const sent: { path: string; credentials?: string; body: string }[] = [];
+    const fetchImpl = (async (url: string, init: RequestInit = {}) => {
+      const path = url.replace('http://api.test', '');
+      const withCookies = init.credentials === 'include';
+      sent.push({ path, credentials: init.credentials, body: String(init.body ?? '') });
+      const res = await ctx.app.request(path, {
+        ...init,
+        headers: {
+          ...(init.headers as Record<string, string>),
+          origin: ORIGIN,
+          ...(withCookies && jar.size
+            ? { cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') }
+            : {}),
+        },
+      });
+      if (withCookies)
+        for (const line of res.headers.getSetCookie()) {
+          const [name, value = ''] = line.split(';')[0]!.split('=');
+          if (value && !/max-age=0/i.test(line)) jar.set(name!, value);
+          else jar.delete(name!);
+        }
+      return res;
+    }) as typeof fetch;
+    const tab = () =>
+      createHttpRepository('http://api.test', {
+        tokens: cookieSessionTokenStore(storage),
+        cookieSession: true,
+        fetchImpl,
+      });
+    return { jar, storage, sent, tab };
+  }
+
+  it('signs in without the refresh token ever reaching the page, and survives a reload', async () => {
+    const b = browser();
+    b.storage.setItem('harusi.auth.v1', '{"accessToken":"old","refreshToken":"old-long-lived"}');
+    const first = b.tab();
+    const s = await login(first, '0712 100 301');
+    expect(b.jar.size).toBe(1);
+    const refreshToken = [...b.jar.values()][0]!;
+    // nothing a script can read holds a token: only the marker, and the old build's tokens are gone
+    expect([...b.storage.data.entries()]).toEqual([['harusi.session.v1', '1']]);
+    expect(JSON.stringify(b.sent)).not.toContain(refreshToken);
+
+    // a reload: a new page with no access token in memory gets one through the cookie
+    const reloaded = b.tab();
+    expect((await reloaded.getSession())?.user.id).toBe(s.user.id);
+    expect([...b.jar.values()][0]).not.toBe(refreshToken); // rotated
+    // only the auth routes are sent the cookie
+    expect(
+      b.sent
+        .filter((r) => r.credentials === 'include')
+        .every((r) => r.path.startsWith('/v1/auth/')),
+    ).toBe(true);
+    expect(b.sent.some((r) => r.path === '/v1/me' && r.credentials === undefined)).toBe(true);
+  });
+
+  it('refreshes an expired access token through the cookie, and signing out ends every tab', async () => {
+    const b = browser();
+    const one = b.tab();
+    const two = b.tab();
+    await login(one, '0712 100 302');
+    expect(await two.getSession()).not.toBeNull();
+    ctx.clock.now += 16 * 60_000; // access tokens last 15 minutes
+    expect(await one.getSession()).not.toBeNull();
+    expect(await two.getSession()).not.toBeNull();
+
+    await one.signOut();
+    expect(b.jar.size).toBe(0);
+    expect(b.storage.data.size).toBe(0);
+    expect(await two.getSession()).toBeNull();
+    expect(await b.tab().getSession()).toBeNull();
   });
 });

@@ -12,6 +12,7 @@ const UPDATED = '2026-11-05';
 export const GEO_PAGES: ContentPageDef[] = [
   {
     slug: 'kadi-ya-nikah-na-walima',
+    slugEn: 'nikah-and-walima-invitation',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -188,6 +189,7 @@ export const GEO_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kadi-za-mwaliko-tanzania',
+    slugEn: 'wedding-invitations-tanzania',
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
@@ -360,6 +362,7 @@ export const GEO_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko',
+    slugEn: 'choosing-a-wedding-invitation-service',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,
@@ -564,6 +567,7 @@ export const GEO_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kamusi-ya-harusi',
+    slugEn: 'wedding-glossary',
     group: 'guide',
     schema: 'Article',
     updated: UPDATED,

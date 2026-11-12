@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { eventInvites, eventMembers, newId, refreshTokens, users } from '@harusi/db';
 import { hashGuestToken } from '@harusi/crypto';
 import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
@@ -64,20 +64,24 @@ export class AuthService {
    * same login-code budget, so it opens no cheaper path than the SMS flow itself.
    * `language`: the language the visitor has the site or app in; the SMS is written in it.
    */
-  async requestOtp(phoneInput: string, fallback = false, language?: 'sw' | 'en') {
+  async requestOtp(phoneInput: string, fallback = false, language?: 'sw' | 'en', client?: string) {
     const phone = parsePhone(phoneInput, 'TZ', SIGN_IN_COUNTRIES);
     // With Firebase Phone Auth the code comes from Firebase; our SMS routes carry no login codes.
     if (signInOf(this.deps).provider === 'firebase' && !fallback)
       throw new ApiError('conflict', 'Sign-in codes are sent by Firebase', {
         reason: 'use_firebase',
       });
-    const res = await this.otp.request(phone, language);
+    const res = await this.otp.request(phone, language, client);
     return { phone, ...res };
   }
 
-  async verifyOtp(phoneInput: string, code: string): Promise<AuthResult | StaffChallengeResult> {
+  async verifyOtp(
+    phoneInput: string,
+    code: string,
+    client?: string,
+  ): Promise<AuthResult | StaffChallengeResult> {
     const phone = parsePhone(phoneInput, 'TZ', SIGN_IN_COUNTRIES);
-    this.otp.verify(phone, code);
+    this.otp.verify(phone, code, client);
     return this.signIn(phone);
   }
 
@@ -199,7 +203,14 @@ export class AuthService {
         reason: 'second_factor_required',
       });
     }
-    await db.update(refreshTokens).set({ revokedAt: now }).where(eq(refreshTokens.id, row.id));
+    // Spend it atomically: of two requests racing on one token only the first gets a new pair, so a
+    // stolen token used at the same moment as the real client cannot yield a second session.
+    const spent = await db
+      .update(refreshTokens)
+      .set({ revokedAt: now })
+      .where(and(eq(refreshTokens.id, row.id), isNull(refreshTokens.revokedAt)))
+      .returning({ id: refreshTokens.id });
+    if (spent.length === 0) throw new ApiError('unauthorized', 'Invalid refresh token');
     return this.issue(user.id, user.name, user.phoneE164, user.roleGlobal, row.mfa);
   }
 

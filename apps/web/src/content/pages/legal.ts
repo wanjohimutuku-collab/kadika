@@ -10,6 +10,8 @@ const PRIVACY_UPDATED = '2026-11-02';
 export const LEGAL_PAGES: ContentPageDef[] = [
   {
     slug: 'privacy',
+
+    slugEn: 'privacy',
     group: 'legal',
     schema: 'WebPage',
     updated: PRIVACY_UPDATED,
@@ -933,6 +935,8 @@ export const LEGAL_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'terms',
+
+    slugEn: 'terms',
     group: 'legal',
     schema: 'WebPage',
     draft: true,
@@ -1213,6 +1217,8 @@ export const LEGAL_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'cookies',
+
+    slugEn: 'cookies',
     group: 'legal',
     schema: 'WebPage',
     draft: true,
@@ -1361,6 +1367,8 @@ export const LEGAL_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'ombi-la-data',
+
+    slugEn: 'data-request',
     group: 'legal',
     schema: 'WebPage',
     draft: true,
@@ -1525,6 +1533,8 @@ export const LEGAL_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'matumizi-yanayokubalika',
+
+    slugEn: 'acceptable-use',
     group: 'legal',
     schema: 'WebPage',
     draft: true,

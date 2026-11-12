@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadConfig } from './config';
+import { buildPayments } from './services/payment-settings';
 import { api, createTestContext, loginAs, type TestContext } from './testing/test-app';
 
 let ctx: TestContext;
@@ -240,11 +241,61 @@ describe('personal data rights', () => {
   });
 });
 
+describe('request bodies', () => {
+  it('refuses an oversized or deeply nested collection before any schema runs', async () => {
+    const { accessToken: token } = await loginAs(ctx, '0777099001');
+    const big = await api(ctx, 'POST', '/v1/guests/restore', {
+      token,
+      body: { guestIds: Array.from({ length: 5_001 }, () => 'x') },
+    });
+    expect(big.status).toBe(400);
+    expect(big.body!.error.details.reason).toBe('collection_too_large');
+    let nested: unknown = 1;
+    for (let i = 0; i < 20; i++) nested = { a: nested };
+    const deep = await api(ctx, 'POST', '/v1/guests/restore', { token, body: nested });
+    expect(deep.body!.error.details.reason).toBe('collection_too_large');
+  });
+});
+
 describe('config', () => {
   it('logs requests unless switched off', () => {
     const base = { DATABASE_URL: 'x', JWT_SECRET: 'a-long-enough-secret', KEY_ENC_SECRET: 'k' };
     expect(loadConfig({ ...base }).logRequests).toBe(true);
     expect(loadConfig({ ...base, LOG_REQUESTS: '0' }).logRequests).toBe(false);
+  });
+
+  it('stops startup on a numeric setting that is not a number, instead of switching a limit off', () => {
+    const base = { DATABASE_URL: 'x', JWT_SECRET: 'a-long-enough-secret', KEY_ENC_SECRET: 'k' };
+    expect(() => loadConfig({ ...base, OTP_IP_HOURLY_LIMIT: 'twenty' })).toThrow(
+      /OTP_IP_HOURLY_LIMIT/,
+    );
+    expect(() => loadConfig({ ...base, CARD_READ_LIMIT: '0' })).toThrow(/CARD_READ_LIMIT/);
+    expect(loadConfig({ ...base, OTP_IP_HOURLY_LIMIT: '40' }).otpIpHourlyLimit).toBe(40);
+    expect(loadConfig({ ...base, PORT: '8080' }).port).toBe(8080);
+  });
+
+  it('refuses the fake payment provider in production unless a staging stack allows it', () => {
+    const base = { DATABASE_URL: 'x', JWT_SECRET: 'a-long-enough-secret', KEY_ENC_SECRET: 'k' };
+    const prod = { ...base, NODE_ENV: 'production', PAYMENT_WEBHOOK_SECRET: 'pay-secret' };
+    const tz = { tz: { provider: 'fake', fields: {} } };
+    expect(buildPayments(loadConfig(prod), tz)).toBeUndefined();
+    expect(buildPayments(loadConfig({ ...prod, ALLOW_FAKE_PAYMENTS: '1' }), tz)?.name).toBe('fake');
+    expect(buildPayments(loadConfig({ ...base, PAYMENT_WEBHOOK_SECRET: 's' }), tz)?.name).toBe(
+      'fake',
+    );
+  });
+
+  it("gives the Africa's Talking callback its own secret when one is set", async () => {
+    const own = await createTestContext({ env: { AT_WEBHOOK_SECRET: 'at-only-secret-value' } });
+    const post = (secret: string) =>
+      own.app.request(`/v1/webhooks/sms/africastalking?secret=${secret}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: 'id=does-not-exist&status=Success',
+      });
+    expect((await post('hook-secret-for-tests')).status).toBe(401); // the shared secret no longer opens it
+    expect((await post('at-only-secret-value')).status).toBe(200);
+    await own.close();
   });
 
   it('adds CORS_EXTRA_ORIGINS to the allowed origins', () => {

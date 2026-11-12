@@ -1,38 +1,42 @@
 import type { Locale } from '@harusi/i18n';
 import { areaOf } from './surfaces';
+import { routeSlugRedirect } from '@/content';
 
 /**
- * Language of the public marketing site comes from the path (kit sitemap.md):
+ * Language of the public marketing site comes from the path:
  *
- *   /...      Swahili, Tanzania (sw-TZ)
- *   /en/...   English, Tanzania (en-TZ), the same pages rendered in English
- *   /ke/...   English, Kenya (en-KE)
+ *   /...       English, Tanzania (en-TZ) — the default edition
+ *   /sw/...    Swahili, Tanzania (sw-TZ), the same pages rendered in Swahili
+ *   /ke/...    English, Kenya (en-KE) — unchanged
  *
- * `/en/x` is rewritten to `/x` with the language set, so there is one route tree. The old scheme
- * (`?lang=sw|en` on the same URL) answers with a permanent redirect to the new URL.
+ * `/sw/x` is rewritten to `/x` with the language set, so there is one route tree. `/en` and
+ * `/en/x` answer with a 301 to their canonical `/` and `/x`. Old `?lang=` URLs answer with a
+ * 301 to the canonical URL. A TZ URL whose slug is in the wrong locale 301s to the right one
+ * (see `routeSlugRedirect`).
  */
 
 export type SiteMarket = 'tz' | 'ke';
 
 export type LocaleRoute =
-  /** Permanent redirect; `location` is a path plus query, relative to the current host. */
   | { action: 'redirect'; location: string }
-  /** Serve `path` (the URL without `/en`) in `locale`. */
   | { action: 'rewrite'; path: string; locale: Locale; market: SiteMarket }
-  /** Serve the URL as it is in `locale`. */
   | { action: 'next'; locale: Locale; market: SiteMarket };
 
 const isUnder = (p: string, prefix: string) => p === prefix || p.startsWith(`${prefix}/`);
 
-/** True for paths of the public marketing site (not the card, console, staff panel, sign-in or dev). */
 export function isSitePath(path: string): boolean {
   return areaOf(path) === 'public' && !isUnder(path, '/dev') && !isUnder(path, '/gate-join');
 }
 
-/** `/en/x` → `/x`, `/en` → `/`; other paths unchanged. */
-export function stripEnPrefix(path: string): string {
-  if (path === '/en') return '/';
-  return path.startsWith('/en/') ? path.slice(3) : path;
+/** `/sw/x` → `/x`, `/sw` → `/`; other paths unchanged. */
+export function stripSwPrefix(path: string): string {
+  if (path === '/sw') return '/';
+  return path.startsWith('/sw/') ? path.slice(3) : path;
+}
+
+/** The Swahili TZ URL of a TZ path. */
+export function swPath(path: string): string {
+  return path === '/' ? '/sw' : `/sw${path}`;
 }
 
 const withQuery = (path: string, params: URLSearchParams) => {
@@ -40,35 +44,48 @@ const withQuery = (path: string, params: URLSearchParams) => {
   return q ? `${path}?${q}` : path;
 };
 
-/** What the middleware does with a public request. `null` means it is not a site path. */
 export function routeSiteLocale(pathname: string, search: string): LocaleRoute | null {
-  const enPrefixed = pathname === '/en' || pathname.startsWith('/en/');
-  const path = stripEnPrefix(pathname);
-  if (!isSitePath(path)) return null;
-  const market: SiteMarket = isUnder(path, '/ke') ? 'ke' : 'tz';
+  // /en and /en/x are retired — 301 to the canonical.
+  if (pathname === '/en' || pathname.startsWith('/en/')) {
+    const stripped = pathname === '/en' ? '/' : pathname.slice(3);
+    const params = new URLSearchParams(search);
+    params.delete('lang');
+    // Also normalise a wrong-locale slug here so the hop is a single 301.
+    const slugRedirect = routeSlugRedirect(stripped);
+    return { action: 'redirect', location: withQuery(slugRedirect ?? stripped, params) };
+  }
 
+  const swPrefixed = pathname === '/sw' || pathname.startsWith('/sw/');
+  const bare = swPrefixed ? stripSwPrefix(pathname) : pathname;
+  if (!isSitePath(bare)) return null;
+
+  const market: SiteMarket = isUnder(bare, '/ke') ? 'ke' : 'tz';
+
+  // Legacy ?lang=sw|en — redirect to the canonical URL for the chosen locale.
   const params = new URLSearchParams(search);
   const legacy = params.get('lang');
-  if (legacy !== null || (enPrefixed && market === 'ke')) {
+  if (legacy !== null) {
     params.delete('lang');
-    const english = market === 'tz' && (enPrefixed ? legacy !== 'sw' : legacy === 'en');
-    return { action: 'redirect', location: withQuery(english ? enPath(path) : path, params) };
+    if (market === 'ke') return { action: 'redirect', location: withQuery(bare, params) };
+    const wantSw = legacy === 'sw';
+    const target = wantSw ? swPath(bare) : bare;
+    return { action: 'redirect', location: withQuery(target, params) };
   }
 
   if (market === 'ke') return { action: 'next', locale: 'en', market };
-  if (enPrefixed) return { action: 'rewrite', path, locale: 'en', market };
-  return { action: 'next', locale: 'sw', market };
+
+  // Wrong-locale slug on a TZ path: single 301 to the right-locale canonical.
+  const slugRedirect = routeSlugRedirect(pathname);
+  if (slugRedirect) return { action: 'redirect', location: slugRedirect };
+
+  if (swPrefixed) return { action: 'rewrite', path: bare, locale: 'sw', market };
+  return { action: 'next', locale: 'en', market };
 }
 
-/** The English Tanzania URL of a Tanzania path. */
-export function enPath(path: string): string {
-  return path === '/' ? '/en' : `/en${path}`;
-}
-
-/** Which site edition a path (or href with query/hash) belongs to: `ke`, `en` (under `/en`) or `sw`. */
+/** `/sw...` → `'sw'`; `/ke...` → `'ke'`; else `'en'`. */
 export function editionOfPath(href: string): 'sw' | 'en' | 'ke' {
   const path = href.replace(/[?#].*$/, '');
-  const market = stripEnPrefix(path);
-  if (isUnder(market, '/ke')) return 'ke';
-  return path === '/en' || path.startsWith('/en/') ? 'en' : 'sw';
+  if (isUnder(path, '/sw')) return 'sw';
+  if (isUnder(path, '/ke')) return 'ke';
+  return 'en';
 }

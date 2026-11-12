@@ -9,7 +9,13 @@ import {
   toZoned,
   type CardContent,
 } from '@harusi/schemas';
-import { pick, renderTemplate, senderKindOf, type TemplateKey } from '@harusi/schemas/card-content';
+import {
+  pick,
+  renderTemplate,
+  senderKindOf,
+  splitName,
+  type TemplateKey,
+} from '@harusi/schemas/card-content';
 import { formatPhone } from '@harusi/schemas/phone';
 
 type EventRow = typeof events.$inferSelect;
@@ -80,24 +86,41 @@ export interface MessageInput {
   pledge?: { amount: number; balance: number };
 }
 
-/** Everything a message template may mention (see `TEMPLATE_VARS`). */
-export function messageVars(i: MessageInput): Record<string, string> {
-  const { event, guest } = i;
+/** Shared guest + event attributes for bulk SMS campaigns (`SMS_CAMPAIGN_VARS`) and card messages. */
+export function smsCampaignVars(event: EventRow, guest: GuestRow): Record<string, string> {
   const locale = guest.language;
   const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
   const sender = senderOf(event, locale);
-  const deadline = contentOf(event).contribution?.deadline;
+  const { firstName, lastName } = splitName(guest.displayName);
   return {
     guest: guest.displayName,
+    firstName,
+    lastName,
+    group: guest.groupLabel ?? '',
+    title: event.title,
     hosts: hostNames(a, b),
+    hostA: a,
+    hostB: b,
     kind: eventKindLabel(event.eventKind, locale).toLowerCase(),
     date: day(event.dateStart, locale, event.timezone),
     time: clock(event.dateStart, event.timezone),
     venue: event.venueName ?? '',
-    link: i.link,
-    code: guest.shortCode,
+    mapUrl: event.venueMapUrl ?? '',
+    dress: event.dressCode ?? '',
     sender: sender.name,
     phone: sender.phone,
+  };
+}
+
+/** Everything a message template may mention (see `TEMPLATE_VARS`). */
+export function messageVars(i: MessageInput): Record<string, string> {
+  const { event, guest } = i;
+  const locale = guest.language;
+  const deadline = contentOf(event).contribution?.deadline;
+  return {
+    ...smsCampaignVars(event, guest),
+    link: i.link,
+    code: guest.shortCode,
     days: i.daysLeft === undefined ? '' : String(i.daysLeft),
     target: event.contributionTarget ? formatMoney(event.contributionTarget, event.currency) : '',
     deadline: deadline ? day(new Date(`${deadline}T12:00:00Z`), locale, 'UTC') : '',

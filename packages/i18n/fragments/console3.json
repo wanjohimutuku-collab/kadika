@@ -200,7 +200,23 @@
       "deleteWord": "FUTA",
       "deleted": "Harusi imefutwa",
       "pledgesEnabled": "Ruhusu michango kwenye kadi",
-      "fallbackHours": "Subiri saa ngapi kabla ya SMS"
+      "fallbackHours": "Subiri saa ngapi kabla ya SMS",
+      "templates": {
+        "title": "Violezo vya SMS",
+        "hint": "Andika maandishi yako mwenyewe. Bonyeza alama hapa chini kuingiza thamani; WhatsApp inatumia violezo vilivyoidhinishwa na Meta.",
+        "inviteSms": "Mwaliko",
+        "reminderSms": "Kumbusho",
+        "contributionSms": "Mchango",
+        "pledgeReminderSms": "Kumbusho la ahadi",
+        "swahili": "Kiswahili",
+        "english": "Kiingereza",
+        "placeholders": "Thamani zinazoruhusiwa",
+        "insert": "Bonyeza kuingiza",
+        "preview": "Onyesho",
+        "reset": "Rudisha chaguomsingi",
+        "linkRequired": "Jumuisha {link} ili wageni waweze kufungua kadi.",
+        "unknownVar": "Thamani \"{name}\" haijulikani."
+      }
     },
     "account": {
       "title": "Akaunti",
@@ -429,7 +445,23 @@
       "deleteWord": "FUTA",
       "deleted": "Wedding deleted",
       "pledgesEnabled": "Allow contributions on cards",
-      "fallbackHours": "Hours to wait before SMS"
+      "fallbackHours": "Hours to wait before SMS",
+      "templates": {
+        "title": "SMS templates",
+        "hint": "Write your own text. Tap a chip to insert a value; WhatsApp still uses Meta-approved templates.",
+        "inviteSms": "Invitation",
+        "reminderSms": "Reminder",
+        "contributionSms": "Contribution",
+        "pledgeReminderSms": "Pledge reminder",
+        "swahili": "Swahili",
+        "english": "English",
+        "placeholders": "Allowed values",
+        "insert": "Tap to insert",
+        "preview": "Preview",
+        "reset": "Use the default",
+        "linkRequired": "Include {link} so guests can open the card.",
+        "unknownVar": "Unknown value \"{name}\"."
+      }
     },
     "account": {
       "title": "Account",

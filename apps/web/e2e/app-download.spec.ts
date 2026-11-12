@@ -7,7 +7,8 @@ test.use({ storageState: { cookies: [SW_COOKIE], origins: [] } });
 // the link checks for the published state are unit tests (src/lib/app-download.test.ts).
 test.describe('Android app page', () => {
   test('says the app is coming soon and points to the browser and the card', async ({ page }) => {
-    await page.goto('/programu');
+    // The public site's default edition is English (`/`); the Swahili copy lives under `/sw`.
+    await page.goto('/sw/programu');
     const main = page.getByTestId('app-download');
     await expect(main).toHaveAttribute('data-state', 'soon');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Kadi Sasa mfukoni mwako');
@@ -32,9 +33,11 @@ test.describe('Android app page', () => {
   });
 
   test('is linked from the site footer, and /app-download redirects to it', async ({ page }) => {
-    await page.goto('/');
+    // SW_COOKIE test fixture; the Swahili footer label is still "Programu ya Android". Visit the
+    // SW edition so the footer is in Swahili.
+    await page.goto('/sw');
     await page.getByRole('contentinfo').getByRole('link', { name: 'Programu ya Android' }).click();
-    await expect(page).toHaveURL(/\/programu/);
+    await expect(page).toHaveURL(/\/sw\/programu/);
     await page.goto('/app-download');
     await expect(page).toHaveURL(/\/programu$/);
     await expect(page.getByTestId('app-download')).toBeVisible();

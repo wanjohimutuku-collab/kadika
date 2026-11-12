@@ -10,6 +10,8 @@ import type { WeddingEvent } from '@harusi/api-client';
 import { eventKindSuggestions } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { KindChips } from '@/components/console/kind-chips';
+import { MessageTemplatesEditor } from '@/components/console/message-templates-editor';
+import type { CardContent } from '@harusi/schemas/card-content';
 import { parsePhone, useCurrency, usePhoneCountry } from '@/lib/country';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -40,6 +42,7 @@ interface FormState {
   whatsappFallbackHours: number;
   contributionTarget: number;
   payTo: { label: string; account: string; name: string }[];
+  messages: CardContent['messages'];
 }
 
 function toForm(e: WeddingEvent): FormState {
@@ -64,6 +67,7 @@ function toForm(e: WeddingEvent): FormState {
       account: a.account,
       name: a.name ?? '',
     })),
+    messages: e.cardContent?.messages,
   };
 }
 
@@ -170,6 +174,7 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
               ...(a.name.trim() ? { name: a.name.trim() } : {}),
             })),
         },
+        ...(form.messages !== undefined ? { messages: form.messages } : {}),
       },
     });
   };
@@ -395,6 +400,10 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
                   />
                 </div>
               </Card>
+              <MessageTemplatesEditor
+                messages={form.messages}
+                onChange={(next) => set('messages', next)}
+              />
               <Card title={t('danger')} titleId="dz-h" className="border-danger/40">
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">

@@ -121,7 +121,10 @@
         "confirmTitle": "Tuma kwa {count, plural, one {mtu #} other {watu #}}?",
         "confirmBody": "Itatumia SMS {credits}. Ujumbe uliotumwa hauwezi kurudishwa.",
         "phonePreview": "Hivi ndivyo utakavyoonekana",
-        "senderLine": "Kutoka: {sender}"
+        "senderLine": "Kutoka: {sender}",
+        "placeholders": "Binafsisha",
+        "insert": "gusa kuingiza",
+        "sampleNote": "Mfano kwa {name}"
       },
       "history": {
         "title": "Historia ya ujumbe",
@@ -177,7 +180,8 @@
           "tooLong": "Ujumbe ni mrefu mno"
         },
         "no_recipients": "Hakuna mpokeaji mwenye namba katika uliowachagua.",
-        "scheduleAt": "Chagua muda angalau dakika moja kuanzia sasa."
+        "scheduleAt": "Chagua muda angalau dakika moja kuanzia sasa.",
+        "unknownVar": "Sifa \"{name}\" haijulikani."
       }
     },
     "ops": {
@@ -345,7 +349,10 @@
         "confirmTitle": "Send to {count, plural, one {# person} other {# people}}?",
         "confirmBody": "It will use {credits} SMS. A sent message cannot be taken back.",
         "phonePreview": "This is how it will look",
-        "senderLine": "From: {sender}"
+        "senderLine": "From: {sender}",
+        "placeholders": "Personalise",
+        "insert": "tap to insert",
+        "sampleNote": "Sample for {name}"
       },
       "history": {
         "title": "Message history",
@@ -401,7 +408,8 @@
           "tooLong": "The message is too long"
         },
         "no_recipients": "None of the chosen contacts has a phone number.",
-        "scheduleAt": "Pick a time at least a minute from now."
+        "scheduleAt": "Pick a time at least a minute from now.",
+        "unknownVar": "Unknown attribute \"{name}\"."
       }
     },
     "ops": {

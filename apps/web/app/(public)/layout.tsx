@@ -19,7 +19,7 @@ import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
 
 const link = (p: ContentPageDef, locale: Locale) => ({
-  href: localeUrl(pagePath(p), locale),
+  href: localeUrl(pagePath(p, locale), locale),
   label: textOf(p, locale).nav,
 });
 
@@ -34,7 +34,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const path = h.get('x-hp-path') ?? (market === 'ke' ? '/ke' : '/');
   const edition: SiteEdition = market === 'ke' ? 'ke' : locale;
   const ui = SITE_UI[edition];
-  const targets = editionTargets(path);
+  const targets = editionTargets(path, locale);
   const tzPage = (slug: string) => getPage(slug);
   const about = tzPage('kuhusu');
   const contact = tzPage('mawasiliano');
@@ -62,12 +62,20 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const links = [
     ...(market === 'tz' ? [{ href: localeUrl(PRICING_PATH, locale), label: ui.pricing }] : []),
     ...(about
-      ? [{ href: localeUrl(pagePath(about), market === 'ke' ? 'en' : locale), label: ui.about }]
+      ? [
+          {
+            href: localeUrl(
+              pagePath(about, market === 'ke' ? 'en' : locale),
+              market === 'ke' ? 'en' : locale,
+            ),
+            label: ui.about,
+          },
+        ]
       : []),
   ];
   const cta =
     market === 'ke'
-      ? { href: contact ? localeUrl(pagePath(contact), 'en') : '/en', label: ui.cta }
+      ? { href: contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/', label: ui.cta }
       : { href: '/login', label: ui.cta };
 
   const footerLocale: Locale = market === 'ke' ? 'en' : locale;
@@ -103,7 +111,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         ];
   const bottomLinks = [
     { href: '/k', label: ui.card },
-    ...(faq ? [{ href: localeUrl(pagePath(faq), footerLocale), label: ui.faq }] : []),
+    ...(faq ? [{ href: localeUrl(pagePath(faq, footerLocale), footerLocale), label: ui.faq }] : []),
     ...(market === 'tz' ? [{ href: '/ke', label: ui.kenya }] : []),
   ];
 

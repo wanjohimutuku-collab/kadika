@@ -5,6 +5,7 @@ const UPDATED = '2026-10-15';
 export const COMPANY_PAGES: ContentPageDef[] = [
   {
     slug: 'maswali',
+    slugEn: 'faq',
     group: 'company',
     schema: 'WebPage',
     updated: UPDATED,
@@ -161,6 +162,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'kuhusu',
+    slugEn: 'about',
     group: 'company',
     schema: 'WebPage',
     updated: UPDATED,
@@ -304,6 +306,7 @@ export const COMPANY_PAGES: ContentPageDef[] = [
   },
   {
     slug: 'mawasiliano',
+    slugEn: 'contact',
     group: 'company',
     schema: 'WebPage',
     updated: UPDATED,

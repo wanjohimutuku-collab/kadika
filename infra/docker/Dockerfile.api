@@ -22,7 +22,10 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @harusi/api... --config.node-linker=isolated
 
 FROM deps AS build
-COPY . .
+# Copy only what the API builds from so web/mobile/doc edits never invalidate the API build cache.
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/api ./apps/api
 RUN pnpm --filter @harusi/api build
 # Production-only node_modules for the API (workspace deps are bundled by tsup).
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \

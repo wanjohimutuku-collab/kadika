@@ -57,7 +57,7 @@ export function paymentSettingsProblem(
 
 /** The provider these settings describe, or undefined when payments are off. */
 export function buildPayments(
-  config: Pick<Config, 'apiPublicUrl' | 'paymentWebhookSecret'>,
+  config: Pick<Config, 'apiPublicUrl' | 'paymentWebhookSecret' | 'fakePaymentsAllowed'>,
   s: PaymentSettings,
 ): PaymentProvider | undefined {
   const tz = s.tz;
@@ -71,8 +71,9 @@ export function buildPayments(
       callbackUrl: `${config.apiPublicUrl}${WEBHOOK_PATH('snippe')}`,
     });
   }
-  // `fake`: collects nothing; needs a webhook secret to exist, as before (ADR 023).
-  return config.paymentWebhookSecret
+  // `fake`: collects nothing; needs a webhook secret to exist, as before (ADR 023), and is never built
+  // in production (review I-03): payments stay off there until a real gateway is saved.
+  return config.paymentWebhookSecret && config.fakePaymentsAllowed !== false
     ? new FakePaymentProvider(config.paymentWebhookSecret)
     : undefined;
 }

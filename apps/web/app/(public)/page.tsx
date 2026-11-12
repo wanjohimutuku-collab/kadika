@@ -8,7 +8,7 @@ import { homeCopy } from '@/content/home';
 import { SITE_URL, absoluteLocaleUrl, ogImages } from '@/lib/seo';
 import { getPricingOnServer } from '@/lib/server-pricing';
 
-/** `/` is Swahili, `/en` English (the middleware rewrites `/en` here). */
+/** `/` is English (the default edition); `/sw` is Swahili (the middleware rewrites `/sw` here). */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await getLocale()) as Locale;
   const c = homeCopy(locale, await getPricingOnServer(), SITE_URL.replace(/^https?:\/\//, ''));

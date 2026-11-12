@@ -76,6 +76,20 @@ describe('sign-in settings in /ops (ADR 049)', () => {
     }
   });
 
+  it('refuses a Firebase project that is not on the environment allow-list', async () => {
+    const token = await setup({
+      FIREBASE_ALLOWED_PROJECT_IDS: 'kadi-sasa-prod, kadi-sasa-staging',
+    });
+    const other = await save(token, {
+      provider: 'firebase',
+      fields: { ...FIREBASE, projectId: 'someone-elses-project' },
+    });
+    expect(other.status).toBe(403);
+    expect(other.body!.error.details.reason).toBe('project_not_allowed');
+    expect(await ctx.db.select().from(signinSettings)).toHaveLength(0);
+    expect((await save(token, { provider: 'firebase', fields: FIREBASE })).status).toBe(200);
+  });
+
   it('switches sign-in to Firebase, stores the config encrypted and masks the API key', async () => {
     const token = await setup();
     const incomplete = await save(token, {

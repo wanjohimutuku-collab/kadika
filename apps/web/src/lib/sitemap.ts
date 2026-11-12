@@ -24,7 +24,14 @@ const weight = (p: ContentPageDef) =>
 export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
   const market = edition === 'ke' ? 'ke' : 'tz';
   const locale = edition === 'sw' ? 'sw' : 'en';
-  const pages: { path: string; counterpart?: string; updated?: string; priority: number }[] =
+  const pages: {
+    path: string;
+    pathEn?: string;
+    pathSw?: string;
+    counterpart?: string;
+    updated?: string;
+    priority: number;
+  }[] =
     market === 'tz'
       ? [
           { path: '/', counterpart: '/ke', priority: 1 },
@@ -34,19 +41,27 @@ export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
       : [];
   for (const p of ALL_PAGES) {
     if (marketOf(p) !== market) continue;
+    const path = pagePath(p, locale);
+    // hreflangMap expects the TZ EN path as the first arg; keep the SW path aside so the
+    // alternate can use the SW slug, not the EN slug under /sw.
     pages.push({
-      path: pagePath(p),
-      counterpart: counterpartPath(pagePath(p)),
+      path,
+      pathEn: market === 'tz' ? pagePath(p, 'en') : path,
+      pathSw: market === 'tz' ? pagePath(p, 'sw') : undefined,
+      counterpart: counterpartPath(path, locale),
       updated: p.updated,
       priority: weight(p),
     });
   }
-  return pages.map((p) => ({
-    loc: absoluteLocaleUrl(p.path, locale),
-    ...(p.updated ? { lastmod: p.updated } : {}),
-    priority: p.priority,
-    alternates: hreflangMap(p.path, p.counterpart),
-  }));
+  return pages.map((p) => {
+    const anchor = p.pathEn ?? p.path;
+    return {
+      loc: absoluteLocaleUrl(p.path, locale),
+      ...(p.updated ? { lastmod: p.updated } : {}),
+      priority: p.priority,
+      alternates: hreflangMap(anchor, p.counterpart, p.pathSw),
+    };
+  });
 }
 
 const esc = (s: string) =>

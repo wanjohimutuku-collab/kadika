@@ -17,6 +17,7 @@ export const SITE_UI = {
     card: 'Nina namba ya kadi',
     switchLabel: 'Nchi na lugha',
     skip: 'Ruka hadi maudhui',
+    tryItYourself: 'Jaribu mwenyewe',
     menu: { menu: 'Fungua menyu', close: 'Funga menyu', main: 'Menyu kuu' },
   },
   en: {
@@ -34,6 +35,7 @@ export const SITE_UI = {
     card: 'I have a card number',
     switchLabel: 'Country and language',
     skip: 'Skip to content',
+    tryItYourself: 'Try it yourself',
     menu: { menu: 'Open menu', close: 'Close menu', main: 'Main navigation' },
   },
   ke: {
@@ -52,6 +54,7 @@ export const SITE_UI = {
     card: 'I have a card number',
     switchLabel: 'Country and language',
     skip: 'Skip to content',
+    tryItYourself: 'Try it yourself',
     menu: { menu: 'Open menu', close: 'Close menu', main: 'Main navigation' },
   },
 } as const satisfies Record<SiteEdition, unknown>;

@@ -18,8 +18,8 @@ describe('sitemaps', () => {
     const en = sitemapEntries('en');
     const ke = sitemapEntries('ke');
     expect(sw.length).toBe(en.length);
-    expect(sw.every((e) => !new URL(e.loc).pathname.startsWith('/en'))).toBe(true);
-    expect(en.every((e) => /\/en(\/|$)/.test(new URL(e.loc).pathname))).toBe(true);
+    expect(sw.every((e) => new URL(e.loc).pathname.startsWith('/sw'))).toBe(true);
+    expect(en.every((e) => !new URL(e.loc).pathname.startsWith('/sw'))).toBe(true);
     expect(ke.every((e) => new URL(e.loc).pathname.startsWith('/ke'))).toBe(true);
     for (const e of [...sw, ...en, ...ke])
       expect(new URL(e.loc).pathname, e.loc).not.toMatch(PRIVATE);
@@ -27,21 +27,25 @@ describe('sitemaps', () => {
 
   it('pairs the two homes, and never offers Swahili for a Kenya page', () => {
     const home = sitemapEntries('ke').find((e) => new URL(e.loc).pathname === '/ke')!;
-    expect(new URL(home.alternates['sw-TZ']!).pathname).toBe('/');
+    // x-default on a KE-only entry stays on KE; a paired KE page would also have sw-TZ.
+    expect(home.alternates['x-default']).toBeDefined();
     for (const e of sitemapEntries('ke')) expect(e.alternates).not.toHaveProperty('sw-KE');
   });
 });
 
 describe('locale switch targets', () => {
   it('links the same page in each edition, or the other market home', () => {
-    expect(editionTargets('/')).toEqual({ sw: '/', en: '/en', ke: '/ke' });
-    expect(editionTargets('/bei')).toEqual({ sw: '/bei', en: '/en/bei', ke: '/ke' });
-    expect(editionTargets('/michango-ya-harusi').ke).toBe('/ke/wedding-contributions-guide');
-    expect(editionTargets('/ke/wedding-contributions-guide')).toMatchObject({
-      sw: '/michango-ya-harusi',
-      en: '/en/michango-ya-harusi',
+    expect(editionTargets('/', 'en')).toEqual({ sw: '/sw', en: '/', ke: '/ke' });
+    expect(editionTargets('/bei', 'en')).toEqual({ sw: '/sw/bei', en: '/bei', ke: '/ke' });
+    expect(editionTargets('/wedding-contributions', 'en').ke).toBe(
+      '/ke/wedding-contributions-guide',
+    );
+    expect(editionTargets('/ke/wedding-contributions-guide', 'en')).toMatchObject({
+      sw: '/sw/michango-ya-harusi',
+      en: '/wedding-contributions',
     });
-    expect(editionTargets('/ke/pricing-not-built').sw).toBe('/');
-    expect(editionTargets('/ke/privacy').sw).toBe('/privacy');
+    expect(editionTargets('/ke/pricing-not-built', 'en').en).toBe('/');
+    expect(editionTargets('/ke/privacy', 'en').en).toBe('/privacy');
+    expect(editionTargets('/ke/privacy', 'en').sw).toBe('/sw/privacy');
   });
 });

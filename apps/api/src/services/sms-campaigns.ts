@@ -1,15 +1,18 @@
 import { and, asc, count, desc, eq, inArray, isNull, lte, ne, sql } from 'drizzle-orm';
 import { events, guests, messageLog, newId, smsCampaigns, users } from '@harusi/db';
+import { renderTemplate } from '@harusi/schemas/card-content';
 import { maskPhone } from '@harusi/schemas/phone';
 import {
   SMS_MAX_PENDING,
   SMS_MAX_SEGMENTS,
+  smsCampaignProblem,
   smsSegments,
   type OpsSmsCustomer,
   type SmsCampaignPreview,
   type SmsCampaignView,
   type SmsTarget,
 } from '@harusi/schemas/sms';
+import { smsCampaignVars } from './messages';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { routeCountry, smsFor } from '../sms-routing';
@@ -81,10 +84,12 @@ export class SmsCampaignService {
     return event;
   }
 
-  private checkBody(body: string) {
-    const seg = smsSegments(body);
+  private checkBody(body: string, sample?: string) {
     if (body.trim().length < 2)
       throw new ApiError('validation', 'Write the message', { field: 'body' });
+    const problem = smsCampaignProblem(body);
+    if (problem) throw new ApiError('validation', problem, { field: 'body', reason: problem });
+    const seg = smsSegments(sample ?? body);
     if (seg.segments > SMS_MAX_SEGMENTS)
       throw new ApiError('validation', `At most ${SMS_MAX_SEGMENTS} SMS parts`, {
         field: 'body',
@@ -118,9 +123,13 @@ export class SmsCampaignService {
     userId: string,
     input: { body: string; target: SmsTarget },
   ): Promise<SmsCampaignPreview> {
-    await this.smsEvent(eventId, userId);
-    const seg = smsSegments(input.body || ' ');
+    const event = await this.smsEvent(eventId, userId);
     const { reachable, skipped } = await this.audience(eventId, input.target);
+    const sample =
+      input.body.trim() && reachable[0]
+        ? renderTemplate(input.body, smsCampaignVars(event, reachable[0])) || ' '
+        : input.body || ' ';
+    const seg = smsSegments(sample);
     return {
       recipients: reachable.length,
       withoutPhone: skipped,
@@ -138,7 +147,7 @@ export class SmsCampaignService {
   ): Promise<SmsCampaignView> {
     const event = await this.smsEvent(eventId, userId);
     const body = input.body.trim();
-    const seg = this.checkBody(body);
+    this.checkBody(body);
     const now = this.deps.now();
     if (input.scheduleAt) {
       const at = input.scheduleAt.getTime();
@@ -163,6 +172,10 @@ export class SmsCampaignService {
         field: 'target',
         reason: 'no_recipients',
       });
+    const seg = this.checkBody(
+      body,
+      renderTemplate(body, smsCampaignVars(event, reachable[0]!)) || body,
+    );
     await this.billing.assertCanUse(eventId, { messages: reachable.length * seg.segments });
     const [row] = await this.deps.db
       .insert(smsCampaigns)
@@ -231,7 +244,7 @@ export class SmsCampaignService {
         out.skipped += reachable.length - out.sent - out.failed;
         break;
       }
-      const r = await this.deliver(g, row, event.country);
+      const r = await this.deliver(g, row, event);
       if (r.ok) out.sent++;
       else {
         refund(); // a failed SMS is not charged
@@ -261,10 +274,11 @@ export class SmsCampaignService {
   private async deliver(
     g: Guest,
     row: Row,
-    eventCountry: 'TZ' | 'KE',
+    event: typeof events.$inferSelect,
   ): Promise<{ ok: true } | { ok: false; error: string }> {
     const to = g.phoneE164!;
-    const p = smsFor(this.deps, routeCountry(to, eventCountry));
+    const p = smsFor(this.deps, routeCountry(to, event.country));
+    const text = renderTemplate(row.body, smsCampaignVars(event, g)) || row.body;
     const log = (r: { ok: true; id: string; cost?: number } | { ok: false; error: string }) =>
       this.deps.db.insert(messageLog).values({
         id: newId(),
@@ -287,7 +301,7 @@ export class SmsCampaignService {
     let error = 'unknown error';
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
       try {
-        const sent = await p.send(to, row.body);
+        const sent = await p.send(to, text);
         await log({ ok: true, id: sent.providerMsgId, cost: sent.cost });
         return { ok: true };
       } catch (e) {

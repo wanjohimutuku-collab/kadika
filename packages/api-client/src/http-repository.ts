@@ -1113,17 +1113,12 @@ export function createHttpRepository(
       await call('DELETE', `/v1/events/${encodeURIComponent(eventId)}`);
     },
     async listActivity(eventId, limit = 20) {
-      return call<Activity[]>(
-        'GET',
-        `/v1/events/${encodeURIComponent(eventId)}/activity?limit=${limit}`,
-      );
+      return call<Activity[]>('GET', `/v1/events/${encodeURIComponent(eventId)}/activity?limit=${limit}`);
     },
     async sendTestMessage(eventId, channel) {
-      return call<{ to: string }>(
-        'POST',
-        `/v1/events/${encodeURIComponent(eventId)}/messages/test`,
-        { channel },
-      );
+      return call<{ to: string }>('POST', `/v1/events/${encodeURIComponent(eventId)}/messages/test`, {
+        channel,
+      });
     },
     async getReport(eventId) {
       const r = await call<Omit<EventReport, 'stats'> & { stats: ApiStats }>(
@@ -1435,15 +1430,15 @@ export function createHttpRepository(
     return r.json as unknown as PaymentStatusView;
   };
   // ---- Kumbukumbu (ADR 050)
-  const ev = (id: string) => `/v1/events/${encodeURIComponent(id)}`;
-  impl.listMemories = (eventId) => call('GET', `${ev(eventId)}/memories`);
+  const eventPath = (id: string) => `/v1/events/${encodeURIComponent(id)}`;
+  impl.listMemories = (eventId) => call('GET', `${eventPath(eventId)}/memories`);
   impl.addMemory = (eventId, photo, input) => {
     const form = new FormData();
     // React Native's FormData takes `{ uri, name, type }` for a file; the web takes a Blob.
     form.append('photo', photo as unknown as Blob, 'name' in photo ? photo.name : 'photo');
     if (input.caption) form.append('caption', input.caption);
     if (input.takenOn) form.append('takenOn', input.takenOn);
-    return call('POST', `${ev(eventId)}/memories`, form);
+    return call('POST', `${eventPath(eventId)}/memories`, form);
   };
   impl.updateMemory = (memoryId, patch) =>
     call('PATCH', `/v1/memories/${encodeURIComponent(memoryId)}`, patch);
@@ -1452,7 +1447,7 @@ export function createHttpRepository(
   };
   impl.fetchMemoryPhoto = async (eventId, memoryId, size) => {
     const send = () =>
-      doFetch(`${baseUrl}${ev(eventId)}/memories/${encodeURIComponent(memoryId)}/${size}`, {
+      doFetch(`${baseUrl}${eventPath(eventId)}/memories/${encodeURIComponent(memoryId)}/${size}`, {
         headers: tokens.get() ? { authorization: `Bearer ${tokens.get()!.accessToken}` } : {},
       });
     let res: Response;
@@ -1466,7 +1461,7 @@ export function createHttpRepository(
     return res.blob();
   };
   impl.sendMemories = (eventId, guestIds) =>
-    call('POST', `${ev(eventId)}/memories/send`, guestIds ? { guestIds } : {});
+    call('POST', `${eventPath(eventId)}/memories/send`, guestIds ? { guestIds } : {});
   impl.getMemoriesLink = (guestId) =>
     call('GET', `/v1/guests/${encodeURIComponent(guestId)}/memories-link`);
   impl.getGuestMemories = async (token) => {
@@ -1531,6 +1526,59 @@ export function createHttpRepository(
     return res.blob();
   };
 
+  // ---- Organiser console: activity, gate monitor, report, a guest's history (§7.7, §17.4)
+  const organiserEventPath = (eventId: string) => `/v1/events/${encodeURIComponent(eventId)}`;
+  const gu = (guestId: string) => `/v1/guests/${encodeURIComponent(guestId)}`;
+  impl.listActivity = async (eventId, limit) =>
+    (
+      await call<{ items: Activity[] }>(
+        'GET',
+        `${organiserEventPath(eventId)}/activity${limit ? `?limit=${limit}` : ''}`,
+      )
+    ).items;
+  // The funnel numbers come from the stats every event view already reads; the rest from /report.
+  impl.getReport = async (eventId) => {
+    const [r, s] = await Promise.all([
+      call<Omit<EventReport, 'stats' | 'headcountForecast'>>('GET', `${organiserEventPath(eventId)}/report`),
+      statsOf(eventId),
+    ]);
+    // people admitted at the gate: the funnel stats do not carry them
+    const stats = {
+      ...mapStats(s),
+      headcountAttended: r.arrivalsByHour.reduce((n, h) => n + h.count, 0),
+    };
+    return { ...r, stats, headcountForecast: stats.headcountConfirmed };
+  };
+  impl.sendTestMessage = (eventId, channel) =>
+    call<{ to: string }>('POST', `${organiserEventPath(eventId)}/test-message`, { channel });
+  impl.deleteEvent = async (eventId) => {
+    await call('DELETE', organiserEventPath(eventId));
+  };
+  impl.listGuestMessages = async (guestId) =>
+    (await call<{ items: MessageLogEntry[] }>('GET', `${gu(guestId)}/messages`)).items;
+  impl.listGuestAudit = async (guestId) =>
+    (await call<{ items: AuditEntry[] }>('GET', `${gu(guestId)}/audit`)).items;
+  impl.addGuestNote = (guestId, note) => call<AuditEntry>('POST', `${gu(guestId)}/notes`, { note });
+  impl.restoreGuests = async (ids) => {
+    let restored = 0;
+    for (const id of ids) {
+      await call('POST', `${gu(id)}/restore`);
+      restored++;
+    }
+    return { restored };
+  };
+  impl.setGuestsGroup = async (ids, group) => {
+    let updated = 0;
+    for (const id of ids) {
+      await call('PATCH', gu(id), { groupLabel: group });
+      updated++;
+    }
+    return { updated };
+  };
+
+  // Anything the API does not provide yet rejects with `not_implemented`. By design that includes
+  // `getGuestCardLink` (the API keeps card tokens only as hashes) and `resolveShortCode` (a printed
+  // short code alone must not open a card; SMS links carry the token itself, ADR 016).
   // ---- SMS reminders only (ADR 055)
   impl.createSmsEvent = async (input) => {
     const created = await call<ApiEvent>('POST', '/v1/events', {

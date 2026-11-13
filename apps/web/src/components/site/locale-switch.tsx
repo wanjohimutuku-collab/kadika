@@ -19,6 +19,7 @@ export function LocaleSwitch({
   label,
   align = 'right',
   up = false,
+  pill = false,
 }: {
   current: SiteEdition;
   targets: Record<SiteEdition, string>;
@@ -26,10 +27,17 @@ export function LocaleSwitch({
   align?: 'left' | 'right';
   /** Open above the button (in the footer). */
   up?: boolean;
+  /** Pill shape for the floating header bar. */
+  pill?: boolean;
 }) {
   return (
     <details className="group relative">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-1.5 rounded-ks border border-ks-line bg-white px-3 text-sm font-semibold">
+      <summary
+        className={cn(
+          'flex cursor-pointer list-none items-center gap-1.5 border border-ks-line/90 bg-white/90 text-sm font-semibold text-ks-ink transition-colors hover:border-ks-green-700/35 hover:bg-white',
+          pill ? 'min-h-10 rounded-full px-3' : 'min-h-12 rounded-ks px-3',
+        )}
+      >
         <Globe className="size-4" aria-hidden="true" />
         {/* The spoken name starts with the visible text, so voice control ("click TZ SW") works. */}
         <span className="tabular">{LABELS[current].short}</span>

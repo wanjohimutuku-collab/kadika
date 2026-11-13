@@ -81,10 +81,17 @@ export interface HeroStatCardsCopy {
   guestsAwaiting: string;
   michangoTitle: string;
   michangoPledged: string;
+  michangoPledgedAmount: string;
   michangoReceived: string;
+  michangoReceivedAmount: string;
   michangoPercent: string;
   checkedInTitle: string;
   checkedInOffline: string;
+  previewEyebrow: string;
+  previewDate: string;
+  previewVenueLine1: string;
+  previewVenueLine2: string;
+  previewCodeLabel: string;
 }
 
 export interface HomeCopy {
@@ -236,10 +243,17 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       guestsAwaiting: '106 wanasubiriwa',
       michangoTitle: 'Michango',
       michangoPledged: 'Ahadi',
+      michangoPledgedAmount: 'TZS 12M',
       michangoReceived: 'Imepokelewa',
+      michangoReceivedAmount: 'TZS 8.4M',
       michangoPercent: '70% ya ahadi',
       checkedInTitle: 'Mgeni ameingia',
       checkedInOffline: 'Inafanya kazi bila mtandao',
+      previewEyebrow: '~ Sherehe ya ~',
+      previewDate: '14 · Desemba · 2026',
+      previewVenueLine1: 'Ukumbi wa Mwanga,',
+      previewVenueLine2: 'Kibaha',
+      previewCodeLabel: 'Namba',
     },
     demoStudio: {
       eyebrow: 'Jaribu mwenyewe',
@@ -535,10 +549,17 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       guestsAwaiting: '106 awaiting',
       michangoTitle: 'Contributions',
       michangoPledged: 'Pledged',
+      michangoPledgedAmount: 'TZS 12M',
       michangoReceived: 'Received',
+      michangoReceivedAmount: 'TZS 8.4M',
       michangoPercent: '70% of pledges',
       checkedInTitle: 'Guest checked in',
       checkedInOffline: 'Works offline',
+      previewEyebrow: '~ Celebration of ~',
+      previewDate: '14 · December · 2026',
+      previewVenueLine1: 'Mwanga Hall,',
+      previewVenueLine2: 'Kibaha',
+      previewCodeLabel: 'Card No.',
     },
     demoStudio: {
       eyebrow: 'Try it yourself',
@@ -817,7 +838,7 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       primary: 'Join the Kenya pilot',
       secondary: 'I have a card number',
     },
-    heroAccent: 'every guest',
+    heroAccent: 'harambee',
     heroHowLink: 'See how it works',
     heroTrustLine: 'Kenya pilot · You don’t pay until you send',
     kickerEvents: ['Wedding', 'Ruracio', 'Send-off', 'Nikah', 'Graduation', 'Business'],
@@ -828,10 +849,17 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       guestsAwaiting: '106 awaiting',
       michangoTitle: 'Harambee',
       michangoPledged: 'Pledged',
+      michangoPledgedAmount: 'KES 1.2M',
       michangoReceived: 'Received',
+      michangoReceivedAmount: 'KES 840K',
       michangoPercent: '70% of pledges',
       checkedInTitle: 'Guest checked in',
       checkedInOffline: 'Works offline',
+      previewEyebrow: '~ Celebration of ~',
+      previewDate: '14 · December · 2026',
+      previewVenueLine1: 'Safari Park Gardens,',
+      previewVenueLine2: 'Nairobi',
+      previewCodeLabel: 'Card No.',
     },
     demoStudio: {
       eyebrow: 'Try it yourself',

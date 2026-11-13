@@ -144,7 +144,9 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           cardLink={{ href: '/k', label: ui.card }}
           cta={cta}
           labels={ui.menu}
-          localeSwitch={<LocaleSwitch current={edition} targets={targets} label={ui.switchLabel} />}
+          localeSwitch={
+            <LocaleSwitch current={edition} targets={targets} label={ui.switchLabel} pill />
+          }
         />
         <div id="main">{children}</div>
         <SiteFooter

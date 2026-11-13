@@ -16,6 +16,7 @@ export default tseslint.config(
       '**/next-env.d.ts',
       '**/storybook-static/**',
       '**/.next-prod/**',
+      '**/.next-live/**',
       '**/test-results/**',
       '**/playwright-report/**',
       'docs/ui/lighthouse/**',

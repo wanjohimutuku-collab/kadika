@@ -1,3 +1,7 @@
-*.sh text eol=lf
-# Tests compare the shipped SVGs byte for byte with strings in the code (brand-assets.test.ts).
-*.svg text eol=lf
+# Keep LF line endings in every checkout, Windows included. Several tests compare
+# files byte for byte (tokens.css in ui-tokens, the brand SVGs in brand-assets.test.ts),
+# and CRLF from core.autocrlf=true breaks them.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

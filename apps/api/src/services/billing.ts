@@ -9,6 +9,7 @@ import {
   pricingSettings,
   users,
 } from '@harusi/db';
+import { formatMoney } from '@harusi/schemas';
 import {
   CARD_DELIVERY_KINDS,
   DEFAULT_PRICING,
@@ -29,6 +30,7 @@ import type { PaymentProvider, PaymentWebhookEvent } from '@harusi/payments';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { allPaymentProviders, paymentsFor } from '../payment-routing';
+import { routeCountry, smsFor } from '../sms-routing';
 import { recordAudit } from './audit';
 import { BrandingService } from './branding';
 import type { EventService } from './events';
@@ -588,6 +590,55 @@ export class BillingService {
     return out;
   }
 
+  private describeCredits(cards: number, messages: number, locale: 'sw' | 'en'): string {
+    if (locale === 'sw') {
+      if (cards > 0 && messages > 0) return `${cards} kadi na SMS ${messages}`;
+      if (cards > 0) return `${cards} kadi`;
+      return `SMS ${messages}`;
+    }
+    const cLabel = `${cards} ${cards === 1 ? 'card' : 'cards'}`;
+    const mLabel = `${messages} SMS ${messages === 1 ? 'credit' : 'credits'}`;
+    if (cards > 0 && messages > 0) return `${cLabel} and ${mLabel}`;
+    if (cards > 0) return cLabel;
+    return mLabel;
+  }
+
+  /** Sends a best-effort SMS receipt to the customer when an order is paid or credits are granted. */
+  private async notifyCustomer(p: Purchase) {
+    const [event] = await this.db.select().from(events).where(eq(events.id, p.eventId));
+    if (!event) return;
+    const recipientId = p.kind === 'grant' ? event.ownerId : (p.requestedBy ?? event.ownerId);
+    const [user] = await this.db
+      .select({ phoneE164: users.phoneE164 })
+      .from(users)
+      .where(eq(users.id, recipientId));
+    const to = user?.phoneE164 ?? p.phoneE164;
+    if (!to || to.startsWith('deleted:')) return;
+    const provider = smsFor(this.deps, routeCountry(to, event.country));
+    if (!provider) return;
+    const locale = event.languageDefault === 'en' ? 'en' : 'sw';
+    const added = this.describeCredits(p.cards, p.messages, locale);
+    const brand = await new BrandingService(this.deps).businessName();
+    let text: string;
+    if (p.kind === 'grant') {
+      text =
+        locale === 'sw'
+          ? `${brand}: Umeongezewa ${added} za bure kwa ${event.title}.`
+          : `${brand}: ${added} have been added to ${event.title}.`;
+    } else {
+      const ref = p.providerRef ? ` (${p.providerRef})` : '';
+      text =
+        locale === 'sw'
+          ? `${brand}: Malipo ya ${formatMoney(p.amount, p.currency)}${ref} kwa ${event.title} yamepokelewa. Umeongezewa ${added}.`
+          : `${brand}: Payment of ${formatMoney(p.amount, p.currency)}${ref} for ${event.title} received. Added ${added}.`;
+    }
+    try {
+      await provider.send(to, text);
+    } catch {
+      // Never fail a confirmed payment or credit grant if the SMS gateway errors.
+    }
+  }
+
   /** A paid card bundle also marks the event `paid` for the staff dashboards (ADR 012). */
   private async afterPaid(p: Purchase, staffId: string | null) {
     if (p.kind === 'cards')
@@ -600,6 +651,7 @@ export class BillingService {
       entityId: p.id,
       diff: { item: p.itemKey, amount: p.amount, method: p.method },
     });
+    await this.notifyCustomer(p);
   }
 
   // ---------------------------------------------------------------- staff
@@ -699,6 +751,7 @@ export class BillingService {
         messages: input.messages,
       },
     });
+    await this.notifyCustomer(row!);
     return this.view(row!);
   }
 

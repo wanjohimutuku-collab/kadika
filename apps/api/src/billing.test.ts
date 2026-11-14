@@ -175,6 +175,10 @@ describe('enforced allowances', () => {
       ).status,
     ).toBe(403);
     expect((await s.markPaid(pack.id)).body).toMatchObject({ status: 'paid' });
+    const paidSms = ctx.sms.sent.at(-1)!;
+    expect(paidSms.to).toMatch(/^\+2557881/);
+    expect(paidSms.body).toContain('TZS 2,000');
+    expect(paidSms.body).toContain('10 SMS credits');
     expect((await s.remind()).body).toMatchObject({ sent: 2 });
     expect((await s.billing()).used).toEqual({ cards: 2, messages: 2 });
   });
@@ -212,9 +216,14 @@ describe('enforced allowances', () => {
         headers: { 'content-type': 'application/json', ...body.headers },
         body: body.raw,
       });
+    const smsBefore = ctx.sms.sent.length;
     expect(await (await hook()).json()).toMatchObject({ applied: true });
     for (let i = 0; i < 4; i++)
       expect(await (await hook()).json()).toMatchObject({ applied: false, duplicate: true });
+    const receiptSms = ctx.sms.sent.slice(smsBefore);
+    expect(receiptSms).toHaveLength(1);
+    expect(receiptSms[0]!.body).toContain('TZS 12,000');
+    expect(receiptSms[0]!.body).toContain('5 cards and 20 SMS credits');
     expect(await s.billing()).toMatchObject({
       allowance: { cards: 7, messages: 21 },
       purchases: [{ status: 'paid', kind: 'cards' }],
@@ -278,6 +287,10 @@ describe('enforced allowances', () => {
     });
     expect(ok.status).toBe(201);
     expect((await s.billing()).allowance.cards).toBe(12);
+    const grantSms = ctx.sms.sent.at(-1)!;
+    expect(grantSms.to).toMatch(/^\+2557881/);
+    expect(grantSms.body).toContain('10 cards');
+    expect(grantSms.body).toContain('Harusi');
     const list = await api(ctx, 'GET', '/v1/ops/purchases?status=paid', { token: support });
     expect(list.body!.some((p: { kind: string }) => p.kind === 'grant')).toBe(true);
   });

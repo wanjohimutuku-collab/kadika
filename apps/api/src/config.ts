@@ -180,6 +180,31 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
     throw new Error('AUTH_OTP_PROVIDER must be sms or firebase');
   if (authOtpProvider === 'firebase' && !env.FIREBASE_PROJECT_ID)
     throw new Error('AUTH_OTP_PROVIDER=firebase needs FIREBASE_PROJECT_ID');
+  const africasTalking =
+    env.AT_USERNAME && env.AT_API_KEY
+      ? {
+          username: env.AT_USERNAME,
+          apiKey: env.AT_API_KEY,
+          senderId: env.AT_SENDER_ID || undefined,
+          baseUrl: env.AT_BASE_URL || undefined,
+        }
+      : null;
+  const nextSms =
+    env.NEXTSMS_USERNAME && env.NEXTSMS_PASSWORD && env.SMS_SENDER_ID
+      ? {
+          username: env.NEXTSMS_USERNAME,
+          password: env.NEXTSMS_PASSWORD,
+          senderId: env.SMS_SENDER_ID,
+        }
+      : null;
+  const smsProvider =
+    (!env.SMS_PROVIDER || env.SMS_PROVIDER === 'fake') && nextSms
+      ? 'nextsms'
+      : (env.SMS_PROVIDER ?? 'fake');
+  const smsProviderKe =
+    (!env.SMS_PROVIDER_KE || env.SMS_PROVIDER_KE === 'fake') && africasTalking
+      ? 'africastalking'
+      : (env.SMS_PROVIDER_KE ?? 'fake');
   return {
     databaseUrl: required(env, 'DATABASE_URL'),
     jwtSecret,
@@ -211,17 +236,9 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
           }
         : null,
     paymentWebhookSecretKe: env.PAYMENT_WEBHOOK_SECRET_KE ?? null,
-    smsProviderKe: env.SMS_PROVIDER_KE ?? 'fake',
-    africasTalking:
-      env.AT_USERNAME && env.AT_API_KEY
-        ? {
-            username: env.AT_USERNAME,
-            apiKey: env.AT_API_KEY,
-            senderId: env.AT_SENDER_ID || undefined,
-            baseUrl: env.AT_BASE_URL || undefined,
-          }
-        : null,
-    smsProvider: env.SMS_PROVIDER ?? 'fake',
+    smsProviderKe,
+    africasTalking,
+    smsProvider,
     whatsappProvider: env.WHATSAPP_PROVIDER ?? 'fake',
     paymentProvider: env.PAYMENT_PROVIDER ?? 'fake',
     fakePaymentsAllowed:
@@ -270,14 +287,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
                 : {},
           }
         : null,
-    nextSms:
-      env.NEXTSMS_USERNAME && env.NEXTSMS_PASSWORD && env.SMS_SENDER_ID
-        ? {
-            username: env.NEXTSMS_USERNAME,
-            password: env.NEXTSMS_PASSWORD,
-            senderId: env.SMS_SENDER_ID,
-          }
-        : null,
+    nextSms,
     redisUrl: env.REDIS_URL ?? null,
     whatsappFallbackHours: num(env, 'WHATSAPP_FALLBACK_HOURS', 6),
     // CORS_EXTRA_ORIGINS adds hosts to the list, e.g. the console and staff hosts in production (ADR 032).

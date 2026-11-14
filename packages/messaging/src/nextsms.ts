@@ -18,7 +18,7 @@ export function toNextSmsNumber(e164: string): string {
 interface NextSmsMessage {
   messageId?: string | number;
   smsCount?: number;
-  status?: { groupName?: string; name?: string };
+  status?: { groupName?: string; name?: string; description?: string };
 }
 
 /**
@@ -52,6 +52,11 @@ export class NextSmsProvider implements MessagingProvider {
     if (!res.ok) throw new Error(`nextsms ${res.status}`);
     const json = (await res.json().catch(() => null)) as { messages?: NextSmsMessage[] } | null;
     const m = json?.messages?.[0];
+    if (parseNextSmsStatus(m?.status) === 'failed') {
+      const code = m?.status?.name ?? m?.status?.groupName ?? 'REJECTED';
+      const desc = m?.status?.description ? ` (${m.status.description})` : '';
+      throw new Error(`nextsms ${code}${desc}`);
+    }
     if (!m?.messageId) throw new Error('nextsms: no message id in response');
     return { providerMsgId: String(m.messageId) };
   }

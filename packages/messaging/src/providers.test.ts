@@ -111,6 +111,39 @@ describe('NextSmsProvider', () => {
       ),
     ).rejects.toThrow(/no message id/);
   });
+  it('treats a rejected status as a failure even on HTTP 200 with a messageId', async () => {
+    await expect(
+      new NextSmsProvider({
+        ...opts,
+        fetchImpl: fakeFetch(200, {
+          messages: [
+            {
+              messageId: 123,
+              status: {
+                groupName: 'REJECTED',
+                name: 'REJECTED_SENDER',
+                description: 'Invalid sender',
+              },
+            },
+          ],
+        }).impl,
+      }).send('+255712345678', 'x'),
+    ).rejects.toThrow(/^nextsms REJECTED_SENDER \(Invalid sender\)$/);
+  });
+  it('accepts HTTP 200 with PENDING status and returns messageId', async () => {
+    const p = new NextSmsProvider({
+      ...opts,
+      fetchImpl: fakeFetch(200, {
+        messages: [
+          {
+            messageId: 789,
+            status: { groupName: 'PENDING', name: 'PENDING_ENROUTE' },
+          },
+        ],
+      }).impl,
+    });
+    expect((await p.send('+255712345678', 'x')).providerMsgId).toBe('789');
+  });
   it('reads delivery reports', async () => {
     const p = new NextSmsProvider({
       ...opts,

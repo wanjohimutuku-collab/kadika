@@ -882,7 +882,9 @@ export class DeliveryService {
     const [me] = await this.deps.db.select().from(users).where(eq(users.id, userId));
     if (!event || !me) throw new ApiError('not_found', 'Event not found');
     const to = me.phoneE164;
-    const p = this.provider(channel, to, event.country);
+    const effective: MessageChannel =
+      channel === 'whatsapp' && !this.deps.whatsapp ? 'sms' : channel;
+    const p = this.provider(effective, to, event.country);
     if (!p) throw new ApiError('validation', 'This channel is not available', { field: 'channel' });
     const brand = await new BrandingService(this.deps).businessName();
     const r = await this.attempt(
@@ -896,10 +898,10 @@ export class DeliveryService {
       action: 'send.test',
       entity: 'event',
       entityId: eventId,
-      diff: { channel, provider: p.name, ok: r.ok },
+      diff: { channel: effective, provider: p.name, ok: r.ok },
     });
     if (!r.ok) throw new ApiError('unavailable', 'The test message could not be sent');
-    return { to: `…${to.slice(-3)} (${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'})` };
+    return { to: `…${to.slice(-3)} (${effective === 'whatsapp' ? 'WhatsApp' : 'SMS'})` };
   }
 
   /** Funnel counts by invitation status (§7.7). */

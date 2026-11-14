@@ -84,6 +84,7 @@ describe('messaging settings in /ops (ADR 031)', () => {
       secrets: { password: '…t-pw' },
     });
     expect(ctx.deps.sms.name).toBe('nextsms');
+    expect(ctx.deps.whatsapp).toBeUndefined();
     expect(ctx.deps.config.nextSms?.password).toBe('sup3r-secret-pw');
     const [row] = await ctx.db.select().from(messagingSettings);
     expect(row!.configEnc).not.toContain('sup3r');
@@ -159,6 +160,9 @@ describe('messaging settings in /ops (ADR 031)', () => {
     expect(r.status).toBe(200);
     expect(ctx.deps.sms.name).toBe('fake');
     expect(r.body!.routes[0].source).toBe('environment');
+    const wa = await api(ctx, 'DELETE', '/v1/ops/messaging/whatsapp', { token: admin });
+    expect(wa.status).toBe(200);
+    expect(ctx.deps.whatsapp).toBeUndefined();
   });
 
   it('sends a test message through the live route', async () => {

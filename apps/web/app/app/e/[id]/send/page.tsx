@@ -626,7 +626,14 @@ function SendInner({ id }: { id: string }) {
                         size="sm"
                         variant="secondary"
                         icon={<FlaskConical className="size-4" aria-hidden="true" />}
-                        onClick={() => test.mutate('whatsapp')}
+                        onClick={() =>
+                          test.mutate(
+                            channel === 'sms' ||
+                              (channel === 'auto' && (p?.byChannel.whatsapp ?? 0) === 0)
+                              ? 'sms'
+                              : 'whatsapp',
+                          )
+                        }
                         loading={test.isPending}
                         disabled={!net.online}
                       >

@@ -185,7 +185,7 @@ export function applyMessaging(deps: Deps, s: MessagingSettings, opts: ApplyOpti
     sms = next;
     smsReport = (id) => next.report(id);
   }
-  let whatsapp: MessagingProvider = new FakeMessagingProvider('whatsapp');
+  let whatsapp: MessagingProvider | undefined;
   if (cfg.evolution) whatsapp = new EvolutionWhatsAppProvider(cfg.evolution);
   if (cfg.whatsappCloud) {
     if (!cfg.whatsappCloud.templates.invite)

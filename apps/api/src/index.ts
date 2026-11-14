@@ -140,6 +140,13 @@ await deps.messagingSettings
   .catch((e: Error) =>
     log({ level: 'error', msg: 'messaging settings not loaded', error: safeErrorMessage(e) }),
   );
+if (deps.sms.name === 'fake') {
+  log({
+    level: 'warn',
+    smsProvider: deps.sms.name,
+    msg: 'sms_tz is using the fake provider: outbound SMS will NOT be delivered to phones until NextSMS is configured in /ops/settings/messaging or env',
+  });
+}
 // Every API instance re-reads the saved settings each minute, so a save on one reaches the others.
 setInterval(() => void deps.messagingSettings?.refresh().catch(() => undefined), 60_000).unref();
 // Payment gateway settings (ADR 036) work the same way: saved in /ops, replacing the env-built provider.

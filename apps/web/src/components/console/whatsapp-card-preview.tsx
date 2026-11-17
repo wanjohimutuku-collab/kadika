@@ -230,7 +230,7 @@ export function WhatsappCardPreview({
           </div>
 
           <div className="grid grid-cols-2 gap-2 pt-0.5">
-            <span className="flex min-h-7 items-center justify-center rounded-md bg-emerald-600 text-[11px] font-semibold text-white">
+            <span className="flex min-h-7 items-center justify-center rounded-md bg-emerald-700 text-[11px] font-semibold text-white">
               {locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending'}
             </span>
             <span className="flex min-h-7 items-center justify-center rounded-md border border-emerald-600 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">

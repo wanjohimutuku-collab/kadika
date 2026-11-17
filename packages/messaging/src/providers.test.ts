@@ -40,6 +40,30 @@ describe('EvolutionWhatsAppProvider', () => {
       number: '255712345678',
       text: 'Karibu',
     });
+
+    // When template has mediaUrl, it calls sendMedia
+    const { impl: mediaImpl, calls: mediaCalls } = fakeFetch(200, { key: { id: 'media-1' } });
+    const pMedia = new EvolutionWhatsAppProvider({
+      baseUrl: 'https://evo.test',
+      instance: 'harusi',
+      apiKey: 'secret',
+      fetchImpl: mediaImpl,
+    });
+    const mediaRes = await pMedia.send('+255712345678', 'habari kadi', {
+      kind: 'invite',
+      locale: 'sw',
+      params: ['Asha', 'Juma', '14 Des', 'link', 'KH-4826'],
+      mediaUrl: 'https://kadisasa.com/api/card-image?code=KH-4826',
+    });
+    expect(mediaRes).toEqual({ providerMsgId: 'media-1', cost: 0 });
+    expect(mediaCalls[0]!.url).toBe('https://evo.test/message/sendMedia/harusi');
+    expect(JSON.parse(mediaCalls[0]!.init.body as string)).toEqual({
+      number: '255712345678',
+      mediatype: 'image',
+      media: 'https://kadisasa.com/api/card-image?code=KH-4826',
+      caption: 'habari kadi',
+      fileName: 'kadi.png',
+    });
   });
   it('throws on HTTP errors without leaking the key, and when no id comes back', async () => {
     const bad = new EvolutionWhatsAppProvider({

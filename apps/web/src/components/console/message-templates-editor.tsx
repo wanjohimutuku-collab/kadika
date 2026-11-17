@@ -21,12 +21,14 @@ import { Card } from '@/components/ui/display';
 import { Tabs, TabPanel } from '@/components/ui/navigation';
 import { Textarea } from '@/components/ui/form';
 
-const TEMPLATE_KEYS: TemplateKey[] = [
+const TEMPLATE_KEYS = [
   'inviteSms',
   'reminderSms',
   'contributionSms',
   'pledgeReminderSms',
-];
+] as const;
+
+type SmsTemplateKey = (typeof TEMPLATE_KEYS)[number];
 
 interface Props {
   messages: CardContent['messages'] | undefined;
@@ -36,9 +38,9 @@ interface Props {
 export function MessageTemplatesEditor({ messages, onChange }: Props) {
   const t = useTranslations('settings.templates');
   const locale = useLocale() as Locale;
-  const [key, setKey] = useState<TemplateKey>('inviteSms');
+  const [key, setKey] = useState<SmsTemplateKey>('inviteSms');
 
-  const setText = (k: TemplateKey, lang: Locale, value: string) => {
+  const setText = (k: SmsTemplateKey, lang: Locale, value: string) => {
     const prev = messages?.[k] ?? {};
     const trimmed = value.trimEnd();
     const nextPerKey = { ...prev, [lang]: trimmed || undefined };
@@ -54,7 +56,7 @@ export function MessageTemplatesEditor({ messages, onChange }: Props) {
       <p className="mb-3 text-sm text-muted">{t('hint')}</p>
       <Tabs
         value={key}
-        onValueChange={(v) => setKey(v as TemplateKey)}
+        onValueChange={(v) => setKey(v as SmsTemplateKey)}
         items={TEMPLATE_KEYS.map((k) => ({ value: k, label: t(k) }))}
         label={t('title')}
       >

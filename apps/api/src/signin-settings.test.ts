@@ -179,6 +179,24 @@ describe('sign-in settings in /ops (ADR 049)', () => {
     ).toBe(200);
   });
 
+  it('supports enabling anyCountry for Firebase sign-in from any country', async () => {
+    const token = await setup();
+    const r = await save(token, {
+      provider: 'firebase',
+      fields: { ...FIREBASE, anyCountry: 'true' },
+    });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      provider: 'firebase',
+      anyCountry: true,
+    });
+    expect((await api(ctx, 'GET', '/v1/auth/config')).body).toEqual({
+      otpProvider: 'firebase',
+      firebase: { ...FIREBASE, authDomain: `${FIREBASE.projectId}.firebaseapp.com` },
+      anyCountry: true,
+    });
+  });
+
   it('AUTH_FORCE_SMS keeps codes on SMS whatever is saved (break-glass)', async () => {
     const token = await setup({ AUTH_FORCE_SMS: '1' });
     const r = await save(token, { provider: 'firebase', fields: FIREBASE });

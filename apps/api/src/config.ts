@@ -139,6 +139,8 @@ export interface Config {
     authDomain: string | null;
     appId: string | null;
   } | null;
+  /** Whether Firebase Phone Auth accepts phone numbers from any country worldwide. */
+  firebaseAnyCountry: boolean;
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -313,6 +315,11 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
       .split(',')
       .map((p) => p.trim())
       .filter(Boolean),
+    firebaseAnyCountry:
+      env.FIREBASE_ANY_COUNTRY === '1' ||
+      env.FIREBASE_ANY_COUNTRY === 'true' ||
+      env.AUTH_FIREBASE_ANY_COUNTRY === '1' ||
+      env.AUTH_FIREBASE_ANY_COUNTRY === 'true',
     firebase: env.FIREBASE_PROJECT_ID
       ? {
           projectId: env.FIREBASE_PROJECT_ID,

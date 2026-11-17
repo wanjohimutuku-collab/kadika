@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
 import type { SendJob } from '@harusi/api-client';
 import {
@@ -9,7 +9,7 @@ import {
   senderNameFor,
 } from '@harusi/api-client';
 import type { CardKind } from '@harusi/schemas';
-import { eventKindLabel } from '@harusi/schemas';
+import { eventKindLabel, renderTemplate } from '@harusi/schemas';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { formatDate, formatMoney } from '../../../../../src/lib/format';
@@ -51,6 +51,8 @@ export default function Send() {
   const [fallback, setFallback] = useState(true);
   const [confirm, setConfirm] = useState(false);
   const [job, setJob] = useState<SendJob | null>(null);
+  const [customMessage, setCustomMessage] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(true);
   const [key, setKey] = useState(
     () => `send-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
   );
@@ -80,6 +82,47 @@ export default function Send() {
       code: 'KH-4821',
     });
   }, [ev.data, locale, contribution]);
+
+  const defaultWhatsappTemplate = useMemo(() => {
+    if (contribution) {
+      return locale === 'sw'
+        ? '{mtumaji} wanakuomba mchango kwa sherehe ya {wenyeji}. Changia hapa: {kiungo}'
+        : '{sender} kindly requests your contribution for {hosts}. Pledge here: {link}';
+    }
+    return locale === 'sw'
+      ? 'Habari {mgeni}! {wenyeji} wanakualika: {tarehe}, {ukumbi}. Fungua kadi yako: {kiungo}'
+      : 'Hello {guest}! {hosts} invite you: {date}, {venue}. Open your card: {link}';
+  }, [contribution, locale]);
+
+  const activeWhatsappTemplate = customMessage ?? defaultWhatsappTemplate;
+
+  const renderedWhatsappMessage = useMemo(() => {
+    const e = ev.data;
+    if (!e) return sample;
+    const couple =
+      e.partnerA && e.partnerB ? `${e.partnerA} & ${e.partnerB}` : e.title || 'Asha & Juma';
+    const sampleVars: Record<string, string> = {
+      guest: 'Asha Mwinyi',
+      mgeni: 'Asha Mwinyi',
+      hosts: couple,
+      wenyeji: couple,
+      date: formatDate(e.dateStart, locale),
+      tarehe: formatDate(e.dateStart, locale),
+      venue: e.venueName || (locale === 'sw' ? 'Ukumbi Rasmi' : 'Official Venue'),
+      ukumbi: e.venueName || (locale === 'sw' ? 'Ukumbi Rasmi' : 'Official Venue'),
+      link: 'https://kadisasa.com/s/KH-4821',
+      kiungo: 'https://kadisasa.com/s/KH-4821',
+      code: 'KH-4821',
+      kadi: 'KH-4821',
+      dress: e.dressCode || (locale === 'sw' ? 'Mavazi Rasmi' : 'Formal'),
+      mavazi: e.dressCode || (locale === 'sw' ? 'Mavazi Rasmi' : 'Formal'),
+      sender: senderNameFor(e, locale),
+      mtumaji: senderNameFor(e, locale),
+      phone: e.committeePhone || '',
+      simu: e.committeePhone || '',
+    };
+    return renderTemplate(activeWhatsappTemplate, sampleVars);
+  }, [ev.data, sample, activeWhatsappTemplate, locale]);
   const contributionGuests = ev.data?.stats.contributionGuests ?? 0;
   const contributionsOff = contribution && ev.data?.pledgesEnabled === false;
   // Who gets which channel: smartphone guests by WhatsApp, the rest by SMS, unless one is forced.
@@ -300,12 +343,117 @@ export default function Send() {
             gap: 10,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Icon name="whatsapp" size={16} color="#128C7E" />
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#075E54' }}>
-              {locale === 'sw' ? 'Muonekano wa Kadi WhatsApp' : 'WhatsApp Card Preview'}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="whatsapp" size={16} color="#128C7E" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#075E54' }}>
+                {locale === 'sw' ? 'Muonekano wa Kadi WhatsApp' : 'WhatsApp Card Preview'}
+              </Text>
+            </View>
+            <Pressable onPress={() => setShowEditor((v) => !v)}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#075E54' }}>
+                {showEditor
+                  ? locale === 'sw'
+                    ? 'Ficha Mhariri'
+                    : 'Hide Editor'
+                  : locale === 'sw'
+                    ? 'Hariri Ujumbe'
+                    : 'Edit Message'}
+              </Text>
+            </Pressable>
           </View>
+
+          {/* Interactive Message Customizer with Attribute Chips */}
+          {showEditor ? (
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                padding: 10,
+                gap: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+              }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: '600', color: '#475569' }}>
+                {locale === 'sw'
+                  ? 'Gusa sifa kuingiza kwenye ujumbe:'
+                  : 'Tap attribute chips to insert:'}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {(locale === 'sw'
+                  ? [
+                      { tag: '{mgeni}', label: 'Mgeni' },
+                      { tag: '{wenyeji}', label: 'Wenyeji' },
+                      { tag: '{tarehe}', label: 'Tarehe' },
+                      { tag: '{ukumbi}', label: 'Ukumbi' },
+                      { tag: '{kiungo}', label: 'Kiungo' },
+                      { tag: '{kadi}', label: 'Msimbo' },
+                      { tag: '{mavazi}', label: 'Mavazi' },
+                    ]
+                  : [
+                      { tag: '{guest}', label: 'Guest' },
+                      { tag: '{hosts}', label: 'Hosts' },
+                      { tag: '{date}', label: 'Date' },
+                      { tag: '{venue}', label: 'Venue' },
+                      { tag: '{link}', label: 'Link' },
+                      { tag: '{code}', label: 'Code' },
+                      { tag: '{dress}', label: 'Dress' },
+                    ]
+                ).map((attr) => (
+                  <Pressable
+                    key={attr.tag}
+                    onPress={() => {
+                      const cur = activeWhatsappTemplate;
+                      setCustomMessage(cur ? `${cur} ${attr.tag}` : attr.tag);
+                    }}
+                    style={{
+                      backgroundColor: '#E0F2FE',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: '#BAE6FD',
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#0369A1' }}>
+                      + {attr.tag}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <TextInput
+                value={activeWhatsappTemplate}
+                onChangeText={setCustomMessage}
+                multiline
+                numberOfLines={3}
+                style={{
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: '#E2E8F0',
+                  padding: 8,
+                  fontSize: 12,
+                  color: '#0F172A',
+                  minHeight: 56,
+                }}
+                placeholder={
+                  locale === 'sw'
+                    ? 'Andika ujumbe… Tumia {mgeni}, {kiungo} n.k.'
+                    : 'Write message… Use {guest}, {link} etc.'
+                }
+              />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+                <Pressable onPress={() => setCustomMessage(defaultWhatsappTemplate)}>
+                  <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>
+                    {locale === 'sw' ? 'Rudisha Asili' : 'Reset Default'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
 
           <View
             style={{
@@ -436,6 +584,46 @@ export default function Send() {
                   {locale === 'sw' ? 'Onyesha mlangoni kwa uthibitisho' : 'Show at gate for entry'}
                 </Text>
               </View>
+
+              {/* RSVP Pills Mockup */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 8,
+                  width: '100%',
+                  paddingHorizontal: 8,
+                  marginTop: 4,
+                }}
+              >
+                <View
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#059669',
+                    borderRadius: 6,
+                    paddingVertical: 6,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>
+                    {locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending'}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flex: 1,
+                    borderWidth: 1.5,
+                    borderColor: '#059669',
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 6,
+                    paddingVertical: 6,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#059669', fontSize: 11, fontWeight: '700' }}>
+                    {locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets'}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             <View
@@ -465,7 +653,9 @@ export default function Send() {
             </View>
 
             <View style={{ padding: 12, gap: 6 }}>
-              <Text style={{ fontSize: 14, color: '#1B1B1F', lineHeight: 20 }}>{sample}</Text>
+              <Text style={{ fontSize: 14, color: '#1B1B1F', lineHeight: 20 }}>
+                {renderedWhatsappMessage}
+              </Text>
               <View
                 style={{
                   flexDirection: 'row',
@@ -491,7 +681,9 @@ export default function Send() {
             >
               <Pressable
                 onPress={() => {
-                  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(sample)}`;
+                  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(
+                    renderedWhatsappMessage,
+                  )}`;
                   void Linking.openURL(url);
                 }}
                 style={{

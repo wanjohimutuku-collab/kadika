@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { eventInvites, eventMembers, newId, refreshTokens, users } from '@harusi/db';
 import { hashGuestToken } from '@harusi/crypto';
 import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
-import { normalizePhone } from '@harusi/schemas/phone';
+import { normalizeAnyPhone, normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { signInOf } from '../services/signin-settings';
@@ -42,8 +42,11 @@ export function parsePhone(
   input: string,
   country: Country = 'TZ',
   allowed: readonly Country[] = ['TZ'],
+  anyCountry?: boolean,
 ): string {
-  const r = normalizePhone(input, country, allowed);
+  const r = anyCountry
+    ? normalizeAnyPhone(input, country)
+    : normalizePhone(input, country, allowed);
   if (!r.ok)
     throw new ApiError('validation', 'Invalid phone number', { field: 'phone', reason: r.error });
   return r.e164;
@@ -86,9 +89,9 @@ export class AuthService {
   }
 
   /** Firebase Phone Auth (ADR 048): the verified number from the ID token signs in like an SMS code. */
-  async verifyFirebase(idToken: string): Promise<AuthResult | StaffChallengeResult> {
+  async verifyFirebase(idToken: string, anyCountry?: boolean): Promise<AuthResult | StaffChallengeResult> {
     const { phoneE164 } = await verifyFirebaseIdToken(this.deps, idToken);
-    const phone = parsePhone(phoneE164, 'TZ', SIGN_IN_COUNTRIES);
+    const phone = parsePhone(phoneE164, 'TZ', SIGN_IN_COUNTRIES, anyCountry);
     return this.signIn(phone);
   }
 

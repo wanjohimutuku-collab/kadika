@@ -15,7 +15,7 @@ import { eventKindLabel, eventKindOf } from '@harusi/schemas';
 import type { PaletteOverrides } from '@harusi/ui-tokens';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
 import { QrBlock } from '@/components/ui/qr-block';
-import { OrnamentDiamond } from '@/components/card/ornament';
+import { OrnamentBand, OrnamentDiamond } from '@/components/card/ornament';
 import { formatDateShort, formatTime, swahiliTime } from '@/lib/format';
 import {
   downloadCardImage,
@@ -32,6 +32,9 @@ export interface WhatsappCardPreviewProps {
   partnerB?: string | null;
   dateStart: string;
   venueName: string;
+  dressCode?: string;
+  senderName?: string;
+  committeePhone?: string;
   themeId: string;
   coverGradient?: string | null;
   palette?: PaletteOverrides;
@@ -55,6 +58,9 @@ export function WhatsappCardPreview({
   partnerB,
   dateStart,
   venueName,
+  dressCode,
+  senderName,
+  committeePhone,
   themeId,
   coverGradient,
   palette: overrides,
@@ -87,6 +93,9 @@ export function WhatsappCardPreview({
     eventKind,
     dateStart,
     venueName,
+    dressCode,
+    senderName,
+    committeePhone,
     themeId,
     coverGradient,
     palette: overrides,
@@ -159,7 +168,7 @@ export function WhatsappCardPreview({
       <div className="overflow-hidden rounded-xl border border-emerald-300/60 bg-surface shadow-sm dark:border-emerald-700/60">
         {/* Cover Header Banner */}
         <div
-          className="relative flex flex-col items-center justify-center px-4 py-5 text-center"
+          className="relative flex flex-col items-center justify-center px-4 pt-5 pb-2 text-center"
           style={{
             background: coverGradient || palette.primary,
             color: palette.onPrimary,
@@ -180,33 +189,54 @@ export function WhatsappCardPreview({
             ) : null}
             <p className="text-[11px] opacity-90">{venueName || '—'}</p>
           </div>
+          <OrnamentBand
+            className="relative mt-2 block w-full bg-transparent opacity-85"
+            id="wa-pv-band"
+          />
         </div>
 
         {/* Card Body with Guest Info & QR Code */}
-        <div className="flex items-center justify-between gap-3 border-t border-border bg-white p-3 dark:bg-zinc-900">
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-              <ShieldCheck className="size-3.5 shrink-0" />
-              <span>{locale === 'sw' ? 'Mwaliko Rasmi' : 'Official Invitation'}</span>
+        <div className="flex flex-col gap-2 border-t border-border bg-white p-3 text-xs dark:bg-zinc-900">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                <ShieldCheck className="size-3.5 shrink-0" />
+                <span>
+                  {locale === 'sw'
+                    ? `Ujumbe kutoka: ${senderName || (coupleNames ? 'Familia ya ' + coupleNames : 'Kamati')}`
+                    : `Invitation from: ${senderName || coupleNames || 'Committee'}`}
+                </span>
+              </div>
+              <p className="text-xs text-muted">
+                {locale === 'sw' ? 'Mwaliko kwa:' : 'Invitation for:'}
+              </p>
+              <p className="truncate text-sm font-bold text-ink">{guestName}</p>
+              {dressCode ? (
+                <p className="text-[11px] text-muted">
+                  {locale === 'sw' ? 'Mavazi:' : 'Dress code:'}{' '}
+                  <span className="font-medium text-ink">{dressCode}</span>
+                </p>
+              ) : null}
             </div>
-            <p className="text-xs text-muted">
-              {locale === 'sw' ? 'Mwaliko kwa:' : 'Invitation for:'}
-            </p>
-            <p className="truncate text-sm font-bold text-ink">{guestName}</p>
-            <p className="text-[11px] text-muted">
-              {locale === 'sw' ? 'Msimbo wa kuingilia' : 'Gate entry code'}:{' '}
-              <span className="font-mono font-bold text-ink">{shortCode}</span>
-            </p>
+
+            {!isContribution ? (
+              <div className="flex shrink-0 flex-col items-center rounded-lg border border-border bg-white p-1.5 shadow-xs dark:bg-zinc-800">
+                <QrBlock payload={SAMPLE_PAYLOAD} alt="QR Code" size={72} />
+                <span className="mt-0.5 font-mono text-[11px] font-bold tracking-widest text-black dark:text-white">
+                  {shortCode}
+                </span>
+              </div>
+            ) : null}
           </div>
 
-          {!isContribution ? (
-            <div className="flex shrink-0 flex-col items-center rounded-lg border border-border bg-white p-1.5 shadow-xs dark:bg-zinc-800">
-              <QrBlock payload={SAMPLE_PAYLOAD} alt="QR Code" size={76} />
-              <span className="mt-0.5 font-mono text-[11px] font-bold tracking-widest text-black dark:text-white">
-                {shortCode}
-              </span>
-            </div>
-          ) : null}
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <span className="flex min-h-7 items-center justify-center rounded-md bg-emerald-600 text-[11px] font-semibold text-white">
+              {locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending'}
+            </span>
+            <span className="flex min-h-7 items-center justify-center rounded-md border border-emerald-600 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+              {locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets'}
+            </span>
+          </div>
         </div>
 
         {/* Rich Link Meta Strip */}

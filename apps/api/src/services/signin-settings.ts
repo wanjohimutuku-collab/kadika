@@ -25,6 +25,7 @@ export type FirebaseWebConfig = NonNullable<Config['firebase']>;
 export interface SignInState {
   provider: SignInProvider;
   firebase: FirebaseWebConfig | null;
+  anyCountry?: boolean;
 }
 
 /** The saved row as stored: the provider and the Firebase fields (flat strings, API key included). */
@@ -34,8 +35,14 @@ interface SavedSignIn {
 }
 
 /** What the environment says (AUTH_OTP_PROVIDER, FIREBASE_*): the first-start fallback. */
-export function envSignIn(config: Pick<Config, 'authOtpProvider' | 'firebase'>): SignInState {
-  return { provider: config.authOtpProvider, firebase: config.firebase };
+export function envSignIn(
+  config: Pick<Config, 'authOtpProvider' | 'firebase' | 'firebaseAnyCountry'>,
+): SignInState {
+  return {
+    provider: config.authOtpProvider,
+    firebase: config.firebase,
+    anyCountry: config.firebaseAnyCountry ?? false,
+  };
 }
 
 /**
@@ -47,8 +54,8 @@ export function signInOf(deps: Pick<Deps, 'config' | 'signIn'>): SignInState {
   return deps.config.authForceSms ? { ...s, provider: 'sms' } : s;
 }
 
-const fieldsOf = (fb: FirebaseWebConfig | null): Record<string, string> =>
-  fb
+const fieldsOf = (fb: FirebaseWebConfig | null, anyCountry?: boolean): Record<string, string> => {
+  const res: Record<string, string> = fb
     ? Object.fromEntries(
         Object.entries({
           projectId: fb.projectId,
@@ -58,6 +65,9 @@ const fieldsOf = (fb: FirebaseWebConfig | null): Record<string, string> =>
         }).filter((e): e is [string, string] => !!e[1]),
       )
     : {};
+  if (anyCountry) res.anyCountry = 'true';
+  return res;
+};
 
 function firebaseOf(fields: Record<string, string>): FirebaseWebConfig | null {
   if (!fields.projectId) return null;
@@ -124,13 +134,23 @@ export class SignInSettingsService {
   }> {
     const row = await this.row();
     const env = envSignIn(this.deps.config);
-    return { saved: row?.saved ?? { provider: env.provider, fields: fieldsOf(env.firebase) }, row };
+    return {
+      saved: row?.saved ?? {
+        provider: env.provider,
+        fields: fieldsOf(env.firebase, env.anyCountry),
+      },
+      row,
+    };
   }
 
   private apply(s: SavedSignIn) {
     const problem = signInProblem(s);
     if (problem) throw new Error(problem.message);
-    this.deps.signIn = { provider: s.provider, firebase: firebaseOf(s.fields) };
+    const anyCountry =
+      s.fields.anyCountry === 'true' ||
+      s.fields.anyCountry === '1' ||
+      (this.deps.config.firebaseAnyCountry ?? false);
+    this.deps.signIn = { provider: s.provider, firebase: firebaseOf(s.fields), anyCountry };
   }
 
   /**
@@ -168,6 +188,10 @@ export class SignInSettingsService {
       if ('secret' in f && f.secret) secrets[f.key] = hint(v);
       else fields[f.key] = v;
     }
+    const anyCountry =
+      saved.fields.anyCountry === 'true' ||
+      saved.fields.anyCountry === '1' ||
+      (this.deps.config.firebaseAnyCountry ?? false);
     return {
       provider: saved.provider,
       active: signInOf(this.deps).provider,
@@ -175,6 +199,7 @@ export class SignInSettingsService {
       source: row ? 'database' : 'environment',
       fields,
       secrets,
+      anyCountry,
       updatedAt: row?.updatedAt.toISOString() ?? null,
       updatedBy: row?.updatedBy ?? null,
     };
@@ -192,6 +217,9 @@ export class SignInSettingsService {
         continue;
       }
       if (v) fields[f.key] = v;
+    }
+    if (input.anyCountry !== undefined) {
+      fields.anyCountry = input.anyCountry ? 'true' : 'false';
     }
     const next: SavedSignIn = { provider: input.provider, fields };
     const problem = signInProblem(next);

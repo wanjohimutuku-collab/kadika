@@ -1,8 +1,8 @@
 import { ImageResponse } from 'next/og';
 import type { NextRequest } from 'next/server';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
-import { eventKindOf, hostNames } from '@harusi/schemas';
-import { formatDateShort, formatTime, swahiliTime } from '@/lib/format';
+import { defaultSender, eventKindOf, hostNames } from '@harusi/schemas';
+import { formatDateShort, formatPhone, formatTime, swahiliTime } from '@/lib/format';
 import { qrMatrix, qrPath, QR_QUIET_ZONE } from '@/lib/qr';
 import { previewCardOnServer } from '@/lib/server-card';
 import { peekShortCodeOnServer } from '@/lib/server-mock';
@@ -13,7 +13,8 @@ const SAMPLE_PAYLOAD = 'v1.0192f1a0.preview0.2.1.MOCKSIG';
 
 /**
  * High-performance virtual card image generator.
- * Converts the actual virtual card to a crisp PNG image for fast download and WhatsApp sharing.
+ * Converts the actual virtual card to a crisp PNG image that matches the HTML card preview,
+ * for fast download and WhatsApp sharing.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -55,6 +56,13 @@ export async function GET(req: NextRequest) {
     searchParams.get('venue') ||
     ev?.venueName ||
     (locale === 'sw' ? 'Ukumbi Rasmi wa Sherehe' : 'Official Celebration Venue');
+
+  const dressCode = searchParams.get('dress') || ev?.dressCode || '';
+  const senderName =
+    searchParams.get('sender') ||
+    ev?.senderName ||
+    defaultSender(eventKind, coupleNames, 'committee', locale);
+  const committeePhone = searchParams.get('phone') || ev?.committeePhone || '';
 
   const guestName =
     searchParams.get('guest') ||
@@ -125,14 +133,15 @@ export async function GET(req: NextRequest) {
         <div
           style={{
             width: '100%',
-            height: '270px',
+            height: '240px',
+            position: 'relative',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: palette.primary,
             color: palette.onPrimary,
-            padding: '20px 24px',
+            padding: '16px 20px',
           }}
         >
           <div
@@ -143,7 +152,7 @@ export async function GET(req: NextRequest) {
               letterSpacing: '2px',
               textTransform: 'uppercase',
               opacity: 0.9,
-              marginBottom: '6px',
+              marginBottom: '4px',
             }}
           >
             {isContribution
@@ -156,19 +165,19 @@ export async function GET(req: NextRequest) {
           <div
             style={{
               display: 'flex',
-              fontSize: '32px',
+              fontSize: '30px',
               fontWeight: 700,
               textAlign: 'center',
               fontFamily: 'Georgia, serif',
               lineHeight: 1.15,
-              marginBottom: '8px',
+              marginBottom: '6px',
             }}
           >
             {coupleNames}
           </div>
 
           {/* Diamond ornament */}
-          <svg width="40" height="12" viewBox="0 0 40 12" style={{ marginBottom: '10px' }}>
+          <svg width="40" height="12" viewBox="0 0 40 12" style={{ marginBottom: '6px' }}>
             <path d="M0 6h14M26 6h14" stroke="#FFFFFF" strokeWidth="1.4" opacity="0.8" />
             <path d="m20 1 5 5-5 5-5-5z" fill="none" stroke="#FFFFFF" strokeWidth="1.4" />
             <circle cx="20" cy="6" r="1.5" fill="#FFFFFF" />
@@ -177,68 +186,218 @@ export async function GET(req: NextRequest) {
           <div
             style={{
               display: 'flex',
-              fontSize: '15px',
+              fontSize: '14px',
               fontWeight: 600,
               opacity: 0.95,
-              marginBottom: '4px',
+              marginBottom: '2px',
             }}
           >
             {dateStr}
             {timeStr ? ` · ${timeStr}` : ''}
           </div>
 
-          <div
+          {/* OrnamentBand divider at bottom of header */}
+          <svg
+            width="592"
+            height="16"
+            viewBox="0 0 592 16"
             style={{
-              display: 'flex',
-              fontSize: '13px',
+              position: 'absolute',
+              bottom: '0px',
+              left: '0px',
               opacity: 0.85,
-              textAlign: 'center',
             }}
           >
-            {venueName}
-          </div>
+            <path
+              d="M0 15 7 3l7 12M14 1l7 12 7-12M28 15l7-12 7 12M42 1l7 12 7-12M56 15l7-12 7 12M70 1l7 12 7-12M84 15l7-12 7 12M98 1l7 12 7-12M112 15l7-12 7 12M126 1l7 12 7-12M140 15l7-12 7 12M154 1l7 12 7-12M168 15l7-12 7 12M182 1l7 12 7-12M196 15l7-12 7 12M210 1l7 12 7-12M224 15l7-12 7 12M238 1l7 12 7-12M252 15l7-12 7 12M266 1l7 12 7-12M280 15l7-12 7 12M294 1l7 12 7-12M308 15l7-12 7 12M322 1l7 12 7-12M336 15l7-12 7 12M350 1l7 12 7-12M364 15l7-12 7 12M378 1l7 12 7-12M392 15l7-12 7 12M406 1l7 12 7-12M420 15l7-12 7 12M434 1l7 12 7-12M448 15l7-12 7 12M462 1l7 12 7-12M476 15l7-12 7 12M490 1l7 12 7-12M504 15l7-12 7 12M518 1l7 12 7-12M532 15l7-12 7 12M546 1l7 12 7-12M560 15l7-12 7 12M574 1l7 12 7-12"
+              fill="none"
+              stroke="#FFFFFF"
+              strokeWidth="1.5"
+            />
+          </svg>
         </div>
 
-        {/* Guest Personalization Strip */}
-        <div
-          style={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#F8FAFC',
-            borderBottom: '1px solid #E2E8F0',
-            padding: '16px 20px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              fontSize: '12px',
-              color: '#64748B',
-              fontWeight: 500,
-              marginBottom: '2px',
-            }}
-          >
-            {locale === 'sw' ? 'Mwaliko Maalum kwa:' : 'Special Invitation for:'}
-          </div>
-          <div style={{ display: 'flex', fontSize: '20px', color: '#0F172A', fontWeight: 800 }}>
-            {guestName}
-          </div>
-        </div>
-
-        {/* Body Section with High-Contrast QR Code */}
+        {/* Card Body */}
         <div
           style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px 20px',
+            padding: '16px 20px',
+            backgroundColor: '#FFFFFF',
           }}
         >
+          {/* Invites You banner */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginBottom: '10px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '12px',
+                color: '#64748B',
+                fontWeight: 500,
+                marginBottom: '2px',
+              }}
+            >
+              {locale === 'sw' ? 'Inakualika kwa furaha:' : 'Cordially invites you:'}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '20px',
+                color: '#0F172A',
+                fontWeight: 800,
+              }}
+            >
+              {guestName}
+            </div>
+          </div>
+
+          {/* Trust Badge */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: '#F0FDF4',
+              borderRadius: '8px',
+              border: '1px solid #BBF7D0',
+              padding: '8px 12px',
+              marginBottom: '10px',
+            }}
+          >
+            {/* Shield Check SVG */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                stroke="#16A34A"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="m9 12 2 2 4-4"
+                stroke="#16A34A"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#166534',
+                }}
+              >
+                {locale === 'sw' ? `Ujumbe kutoka: ${senderName}` : `From: ${senderName}`}
+              </div>
+              {committeePhone ? (
+                <div style={{ display: 'flex', fontSize: '11px', color: '#15803D' }}>
+                  {locale === 'sw'
+                    ? `Mawasiliano: ${formatPhone(committeePhone)}`
+                    : `Contact: ${formatPhone(committeePhone)}`}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Venue & Dress Code */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              marginBottom: '10px',
+              paddingLeft: '4px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
+                  stroke={palette.primary}
+                  strokeWidth="2"
+                />
+                <circle cx="12" cy="10" r="3" fill={palette.primary} />
+              </svg>
+              <div style={{ display: 'flex', fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                {venueName}
+              </div>
+            </div>
+
+            {dressCode ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"
+                    stroke={palette.primary}
+                    strokeWidth="1.8"
+                  />
+                </svg>
+                <div style={{ display: 'flex', fontSize: '12px', color: '#475569' }}>
+                  {locale === 'sw' ? `Mavazi: ${dressCode}` : `Dress code: ${dressCode}`}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* RSVP Pills Mockup */}
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '12px',
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '32px',
+                borderRadius: '8px',
+                backgroundColor: palette.primary,
+                color: palette.onPrimary,
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              {locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending'}
+            </div>
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '32px',
+                borderRadius: '8px',
+                border: `1.5px solid ${palette.primary}`,
+                color: palette.primary,
+                fontSize: '12px',
+                fontWeight: 700,
+                backgroundColor: '#FFFFFF',
+              }}
+            >
+              {locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets'}
+            </div>
+          </div>
+
+          {/* QR Code Box (or Contribution box) */}
           {!isContribution ? (
             <div
               style={{
@@ -246,15 +405,15 @@ export async function GET(req: NextRequest) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '16px',
-                border: '2px solid #E2E8F0',
-                padding: '20px 24px',
+                borderRadius: '14px',
+                border: '1.5px solid #CBD5E1',
+                padding: '14px 20px',
               }}
             >
               {/* Vector QR code */}
               <svg
-                width={180}
-                height={180}
+                width={140}
+                height={140}
                 viewBox={`0 0 ${qrDim} ${qrDim}`}
                 shapeRendering="crispEdges"
               >
@@ -265,11 +424,11 @@ export async function GET(req: NextRequest) {
                 style={{
                   display: 'flex',
                   fontFamily: 'monospace',
-                  fontSize: '26px',
+                  fontSize: '22px',
                   fontWeight: 800,
                   letterSpacing: '2px',
                   color: '#0F172A',
-                  marginTop: '12px',
+                  marginTop: '8px',
                 }}
               >
                 {shortCode}
@@ -278,11 +437,11 @@ export async function GET(req: NextRequest) {
               <div
                 style={{
                   display: 'flex',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 700,
                   color: '#64748B',
-                  letterSpacing: '1px',
-                  marginTop: '6px',
+                  letterSpacing: '0.8px',
+                  marginTop: '4px',
                 }}
               >
                 {locale === 'sw'
@@ -297,19 +456,19 @@ export async function GET(req: NextRequest) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 backgroundColor: '#F8FAFC',
-                borderRadius: '16px',
+                borderRadius: '14px',
                 border: '1.5px solid #E2E8F0',
-                padding: '30px 24px',
+                padding: '24px 20px',
                 textAlign: 'center',
               }}
             >
               <div
                 style={{
                   display: 'flex',
-                  fontSize: '20px',
+                  fontSize: '18px',
                   fontWeight: 700,
                   color: '#0F172A',
-                  marginBottom: '8px',
+                  marginBottom: '6px',
                 }}
               >
                 {locale === 'sw' ? 'Ahsante kwa Mchango Wako' : 'Thank You for Your Support'}
@@ -317,9 +476,9 @@ export async function GET(req: NextRequest) {
               <div
                 style={{
                   display: 'flex',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   color: '#64748B',
-                  marginBottom: '16px',
+                  marginBottom: '12px',
                 }}
               >
                 {locale === 'sw'
@@ -330,7 +489,7 @@ export async function GET(req: NextRequest) {
                 style={{
                   display: 'flex',
                   fontFamily: 'monospace',
-                  fontSize: '20px',
+                  fontSize: '18px',
                   fontWeight: 800,
                   color: palette.primary,
                 }}
@@ -348,7 +507,7 @@ export async function GET(req: NextRequest) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '14px 20px',
+            padding: '12px 20px',
             borderTop: '1px solid #F1F5F9',
             backgroundColor: '#FAFAFA',
           }}

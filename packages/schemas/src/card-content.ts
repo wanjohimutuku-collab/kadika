@@ -60,6 +60,37 @@ export const TEMPLATE_VAR_META = {
 } as const;
 export type TemplateVar = keyof typeof TEMPLATE_VAR_META;
 
+/**
+ * Swahili and common synonyms mapped to canonical placeholder names.
+ * Allows organisers to write e.g. `{mgeni}` or `{guest}`, `{kiungo}` or `{link}`,
+ * `{tarehe}` or `{date}`, `{ukumbi}` or `{venue}`, `{kadi}` or `{code}`.
+ */
+export const VAR_ALIASES: Record<string, TemplateVar> = {
+  mgeni: 'guest',
+  jina: 'firstName',
+  ukoo: 'lastName',
+  kikundi: 'group',
+  kadi: 'code',
+  namba_ya_kadi: 'code',
+  tukio: 'title',
+  wenyeji: 'hosts',
+  tarehe: 'date',
+  muda: 'time',
+  saa: 'time',
+  ukumbi: 'venue',
+  ramani: 'mapUrl',
+  mavazi: 'dress',
+  kiungo: 'link',
+  linki: 'link',
+  mtumaji: 'sender',
+  simu: 'phone',
+  siku: 'days',
+  lengo: 'target',
+  tarehe_mwisho: 'deadline',
+  ahadi: 'pledged',
+  salio: 'balance',
+};
+
 /** Placeholders a message template may use, per template. Anything else is rejected. */
 export const TEMPLATE_VARS = {
   inviteSms: [
@@ -127,6 +158,57 @@ export const TEMPLATE_VARS = {
     'pledged',
     'balance',
   ],
+  inviteWhatsapp: [
+    'guest',
+    'firstName',
+    'lastName',
+    'hosts',
+    'hostA',
+    'hostB',
+    'kind',
+    'date',
+    'time',
+    'venue',
+    'mapUrl',
+    'dress',
+    'link',
+    'code',
+    'sender',
+    'phone',
+  ],
+  reminderWhatsapp: [
+    'guest',
+    'firstName',
+    'lastName',
+    'hosts',
+    'hostA',
+    'hostB',
+    'kind',
+    'date',
+    'time',
+    'venue',
+    'mapUrl',
+    'dress',
+    'link',
+    'code',
+    'sender',
+    'phone',
+    'days',
+  ],
+  contributionWhatsapp: [
+    'guest',
+    'firstName',
+    'lastName',
+    'hosts',
+    'hostA',
+    'hostB',
+    'kind',
+    'link',
+    'sender',
+    'phone',
+    'target',
+    'deadline',
+  ],
 } as const satisfies Record<string, readonly TemplateVar[]>;
 export type TemplateKey = keyof typeof TEMPLATE_VARS;
 
@@ -139,7 +221,7 @@ export function templatePlaceholders(template: string): string[] {
 /** Why a template is not acceptable, or `null` when it is fine (used by the schema and the editor). */
 export function templateProblem(key: TemplateKey, template: string): string | null {
   const allowed: readonly string[] = TEMPLATE_VARS[key];
-  const used = templatePlaceholders(template);
+  const used = templatePlaceholders(template).map((p) => VAR_ALIASES[p] ?? (p as TemplateVar));
   const unknown = used.find((p) => !allowed.includes(p));
   if (unknown) return `content.placeholder_unknown:${unknown}`;
   // Without the link a guest has no way to open the card or pay.
@@ -160,7 +242,11 @@ export function renderTemplate(
   vars: Record<string, string | number | null | undefined>,
 ): string {
   return template
-    .replace(PLACEHOLDER, (_, k: string) => String(vars[k] ?? ''))
+    .replace(PLACEHOLDER, (_, rawKey: string) => {
+      const canonical = VAR_ALIASES[rawKey] ?? (rawKey as TemplateVar);
+      const val = vars[canonical] ?? vars[rawKey];
+      return val !== undefined && val !== null ? String(val) : '';
+    })
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/ +([,.;:!?])/g, '$1')
     .trim();
@@ -274,6 +360,9 @@ export const cardContentSchema = z
         reminderSms: sms('reminderSms'),
         contributionSms: sms('contributionSms'),
         pledgeReminderSms: sms('pledgeReminderSms'),
+        inviteWhatsapp: sms('inviteWhatsapp'),
+        reminderWhatsapp: sms('reminderWhatsapp'),
+        contributionWhatsapp: sms('contributionWhatsapp'),
       })
       .strict()
       .optional(),

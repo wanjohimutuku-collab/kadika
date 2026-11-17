@@ -7,7 +7,7 @@ import {
   type Country,
   type Currency,
 } from '@harusi/schemas/country';
-import { normalizePhone, type PhoneResult } from '@harusi/schemas/phone';
+import { normalizeAnyPhone, normalizePhone, type PhoneResult } from '@harusi/schemas/phone';
 
 /** Kenya support is off unless the deployment turns it on (ADR 025). */
 export const KENYA_ENABLED = process.env.NEXT_PUBLIC_KENYA_ENABLED === '1';
@@ -21,8 +21,9 @@ export function parsePhone(
   raw: string,
   country: Country = 'TZ',
   allowed: readonly Country[] = ALLOWED_COUNTRIES,
+  anyCountry?: boolean,
 ): PhoneResult {
-  return normalizePhone(raw, country, allowed);
+  return anyCountry ? normalizeAnyPhone(raw, country) : normalizePhone(raw, country, allowed);
 }
 
 /** `+255` / `+254`. */

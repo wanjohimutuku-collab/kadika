@@ -47,7 +47,8 @@
     "countries": {
       "TZ": "Tanzania",
       "KE": "Kenya"
-    }
+    },
+    "otherCountry": "Other country (International)"
   },
   "validation": {
     "phone": {
@@ -1889,6 +1890,8 @@
       "forced": "AUTH_FORCE_SMS is on at the server, so codes go by SMS whatever is saved here.",
       "firebaseTitle": "Firebase project",
       "firebaseIntro": "From Firebase console → Project settings → Your apps → Web app. You can save and test these while codes still go by SMS, then switch.",
+      "anyCountryLabel": "Enable for any country (including Tanzania)",
+      "anyCountryDesc": "Allows phone numbers from any country worldwide to sign in via Firebase instead of restricting to specific countries.",
       "field": {
         "projectId": "Project ID",
         "apiKey": "Web API key",

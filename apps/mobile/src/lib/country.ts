@@ -1,5 +1,5 @@
 import { allowedCountries, type Country, type Currency } from '@harusi/schemas/country';
-import { normalizePhone, type PhoneResult } from '@harusi/schemas/phone';
+import { normalizeAnyPhone, normalizePhone, type PhoneResult } from '@harusi/schemas/phone';
 import { useEvent } from './queries';
 
 /** Kenya support is off unless the build turns it on (ADR 025). */
@@ -14,8 +14,9 @@ export function parsePhone(
   raw: string,
   country: Country = 'TZ',
   allowed: readonly Country[] = ALLOWED_COUNTRIES,
+  anyCountry?: boolean,
 ): PhoneResult {
-  return normalizePhone(raw, country, allowed);
+  return anyCountry ? normalizeAnyPhone(raw, country) : normalizePhone(raw, country, allowed);
 }
 
 /** The event's country and currency from the cached event query; Tanzania until it loads. */

@@ -68,6 +68,7 @@ export type AuthConfig =
         authDomain: string | null;
         appId: string | null;
       };
+      anyCountry?: boolean;
     };
 
 export interface Session {

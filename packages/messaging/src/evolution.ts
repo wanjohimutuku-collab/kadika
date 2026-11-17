@@ -1,4 +1,4 @@
-import type { MessagingProvider, SendResult } from './index';
+import type { MessageTemplate, MessagingProvider, SendResult } from './index';
 
 export interface EvolutionOptions {
   /** e.g. https://evolution.example.com (no trailing slash). */
@@ -36,8 +36,40 @@ export class EvolutionWhatsAppProvider implements MessagingProvider {
     this.apiKey = o.apiKey.trim();
   }
 
-  async send(to: string, body: string): Promise<SendResult> {
+  async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
     const f = this.o.fetchImpl ?? fetch;
+    const number = toEvolutionNumber(to);
+
+    // When a card image mediaUrl is supplied, send via sendMedia with message as caption
+    if (template?.mediaUrl) {
+      try {
+        const mediaEndpoint = `${this.baseUrl}/message/sendMedia/${encodeURIComponent(this.instance)}`;
+        const mediaRes = await f(mediaEndpoint, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            apikey: this.apiKey,
+          },
+          body: JSON.stringify({
+            number,
+            mediatype: 'image',
+            media: template.mediaUrl,
+            caption: body,
+            fileName: 'kadi.png',
+          }),
+          signal: AbortSignal.timeout(15_000),
+        });
+
+        if (mediaRes.ok) {
+          const json = (await mediaRes.json().catch(() => null)) as { key?: { id?: string } } | null;
+          const id = json?.key?.id;
+          if (id) return { providerMsgId: id, cost: 0 };
+        }
+      } catch {
+        // Fall through to sendText
+      }
+    }
+
     const url = `${this.baseUrl}/message/sendText/${encodeURIComponent(this.instance)}`;
     const res = await f(url, {
       method: 'POST',
@@ -45,7 +77,7 @@ export class EvolutionWhatsAppProvider implements MessagingProvider {
         'content-type': 'application/json',
         apikey: this.apiKey,
       },
-      body: JSON.stringify({ number: toEvolutionNumber(to), text: body }),
+      body: JSON.stringify({ number, text: body }),
       signal: AbortSignal.timeout(15_000),
     });
 

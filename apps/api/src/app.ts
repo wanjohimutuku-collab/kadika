@@ -428,7 +428,7 @@ export function createApp(deps: Deps) {
   });
   // Which sign-in flow clients use (ADR 048); the Firebase web values are public by design.
   app.get('/v1/auth/config', (c) => {
-    const { provider, firebase: fb } = signInOf(deps);
+    const { provider, firebase: fb, anyCountry } = signInOf(deps);
     return c.json(
       provider === 'firebase' && fb
         ? {
@@ -439,6 +439,7 @@ export function createApp(deps: Deps) {
               authDomain: fb.authDomain,
               appId: fb.appId,
             },
+            ...(anyCountry ? { anyCountry: true } : {}),
           }
         : { otpProvider: 'sms' as const },
     );
@@ -448,7 +449,8 @@ export function createApp(deps: Deps) {
   // to Firebase directly is stopped by Firebase's own settings (SMS region policy, App Check).
   app.post('/v1/auth/firebase/start', async (c) => {
     const { phone: p } = parse(z.object({ phone }), await body(c));
-    const e164 = parsePhone(p, 'TZ', SIGN_IN_COUNTRIES);
+    const { anyCountry } = signInOf(deps);
+    const e164 = parsePhone(p, 'TZ', SIGN_IN_COUNTRIES, anyCountry);
     await codeBudget(c);
     await firebaseCodes.check(`p:${e164}`);
     return c.json({ phone: e164 });
@@ -457,7 +459,8 @@ export function createApp(deps: Deps) {
     await firebaseSignIns.check(`ip:${client(c)}`);
     const { idToken } = parse(z.object({ idToken: z.string().min(20).max(4096) }), await body(c));
     const web = webSession(c);
-    return c.json(toCookieSession(c, web, await auth.verifyFirebase(idToken)));
+    const { anyCountry } = signInOf(deps);
+    return c.json(toCookieSession(c, web, await auth.verifyFirebase(idToken, anyCountry)));
   });
   app.post('/v1/auth/refresh', async (c) => {
     await authAttempts.check(`ip:${client(c)}`);

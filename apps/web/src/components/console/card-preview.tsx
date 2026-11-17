@@ -64,6 +64,9 @@ export function CardPreview({ data, compact }: { data: CardPreviewData; compact?
           palette: data.palette,
           guestName: data.guestName,
           shortCode: data.shortCode,
+          senderName: data.senderName,
+          committeePhone: data.committeePhone,
+          greeting: data.greeting,
           locale,
         },
         `kadi-${(data.shortCode || 'harusi').toLowerCase()}.png`,
@@ -89,6 +92,9 @@ export function CardPreview({ data, compact }: { data: CardPreviewData; compact?
         palette: data.palette,
         guestName: data.guestName,
         shortCode: data.shortCode,
+        senderName: data.senderName,
+        committeePhone: data.committeePhone,
+        greeting: data.greeting,
         locale,
       });
     } finally {

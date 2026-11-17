@@ -162,6 +162,44 @@ describe('Firebase phone sign-in (ADR 048)', () => {
     expect(start.status).toBe(200);
   });
 
+  it('signs in numbers from any country when anyCountry is enabled', async () => {
+    const anyCountryCtx = await createTestContext({
+      env: { ...FIREBASE_ENV, FIREBASE_ANY_COUNTRY: '1' },
+      firebaseKeys: jwks,
+    });
+    try {
+      const cfg = await api(anyCountryCtx, 'GET', '/v1/auth/config');
+      expect(cfg.body).toMatchObject({ otpProvider: 'firebase', anyCountry: true });
+
+      const start = await api(anyCountryCtx, 'POST', '/v1/auth/firebase/start', {
+        body: { phone: '+256701234567' },
+      });
+      expect(start.status).toBe(200);
+      expect(start.body).toEqual({ phone: '+256701234567' });
+
+      const nowS = Math.floor(anyCountryCtx.deps.now().getTime() / 1000);
+      const token = await new SignJWT({
+        auth_time: nowS - 5,
+        user_id: 'fb-uid-uganda',
+        phone_number: '+256701234567',
+        firebase: { identities: { phone: ['+256701234567'] }, sign_in_provider: 'phone' },
+      })
+        .setProtectedHeader({ alg: 'RS256', kid: 'g1' })
+        .setIssuer(`https://securetoken.google.com/${PROJECT}`)
+        .setAudience(PROJECT)
+        .setSubject('fb-uid-uganda')
+        .setIssuedAt(nowS - 5)
+        .setExpirationTime(nowS + 3600)
+        .sign(google.privateKey);
+
+      const r = await api(anyCountryCtx, 'POST', '/v1/auth/firebase', { body: { idToken: token } });
+      expect(r.status).toBe(200);
+      expect(r.body!.user.phoneE164).toBe('+256701234567');
+    } finally {
+      await anyCountryCtx.close();
+    }
+  });
+
   it('writes the fallback SMS code in the language the visitor uses', async () => {
     const en = await api(ctx, 'POST', '/v1/auth/otp/request', {
       body: { phone: '0712480011', fallback: true, language: 'en' },

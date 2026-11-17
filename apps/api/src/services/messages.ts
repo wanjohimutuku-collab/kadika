@@ -177,3 +177,36 @@ export function composeSms(
     ? `Habari ${vars.guest}, mchango wa ${eventKindOf(i.event.eventKind, locale).toLowerCase()} ${vars.hosts}: ahadi ${vars.pledged}, salio ${vars.balance}. Lipa hapa: ${vars.link}`
     : `Hello ${vars.guest}, your contribution to the ${eventKindOf(i.event.eventKind, locale).toLowerCase()} ${vars.hosts}: pledged ${vars.pledged}, balance ${vars.balance}. Pay here: ${vars.link}`;
 }
+
+/**
+ * The WhatsApp message text for one guest. An organiser's custom template wins;
+ * otherwise the standard structured wording with the card link.
+ */
+export function composeWhatsapp(
+  type: 'invite' | 'reminder' | 'contribution',
+  i: MessageInput,
+): string {
+  const locale = i.guest.language;
+  const key: Record<typeof type, TemplateKey> = {
+    invite: 'inviteWhatsapp',
+    reminder: 'reminderWhatsapp',
+    contribution: 'contributionWhatsapp',
+  };
+  const own = custom(i.event, key[type], locale);
+  if (own) return renderTemplate(own, messageVars(i));
+  const vars = messageVars(i);
+  const sw = locale === 'sw';
+  if (type === 'contribution') {
+    return sw
+      ? `${vars.sender} anakukaribisha kushiriki mchango wa ${vars.kind} ya ${vars.hosts}. Fungua kadi: ${vars.link}`
+      : `${vars.sender} invites you to contribute to the ${vars.kind} of ${vars.hosts}. View card: ${vars.link}`;
+  }
+  if (type === 'reminder') {
+    return sw
+      ? `Habari ${vars.guest}, kumbukumbu ya ${vars.kind} ya ${vars.hosts} (${vars.date}). Fungua kadi yako: ${vars.link} (Kadi: ${vars.code})`
+      : `Hello ${vars.guest}, reminder for the ${vars.kind} of ${vars.hosts} (${vars.date}). View your card: ${vars.link} (Card: ${vars.code})`;
+  }
+  return sw
+    ? `Habari ${vars.guest}, unaalikwa kwenye ${vars.kind} ya ${vars.hosts} tarehe ${vars.date} pale ${vars.venue}. Fungua kadi yako: ${vars.link} (Kadi: ${vars.code})`
+    : `Hello ${vars.guest}, you are invited to the ${vars.kind} of ${vars.hosts} on ${vars.date} at ${vars.venue}. View your card: ${vars.link} (Card: ${vars.code})`;
+}

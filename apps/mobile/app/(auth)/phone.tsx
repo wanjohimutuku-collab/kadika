@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
@@ -12,12 +12,23 @@ export default function Phone() {
   const t = useT();
   const { locale } = useLocale();
   const [raw, setRaw] = useState('');
-  const [country, setCountry] = useState<Country>('TZ');
+  const [country, setCountry] = useState<Country | 'OTHER'>('TZ');
+  const [anyCountry, setAnyCountry] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    void loadAuthConfig().then((cfg) => {
+      if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
+        setAnyCountry(true);
+      }
+    });
+  }, []);
+
   const submit = async () => {
-    const p = parsePhone(raw, country, SIGN_IN_COUNTRIES);
+    const p = anyCountry
+      ? parsePhone(raw, country === 'OTHER' ? 'TZ' : country, SIGN_IN_COUNTRIES, true)
+      : parsePhone(raw, country as Country, SIGN_IN_COUNTRIES);
     if (!p.ok) return setError(t(`validation.phone.${p.error}`));
     setError(null);
     setBusy(true);
@@ -60,7 +71,7 @@ export default function Phone() {
       </Txt>
       <Txt>{t('auth.subtitle')}</Txt>
       {/* Kenyan numbers sign in even while the Kenya product is off. */}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {SIGN_IN_COUNTRIES.map((c) => (
           <Chip
             key={c}
@@ -69,6 +80,16 @@ export default function Phone() {
             onPress={() => setCountry(c)}
           />
         ))}
+        {anyCountry ? (
+          <Chip
+            label={t('common.otherCountry')}
+            active={country === 'OTHER'}
+            onPress={() => {
+              setCountry('OTHER');
+              if (!raw.startsWith('+')) setRaw('+');
+            }}
+          />
+        ) : null}
       </View>
       <Field
         label={t('auth.phone')}

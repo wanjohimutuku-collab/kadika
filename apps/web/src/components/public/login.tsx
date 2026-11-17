@@ -76,7 +76,8 @@ export function LoginPhone() {
   const router = useRouter();
   const params = useSearchParams();
   const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState<Country>('TZ');
+  const [country, setCountry] = useState<Country | 'OTHER'>('TZ');
+  const [anyCountry, setAnyCountry] = useState(false);
   const tcm = useTranslations('common');
   const brand = useBrand().brand.businessName;
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +85,14 @@ export function LoginPhone() {
   const locale = useLocale();
   const recaptcha = useRef<HTMLDivElement>(null);
   const firebaseMessage = useFirebaseMessage();
+
+  useEffect(() => {
+    void loadAuthConfig().then((cfg) => {
+      if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
+        setAnyCountry(true);
+      }
+    });
+  }, []);
   return (
     <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
       <h1 className="text-3xl font-semibold">{t('title', { brand })}</h1>
@@ -98,7 +107,9 @@ export function LoginPhone() {
         className="flex flex-col gap-4"
         onSubmit={async (e) => {
           e.preventDefault();
-          const r = parsePhone(phone, country, SIGN_IN_COUNTRIES);
+          const r = anyCountry
+            ? parsePhone(phone, country === 'OTHER' ? 'TZ' : country, SIGN_IN_COUNTRIES, true)
+            : parsePhone(phone, country as Country, SIGN_IN_COUNTRIES);
           if (!r.ok) {
             setError(tv(`phone.${r.error}`));
             return;
@@ -144,22 +155,41 @@ export function LoginPhone() {
         <Select
           label={tcm('country')}
           value={country}
-          onChange={(e) => setCountry(e.target.value as Country)}
-          options={SIGN_IN_COUNTRIES.map((c) => ({
-            value: c,
-            label: tcm(`countries.${c}`),
-          }))}
+          onChange={(e) => setCountry(e.target.value as Country | 'OTHER')}
+          options={[
+            ...SIGN_IN_COUNTRIES.map((c) => ({
+              value: c,
+              label: tcm(`countries.${c}`),
+            })),
+            ...(anyCountry ? [{ value: 'OTHER', label: tcm('otherCountry') }] : []),
+          ]}
         />
-        <PhoneField
-          country={country}
-          label={t('phone')}
-          hint={t('phoneHint')}
-          value={phone}
-          onChange={setPhone}
-          error={error ?? undefined}
-          name="phone"
-          autoFocus
-        />
+        {country === 'OTHER' ? (
+          <TextField
+            label={t('phone')}
+            hint={t('phoneHint')}
+            prefix="+"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone.startsWith('+') ? phone.slice(1) : phone}
+            onChange={(e) => setPhone(`+${e.target.value.replace(/[^\d]/g, '')}`)}
+            error={error ?? undefined}
+            name="phone"
+            autoFocus
+          />
+        ) : (
+          <PhoneField
+            country={country}
+            label={t('phone')}
+            hint={t('phoneHint')}
+            value={phone}
+            onChange={setPhone}
+            error={error ?? undefined}
+            name="phone"
+            autoFocus
+          />
+        )}
         <Button type="submit" size="lg" block loading={busy} data-testid="send-code">
           {t('sendCode')}
         </Button>

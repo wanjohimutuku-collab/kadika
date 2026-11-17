@@ -51,7 +51,8 @@
     "countries": {
       "TZ": "Tanzania",
       "KE": "Kenya"
-    }
+    },
+    "otherCountry": "Nchi nyingine (Kimataifa)"
   },
   "validation": {
     "phone": {
@@ -1893,6 +1894,8 @@
       "forced": "AUTH_FORCE_SMS imewashwa kwenye seva, kwa hivyo namba zinatumwa kwa SMS bila kujali kilichohifadhiwa hapa.",
       "firebaseTitle": "Mradi wa Firebase",
       "firebaseIntro": "Kutoka Firebase console → Project settings → Your apps → Web app. Unaweza kuhifadhi na kujaribu haya namba zikiendelea kutumwa kwa SMS, kisha ubadilishe.",
+      "anyCountryLabel": "Wezesha kwa nchi yoyote (pamoja na Tanzania)",
+      "anyCountryDesc": "Inaruhusu namba za simu kutoka nchi yoyote duniani kuingia kupitia Firebase badala ya kuzuia nchi fulani pekee.",
       "field": {
         "projectId": "Kitambulisho cha mradi",
         "apiKey": "Ufunguo wa API wa wavuti",

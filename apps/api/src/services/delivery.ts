@@ -11,7 +11,7 @@ import {
 import { generateGuestToken, hashGuestToken } from '@harusi/crypto';
 import { formatMoney, hostNames, toZoned, type CardKind } from '@harusi/schemas';
 import { pledgeSummaryOf } from './pledges';
-import { composeSms, dateText, senderOf } from './messages';
+import { composeSms, composeWhatsapp, dateText, senderOf } from './messages';
 import type { Country } from '@harusi/schemas/country';
 import { routeCountry, shortBaseFor, smsFor } from '../sms-routing';
 import type {
@@ -108,7 +108,7 @@ export class DeliveryService {
   constructor(
     private deps: Deps,
     private eventsSvc: EventService,
-  ) {}
+  ) { }
 
   private billingSvc?: BillingService;
   private get billing(): BillingService {
@@ -209,9 +209,12 @@ export class DeliveryService {
     daysLeft?: number,
   ): Promise<{ text: string; template: MessageTemplate }> {
     const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
-    const link = `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}`;
+    const cardToken = await this.cardToken(inv);
+    const link = `${shortBaseFor(this.deps.config, event.country)}/s/${cardToken}`;
     const hosts = hostNames(a, b);
     const input = { event, guest, link, daysLeft };
+    const siteBase = shortBaseFor(this.deps.config, event.country);
+    const mediaUrl = `${siteBase}/api/card-image?token=${encodeURIComponent(cardToken)}&code=${encodeURIComponent(guest.shortCode)}`;
     // A contribution card asks for a contribution only; an invitation card invites (ADR 029).
     if (guest.cardKind === 'contribution') {
       const sender = senderOf(event, guest.language).name;
@@ -222,6 +225,7 @@ export class DeliveryService {
           locale: guest.language,
           country: event.country,
           params: [hosts, sender, link],
+          mediaUrl,
         },
       };
     }
@@ -238,6 +242,7 @@ export class DeliveryService {
         event.country === 'KE'
           ? [hosts, when, link, guest.shortCode]
           : [a, b, when, link, guest.shortCode],
+      mediaUrl,
     };
     return { text: composeSms(daysLeft === undefined ? 'invite' : 'reminder', input), template };
   }
@@ -271,7 +276,34 @@ export class DeliveryService {
         lastError = 'quota_exceeded';
         break;
       }
-      const r = await this.attempt(p, guest.phoneE164!, text, template);
+      // Organiser's custom WhatsApp template wins when set; otherwise built text
+      const cardMessages = (event.cardContent as { messages?: Record<string, string> } | null)?.messages;
+      const ownWa =
+        cardMessages &&
+        cardMessages[
+        guest.cardKind === 'contribution'
+          ? 'contributionWhatsapp'
+          : daysLeft === undefined
+            ? 'inviteWhatsapp'
+            : 'reminderWhatsapp'
+        ];
+      const msgBody =
+        ch === 'whatsapp' && ownWa
+          ? composeWhatsapp(
+            guest.cardKind === 'contribution'
+              ? 'contribution'
+              : daysLeft === undefined
+                ? 'invite'
+                : 'reminder',
+            {
+              event,
+              guest,
+              link: `${shortBaseFor(this.deps.config, event.country)}/s/${await this.cardToken(inv)}`,
+              daysLeft,
+            },
+          )
+          : text;
+      const r = await this.attempt(p, guest.phoneE164!, msgBody, template);
       await this.log(guest.id, ch, p.name, r, kind);
       if (!r.ok && !delivers) credit.refundMessage(); // a failed message is not charged
       if (r.ok) {
@@ -634,9 +666,9 @@ export class DeliveryService {
     const reminded =
       kind === 'reminder'
         ? await this.recentlyReminded(
-            picked.map((p) => p.guest.id),
-            this.deps.now(),
-          )
+          picked.map((p) => p.guest.id),
+          this.deps.now(),
+        )
         : new Set<string>();
     let cards = 0;
     let messages = 0;
@@ -688,13 +720,13 @@ export class DeliveryService {
     const failedIds =
       t === 'failed'
         ? new Set(
-            (
-              await this.deps.db
-                .select({ guestId: messageLog.guestId })
-                .from(messageLog)
-                .where(eq(messageLog.status, 'failed'))
-            ).map((r) => r.guestId),
-          )
+          (
+            await this.deps.db
+              .select({ guestId: messageLog.guestId })
+              .from(messageLog)
+              .where(eq(messageLog.status, 'failed'))
+          ).map((r) => r.guestId),
+        )
         : null;
     const unsent = (inv: typeof invitations.$inferSelect) => this.unsent(inv);
     const picked = rows.filter(({ guest, inv }) => {
@@ -782,9 +814,9 @@ export class DeliveryService {
     const reminded =
       kind === 'reminder'
         ? await this.recentlyReminded(
-            picked.map((p) => p.guest.id),
-            this.deps.now(),
-          )
+          picked.map((p) => p.guest.id),
+          this.deps.now(),
+        )
         : new Set<string>();
     const byChannel = { whatsapp: 0, sms: 0, print: 0 };
     let total = 0;

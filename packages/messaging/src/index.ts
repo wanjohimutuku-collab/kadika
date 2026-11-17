@@ -24,6 +24,8 @@ export interface MessageTemplate {
    * (both countries, ADR 050): hosts, link.
    */
   params: string[];
+  /** Optional card image URL to attach as media (e.g. Evolution API media message). */
+  mediaUrl?: string;
 }
 
 export interface MessagingProvider {

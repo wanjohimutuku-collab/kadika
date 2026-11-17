@@ -124,6 +124,39 @@ export function normalizeTzPhone(input: string): PhoneResult {
 }
 
 /**
+ * Normalises a phone number from any country to E.164. Local numbers (e.g. 0712…) are interpreted
+ * using `defaultCountry` (defaults to 'TZ'). Any international number starting with `+`, `00` or
+ * a country code with standard E.164 format (7-15 digits starting with 1-9) is accepted.
+ */
+export function normalizeAnyPhone(
+  input: string,
+  defaultCountry: Country = 'TZ',
+): PhoneResult {
+  const homeTry = normalizePhone(input, defaultCountry, ['TZ', 'KE']);
+  if (homeTry.ok) return homeTry;
+
+  const picked = pickNumber(toPlain(input));
+  if (!picked.ok) return picked;
+
+  let raw = picked.text;
+  raw = raw.replace(/\(\s*0\s*\)/g, '');
+
+  let digits = raw.replace(/[^\d]/g, '');
+  const hadPlus = /^\(?\s*\+/.test(picked.text);
+
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  else if (!hadPlus && digits.startsWith('0')) {
+    return homeTry;
+  }
+
+  if (/^[1-9]\d{6,14}$/.test(digits)) {
+    return { ok: true, e164: `+${digits}` };
+  }
+
+  return homeTry;
+}
+
+/**
  * National form (`0712 345 678`) for a number in `home`, international (`+254 712 345 678`) for another
  * supported country, and the input unchanged for anything else.
  */

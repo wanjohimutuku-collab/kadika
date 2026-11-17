@@ -30,6 +30,8 @@ import {
   CARD_KINDS,
   eventKindLabel,
   eventKindOf,
+  pick,
+  renderTemplate,
   type CardKind,
   type MessageChannel,
 } from '@harusi/schemas';
@@ -38,6 +40,7 @@ import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { ScheduledSends } from '@/components/console/scheduled-sends';
 import { WhatsappCardPreview } from '@/components/console/whatsapp-card-preview';
+import { MessageCustomizer } from '@/components/console/message-customizer';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, KpiTile, ProgressBar, Skeleton } from '@/components/ui/display';
 import { SegmentedControl, Switch } from '@/components/ui/navigation';
@@ -47,7 +50,16 @@ import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
 import { eventScopedKeys, qk, useEvent, useEventCurrency } from '@/lib/queries';
 import { useNetworkStatus } from '@/lib/use-mock-controls';
-import { formatDateShort, formatDateTimeShort, formatMoney, fromLocalInput } from '@/lib/format';
+import {
+  formatClock,
+  formatDateShort,
+  formatDateTimeShort,
+  formatMoney,
+  formatPhone,
+  formatTime,
+  fromLocalInput,
+  swahiliTime,
+} from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
 import { SELECTED_GUESTS_KEY } from '@/lib/download';
 import { APP_DOMAIN } from '@/lib/env';
@@ -106,6 +118,9 @@ function SendInner({ id }: { id: string }) {
   useEffect(() => setPreviewLang(locale), [locale]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [customWhatsapp, setCustomWhatsapp] = useState<string | null>(null);
+  const [customSms, setCustomSms] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState(true);
   const idem = useRef(newIdempotencyKey());
   const progressRef = useRef<HTMLHeadingElement>(null);
 
@@ -210,6 +225,26 @@ function SendInner({ id }: { id: string }) {
     },
     onError: () => toast({ tone: 'error', title: ts('rolledBack') }),
   });
+  const saveMessages = useMutation({
+    mutationFn: (messages: Record<string, { sw?: string; en?: string }>) =>
+      getRepository().updateEvent(id, {
+        cardContent: {
+          ...(event.data?.cardContent ?? {}),
+          messages: {
+            ...(event.data?.cardContent?.messages ?? {}),
+            ...messages,
+          },
+        },
+      }),
+    onSuccess: async () => {
+      toast({
+        tone: 'success',
+        title: locale === 'sw' ? 'Ujumbe umehifadhiwa!' : 'Message template saved!',
+      });
+      await queryClient.invalidateQueries({ queryKey: qk.event(id) });
+    },
+    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+  });
 
   return (
     <QueryState query={event} skeleton={<Skeleton className="h-96" />}>
@@ -251,7 +286,90 @@ function SendInner({ id }: { id: string }) {
                 shortLink,
                 code: 'KH-4826',
               });
-        const segs = smsSegments(smsText);
+
+        const defaultWhatsappTemplate = contribution
+          ? previewLang === 'sw'
+            ? '{mtumaji} wanakuomba mchango kwa sherehe ya {wenyeji}. Changia hapa: {kiungo}'
+            : '{sender} kindly requests your contribution for {hosts}. Pledge here: {link}'
+          : kind === 'reminder'
+            ? previewLang === 'sw'
+              ? 'Kikumbusho kwa {mgeni}: Sherehe ya {wenyeji} inakaribia tarehe {tarehe} {ukumbi}. Kadi yako: {kiungo}'
+              : 'Reminder for {guest}: {hosts} celebration is on {date} at {venue}. Your card: {link}'
+            : previewLang === 'sw'
+              ? 'Habari {mgeni}! {wenyeji} wanakualika: {tarehe}, {ukumbi}. Fungua kadi yako: {kiungo}'
+              : 'Hello {guest}! {hosts} invite you: {date}, {venue}. Open your card: {link}';
+
+        const savedWhatsappTemplate = pick(
+          contribution
+            ? e.cardContent?.messages?.contributionWhatsapp
+            : kind === 'reminder'
+              ? e.cardContent?.messages?.reminderWhatsapp
+              : e.cardContent?.messages?.inviteWhatsapp,
+          previewLang,
+        );
+
+        const activeWhatsappTemplate =
+          customWhatsapp ?? savedWhatsappTemplate ?? defaultWhatsappTemplate;
+
+        const defaultSmsTemplate = contribution
+          ? previewLang === 'sw'
+            ? 'Habari! {mtumaji} wanakuomba mchango kwa {wenyeji}. Kadi: {kiungo}'
+            : 'Hello! {sender} requests contribution for {hosts}. Card: {link}'
+          : kind === 'reminder'
+            ? previewLang === 'sw'
+              ? 'Kikumbusho: Sherehe ya {wenyeji} ni tarehe {tarehe}. Kadi: {kiungo} Namba: {kadi}'
+              : 'Reminder: {hosts} celebration is on {date}. Card: {link} Code: {code}'
+            : previewLang === 'sw'
+              ? 'Habari! {wenyeji} wanakualika: {tarehe}. Kadi yako: {kiungo} Namba: {kadi}'
+              : 'Hello! {hosts} invite you: {date}. Card: {link} Code: {code}';
+
+        const savedSmsTemplate = pick(
+          contribution
+            ? e.cardContent?.messages?.contributionSms
+            : kind === 'reminder'
+              ? e.cardContent?.messages?.reminderSms
+              : e.cardContent?.messages?.inviteSms,
+          previewLang,
+        );
+
+        const activeSmsTemplate = customSms ?? savedSmsTemplate ?? defaultSmsTemplate;
+
+        const validDate = !Number.isNaN(Date.parse(e.dateStart));
+        const sampleVars: Record<string, string> = {
+          guest: 'Asha Mwinyi',
+          mgeni: 'Asha Mwinyi',
+          hosts: e.coupleNames,
+          wenyeji: e.coupleNames,
+          date: dateText,
+          tarehe: dateText,
+          time: validDate
+            ? previewLang === 'sw'
+              ? `Saa ${swahiliTime(e.dateStart)} (${formatClock(e.dateStart)})`
+              : formatTime(e.dateStart, previewLang)
+            : '',
+          muda: validDate
+            ? previewLang === 'sw'
+              ? `Saa ${swahiliTime(e.dateStart)} (${formatClock(e.dateStart)})`
+              : formatTime(e.dateStart, previewLang)
+            : '',
+          venue: e.venueName,
+          ukumbi: e.venueName,
+          link: shortLink,
+          kiungo: shortLink,
+          code: 'KH-4826',
+          kadi: 'KH-4826',
+          dress: e.dressCode || (previewLang === 'sw' ? 'Mavazi Rasmi' : 'Formal'),
+          mavazi: e.dressCode || (previewLang === 'sw' ? 'Mavazi Rasmi' : 'Formal'),
+          sender,
+          mtumaji: sender,
+          phone: e.committeePhone ? formatPhone(e.committeePhone) : '',
+          simu: e.committeePhone ? formatPhone(e.committeePhone) : '',
+        };
+
+        const renderedWhatsappText = renderTemplate(activeWhatsappTemplate, sampleVars);
+        const renderedSmsText =
+          customSms || savedSmsTemplate ? renderTemplate(activeSmsTemplate, sampleVars) : smsText;
+        const segs = smsSegments(renderedSmsText);
         const p = preview.data;
         const counts = autoBreakdown.data?.byChannel ?? { whatsapp: 0, sms: 0, print: 0 };
 
@@ -584,7 +702,69 @@ function SendInner({ id }: { id: string }) {
                       { value: 'en', label: 'English' },
                     ]}
                   />
-                  <div className="mt-3 flex flex-col gap-3">
+                  <div className="mt-3 flex flex-col gap-4">
+                    {/* Message Customizer with Attribute Chips */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold tracking-wider text-muted uppercase">
+                          {locale === 'sw' ? 'Badilisha Ujumbe' : 'Customize Message'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingMessage((v) => !v)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                        >
+                          {editingMessage
+                            ? locale === 'sw'
+                              ? 'Ficha mhariri'
+                              : 'Hide editor'
+                            : locale === 'sw'
+                              ? 'Fungua mhariri'
+                              : 'Open editor'}
+                        </button>
+                      </div>
+
+                      {editingMessage ? (
+                        <MessageCustomizer
+                          channelName={channel === 'sms' ? 'SMS' : 'WhatsApp'}
+                          value={channel === 'sms' ? activeSmsTemplate : activeWhatsappTemplate}
+                          defaultValue={
+                            channel === 'sms' ? defaultSmsTemplate : defaultWhatsappTemplate
+                          }
+                          onChange={(val) => {
+                            if (channel === 'sms') setCustomSms(val);
+                            else setCustomWhatsapp(val);
+                          }}
+                          onSave={async () => {
+                            const isSms = channel === 'sms';
+                            const key = contribution
+                              ? isSms
+                                ? 'contributionSms'
+                                : 'contributionWhatsapp'
+                              : kind === 'reminder'
+                                ? isSms
+                                  ? 'reminderSms'
+                                  : 'reminderWhatsapp'
+                                : isSms
+                                  ? 'inviteSms'
+                                  : 'inviteWhatsapp';
+                            const val = isSms ? activeSmsTemplate : activeWhatsappTemplate;
+                            const existingPerKey =
+                              (
+                                e.cardContent?.messages as
+                                  | Record<string, { sw?: string; en?: string }>
+                                  | undefined
+                              )?.[key] ?? {};
+                            await saveMessages.mutateAsync({
+                              [key]: { ...existingPerKey, [previewLang]: val },
+                            });
+                          }}
+                          isSaving={saveMessages.isPending}
+                          locale={previewLang}
+                        />
+                      ) : null}
+                    </div>
+
                     <div>
                       <p className="mb-1 text-sm font-semibold">{t('previewSms')}</p>
                       <p
@@ -592,10 +772,10 @@ function SendInner({ id }: { id: string }) {
                         lang={previewLang}
                         data-testid="sms-preview"
                       >
-                        {smsText}
+                        {renderedSmsText}
                       </p>
                       <p className="mt-1 text-xs text-muted">
-                        {smsText.length} · {t('smsSegments', { segments: segs.segments })} ·{' '}
+                        {renderedSmsText.length} · {t('smsSegments', { segments: segs.segments })} ·{' '}
                         {segs.encoding}
                       </p>
                     </div>
@@ -608,29 +788,16 @@ function SendInner({ id }: { id: string }) {
                         partnerB={e.partnerB}
                         dateStart={e.dateStart}
                         venueName={e.venueName}
+                        dressCode={e.dressCode}
+                        senderName={sender}
+                        committeePhone={e.committeePhone}
                         themeId={e.themeId}
                         coverGradient={e.coverGradient}
                         palette={e.palette}
                         locale={previewLang}
                         domain={APP_DOMAIN}
                         isContribution={contribution}
-                        messageText={
-                          contribution
-                            ? t('whatsappTemplateContribution', {
-                                sender,
-                                couple: e.coupleNames,
-                                kindOf: eventKindOf(e.eventKind, previewLang).toLowerCase(),
-                                link: `${host}/c/…`,
-                              })
-                            : t('whatsappTemplate', {
-                                guest: 'Asha',
-                                couple: e.coupleNames,
-                                kind: eventKindLabel(e.eventKind, previewLang),
-                                date: dateText,
-                                venue: e.venueName,
-                                link: `${host}/c/…`,
-                              })
-                        }
+                        messageText={renderedWhatsappText}
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">

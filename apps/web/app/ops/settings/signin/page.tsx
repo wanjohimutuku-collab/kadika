@@ -16,6 +16,7 @@ import { QueryState } from '@/components/console/query-state';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, Skeleton } from '@/components/ui/display';
 import { Select, TextField } from '@/components/ui/form';
+import { Switch } from '@/components/ui/navigation';
 import { ConfirmSheet } from '@/components/ui/overlay';
 import { useToast } from '@/components/ui/toast';
 import { formatRelative } from '@/lib/format';
@@ -47,6 +48,9 @@ function SignInCard({ view }: { view: SignInSettingsView }) {
   const queryClient = useQueryClient();
   const [provider, setProvider] = useState<SignInProvider>(view.provider);
   const [values, setValues] = useState<Record<string, string>>(view.fields);
+  const [anyCountry, setAnyCountry] = useState<boolean>(
+    view.anyCountry ?? (view.fields.anyCountry === 'true' || view.fields.anyCountry === '1'),
+  );
   const [error, setError] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -54,6 +58,9 @@ function SignInCard({ view }: { view: SignInSettingsView }) {
   useEffect(() => {
     setProvider(view.provider);
     setValues(view.fields);
+    setAnyCountry(
+      view.anyCountry ?? (view.fields.anyCountry === 'true' || view.fields.anyCountry === '1'),
+    );
   }, [view]);
 
   const explain = (e: unknown) => {
@@ -67,7 +74,12 @@ function SignInCard({ view }: { view: SignInSettingsView }) {
   const store = (v: SignInSettingsView) => queryClient.setQueryData(qk.ops('signin-settings'), v);
 
   const save = useMutation({
-    mutationFn: () => getRepository().opsSaveSignIn({ provider, fields: values }),
+    mutationFn: () =>
+      getRepository().opsSaveSignIn({
+        provider,
+        fields: { ...values, anyCountry: anyCountry ? 'true' : 'false' },
+        anyCountry,
+      }),
     onSuccess: (v) => {
       setError(null);
       store(v);
@@ -144,7 +156,7 @@ function SignInCard({ view }: { view: SignInSettingsView }) {
           <p className="text-sm text-muted">{t('firebaseIntro')}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {FIREBASE_FIELDS.map((f) => {
+          {FIREBASE_FIELDS.filter((f) => f.key !== 'anyCountry').map((f) => {
             const secret = 'secret' in f && f.secret;
             const required = 'required' in f && f.required && provider === 'firebase';
             const saved = secret ? view.secrets[f.key] : undefined;
@@ -172,6 +184,14 @@ function SignInCard({ view }: { view: SignInSettingsView }) {
               />
             );
           })}
+        </div>
+        <div className="rounded-input border border-border p-4">
+          <Switch
+            checked={anyCountry}
+            onCheckedChange={setAnyCountry}
+            label={t('anyCountryLabel')}
+            description={t('anyCountryDesc')}
+          />
         </div>
         {error ? (
           <Banner tone="error">

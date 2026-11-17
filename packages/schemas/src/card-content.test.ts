@@ -22,6 +22,23 @@ describe('message templates', () => {
     expect(renderTemplate('{missing}!', {})).toBe('!');
   });
 
+  it('resolves Swahili placeholder aliases seamlessly in templates', () => {
+    expect(templateProblem('inviteSms', 'Habari {mgeni}, fungua {kiungo}')).toBeNull();
+    expect(templateProblem('inviteWhatsapp', 'Habari {mgeni}, fungua {kiungo}')).toBeNull();
+    expect(
+      renderTemplate('Habari {mgeni}, harusi ya {wenyeji} tarehe {tarehe} {ukumbi}: {kiungo} ({kadi})', {
+        guest: 'Asha Mwinyi',
+        hosts: 'Asha & Juma',
+        date: '14 Des 2026',
+        venue: 'Mlimani City',
+        link: 'https://kadisasa.com/s/KH-4826',
+        code: 'KH-4826',
+      }),
+    ).toBe(
+      'Habari Asha Mwinyi, harusi ya Asha & Juma tarehe 14 Des 2026 Mlimani City: https://kadisasa.com/s/KH-4826 (KH-4826)',
+    );
+  });
+
   it('rejects unknown placeholders and a message without the link', () => {
     expect(templateProblem('inviteSms', 'Karibu {guest} {link}')).toBeNull();
     expect(templateProblem('inviteSms', 'Karibu {nope} {link}')).toBe(

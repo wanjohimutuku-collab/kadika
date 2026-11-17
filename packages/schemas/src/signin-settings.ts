@@ -18,6 +18,8 @@ export const FIREBASE_FIELDS = [
   { key: 'appId', required: true },
   /** Defaults to `<projectId>.firebaseapp.com`. */
   { key: 'authDomain' },
+  /** Allow phone numbers from any country (including Tanzania +255, Kenya +254, and worldwide). */
+  { key: 'anyCountry' },
 ] as const satisfies readonly ProviderField[];
 
 export interface SignInSettingsView {
@@ -32,6 +34,8 @@ export interface SignInSettingsView {
   fields: Record<string, string>;
   /** Secret fields that have a value, as `…abcd`. */
   secrets: Record<string, string>;
+  /** Whether Firebase accepts phone numbers from any country. */
+  anyCountry?: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -40,6 +44,7 @@ export interface SignInSettingsInput {
   provider: SignInProvider;
   /** Leave the API key empty (or out) to keep the saved one. */
   fields: Record<string, string>;
+  anyCountry?: boolean;
 }
 
 /** Result of asking Firebase for the project behind the saved API key. */

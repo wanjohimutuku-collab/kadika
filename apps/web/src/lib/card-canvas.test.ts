@@ -41,6 +41,8 @@ describe('card-canvas', () => {
       restore: vi.fn(),
       fillText: vi.fn(),
       roundRect: vi.fn(),
+      arc: vi.fn(),
+      translate: vi.fn(),
     };
 
     mockCanvas = {

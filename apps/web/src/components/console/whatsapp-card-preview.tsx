@@ -242,7 +242,7 @@ export function WhatsappCardPreview({
           type="button"
           onClick={handleShareWhatsApp}
           disabled={sharing}
-          className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-bold text-[#0b2e1a] shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Send className="size-3.5" />
           <span>

@@ -524,7 +524,7 @@ export function Hero(props: HeroProps) {
                 <Wallet className="size-3.5 text-ks-saffron" aria-hidden="true" />
                 {s.michangoTitle}
               </span>
-              <span className="tabular rounded-full bg-ks-saffron-100 px-1.5 py-0.5 text-[10px] font-bold text-ks-terracotta">
+              <span className="tabular rounded-full bg-ks-saffron-100 px-1.5 py-0.5 text-[10px] font-bold text-ks-terracotta-700">
                 70%
               </span>
             </div>

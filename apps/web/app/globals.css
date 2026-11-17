@@ -232,6 +232,7 @@
   --color-ks-saffron-100: var(--ks-saffron-100);
   --color-ks-indigo: var(--ks-indigo);
   --color-ks-terracotta: var(--ks-terracotta);
+  --color-ks-terracotta-700: var(--ks-terracotta-700);
   --radius-ks: 12px;
   --font-ks-names: var(--font-fraunces), Georgia, serif;
 }
@@ -263,6 +264,8 @@
   --ks-saffron-100: #fdedd3;
   --ks-indigo: #243272;
   --ks-terracotta: #c1552c;
+  /* Text-on-tint shade: 5.9:1 on saffron-100, 6.8:1 on white (base terracotta is only 4:1 on tints). */
+  --ks-terracotta-700: #9a3f1e;
   /* Shared components that read the app tokens (buttons, focus ring) follow the site palette here. */
   --hp-primary: var(--ks-green-700);
   --hp-bg: var(--ks-paper);

@@ -4,7 +4,6 @@ import { resolvePalette } from '@harusi/ui-tokens/palette';
 import {
   formatClock,
   formatDate,
-  formatDateShort,
   formatPhone,
   formatTime,
   formatWeekday,
@@ -314,8 +313,7 @@ export function renderCardPreviewToCanvas(options: CardImageOptions): HTMLCanvas
   drawShieldCheck(ctx, trustX + 22, trustY + 24);
 
   const sender =
-    options.senderName ||
-    defaultSender(options.eventKind, couple, 'committee', locale);
+    options.senderName || defaultSender(options.eventKind, couple, 'committee', locale);
   const phone = options.committeePhone ? formatPhone(options.committeePhone) : '';
 
   ctx.textAlign = 'left';
@@ -377,7 +375,11 @@ export function renderCardPreviewToCanvas(options: CardImageOptions): HTMLCanvas
   ctx.fillStyle = onPrimary;
   ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending', trustX + pillW / 2, rsvpY + 19);
+  ctx.fillText(
+    locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending',
+    trustX + pillW / 2,
+    rsvpY + 19,
+  );
 
   // No pill (outline primary)
   ctx.strokeStyle = primary;
@@ -392,7 +394,11 @@ export function renderCardPreviewToCanvas(options: CardImageOptions): HTMLCanvas
 
   ctx.fillStyle = primary;
   ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-  ctx.fillText(locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets', trustX + pillW + 14 + pillW / 2, rsvpY + 19);
+  ctx.fillText(
+    locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets',
+    trustX + pillW + 14 + pillW / 2,
+    rsvpY + 19,
+  );
 
   // QR Code Box (or Contribution summary box)
   if (!options.isContribution) {

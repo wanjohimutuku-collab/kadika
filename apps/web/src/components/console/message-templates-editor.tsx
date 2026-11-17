@@ -21,12 +21,7 @@ import { Card } from '@/components/ui/display';
 import { Tabs, TabPanel } from '@/components/ui/navigation';
 import { Textarea } from '@/components/ui/form';
 
-const TEMPLATE_KEYS = [
-  'inviteSms',
-  'reminderSms',
-  'contributionSms',
-  'pledgeReminderSms',
-] as const;
+const TEMPLATE_KEYS = ['inviteSms', 'reminderSms', 'contributionSms', 'pledgeReminderSms'] as const;
 
 type SmsTemplateKey = (typeof TEMPLATE_KEYS)[number];
 

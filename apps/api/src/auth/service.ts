@@ -89,7 +89,10 @@ export class AuthService {
   }
 
   /** Firebase Phone Auth (ADR 048): the verified number from the ID token signs in like an SMS code. */
-  async verifyFirebase(idToken: string, anyCountry?: boolean): Promise<AuthResult | StaffChallengeResult> {
+  async verifyFirebase(
+    idToken: string,
+    anyCountry?: boolean,
+  ): Promise<AuthResult | StaffChallengeResult> {
     const { phoneE164 } = await verifyFirebaseIdToken(this.deps, idToken);
     const phone = parsePhone(phoneE164, 'TZ', SIGN_IN_COUNTRIES, anyCountry);
     return this.signIn(phone);

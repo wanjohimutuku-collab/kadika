@@ -28,8 +28,6 @@ import {
 } from '@harusi/api-client';
 import {
   CARD_KINDS,
-  eventKindLabel,
-  eventKindOf,
   pick,
   renderTemplate,
   type CardKind,
@@ -752,8 +750,7 @@ function SendInner({ id }: { id: string }) {
                             const existingPerKey =
                               (
                                 e.cardContent?.messages as
-                                  | Record<string, { sw?: string; en?: string }>
-                                  | undefined
+                                  Record<string, { sw?: string; en?: string }> | undefined
                               )?.[key] ?? {};
                             await saveMessages.mutateAsync({
                               [key]: { ...existingPerKey, [previewLang]: val },

@@ -39,6 +39,7 @@
     "guestsCount": "{count, plural, one {# guest} other {# guests}}",
     "tzs": "TZS {amount}",
     "skipToContent": "Skip to content",
+    "error": "An error occurred. Please try again.",
     "errorCode": "Error code: {code}",
     "draft": "Draft",
     "mockNotice": "Demo build — all data is fictional",

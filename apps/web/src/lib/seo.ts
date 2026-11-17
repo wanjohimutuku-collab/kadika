@@ -1,7 +1,35 @@
+import type { Metadata } from 'next';
 import type { Locale } from '@harusi/i18n';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { APP_DOMAIN } from './env';
 import { swPath } from './site-locale';
+
+/** Search-engine & AI snippet indexing policy shared by all public marketing pages. */
+export const PUBLIC_ROBOTS: NonNullable<Metadata['robots']> = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+    'max-snippet': -1,
+    'max-image-preview': 'large',
+    'max-video-preview': -1,
+  },
+};
+
+export function twitterSummaryCard(
+  title: string,
+  description: string,
+  locale: Locale,
+  market: Market = 'tz',
+): NonNullable<Metadata['twitter']> {
+  return {
+    card: 'summary_large_image',
+    title,
+    description,
+    images: ogImages(locale, market).map((img) => img.url),
+  };
+}
 
 /** Public origin used for canonical URLs, hreflang, the sitemap and structured data. */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? `https://${APP_DOMAIN}`).replace(
@@ -45,7 +73,24 @@ export function organizationNode(description?: string) {
     url: SITE_URL,
     logo: { '@type': 'ImageObject', url: `${SITE_URL}/icons/512.png`, width: 512, height: 512 },
     ...(description ? { description } : {}),
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Dar es Salaam',
+      addressCountry: 'TZ',
+    },
+    foundingLocation: {
+      '@type': 'Place',
+      name: 'Dar es Salaam, Tanzania',
+    },
     areaServed: ['TZ', 'KE'],
+    knowsAbout: [
+      'Digital wedding invitations',
+      'Kadi za mwaliko wa harusi Tanzania',
+      'WhatsApp and SMS event invitations',
+      'Wedding RSVP management',
+      'Michango and harambee contribution tracking',
+      'Offline QR code gate check-in',
+    ],
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',

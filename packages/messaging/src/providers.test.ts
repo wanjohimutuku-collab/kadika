@@ -49,6 +49,19 @@ describe('EvolutionWhatsAppProvider', () => {
       fetchImpl: fakeFetch(401, {}).impl,
     });
     await expect(bad.send('+255712345678', 'x')).rejects.toThrow(/^evolution 401$/);
+    const notFound = new EvolutionWhatsAppProvider({
+      baseUrl: 'https://evo.test/message/',
+      instance: ' harusi ',
+      apiKey: 'secret',
+      fetchImpl: fakeFetch(404, {
+        response: { message: ['The "harusi" instance does not exist'] },
+      }).impl,
+    });
+    expect(notFound.baseUrl).toBe('https://evo.test');
+    expect(notFound.instance).toBe('harusi');
+    await expect(notFound.send('+255712345678', 'x')).rejects.toThrow(
+      /evolution 404: The "harusi" instance does not exist/,
+    );
     const noId = new EvolutionWhatsAppProvider({
       baseUrl: 'https://evo.test',
       instance: 'i',

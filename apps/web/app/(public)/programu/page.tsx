@@ -3,6 +3,7 @@ import { SiteLink as Link } from '@/components/site/site-link';
 import { connection } from 'next/server';
 import { getLocale, getTranslations } from 'next-intl/server';
 import {
+  ArrowUpRight,
   Clock,
   Download,
   HandCoins,
@@ -17,7 +18,16 @@ import { SeoLinks } from '@/components/public/seo-links';
 import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
 import { JsonLd } from '@/components/site/json-ld';
-import { ORG_ID, absoluteLocaleUrl, localeUrl, ogImages, organizationNode } from '@/lib/seo';
+import {
+  ORG_ID,
+  PUBLIC_ROBOTS,
+  SITE_URL,
+  absoluteLocaleUrl,
+  localeUrl,
+  ogImages,
+  organizationNode,
+  twitterSummaryCard,
+} from '@/lib/seo';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import { APP_APK_PATH, APP_DOWNLOAD_PATH, appLinksFrom, hostOf } from '@/lib/app-download';
 import { getAndroidReleaseOnServer } from '@/lib/server-app-release';
@@ -25,6 +35,7 @@ import { APP_DOMAIN } from '@/lib/env';
 import { AppMockup } from '@/components/site/mockups';
 import { homeCopy } from '@/content/home';
 import { getPricingOnServer } from '@/lib/server-pricing';
+import { getPage, pagePath, textOf } from '@/content';
 
 const FEATURES = [
   { key: 'send', icon: Send },
@@ -36,18 +47,31 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('appDownload');
   const locale = (await getLocale()) as Locale;
   const brand = (await getBrandingOnServer()).businessName;
+  const title = t('metaTitle', { brand });
+  const description = t('metaDescription', { brand });
+  const url = absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale);
   return {
-    title: { absolute: t('metaTitle', { brand }) },
-    description: t('metaDescription', { brand }),
+    title: { absolute: title },
+    description,
+    robots: PUBLIC_ROBOTS,
+    alternates: {
+      canonical: url,
+      languages: {
+        'en-TZ': absoluteLocaleUrl(APP_DOWNLOAD_PATH, 'en'),
+        'sw-TZ': absoluteLocaleUrl(APP_DOWNLOAD_PATH, 'sw'),
+        'x-default': absoluteLocaleUrl(APP_DOWNLOAD_PATH, 'en'),
+      },
+    },
     openGraph: {
       type: 'website',
       siteName: brand,
-      title: t('metaTitle', { brand }),
-      description: t('metaDescription', { brand }),
+      title,
+      description,
       locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
-      url: absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale),
+      url,
       images: ogImages(locale),
     },
+    twitter: twitterSummaryCard(title, description, locale, 'tz'),
   };
 }
 
@@ -71,31 +95,64 @@ export default async function AppDownloadPage() {
   const locale = (await getLocale()) as Locale;
   const brand = (await getBrandingOnServer()).businessName;
   const mock = homeCopy(locale, await getPricingOnServer(), APP_DOMAIN).app.mock;
+  const pageUrl = absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale);
+  const relatedSlugs = ['lango-la-harusi-qr', 'michango-ya-harusi', 'kadi-ya-harusi-mtandaoni'];
+  const relatedGuides = relatedSlugs
+    .map((s) => getPage(s))
+    .filter((p): p is NonNullable<typeof p> => !!p);
 
   return (
     <main data-testid="app-download" data-state={available ? 'available' : 'soon'}>
       <SeoLinks path={APP_DOWNLOAD_PATH} locale={locale} />
-      {/* Describes the app only once there is something to download. */}
-      {available ? (
-        <JsonLd
-          data={{
-            '@context': 'https://schema.org',
-            '@graph': [
-              organizationNode(),
-              {
-                '@type': 'SoftwareApplication',
-                name: brand,
-                url: absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale),
-                description: t('metaDescription', { brand }),
-                operatingSystem: 'Android',
-                applicationCategory: 'LifestyleApplication',
-                publisher: { '@id': ORG_ID },
-                offers: { '@type': 'Offer', price: 0, priceCurrency: 'TZS' },
-              },
-            ],
-          }}
-        />
-      ) : null}
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            organizationNode(),
+            {
+              '@type': 'WebPage',
+              '@id': `${pageUrl}#page`,
+              url: pageUrl,
+              name: t('metaTitle', { brand }),
+              description: t('metaDescription', { brand }),
+              inLanguage: locale === 'sw' ? 'sw-TZ' : 'en-TZ',
+              isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#site` },
+              speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu-fupi'] },
+            },
+            {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: locale === 'sw' ? 'Nyumbani' : 'Home',
+                  item: absoluteLocaleUrl('/', locale),
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: locale === 'sw' ? 'Programu ya Android' : 'Android app',
+                  item: pageUrl,
+                },
+              ],
+            },
+            ...(available
+              ? [
+                  {
+                    '@type': 'SoftwareApplication',
+                    name: brand,
+                    url: pageUrl,
+                    description: t('metaDescription', { brand }),
+                    operatingSystem: 'Android',
+                    applicationCategory: 'LifestyleApplication',
+                    publisher: { '@id': ORG_ID },
+                    offers: { '@type': 'Offer', price: 0, priceCurrency: 'TZS' },
+                  },
+                ]
+              : []),
+          ],
+        }}
+      />
       <section className="px-3 pt-4 md:px-6">
         <div className="ks-mesh-dark relative mx-auto max-w-[1120px] overflow-hidden rounded-[2.5rem] text-white">
           <div className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80" aria-hidden="true" />
@@ -109,7 +166,9 @@ export default async function AppDownloadPage() {
               <h1 className="text-[36px] leading-[1.05] font-bold tracking-[-0.03em] [text-wrap:balance] md:text-[52px]">
                 {t('title', { brand })}
               </h1>
-              <p className="max-w-xl text-lg opacity-95">{t('intro')}</p>
+              <p id="jibu-fupi" className="max-w-xl text-lg opacity-95">
+                {t('intro')}
+              </p>
 
               {available ? (
                 <div className="flex flex-col gap-3 sm:max-w-md">
@@ -230,13 +289,23 @@ export default async function AppDownloadPage() {
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
           <span>{t('trust')}</span>
         </p>
-        <p className="mt-2 text-sm">
+        <p className="mt-2 flex flex-wrap items-center gap-4 text-sm">
           <Link
             href={localeUrl('/maswali', locale)}
             className="inline-flex min-h-12 items-center underline"
           >
             {t('faqLink')}
           </Link>
+          {relatedGuides.map((g) => (
+            <Link
+              key={g.slug}
+              href={localeUrl(pagePath(g, locale), locale)}
+              className="inline-flex min-h-12 items-center gap-1 underline underline-offset-4"
+            >
+              <span>{textOf(g, locale).nav}</span>
+              <ArrowUpRight className="size-3.5" aria-hidden="true" />
+            </Link>
+          ))}
         </p>
       </section>
     </main>

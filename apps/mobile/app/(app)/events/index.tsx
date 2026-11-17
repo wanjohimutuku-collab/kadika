@@ -71,13 +71,36 @@ export default function Events() {
                     tone={e.status === 'active' ? 'success' : 'neutral'}
                   />
                 </Row>
-                <View style={{ flexDirection: 'row', gap: 16 }}>
-                  <Txt size={14}>
-                    {t('events.statInvited')}: {e.stats.invited}
-                  </Txt>
-                  <Txt size={14}>
-                    {t('events.statConfirmed')}: {e.stats.confirmed}
-                  </Txt>
+                <View style={{ flexDirection: 'row', gap: 10, paddingTop: 4 }}>
+                  <View
+                    style={{
+                      backgroundColor: c.bezel,
+                      borderRadius: 999,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Txt size={13} bold style={{ fontVariant: ['tabular-nums'] } as never}>
+                      {t('events.statInvited')}: {e.stats.invited}
+                    </Txt>
+                  </View>
+                  <View
+                    style={{
+                      backgroundColor: c.primarySoft,
+                      borderRadius: 999,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Txt
+                      size={13}
+                      bold
+                      color={c.primary}
+                      style={{ fontVariant: ['tabular-nums'] } as never}
+                    >
+                      {t('events.statConfirmed')}: {e.stats.confirmed}
+                    </Txt>
+                  </View>
                 </View>
               </Card>
             );

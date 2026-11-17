@@ -217,7 +217,10 @@
   --color-ks-ink: var(--ks-ink);
   --color-ks-muted: var(--ks-muted);
   --color-ks-paper: var(--ks-paper);
+  --color-ks-surface: var(--ks-surface);
+  --color-ks-bg: var(--ks-bg);
   --color-ks-line: var(--ks-line);
+  --color-ks-border: var(--ks-border);
   --color-ks-ok: var(--ks-ok);
   --color-ks-warn: var(--ks-warn);
   --color-ks-error: var(--ks-error);
@@ -242,7 +245,10 @@
   --ks-ink: #1a1f1d;
   --ks-muted: #5b6662;
   --ks-paper: #fbfaf7;
+  --ks-surface: #ffffff;
+  --ks-bg: #fbfaf7;
   --ks-line: #e4e1da;
+  --ks-border: #e4e1da;
   /* Darkened for AA on `bg-ks-ok text-white` and `bg-ks-warn text-white` in GateChip / progress bars
      (mockups.tsx). Mirrors the ADR 006 gate-color fix so the three status tokens behave the same
      across web, print and mobile. ks-palette.test.ts locks the ratios. */
@@ -372,6 +378,17 @@
   border-radius: calc(2rem - 0.375rem);
   background: rgb(255 255 255 / 0.04);
   box-shadow: inset 0 1px 1px rgb(255 255 255 / 0.12);
+}
+.ks-bento {
+  transition:
+    transform 0.45s var(--ks-ease),
+    box-shadow 0.45s var(--ks-ease);
+}
+.ks-bento:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px rgb(15 92 77 / 0.14),
+    0 28px 56px -30px rgb(10 63 53 / 0.34);
 }
 .ks-ease {
   transition-timing-function: var(--ks-ease);

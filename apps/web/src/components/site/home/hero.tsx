@@ -1,4 +1,4 @@
-import { ArrowUpRight, CheckCircle2, Play, Users, Wallet, Wifi } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Play, QrCode, Users, Wallet, Wifi } from 'lucide-react';
 import { SiteLink as Link } from '@/components/site/site-link';
 import type { HeroStatCardsCopy } from '@/content/home';
 
@@ -22,17 +22,24 @@ export interface HeroProps {
   primary: { href: string; label: string };
   howHref: string;
   howLabel: string;
+  guestCard?: { href: string; label: string };
   trustLine: string;
   kickerEvents: readonly [string, string, string, string, string, string];
   previewFrameAlt: string;
   statCards: HeroStatCardsCopy;
+  capabilities?: readonly string[];
 }
 
-function splitOnAccent(h1: string, accent: string): [string, string, string] {
-  if (!accent) return [h1, '', ''];
+function splitOnAccent(h1: string, accent: string): [string, string, string, string] {
+  if (!accent) return [h1, '', '', ''];
   const i = h1.toLowerCase().indexOf(accent.toLowerCase());
-  if (i < 0) return [h1, '', ''];
-  return [h1.slice(0, i), h1.slice(i, i + accent.length), h1.slice(i + accent.length)];
+  if (i < 0) return [h1, '', '', ''];
+  const rawPost = h1.slice(i + accent.length);
+  // Keep any immediately following punctuation (e.g. ".") glued to the accent word so it never orphans on a new line.
+  const punctMatch = rawPost.match(/^[.,!?;:]+/);
+  const punct = punctMatch ? punctMatch[0] : '';
+  const post = rawPost.slice(punct.length);
+  return [h1.slice(0, i), h1.slice(i, i + accent.length), punct, post];
 }
 
 const KICKER_COLORS = [
@@ -45,7 +52,7 @@ const KICKER_COLORS = [
 ] as const;
 
 export function Hero(props: HeroProps) {
-  const [pre, accent, post] = splitOnAccent(props.h1, props.accentWord);
+  const [pre, accent, punct, post] = splitOnAccent(props.h1, props.accentWord);
   const s = props.statCards;
 
   return (
@@ -88,26 +95,29 @@ export function Hero(props: HeroProps) {
           <h1 className="font-serif text-[38px] leading-[1.03] tracking-[-0.03em] text-ks-ink sm:text-[48px] lg:text-[56px] xl:text-[60px]">
             {pre}
             {accent ? (
-              <span className="relative inline-block italic text-ks-magenta">
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -inset-x-1 bottom-1 top-[42%] -z-10 -rotate-1 rounded-sm bg-ks-saffron-100/80"
-                />
-                {accent}
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 200 14"
-                  preserveAspectRatio="none"
-                  className="pointer-events-none absolute -bottom-1 left-0 h-[0.3em] w-full text-ks-saffron"
-                >
-                  <path
-                    d="M3 9 Q 52 2 102 7 Q 152 12 197 4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3.2"
-                    strokeLinecap="round"
+              <span className="whitespace-nowrap">
+                <span className="relative inline-block italic text-ks-magenta">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-x-1 bottom-1 top-[42%] -z-10 -rotate-1 rounded-sm bg-ks-saffron-100/80"
                   />
-                </svg>
+                  {accent}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 200 14"
+                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute -bottom-1 left-0 h-[0.3em] w-full text-ks-saffron"
+                  >
+                    <path
+                      d="M3 9 Q 52 2 102 7 Q 152 12 197 4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+                {punct}
               </span>
             ) : null}
             {post}
@@ -141,22 +151,50 @@ export function Hero(props: HeroProps) {
               className="group inline-flex min-h-[3.35rem] items-center gap-2.5 rounded-full border border-ks-line bg-white/85 py-1.5 pl-2 pr-5 text-[15px] font-semibold text-ks-ink shadow-[0_8px_20px_-12px_rgb(26_31_29/0.2)] backdrop-blur-sm transition-all duration-300 hover:border-ks-green-700/35 hover:bg-white"
             >
               <span className="inline-flex size-9 items-center justify-center rounded-full bg-ks-saffron text-ks-ink shadow-[0_6px_14px_-5px_rgb(232_149_48/0.75)] transition-transform duration-300 group-hover:scale-105">
-                <Play className="size-3.5 translate-x-[0.5px] fill-ks-ink" strokeWidth={0} aria-hidden="true" />
+                <Play
+                  className="size-3.5 translate-x-[0.5px] fill-ks-ink"
+                  strokeWidth={0}
+                  aria-hidden="true"
+                />
               </span>
               <span>{props.howLabel}</span>
             </Link>
+
+            {props.guestCard ? (
+              <Link
+                href={props.guestCard.href}
+                className="inline-flex min-h-[3rem] items-center gap-2 rounded-full px-3.5 text-sm font-semibold text-ks-green-900 underline decoration-ks-green-700/35 underline-offset-4 transition hover:text-ks-green-700 hover:decoration-ks-green-700"
+              >
+                <QrCode className="size-4 text-ks-green-700" aria-hidden="true" />
+                <span>{props.guestCard.label}</span>
+              </Link>
+            ) : null}
           </div>
 
-          <div className="flex items-center gap-2.5 pt-0.5">
+          <div className="flex flex-wrap items-center gap-2.5 pt-0.5">
             <span className="inline-flex items-center gap-2 rounded-full bg-ks-green-100/80 px-3.5 py-1.5 text-[13px] font-medium text-ks-green-900 ring-1 ring-ks-green-700/15">
               <CheckCircle2 className="size-4 shrink-0 text-ks-green-700" aria-hidden="true" />
               <span>{props.trustLine}</span>
             </span>
           </div>
+
+          {props.capabilities?.length ? (
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-ks-line/80 pt-4 text-[13px] font-medium text-ks-muted sm:grid-cols-2">
+              {props.capabilities.map((cap) => (
+                <li key={cap} className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 shrink-0 rounded-full bg-ks-gold-500"
+                  />
+                  <span>{cap}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         {/* Right column: layered editorial product stage */}
-        <div className="ks-enter-2 relative mx-auto flex w-full max-w-[460px] flex-col items-center justify-center gap-6 md:min-h-[590px]">
+        <div className="ks-enter-2 relative mx-auto flex w-full max-w-[490px] flex-col items-center justify-center gap-6 md:min-h-[590px]">
           {/* Architectural arch backdrop with gold hairline */}
           <div
             aria-hidden="true"
@@ -479,8 +517,8 @@ export function Hero(props: HeroProps) {
             </div>
           </div>
 
-          {/* Floating card 2 (mid-right): Michango progress */}
-          <div className="absolute right-0 top-[56%] z-20 hidden w-[13rem] -translate-y-1/2 rounded-2xl bg-white/95 p-3.5 shadow-[0_22px_44px_-16px_rgb(232_149_48/0.38),inset_0_0_0_1px_rgb(232_149_48/0.24)] backdrop-blur-md md:block lg:-right-5">
+          {/* Floating card 2 (lower-right): Michango progress — positioned clear of the couple names & date pill */}
+          <div className="absolute -right-2 top-[68%] z-20 hidden w-[12.25rem] -translate-y-1/2 rounded-2xl bg-white/95 p-3.5 shadow-[0_22px_44px_-16px_rgb(232_149_48/0.38),inset_0_0_0_1px_rgb(232_149_48/0.24)] backdrop-blur-md md:block lg:-right-8">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.13em] text-ks-ink/80">
                 <Wallet className="size-3.5 text-ks-saffron" aria-hidden="true" />

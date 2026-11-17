@@ -37,6 +37,7 @@ import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { ScheduledSends } from '@/components/console/scheduled-sends';
+import { WhatsappCardPreview } from '@/components/console/whatsapp-card-preview';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, KpiTile, ProgressBar, Skeleton } from '@/components/ui/display';
 import { SegmentedControl, Switch } from '@/components/ui/navigation';
@@ -599,27 +600,38 @@ function SendInner({ id }: { id: string }) {
                       </p>
                     </div>
                     <div>
-                      <p className="mb-1 text-sm font-semibold">{t('previewWhatsapp')}</p>
-                      <p
-                        className="rounded-2xl rounded-bl-sm bg-success/12 p-3 text-sm"
-                        lang={previewLang}
-                      >
-                        {contribution
-                          ? t('whatsappTemplateContribution', {
-                              sender,
-                              couple: e.coupleNames,
-                              kindOf: eventKindOf(e.eventKind, previewLang).toLowerCase(),
-                              link: `${host}/c/…`,
-                            })
-                          : t('whatsappTemplate', {
-                              guest: 'Asha',
-                              couple: e.coupleNames,
-                              kind: eventKindLabel(e.eventKind, previewLang),
-                              date: dateText,
-                              venue: e.venueName,
-                              link: `${host}/c/…`,
-                            })}
-                      </p>
+                      <p className="mb-2 text-sm font-semibold">{t('previewWhatsapp')}</p>
+                      <WhatsappCardPreview
+                        eventKind={e.eventKind}
+                        coupleNames={e.coupleNames}
+                        partnerA={e.partnerA}
+                        partnerB={e.partnerB}
+                        dateStart={e.dateStart}
+                        venueName={e.venueName}
+                        themeId={e.themeId}
+                        coverGradient={e.coverGradient}
+                        palette={e.palette}
+                        locale={previewLang}
+                        domain={APP_DOMAIN}
+                        isContribution={contribution}
+                        messageText={
+                          contribution
+                            ? t('whatsappTemplateContribution', {
+                                sender,
+                                couple: e.coupleNames,
+                                kindOf: eventKindOf(e.eventKind, previewLang).toLowerCase(),
+                                link: `${host}/c/…`,
+                              })
+                            : t('whatsappTemplate', {
+                                guest: 'Asha',
+                                couple: e.coupleNames,
+                                kind: eventKindLabel(e.eventKind, previewLang),
+                                date: dateText,
+                                venue: e.venueName,
+                                link: `${host}/c/…`,
+                              })
+                        }
+                      />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button

@@ -20,6 +20,11 @@ docs/ui/lighthouse
 apps/web/.lighthouseci
 apps/web/e2e/.auth
 .next-live
+apps/mobile/android
+apps/mobile/ios
+kadisasa-site-kit/
+kadisasa_seo_ai_seo_strategy.md
+logo.svg
 
 .claude/settings.local.json
 

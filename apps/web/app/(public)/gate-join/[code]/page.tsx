@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { Download, ScanLine, ShieldCheck, Smartphone } from 'lucide-react';
 import { buttonClasses } from '@/components/ui/button';
+import { GateJoinScanner } from '@/components/gate/gate-join-scanner';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { gateAppIntent, gateJoinCode } from '@/lib/gate-join';
@@ -52,6 +53,8 @@ export default async function GateJoinPage({ params }: { params: Promise<{ code:
           {code}
         </span>
       </div>
+
+      <GateJoinScanner code={code} brandName={brand} />
 
       <div className="flex flex-col gap-3">
         <a

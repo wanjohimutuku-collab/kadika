@@ -2,34 +2,64 @@ import type { Metadata } from 'next';
 import { SiteLink as Link } from '@/components/site/site-link';
 import { connection } from 'next/server';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { CheckCircle2, CreditCard, HandCoins, MessageCircle, MessageSquare } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  CreditCard,
+  HandCoins,
+  MessageCircle,
+  MessageSquare,
+} from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
 import { SeoLinks } from '@/components/public/seo-links';
-import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
 import { JsonLd } from '@/components/site/json-ld';
-import { ORG_ID, absoluteLocaleUrl, ogImages, organizationNode } from '@/lib/seo';
+import { CompareTable, Faq } from '@/components/site/blocks';
+import {
+  ORG_ID,
+  PUBLIC_ROBOTS,
+  SITE_URL,
+  absoluteLocaleUrl,
+  localeUrl,
+  ogImages,
+  organizationNode,
+  twitterSummaryCard,
+} from '@/lib/seo';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import { getPricingOnServer, PRICING_PATH } from '@/lib/server-pricing';
 import { sortedTiers } from '@harusi/schemas/billing';
 import { formatMoney, formatNumber } from '@/lib/format';
+import { getPage, pagePath, textOf } from '@/content';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('pricing');
   const locale = (await getLocale()) as Locale;
   const brand = (await getBrandingOnServer()).businessName;
+  const title = t('metaTitle', { brand });
+  const description = t('metaDescription', { brand });
+  const url = absoluteLocaleUrl(PRICING_PATH, locale);
   return {
-    title: { absolute: t('metaTitle', { brand }) },
-    description: t('metaDescription', { brand }),
+    title: { absolute: title },
+    description,
+    robots: PUBLIC_ROBOTS,
+    alternates: {
+      canonical: url,
+      languages: {
+        'en-TZ': absoluteLocaleUrl(PRICING_PATH, 'en'),
+        'sw-TZ': absoluteLocaleUrl(PRICING_PATH, 'sw'),
+        'x-default': absoluteLocaleUrl(PRICING_PATH, 'en'),
+      },
+    },
     openGraph: {
       type: 'website',
       siteName: brand,
-      title: t('metaTitle', { brand }),
-      description: t('metaDescription', { brand }),
+      title,
+      description,
       locale: locale === 'sw' ? 'sw_TZ' : 'en_TZ',
-      url: absoluteLocaleUrl(PRICING_PATH, locale),
+      url,
       images: ogImages(locale),
     },
+    twitter: twitterSummaryCard(title, description, locale, 'tz'),
   };
 }
 
@@ -48,8 +78,89 @@ export default async function PricingPage() {
   const url = absoluteLocaleUrl(PRICING_PATH, locale);
   const prices = tiers.map((x) => x.price.TZS);
 
+  const firstTier = tiers[0];
+  const lastTier = tiers[tiers.length - 1];
+  const shortAnswer =
+    locale === 'sw'
+      ? c.enforced && firstTier && lastTier
+        ? `Kadi Sasa huanza na kadi ${formatNumber(c.free.cards)} bure na ujumbe ${formatNumber(c.free.messages)} bure kwa kila tukio. Baada ya hapo bei huanzia ${formatMoney(firstTier.price.TZS, 'TZS')} kwa kadi na hushuka hadi ${formatMoney(lastTier.price.TZS, 'TZS')} kwa oda za kadi ${formatNumber(lastTier.minCards)}+; michango ya wageni huenda moja kwa moja kwa wenye sherehe bila makato.`
+        : `Kadi Sasa ni bure wakati wa majaribio ya Tanzania, ikikupa kadi za QR kwa WhatsApp, SMS na PDF ya kuchapisha. Malipo yakianza, bei itakuwa kwa kila kadi kulingana na ukubwa wa orodha ya wageni, na michango ya harusi itaendelea kwenda moja kwa moja kwa wenye sherehe bila makato.`
+      : c.enforced && firstTier && lastTier
+        ? `Every event on Kadi Sasa starts with ${formatNumber(c.free.cards)} free cards and ${formatNumber(c.free.messages)} messages. Paid tiers run from ${formatMoney(firstTier.price.TZS, 'TZS')} per card down to ${formatMoney(lastTier.price.TZS, 'TZS')} at ${formatNumber(lastTier.minCards)}+ cards, while guest michango go straight to the hosts with zero commission.`
+        : `Kadi Sasa is free during the Tanzania pilot with WhatsApp, SMS, and print-ready QR cards included. When billing opens, pricing scales per issued card based on guest count, and guest michango always go directly to the hosts with zero platform cut.`;
+
+  const pricingFaqs =
+    locale === 'sw'
+      ? [
+          {
+            q: 'Je, Kadi Sasa inachukua asilimia ya michango ya wageni?',
+            a: 'Hapana. Kadi Sasa haishiki wala kukata asilimia yoyote ya michango. Wageni hutuma fedha moja kwa moja kwa kamati au wenye sherehe, na kamati hurekodi ahadi na malipo kwenye daftari.',
+          },
+          {
+            q: 'Je, wageni wasio na smartphone wanalipiwa tofauti?',
+            a: `Hapana. Kila kadi tayari inajumuisha kiungo cha WhatsApp, ujumbe ${c.messagesPerCard} wa vikumbusho na PDF ya kuchapisha pamoja na namba fupi ya SMS.`,
+          },
+          {
+            q: 'Tunaweza kuanza na kadi chache kisha kuongeza baadaye?',
+            a: 'Ndiyo. Mnaweza kuanza na kadi za bure za majaribio, kisha kuongeza wageni kadiri kikao kinavyoendelea na kulipia tu kadi mnazotuma.',
+          },
+        ]
+      : [
+          {
+            q: 'Does Kadi Sasa take a percentage of wedding contributions?',
+            a: 'No. Guests send michango directly to the couple or committee, and Kadi Sasa only records pledges and payments so the treasurer always has an accurate report.',
+          },
+          {
+            q: 'Do non-smartphone guests cost extra?',
+            a: `No. Every issued card includes its WhatsApp/SMS link, ${c.messagesPerCard} reminder messages, a short guest code, and a print-ready PDF for elders.`,
+          },
+          {
+            q: 'Can we start small and add more guests later?',
+            a: 'Yes. Start free with your first cards, test the layout with the committee, and add more guests whenever your list grows.',
+          },
+        ];
+
+  const comparisonHead =
+    locale === 'sw'
+      ? ['Kiwango cha wageni', 'Bei kwa kadi', 'Mfano wa jumla', 'Yanayojumuishwa']
+      : ['Guest tier', 'Price per card', 'Example total', 'Included'];
+
+  const comparisonRows = tiers.map((x, i) => {
+    const next = tiers[i + 1]?.minCards;
+    const label =
+      next === undefined
+        ? t('tierFrom', { from: formatNumber(x.minCards) })
+        : t('tierRange', {
+            from: formatNumber(x.minCards),
+            to: formatNumber(next - 1),
+          });
+    const example = next ? Math.max(x.minCards, 50) : x.minCards;
+    const includedText =
+      locale === 'sw'
+        ? `WhatsApp, SMS, PDF ya QR, RSVP + vikumbusho ${c.messagesPerCard}`
+        : `WhatsApp, SMS, printable QR PDF, RSVP + ${c.messagesPerCard} reminders`;
+    return [
+      label,
+      formatMoney(x.price.TZS, 'TZS'),
+      t('example', {
+        n: formatNumber(example),
+        total: formatMoney(example * x.price.TZS, 'TZS'),
+      }),
+      includedText,
+    ];
+  });
+
+  const guideLinks = [
+    'kadi-ya-harusi-mtandaoni',
+    'michango-ya-harusi',
+    'lango-la-harusi-qr',
+    'kadi-ya-mtandaoni-vs-karatasi',
+  ]
+    .map((slug) => getPage(slug))
+    .filter((p): p is NonNullable<typeof p> => !!p);
+
   return (
-    <main data-testid="pricing">
+    <main data-testid="pricing" className="bg-ks-paper">
       <SeoLinks path={PRICING_PATH} locale={locale} />
       {/* Prices come from the same live catalogue as the tiers below; offers only once charging is on. */}
       <JsonLd
@@ -57,6 +168,33 @@ export default async function PricingPage() {
           '@context': 'https://schema.org',
           '@graph': [
             organizationNode(),
+            {
+              '@type': 'WebPage',
+              '@id': `${url}#page`,
+              url,
+              name: t('metaTitle', { brand }),
+              description: t('metaDescription', { brand }),
+              inLanguage: locale === 'sw' ? 'sw-TZ' : 'en-TZ',
+              isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#site` },
+              speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu-fupi'] },
+            },
+            {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: locale === 'sw' ? 'Nyumbani' : 'Home',
+                  item: absoluteLocaleUrl('/', locale),
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: locale === 'sw' ? 'Bei' : 'Pricing',
+                  item: url,
+                },
+              ],
+            },
             {
               '@type': 'Service',
               '@id': `${url}#service`,
@@ -92,78 +230,130 @@ export default async function PricingPage() {
                   }
                 : {}),
             },
+            {
+              '@type': 'FAQPage',
+              mainEntity: pricingFaqs.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            },
           ],
         }}
       />
-      <section className="bg-primary text-on-primary">
-        <div className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-12 md:py-16">
-          <OrnamentDiamond className="[--hp-pattern:#D9B26A]" />
-          <h1 className="font-display text-4xl leading-tight font-semibold [text-wrap:balance] md:text-5xl">
+
+      <header className="ks-mesh -mt-20 border-b border-ks-line/60 md:-mt-24">
+        <div className="mx-auto flex max-w-[1120px] flex-col gap-6 px-4 pt-32 pb-14 md:px-6 md:pt-40 md:pb-20">
+          <OrnamentDiamond className="[--hp-pattern:#D9A441]" />
+          <h1 className="font-serif text-[36px] leading-[1.06] font-bold tracking-[-0.03em] text-ks-green-900 [text-wrap:balance] md:text-[54px]">
             {t('title')}
           </h1>
-          <p className="max-w-2xl text-lg opacity-95">{t('intro')}</p>
+          <p className="max-w-2xl text-lg leading-relaxed text-ks-muted">{t('intro')}</p>
           {c.enforced ? null : (
             <p
-              className="max-w-2xl rounded-card bg-on-primary/10 p-3 font-medium"
+              className="w-fit rounded-full border border-ks-gold-500/40 bg-ks-gold-100/90 px-4 py-2 text-sm font-semibold text-ks-green-900"
               data-testid="pricing-pilot"
             >
               {t('pilotFree')}
             </p>
           )}
+          <section
+            id="jibu-fupi"
+            aria-label={locale === 'sw' ? 'Jibu fupi' : 'Short answer'}
+            className="ks-bezel max-w-3xl"
+          >
+            <div className="ks-core relative overflow-hidden p-6 md:p-8">
+              <div
+                aria-hidden="true"
+                className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-75"
+              />
+              <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-ks-green-700 uppercase">
+                {locale === 'sw' ? 'Kwa ufupi' : 'At a glance'}
+              </p>
+              <p className="text-base leading-relaxed text-ks-ink md:text-lg">{shortAnswer}</p>
+            </div>
+          </section>
         </div>
-      </section>
+      </header>
 
-      <section className="mx-auto max-w-5xl px-4 py-10" aria-labelledby="tiers-h">
-        <h2 id="tiers-h" className="text-2xl font-semibold">
-          {t('tiersTitle')}
-        </h2>
-        <p className="mt-2 text-muted">{t('tiersIntro')}</p>
-        <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <section
+        className="mx-auto max-w-[1120px] px-4 py-14 md:px-6 md:py-20"
+        aria-labelledby="tiers-h"
+      >
+        <div className="mb-8 flex flex-col gap-2">
+          <h2 id="tiers-h" className="font-serif text-3xl font-bold text-ks-green-900 md:text-4xl">
+            {t('tiersTitle')}
+          </h2>
+          <p className="text-ks-muted">{t('tiersIntro')}</p>
+        </div>
+        <ul className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           {tiers.map((x, i) => {
             const next = tiers[i + 1]?.minCards;
             const example = next ? Math.max(x.minCards, 50) : x.minCards;
+            const highlight = i === 1 && tiers.length === 3;
             return (
               <li
                 key={x.minCards}
-                className="flex flex-col gap-3 rounded-card border border-border bg-surface p-5"
+                className={`ks-bezel ks-bento flex ${highlight ? 'ring-2 ring-ks-gold-500/50' : ''}`}
                 data-testid="pricing-tier"
               >
-                <p className="flex items-center gap-2 text-lg font-semibold">
-                  <CreditCard className="size-5 text-primary" aria-hidden="true" />
-                  {next === undefined
-                    ? t('tierFrom', { from: formatNumber(x.minCards) })
-                    : t('tierRange', {
-                        from: formatNumber(x.minCards),
-                        to: formatNumber(next - 1),
-                      })}
-                </p>
-                <p className="tabular text-3xl font-bold">
-                  {formatMoney(x.price.TZS, 'TZS')}{' '}
-                  <span className="text-base font-normal text-muted">{t('perCard')}</span>
-                </p>
-                <p className="text-sm text-muted">
-                  {t('example', {
-                    n: formatNumber(example),
-                    total: formatMoney(example * x.price.TZS, 'TZS'),
-                  })}
-                </p>
+                <div
+                  className={`flex w-full flex-col gap-4 rounded-[calc(2rem-0.375rem)] p-6 md:p-8 ${
+                    highlight ? 'ks-mesh-dark text-white' : 'ks-core text-ks-ink'
+                  }`}
+                >
+                  <p className="flex items-center gap-2 text-lg font-semibold">
+                    <CreditCard
+                      className={`size-5 ${highlight ? 'text-ks-gold-500' : 'text-ks-green-700'}`}
+                      aria-hidden="true"
+                    />
+                    {next === undefined
+                      ? t('tierFrom', { from: formatNumber(x.minCards) })
+                      : t('tierRange', {
+                          from: formatNumber(x.minCards),
+                          to: formatNumber(next - 1),
+                        })}
+                  </p>
+                  <p className="tabular text-3xl font-bold">
+                    {formatMoney(x.price.TZS, 'TZS')}{' '}
+                    <span
+                      className={`text-base font-normal ${highlight ? 'text-white/80' : 'text-ks-muted'}`}
+                    >
+                      {t('perCard')}
+                    </span>
+                  </p>
+                  <p className={`text-sm ${highlight ? 'text-white/85' : 'text-ks-muted'}`}>
+                    {t('example', {
+                      n: formatNumber(example),
+                      total: formatMoney(example * x.price.TZS, 'TZS'),
+                    })}
+                  </p>
+                </div>
               </li>
             );
           })}
         </ul>
-        <ul className="mt-6 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-          <li className="flex items-center gap-2">
-            <MessageSquare className="size-4 text-primary" aria-hidden="true" />
-            {t('includesReminders', { n: c.messagesPerCard })}
+
+        <div className="mt-10">
+          <CompareTable caption={t('tiersTitle')} head={comparisonHead} rows={comparisonRows} />
+        </div>
+
+        <ul className="mt-8 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <li className="flex items-center gap-2.5 rounded-2xl border border-ks-line bg-white px-4 py-3">
+            <MessageSquare className="size-4 shrink-0 text-ks-green-700" aria-hidden="true" />
+            <span>{t('includesReminders', { n: c.messagesPerCard })}</span>
           </li>
           {(['qr', 'rsvp', 'gate', 'print'] as const).map((k) => (
-            <li key={k} className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
-              {t(`feature.${k}`)}
+            <li
+              key={k}
+              className="flex items-center gap-2.5 rounded-2xl border border-ks-line bg-white px-4 py-3"
+            >
+              <CheckCircle2 className="size-4 shrink-0 text-ks-ok" aria-hidden="true" />
+              <span>{t(`feature.${k}`)}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-sm text-muted">
+        <p className="mt-5 text-sm text-ks-muted">
           {t('freeNote', {
             cards: formatNumber(c.free.cards),
             messages: formatNumber(c.free.messages),
@@ -172,45 +362,105 @@ export default async function PricingPage() {
       </section>
 
       {c.packs.length ? (
-        <section className="mx-auto max-w-5xl px-4 pb-10" aria-labelledby="packs-h">
-          <h2 id="packs-h" className="text-2xl font-semibold">
+        <section className="mx-auto max-w-[1120px] px-4 pb-12 md:px-6" aria-labelledby="packs-h">
+          <h2 id="packs-h" className="font-serif text-2xl font-bold text-ks-green-900 md:text-3xl">
             {t('packsTitle')}
           </h2>
-          <p className="mt-2 text-muted">{t('packsIntro')}</p>
-          <ul className="mt-4 divide-y divide-border rounded-card border border-border bg-surface">
-            {c.packs.map((p) => (
-              <li
-                key={p.key}
-                className="flex items-center gap-3 px-4 py-3"
-                data-testid="pricing-pack"
-              >
-                <MessageCircle className="size-5 text-muted" aria-hidden="true" />
-                <span className="flex-1 font-medium">
-                  {t('creditPack', { n: formatNumber(p.messages) })}
-                </span>
-                <span className="tabular font-semibold">{formatMoney(p.price.TZS, 'TZS')}</span>
-              </li>
-            ))}
-          </ul>
+          <p className="mt-2 text-ks-muted">{t('packsIntro')}</p>
+          <div className="ks-bezel mt-5">
+            <ul className="ks-core divide-y divide-ks-line">
+              {c.packs.map((p) => (
+                <li
+                  key={p.key}
+                  className="flex items-center gap-3 px-5 py-4"
+                  data-testid="pricing-pack"
+                >
+                  <MessageCircle className="size-5 text-ks-green-700" aria-hidden="true" />
+                  <span className="flex-1 font-medium text-ks-ink">
+                    {t('creditPack', { n: formatNumber(p.messages) })}
+                  </span>
+                  <span className="tabular font-bold text-ks-green-900">
+                    {formatMoney(p.price.TZS, 'TZS')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-5xl px-4 pb-12" aria-labelledby="contrib-h">
-        <div className="flex gap-3 rounded-card border border-border bg-surface p-5">
-          <HandCoins className="size-6 shrink-0 text-primary" aria-hidden="true" />
-          <div>
-            <h2 id="contrib-h" className="font-semibold">
-              {t('contributionsTitle')}
-            </h2>
-            <p className="mt-1 text-muted">{t('contributionsBody')}</p>
+      <section className="mx-auto max-w-[1120px] px-4 pb-12 md:px-6" aria-labelledby="contrib-h">
+        <div className="ks-bezel">
+          <div className="ks-core flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <div className="flex gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-ks-gold-100 text-ks-green-900">
+                <HandCoins className="size-6" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="contrib-h" className="text-lg font-semibold text-ks-ink">
+                  {t('contributionsTitle')}
+                </h2>
+                <p className="mt-1 max-w-2xl text-ks-muted">{t('contributionsBody')}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/login"
+                className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-ks-green-700 px-6 font-semibold text-white shadow-[0_10px_24px_-12px_rgb(15_92_77/0.7)] transition hover:bg-ks-green-900"
+                data-testid="pricing-cta"
+              >
+                <span>{t('cta')}</span>
+                <ArrowUpRight className="size-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/jaribu"
+                className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full border border-ks-line bg-white px-5 font-semibold text-ks-green-900 transition hover:border-ks-green-700"
+              >
+                {locale === 'sw' ? 'Jaribu kadi' : 'Try demo card'}
+              </Link>
+            </div>
           </div>
         </div>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/login" className={buttonClasses('primary', 'lg')} data-testid="pricing-cta">
-            {t('cta')}
-          </Link>
-        </div>
       </section>
+
+      <Faq
+        id="maswali-ya-bei"
+        title={locale === 'sw' ? 'Maswali kuhusu bei' : 'Pricing questions'}
+        eyebrow={locale === 'sw' ? 'Maswali' : 'FAQ'}
+        items={pricingFaqs}
+      />
+
+      {guideLinks.length ? (
+        <nav
+          aria-label={locale === 'sw' ? 'Soma pia' : 'Related'}
+          className="mx-auto flex w-full max-w-[1120px] flex-col gap-5 px-4 pb-20 md:px-6"
+        >
+          <h2 className="font-serif text-2xl font-bold text-ks-green-900">
+            {locale === 'sw' ? 'Miongozo muhimu' : 'Helpful guides'}
+          </h2>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {guideLinks.map((g) => {
+              const gt = textOf(g, locale);
+              return (
+                <li key={g.slug} className="ks-bezel ks-bento flex">
+                  <Link
+                    href={localeUrl(pagePath(g, locale), locale)}
+                    className="group ks-core flex w-full flex-col justify-between gap-3 p-5"
+                  >
+                    <span className="font-semibold text-ks-ink group-hover:text-ks-green-700">
+                      {gt.nav}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-ks-green-700">
+                      {locale === 'sw' ? 'Soma' : 'Read'}
+                      <ArrowUpRight className="size-3.5" aria-hidden="true" />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      ) : null}
     </main>
   );
 }

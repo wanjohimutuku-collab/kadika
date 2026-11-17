@@ -83,38 +83,66 @@ export default function Overview() {
   return (
     <Screen>
       {/* hero: how long to go, and how far the invitations have got (names and venue are in the header) */}
-      <Card tone="brand" style={{ gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
-          <Text style={{ color: c.onPrimary, fontSize: 56, fontWeight: '800', lineHeight: 60 }}>
-            {Math.max(0, days)}
-          </Text>
-          <Text
+      <Card tone="brand" style={{ gap: 16 }}>
+        <View
+          style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+            <Text
+              style={{
+                color: c.onPrimary,
+                fontSize: 54,
+                fontWeight: '800',
+                lineHeight: 58,
+                fontVariant: ['tabular-nums'],
+                letterSpacing: -1.5,
+              }}
+            >
+              {Math.max(0, days)}
+            </Text>
+            <Text
+              style={{
+                color: c.onPrimary,
+                fontSize: 17,
+                fontWeight: '600',
+                paddingBottom: 8,
+                opacity: 0.9,
+              }}
+            >
+              {days <= 0
+                ? t('overview.countdown', { days: 0 })
+                : t('events.daysLeft', { days })
+                    .replace(/\d+\s*/, '')
+                    .trim()}
+            </Text>
+          </View>
+          <View
             style={{
-              color: c.onPrimary,
-              fontSize: 18,
-              fontWeight: '600',
-              paddingBottom: 8,
-              flexShrink: 1,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: 'rgba(217,164,65,0.2)',
+              borderWidth: 1,
+              borderColor: 'rgba(217,164,65,0.45)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 8,
             }}
           >
-            {days <= 0
-              ? t('overview.countdown', { days: 0 })
-              : t('events.daysLeft', { days })
-                  .replace(/\d+\s*/, '')
-                  .trim()}
-          </Text>
+            <Icon name="overview" size={18} color={c.gold} />
+          </View>
         </View>
-        <View style={{ gap: 6 }}>
-          <Text style={{ color: c.onPrimary, fontSize: 14 }}>
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: c.onPrimary, fontSize: 14, fontWeight: '500', opacity: 0.92 }}>
             {t('mobile.sentProgress', { sent: s.sent, total: s.invited })}
           </Text>
-          <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.28)' }}>
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.2)' }}>
             <View
               style={{
                 height: 8,
                 borderRadius: 4,
                 width: `${s.invited ? Math.max(3, (s.sent / s.invited) * 100) : 0}%`,
-                backgroundColor: '#FFFFFF',
+                backgroundColor: c.saffron,
               }}
             />
           </View>
@@ -122,33 +150,35 @@ export default function Overview() {
       </Card>
 
       {/* the one thing to do next */}
-      <Card style={{ gap: 12 }}>
+      <Card style={{ gap: 14 }}>
         <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
           <View
             style={{
               width: 44,
               height: 44,
               borderRadius: 22,
-              backgroundColor: c.primary + '1A',
+              backgroundColor: c.saffronSoft,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Icon name={next.icon} size={22} color={c.primary} />
+            <Icon name={next.icon} size={21} color={c.saffron} />
           </View>
           <View style={{ flex: 1 }}>
             <Text
               style={{
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: '800',
-                letterSpacing: 0.6,
+                letterSpacing: 0.8,
                 color: c.muted,
                 textTransform: 'uppercase',
               }}
             >
               {t('overview.nextStep')}
             </Text>
-            <Text style={{ fontSize: 16, color: c.ink, marginTop: 2 }}>{next.text}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: c.ink, marginTop: 2 }}>
+              {next.text}
+            </Text>
           </View>
         </View>
         <Button label={next.label} onPress={next.go} />
@@ -180,6 +210,7 @@ export default function Overview() {
 
       {role !== 'gate' ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          <Tile icon="gate" label={t('gateApp.openGate')} onPress={go('gate')} />
           <Tile icon="memories" label={t('nav.memories')} onPress={go('memories')} />
         </View>
       ) : null}

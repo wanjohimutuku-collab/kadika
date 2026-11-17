@@ -128,8 +128,101 @@ export const CLIENT_SCRIPT = String.raw`
   $('#hp-inc').addEventListener('click', function () { setParty(party + 1); });
   $('#hp-change').addEventListener('click', function () { summary.hidden = true; form.hidden = false; panel.hidden = true; $('#hp-answer-row').hidden = false; });
 
-  // ---- downloads: QR as a high-contrast PNG, calendar (.ics)
+  // ---- downloads & WhatsApp sharing: exact previewed card image, QR PNG, calendar (.ics)
   function save(href, name) { var a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+  function renderCardCanvas(scale) {
+    scale = scale || 2;
+    var W = 640, H = 940, c = document.createElement('canvas');
+    c.width = W * scale; c.height = H * scale;
+    var x = c.getContext('2d'); x.scale(scale, scale);
+    x.fillStyle = '#F6F3EE'; x.fillRect(0, 0, W, H);
+    var cx = 30, cy = 20, cw = 580, ch = 900;
+    // Cover header
+    x.fillStyle = S.primaryColor || '#0A3F35';
+    x.fillRect(cx, cy, cw, 270);
+    x.fillStyle = 'rgba(0,0,0,0.18)';
+    x.fillRect(cx, cy, cw, 270);
+    // Eyebrow
+    x.fillStyle = S.onPrimaryColor || '#FFFFFF';
+    x.font = 'bold 12px system-ui,sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText((S.eyebrow || S.kindOf || 'MWALIKO').toUpperCase(), 320, cy + 40);
+    // Couple names
+    x.font = 'bold 32px Georgia,serif';
+    x.fillText(S.couple || '—', 320, cy + 90);
+    // Diamond ornament
+    x.strokeStyle = S.onPrimaryColor || '#FFFFFF'; x.lineWidth = 1.4;
+    x.beginPath(); x.moveTo(270, cy + 130); x.lineTo(300, cy + 130); x.stroke();
+    x.beginPath(); x.moveTo(340, cy + 130); x.lineTo(370, cy + 130); x.stroke();
+    x.beginPath(); x.moveTo(320, cy + 125); x.lineTo(326, cy + 130); x.lineTo(320, cy + 135); x.lineTo(314, cy + 130); x.closePath(); x.stroke();
+    // Date & Time
+    x.font = 'bold 15px system-ui,sans-serif';
+    x.fillText((S.dateText || '') + (S.timeText ? ' · ' + S.timeText : ''), 320, cy + 170);
+    // Venue
+    x.font = '14px system-ui,sans-serif';
+    x.fillText(S.venue || '', 320, cy + 205);
+    // Card Body
+    x.fillStyle = S.surfaceColor || '#FFFFFF';
+    x.fillRect(cx, cy + 270, cw, ch - 270);
+    // Guest line
+    x.fillStyle = S.inkColor || '#1A202C';
+    x.font = 'bold 18px system-ui,sans-serif';
+    x.fillText(T.invitesYou ? fmt(T.invitesYou, { guest: S.guestName || '' }) : ('Mwaliko kwa: ' + (S.guestName || '')), 320, cy + 325);
+    if (S.senderName) {
+      x.font = '13px system-ui,sans-serif'; x.fillStyle = '#4A5568';
+      x.fillText('Kutoka: ' + S.senderName, 320, cy + 355);
+    }
+    // QR Box
+    var bw = 250, bh = 290, bx = (W - bw) / 2, by = cy + 385;
+    x.fillStyle = '#FFFFFF'; x.strokeStyle = '#E2E8F0'; x.lineWidth = 2;
+    x.fillRect(bx, by, bw, bh); x.strokeRect(bx, by, bw, bh);
+    // QR Code
+    if (S.qrPath && S.qrDim) {
+      var qdim = 160, qmod = qdim / S.qrDim, qx = (W - qdim) / 2, qy = by + 16;
+      x.fillStyle = '#000000';
+      S.qrPath.replace(/M(\d+) (\d+)h(\d+)v1h-\d+z/g, function (_, a, b, w) {
+        x.fillRect(qx + (+a * qmod), qy + (+b * qmod), +w * qmod, qmod);
+        return '';
+      });
+      x.font = 'bold 26px ui-monospace,Menlo,monospace';
+      x.fillText(S.shortCode || '', 320, by + 225);
+      x.font = 'bold 11px system-ui,sans-serif'; x.fillStyle = '#718096';
+      x.fillText('MSIMBO WA KUINGILIA GETINI', 320, by + 260);
+    }
+    // Card Outer Border
+    x.strokeStyle = '#E2E8F0'; x.lineWidth = 2;
+    x.strokeRect(cx, cy, cw, ch);
+    // Brand Footer
+    x.font = '12px system-ui,sans-serif'; x.fillStyle = '#A0AEC0';
+    x.fillText('Kadi Sasa · Mwaliko Rasmi · ' + (S.domain || 'kadisasa.com'), 320, cy + ch - 25);
+    return c;
+  }
+  $('#hp-share-wa').addEventListener('click', function () {
+    var shareMsg = (T.shareCardText
+      ? fmt(T.shareCardText, { couple: S.couple, kindOf: S.kindOf, guest: S.guestName, code: S.shortCode })
+      : (S.couple + ' - ' + S.shortCode)) + '\n' + location.href;
+    var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(shareMsg);
+    var c = renderCardCanvas(2);
+    if (c && c.toBlob && navigator.share) {
+      c.toBlob(function (blob) {
+        if (!blob) { window.open(waUrl, '_blank'); return; }
+        var file = new File([blob], 'kadi-' + S.shortCode + '.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ title: S.couple, text: shareMsg, files: [file] }).catch(function (e) {
+            if (!e || e.name !== 'AbortError') window.open(waUrl, '_blank');
+          });
+        } else {
+          window.open(waUrl, '_blank');
+        }
+      }, 'image/png');
+    } else {
+      window.open(waUrl, '_blank');
+    }
+  });
+  $('#hp-dl-card').addEventListener('click', function () {
+    var c = renderCardCanvas(2);
+    save(c.toDataURL('image/png'), 'kadi-' + S.shortCode + '.png');
+  });
   $('#hp-dl-qr').addEventListener('click', function () {
     var q = 12, dim = S.qrDim, c = document.createElement('canvas'), label = Math.round(q * 5);
     c.width = dim * q; c.height = dim * q + label;

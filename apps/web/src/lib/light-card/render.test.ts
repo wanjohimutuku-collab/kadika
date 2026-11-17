@@ -186,4 +186,30 @@ describe('light guest card', () => {
     // the QR block stays black on white whatever the palette
     expect(html).toMatch(/<rect[^>]*fill="#FFFFFF"\/><path d="[^"]+" fill="#000000"\/>/);
   });
+
+  it('renders WhatsApp share and download full card actions with exact card payload', () => {
+    const htmlSw = renderCard(view(), opts);
+    expect(htmlSw).toContain('id="hp-share-wa"');
+    expect(htmlSw).toContain('data-testid="share-whatsapp"');
+    expect(htmlSw).toContain('Shiriki WhatsApp');
+    expect(htmlSw).toContain('id="hp-dl-card"');
+    expect(htmlSw).toContain('data-testid="download-card"');
+    expect(htmlSw).toContain('Pakua kadi kamili');
+
+    const json = JSON.parse(
+      /<script type="application\/json" id="hp-data">([\s\S]*?)<\/script>/.exec(htmlSw)![1]!,
+    );
+    expect(json.s).toMatchObject({
+      guestName: 'Bibi Pendo',
+      shortCode: 'KH-4821',
+      couple: 'Asha & Juma',
+      venue: 'Ukumbi wa Mwanga',
+    });
+    expect(json.s.qrPath).toBeTruthy();
+    expect(json.s.primaryColor).toBeTruthy();
+
+    const htmlEn = renderCard(view(), { ...opts, locale: 'en' });
+    expect(htmlEn).toContain('Share on WhatsApp');
+    expect(htmlEn).toContain('Download card image');
+  });
 });

@@ -197,40 +197,51 @@ export function Hero({
  * side-note: soft white panel, centred gold accent bar, a `?` glyph next to the eyebrow, and a
  * wider line-height on the body copy to invite reading.
  */
-export function AnswerBlock({ label, text }: { label: string; text: string }) {
+export function AnswerBlock({
+  label,
+  text,
+  badges,
+}: {
+  label: string;
+  text: string;
+  badges?: readonly string[];
+}) {
   return (
-    <Container as="section" aria-label={label} className="pt-10 pb-6 md:pt-14 md:pb-10">
-      <div className="ks-reveal mx-auto max-w-3xl">
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-gradient-to-r from-transparent to-ks-gold-500/50" />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.3em] text-ks-green-700">
-            {label}
-          </span>
-          <span className="h-px flex-1 bg-gradient-to-l from-transparent to-ks-gold-500/50" />
-        </div>
-        <p className="mt-6 text-[20px] leading-[1.55] text-ks-ink md:text-[26px] md:leading-[1.5]">
-          <span className="float-left mr-2 font-serif text-[52px] font-semibold leading-[0.9] text-ks-green-900 md:text-[64px]">
-            {text.charAt(0)}
-          </span>
-          {text.slice(1)}
-        </p>
-        {/* Fleuron divider — the same scroll motif used in the hero's card corners, one small
-            quiet reprise. Restraint: ornament appears exactly twice on the page. */}
-        <div className="mt-8 flex items-center justify-center gap-3 text-ks-gold-500/70">
-          <span aria-hidden="true" className="h-px w-10 bg-current" />
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 32 16"
-            className="h-3 w-8 text-ks-gold-500"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.1"
-            strokeLinecap="round"
-          >
-            <path d="M2 8 Q 8 2 16 8 Q 24 14 30 8" />
-            <circle cx="16" cy="8" r="1.4" fill="currentColor" stroke="none" />
-          </svg>
-          <span aria-hidden="true" className="h-px w-10 bg-current" />
+    <Container as="section" aria-label={label} className="pt-12 pb-6 md:pt-16 md:pb-10">
+      <div className="ks-bezel ks-reveal mx-auto max-w-4xl">
+        <div className="ks-core relative overflow-hidden p-6 md:p-10">
+          <div aria-hidden="true" className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-75" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Eyebrow>{label}</Eyebrow>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 32 16"
+              className="h-3 w-8 text-ks-gold-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+            >
+              <path d="M2 8 Q 8 2 16 8 Q 24 14 30 8" />
+              <circle cx="16" cy="8" r="1.4" fill="currentColor" stroke="none" />
+            </svg>
+          </div>
+          <p className="mt-5 font-serif text-[20px] leading-[1.52] text-ks-ink md:text-[25px] md:leading-[1.48]">
+            {text}
+          </p>
+          {badges?.length ? (
+            <ul className="mt-6 flex flex-wrap gap-2 border-t border-ks-line/80 pt-4">
+              {badges.map((b) => (
+                <li
+                  key={b}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ks-green-100/70 px-3 py-1 text-xs font-semibold text-ks-green-900"
+                >
+                  <span aria-hidden="true" className="size-1.5 rounded-full bg-ks-green-700" />
+                  {b}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       </div>
     </Container>

@@ -10,15 +10,17 @@ export const secureGet = async (key: string): Promise<string | null> => {
     return null;
   }
 };
-export const secureSet = async (key: string, value: string | null): Promise<void> => {
+export const secureSet = async (key: string, value: string | null): Promise<boolean> => {
   try {
     if (Platform.OS === 'web') {
       if (value === null) localStorage.removeItem(key);
       else localStorage.setItem(key, value);
     } else if (value === null) await SecureStore.deleteItemAsync(key);
     else await SecureStore.setItemAsync(key, value);
+    return true;
   } catch {
     // a failed write only means the user signs in again next launch
+    return false;
   }
 };
 

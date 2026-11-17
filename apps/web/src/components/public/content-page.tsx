@@ -26,6 +26,13 @@ const UI = {
     kenya: 'Kenya',
     ctaKe: 'Unataka huduma hii Kenya? Tuambie.',
     ctaKeButton: 'Wasiliana nasi',
+    quickLinksTitle: 'Hatua za haraka',
+    quickLinks: [
+      { href: '/jaribu', label: 'Jaribu kadi' },
+      { href: '/bei', label: 'Angalia bei' },
+      { href: '/programu', label: 'Programu ya Android' },
+      { href: '/k', label: 'Nina namba ya kadi' },
+    ],
   },
   en: {
     home: 'Home',
@@ -41,6 +48,13 @@ const UI = {
     kenya: 'Kenya',
     ctaKe: 'Want this in Kenya? Tell us.',
     ctaKeButton: 'Contact us',
+    quickLinksTitle: 'Quick links',
+    quickLinks: [
+      { href: '/jaribu', label: 'Try a demo card' },
+      { href: '/bei', label: 'See pricing' },
+      { href: '/programu', label: 'Android app' },
+      { href: '/k', label: 'Open card by code' },
+    ],
   },
 } as const;
 
@@ -153,7 +167,22 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#site`, name, url: SITE_URL },
       author: org,
       publisher: org,
+      speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu-fupi'] },
     },
+    ...(page.group === 'product'
+      ? [
+          {
+            '@type': 'Service',
+            '@id': `${url}#service`,
+            name: t.h1,
+            description: t.answer,
+            url,
+            provider: org,
+            areaServed: market === 'ke' ? 'KE' : 'TZ',
+            availableLanguage: market === 'ke' ? ['en', 'sw'] : ['sw', 'en'],
+          },
+        ]
+      : []),
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -204,7 +233,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
     .map((s) => resolveRelated(page, s))
     .filter((p): p is ContentPageDef => !!p);
   const counterpart = counterpartOf(page);
-  const showToc = t.sections.length >= 4;
+  const showToc = t.sections.length >= 3;
   return (
     <main>
       <SeoLinks
@@ -268,8 +297,12 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
             {ui.updated}:{' '}
             <time dateTime={page.updated}>{formatDate(`${page.updated}T09:00:00Z`, locale)}</time>
           </p>
-          <section aria-label={ui.short} className="ks-enter-3 ks-bezel max-w-3xl">
-            <div className="ks-core p-6 md:p-8">
+          <section id="jibu-fupi" aria-label={ui.short} className="ks-enter-3 ks-bezel max-w-3xl">
+            <div className="ks-core relative overflow-hidden p-6 md:p-8">
+              <div
+                aria-hidden="true"
+                className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-75"
+              />
               <p className="mb-2 text-xs font-semibold tracking-[0.16em] text-ks-green-700 uppercase">
                 {ui.short}
               </p>
@@ -340,7 +373,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
       </div>
 
       {page.group !== 'legal' ? (
-        <section className="mx-auto w-full max-w-[1120px] px-4 pb-16 md:px-6">
+        <section className="mx-auto w-full max-w-[1120px] px-4 pb-12 md:px-6">
           <div className="ks-mesh-dark ks-reveal relative overflow-hidden rounded-[2.5rem] px-6 py-12 text-white md:px-12 md:py-16">
             <div
               className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80"
@@ -371,6 +404,21 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
               </div>
             )}
           </div>
+          {market === 'tz' ? (
+            <div className="mt-6 flex flex-wrap items-center gap-2.5 text-sm">
+              <span className="font-semibold text-ks-muted">{ui.quickLinksTitle}:</span>
+              {ui.quickLinks.map((ql) => (
+                <Link
+                  key={ql.href}
+                  href={localeUrl(ql.href, locale)}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-ks-line bg-white px-4 font-medium text-ks-green-900 transition hover:border-ks-green-700"
+                >
+                  <span>{ql.label}</span>
+                  <ArrowUpRight className="size-3.5 text-ks-green-700" aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -379,24 +427,36 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
           aria-label={ui.related}
           className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 pb-20 md:px-6"
         >
-          <h2 className="text-[24px] font-bold tracking-[-0.02em]">{ui.related}</h2>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((r) => (
-              <li key={r.slug} className="ks-reveal">
-                <Link
-                  href={localeUrl(pagePath(r, locale), locale)}
-                  className="group ks-ease flex min-h-16 items-center justify-between gap-4 rounded-[1.5rem] bg-white py-3 pr-3 pl-5 font-semibold shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.5)] active:scale-[0.99]"
-                >
-                  {textOf(r, locale).nav}
-                  <span
-                    aria-hidden="true"
-                    className="ks-ease flex size-9 shrink-0 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700 transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-px"
+          <h2 className="font-serif text-[26px] font-bold tracking-[-0.02em] text-ks-green-900">
+            {ui.related}
+          </h2>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {related.map((r) => {
+              const rt = textOf(r, locale);
+              return (
+                <li key={r.slug} className="ks-bezel ks-bento ks-reveal flex">
+                  <Link
+                    href={localeUrl(pagePath(r, locale), locale)}
+                    className="group ks-core flex w-full flex-col justify-between gap-3 p-5 md:p-6"
                   >
-                    <ArrowUpRight className="size-4" strokeWidth={1.75} />
-                  </span>
-                </Link>
-              </li>
-            ))}
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-semibold text-ks-ink group-hover:text-ks-green-700">
+                        {rt.nav}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="ks-ease flex size-8 shrink-0 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700 transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-px"
+                      >
+                        <ArrowUpRight className="size-4" strokeWidth={1.75} />
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-sm leading-relaxed text-ks-muted">
+                      {rt.description}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       ) : null}

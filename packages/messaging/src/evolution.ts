@@ -23,20 +23,57 @@ export function toEvolutionNumber(e164: string): string {
 export class EvolutionWhatsAppProvider implements MessagingProvider {
   readonly name = 'evolution';
   readonly channel = 'whatsapp' as const;
-  constructor(private readonly o: EvolutionOptions) {}
+  readonly baseUrl: string;
+  readonly instance: string;
+  private readonly apiKey: string;
+
+  constructor(private readonly o: EvolutionOptions) {
+    this.baseUrl = o.baseUrl
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/message$/, '');
+    this.instance = o.instance.trim();
+    this.apiKey = o.apiKey.trim();
+  }
 
   async send(to: string, body: string): Promise<SendResult> {
     const f = this.o.fetchImpl ?? fetch;
-    const res = await f(
-      `${this.o.baseUrl}/message/sendText/${encodeURIComponent(this.o.instance)}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', apikey: this.o.apiKey },
-        body: JSON.stringify({ number: toEvolutionNumber(to), text: body }),
-        signal: AbortSignal.timeout(15_000),
+    const url = `${this.baseUrl}/message/sendText/${encodeURIComponent(this.instance)}`;
+    const res = await f(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        apikey: this.apiKey,
       },
-    );
-    if (!res.ok) throw new Error(`evolution ${res.status}`);
+      body: JSON.stringify({ number: toEvolutionNumber(to), text: body }),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as {
+        message?: string | string[];
+        error?: string;
+        response?: { message?: string | string[] };
+      } | null;
+
+      const detail =
+        (Array.isArray(err?.response?.message)
+          ? err?.response?.message.join(', ')
+          : err?.response?.message) ||
+        (Array.isArray(err?.message) ? err?.message.join(', ') : err?.message) ||
+        err?.error ||
+        '';
+
+      if (res.status === 404) {
+        const hint = detail
+          ? detail
+          : `instance "${this.instance}" not found (make sure the instance is created in Evolution API and baseUrl has no /message suffix)`;
+        throw new Error(`evolution 404: ${hint}`);
+      }
+
+      throw new Error(`evolution ${res.status}${detail ? `: ${detail}` : ''}`);
+    }
+
     const json = (await res.json().catch(() => null)) as { key?: { id?: string } } | null;
     const id = json?.key?.id;
     if (!id) throw new Error('evolution: no message id in response');

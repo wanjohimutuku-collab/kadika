@@ -65,7 +65,11 @@ export class GateEngine {
     const saved = await this.store.loadBundle();
     if (!saved) return false;
     this.index(saved.bundle);
-    this.server = new Map((await this.store.admissions()).map((a) => [a.guestId, a]));
+    this.server = new Map(
+      (await this.store.admissions())
+        .filter((a) => this.byId.has(a.guestId))
+        .map((a) => [a.guestId, a]),
+    );
     this.local = new Map();
     for (const s of await this.store.scans()) if (!s.synced) this.track(s);
     return true;
@@ -81,7 +85,7 @@ export class GateEngine {
 
   /** Remembers an unsynced admission claim so the next scan of the same guest is a duplicate. */
   private track(s: LocalScan) {
-    if (!s.guestId || s.override) return;
+    if (!s.guestId || !this.byId.has(s.guestId) || s.override) return;
     if (s.result !== 'ok' && s.result !== 'manual_ok') return;
     const cur = this.local.get(s.guestId);
     if (!cur || s.scannedAt < cur.scannedAt)
@@ -231,10 +235,14 @@ export class GateEngine {
   }
 
   /** The gate agent picked a search result and pressed "Ingiza". */
-  async admitManual(guestId: string): Promise<ScanOutcome> {
+  async admitManual(guestId: string, partySize?: number): Promise<ScanOutcome> {
     const guest = this.byId.get(guestId);
     if (!guest) return { kind: 'deny', reason: 'not_found' };
-    return this.admit(guest, guest.partySizeAllowed, 'search', 'search');
+    const count =
+      partySize === undefined
+        ? guest.partySizeAllowed
+        : Math.max(1, Math.min(guest.partySizeAllowed, Math.floor(partySize)));
+    return this.admit(guest, count, 'search', 'search');
   }
 
   /** Let an already-admitted guest in again, with a reason. Committee and owner only (§6.2). */

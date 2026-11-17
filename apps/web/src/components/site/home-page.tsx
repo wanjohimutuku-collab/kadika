@@ -1,6 +1,6 @@
 import { SiteLink as Link } from '@/components/site/site-link';
-import { ArrowUpRight } from 'lucide-react';
-import type { PricingCatalog } from '@harusi/schemas/billing';
+import { ArrowUpRight, Check } from 'lucide-react';
+import { sortedTiers, type PricingCatalog } from '@harusi/schemas/billing';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { ALL_PAGES, getPage, marketOf, pagePath, textOf } from '@/content';
 import { homeCopy } from '@/content/home';
@@ -9,9 +9,9 @@ import { ORG_ID, SITE_URL, absoluteLocaleUrl, localeUrl, organizationNode } from
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
 import type { SiteEdition } from '@/lib/site-nav';
-import { AnswerBlock, Container, Faq, PillLink, SectionHeading } from './blocks';
+import { AnswerBlock, Container, Faq, PillLink, SectionHeading, Steps } from './blocks';
 import { JsonLd } from './json-ld';
-import { AppMockup } from './mockups';
+import { AppMockup, CardAndSms, GateChip, MichangoBar, TrustStrip } from './mockups';
 import { Hero } from './home/hero';
 import { HeroLive } from './home/hero-live';
 import { TrySection } from './home/try-section';
@@ -41,6 +41,9 @@ const TZ_GUIDES = [
   'kusimamia-majibu-ya-rsvp',
   'lango-la-harusi-qr',
   'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko',
+  'michango-ya-harusi',
+  'kadi-ya-harusi-bila-smartphone',
+  'kamusi-ya-harusi',
 ] as const;
 
 const KE_GUIDES = [
@@ -93,6 +96,29 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
   };
   const perCardLabel = locale === 'sw' ? 'Kwa kadi' : 'per card';
   const fromLabel = locale === 'sw' ? 'Kuanzia' : 'From';
+  const tiers = sortedTiers(pricing.cardTiers);
+  const tierPrices = tiers.map((t) => t.price[currency]);
+  const readGuideLabel = locale === 'sw' ? 'Soma mwongozo' : 'Read guide';
+  const heroCapabilities =
+    locale === 'sw'
+      ? [
+          'WhatsApp, SMS na karatasi (A6/A4)',
+          'Skani ya QR bila mtandao',
+          'Daftari la ahadi na michango',
+          'Kiswahili na Kiingereza',
+        ]
+      : [
+          'WhatsApp, SMS & printable PDF',
+          'Offline QR gate verification',
+          'Direct-to-host pledge ledger',
+          'Swahili & English support',
+        ];
+  const answerBadges =
+    market === 'ke'
+      ? ['WhatsApp + SMS Cards', 'RSVP & Party Size', 'Offline QR Gate', 'M-Pesa Harambee Ledger']
+      : locale === 'sw'
+        ? ['WhatsApp + SMS + PDF', 'Majibu (RSVP)', 'Lango bila mtandao', 'Daftari la Michango']
+        : ['WhatsApp + SMS + PDF', 'Guest RSVP', 'Offline QR Gate', 'Michango Ledger'];
 
   return (
     <main>
@@ -122,6 +148,17 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
               speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu'] },
             },
             {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: market === 'ke' ? 'Kenya' : locale === 'sw' ? 'Nyumbani' : 'Home',
+                  item: pageUrl,
+                },
+              ],
+            },
+            {
               '@type': 'Service',
               name: c.title.split(' | ')[0],
               serviceType: 'Digital invitations, RSVP, contribution tracking and QR guest check-in',
@@ -144,12 +181,22 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
                 'Michango and pledge tracking',
                 'Offline Android QR gate check-in',
               ],
-              offers: {
-                '@type': 'Offer',
-                price: '0',
-                priceCurrency: currency,
-                description: c.heroTrustLine,
-              },
+              offers:
+                pricing.enforced && tiers.length
+                  ? {
+                      '@type': 'AggregateOffer',
+                      priceCurrency: currency,
+                      lowPrice: Math.min(...tierPrices),
+                      highPrice: Math.max(...tierPrices),
+                      offerCount: tiers.length,
+                      description: c.heroTrustLine,
+                    }
+                  : {
+                      '@type': 'Offer',
+                      price: '0',
+                      priceCurrency: currency,
+                      description: c.heroTrustLine,
+                    },
               publisher: { '@id': ORG_ID },
             },
             {
@@ -174,14 +221,16 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         primary={{ href: primaryHref, label: c.hero.primary }}
         howHref="#jaribu-mwenyewe"
         howLabel={c.heroHowLink}
+        guestCard={{ href: '/k', label: c.hero.secondary }}
         trustLine={c.heroTrustLine}
         kickerEvents={c.kickerEvents}
         previewFrameAlt={c.hero.h1}
         statCards={c.heroStatCards}
+        capabilities={heroCapabilities}
       />
 
       <div id="jibu">
-        <AnswerBlock label={c.answerLabel} text={c.answer} />
+        <AnswerBlock label={c.answerLabel} text={c.answer} badges={answerBadges} />
       </div>
 
       <HeroLive
@@ -199,6 +248,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
       <TrySection
         copy={c.trySection}
         demoHref={demoHrefSeed}
+        smsPreview={c.sms}
         gateCopy={{
           ok: c.gate.chips.ok,
           duplicate: c.gate.chips.duplicate,
@@ -222,8 +272,114 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         ]}
         promoTitle={c.featurePromo.title}
         promoBody={c.featurePromo.body}
+        promoHref={primaryHref}
+        promoCta={c.hero.primary}
         sectionLabel={locale === 'sw' ? 'Vipengele vikuu' : 'Key features'}
       />
+
+      {/* Four-step workflow & signature product deep dives */}
+      <section aria-labelledby="jinsi-inavyofanya-kazi" className="bg-ks-paper py-16 md:py-24">
+        <Container className="flex flex-col gap-12">
+          <SectionHeading id="jinsi-inavyofanya-kazi" eyebrow={c.eyebrows.steps}>
+            {c.stepsTitle}
+          </SectionHeading>
+          <Steps items={c.steps} />
+
+          {/* Signature bento cards: No smartphone + Michango + Offline Gate */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Non-smartphone / SMS + Printed card showcase */}
+            <article className="ks-bezel ks-reveal flex lg:col-span-2">
+              <div className="ks-core grid w-full items-center gap-8 p-6 md:grid-cols-[1.05fr_0.95fr] md:p-10">
+                <div className="flex flex-col gap-4">
+                  <h3 className="font-serif text-[26px] leading-[1.12] tracking-[-0.02em] text-ks-green-900 md:text-[32px]">
+                    {c.noPhone.h2}
+                  </h3>
+                  <p className="text-base leading-relaxed text-ks-muted">{c.noPhone.body}</p>
+                  <ul className="flex flex-col gap-2 text-sm text-ks-ink">
+                    {c.noPhone.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2.5">
+                        <Check
+                          className="mt-0.5 size-4 shrink-0 text-ks-green-700"
+                          aria-hidden="true"
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex justify-center md:justify-end">
+                  <CardAndSms card={c.card} sms={c.sms} />
+                </div>
+              </div>
+            </article>
+
+            {/* Michango ledger showcase */}
+            <article className="ks-bezel ks-reveal flex">
+              <div className="ks-core flex w-full flex-col justify-between gap-6 p-6 md:p-8">
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-serif text-[24px] leading-[1.15] tracking-[-0.02em] text-ks-green-900 md:text-[28px]">
+                    {c.michango.h2}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-ks-muted md:text-base">
+                    {c.michango.body}
+                  </p>
+                  <ul className="flex flex-col gap-1.5 text-sm text-ks-ink">
+                    {c.michango.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <Check
+                          className="mt-0.5 size-4 shrink-0 text-ks-green-700"
+                          aria-hidden="true"
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="rounded-xl bg-ks-gold-100/80 px-3.5 py-2.5 text-xs font-medium text-ks-green-900">
+                    {c.michango.note}
+                  </p>
+                </div>
+                <MichangoBar rows={c.michango.rows} currency={currency} labels={c.michango.bar} />
+              </div>
+            </article>
+
+            {/* Offline gate verification showcase */}
+            <article className="ks-bezel ks-reveal flex">
+              <div className="ks-core flex w-full flex-col justify-between gap-6 p-6 md:p-8">
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-serif text-[24px] leading-[1.15] tracking-[-0.02em] text-ks-green-900 md:text-[28px]">
+                    {c.gate.h2}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-ks-muted md:text-base">
+                    {c.gate.body}
+                  </p>
+                  <ul className="flex flex-col gap-1.5 text-sm text-ks-ink">
+                    {c.gate.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <Check
+                          className="mt-0.5 size-4 shrink-0 text-ks-green-700"
+                          aria-hidden="true"
+                        />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex flex-wrap gap-2.5 rounded-2xl border border-ks-line bg-ks-paper p-4">
+                  <GateChip state="ok" label={c.gate.chips.ok} />
+                  <GateChip state="duplicate" label={c.gate.chips.duplicate} />
+                  <GateChip state="missing" label={c.gate.chips.missing} />
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <TrustStrip
+            title={c.trust.title}
+            items={c.trust.items}
+            cta={{ href: '/k', label: c.trust.cta }}
+          />
+        </Container>
+      </section>
 
       {market === 'tz' ? (
         <PricingTeaser
@@ -249,8 +405,10 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
                   <li key={i} className="flex gap-3 leading-relaxed">
                     <span
                       aria-hidden="true"
-                      className="mt-0.5 size-6 shrink-0 rounded-full bg-white/10"
-                    />
+                      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-white/10"
+                    >
+                      <Check className="size-3.5 text-ks-gold-500" aria-hidden="true" />
+                    </span>
                     {i}
                   </li>
                 ))}
@@ -290,56 +448,42 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
       <Container
         as="section"
         aria-labelledby="sherehe"
-        className="flex flex-col gap-10 py-20 md:py-28"
+        className="flex flex-col gap-10 py-16 md:py-24"
       >
         <SectionHeading id="sherehe" eyebrow={c.eyebrows.events}>
           {c.eventsTitle}
         </SectionHeading>
-        <ul className="ks-reveal flex flex-wrap gap-3">
+        <ul className="ks-reveal grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((p, i) => {
-            // Rotate pill accents across five kanga colours so the strip reads like a
-            // string of celebrations rather than a nav bar of chips.
+            const pt = textOf(p, locale);
             const palette = [
-              {
-                pill: 'bg-ks-magenta-100 text-ks-magenta',
-                dot: 'bg-ks-magenta',
-                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(200_31_106/0.55)]',
-              },
-              {
-                pill: 'bg-ks-saffron-100 text-ks-saffron',
-                dot: 'bg-ks-saffron',
-                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(232_149_48/0.6)]',
-              },
-              {
-                pill: 'bg-ks-green-100 text-ks-green-700',
-                dot: 'bg-ks-green-700',
-                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.55)]',
-              },
-              {
-                pill: 'bg-[#e4e8fb] text-ks-indigo',
-                dot: 'bg-ks-indigo',
-                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(36_50_114/0.55)]',
-              },
-              {
-                pill: 'bg-[#fbe6dc] text-ks-terracotta',
-                dot: 'bg-ks-terracotta',
-                hover: 'hover:shadow-[inset_0_0_0_1.5px_rgb(193_85_44/0.55)]',
-              },
+              { pill: 'bg-ks-magenta-100 text-ks-magenta', dot: 'bg-ks-magenta' },
+              { pill: 'bg-ks-saffron-100 text-ks-saffron', dot: 'bg-ks-saffron' },
+              { pill: 'bg-ks-green-100 text-ks-green-700', dot: 'bg-ks-green-700' },
+              { pill: 'bg-[#e4e8fb] text-ks-indigo', dot: 'bg-ks-indigo' },
+              { pill: 'bg-[#fbe6dc] text-ks-terracotta', dot: 'bg-ks-terracotta' },
             ][i % 5]!;
             return (
-              <li key={p.slug}>
+              <li key={p.slug} className="ks-bezel ks-bento flex">
                 <Link
                   href={localeUrl(pagePath(p, locale), locale)}
-                  className={`group inline-flex min-h-12 items-center gap-3 rounded-full bg-white py-1.5 pr-1.5 pl-5 font-medium shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 ks-ease active:scale-[0.98] ${palette.hover}`}
+                  className="group ks-core flex w-full flex-col justify-between gap-3 p-5 md:p-6"
                 >
-                  <span aria-hidden="true" className={`size-2 rounded-full ${palette.dot}`} />
-                  {textOf(p, locale).nav}
-                  <span
-                    aria-hidden="true"
-                    className={`flex size-8 items-center justify-center rounded-full transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px ${palette.pill}`}
-                  >
-                    <ArrowUpRight className="size-4" strokeWidth={1.75} />
-                  </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="inline-flex items-center gap-2 font-semibold text-ks-ink group-hover:text-ks-green-700">
+                      <span aria-hidden="true" className={`size-2 rounded-full ${palette.dot}`} />
+                      {pt.nav}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-full transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px ${palette.pill}`}
+                    >
+                      <ArrowUpRight className="size-4" strokeWidth={1.75} />
+                    </span>
+                  </div>
+                  <p className="line-clamp-2 text-sm leading-relaxed text-ks-muted">
+                    {pt.description}
+                  </p>
                 </Link>
               </li>
             );
@@ -360,10 +504,10 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
             {guides.map((g) => {
               const gt = textOf(g, locale);
               return (
-                <li key={g.slug} className="ks-reveal flex">
+                <li key={g.slug} className="ks-bezel ks-bento ks-reveal flex">
                   <Link
                     href={localeUrl(pagePath(g, locale), locale)}
-                    className="group ks-ease flex w-full flex-col justify-between gap-4 rounded-[1.5rem] bg-white p-6 shadow-[inset_0_0_0_1px_rgb(26_31_29/0.08)] transition-[box-shadow,transform] duration-500 hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.5)] active:scale-[0.99]"
+                    className="group ks-core flex w-full flex-col justify-between gap-4 p-6"
                   >
                     <div className="flex flex-col gap-2">
                       <h3 className="text-lg leading-snug font-semibold text-ks-ink group-hover:text-ks-green-700">
@@ -374,7 +518,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
                       </p>
                     </div>
                     <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-ks-green-700">
-                      {gt.h1.split('—')[0]}
+                      {readGuideLabel}
                       <ArrowUpRight
                         aria-hidden="true"
                         className="size-4 shrink-0 transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px"

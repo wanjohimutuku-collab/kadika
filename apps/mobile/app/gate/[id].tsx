@@ -11,14 +11,19 @@ export default function GateKiosk() {
     void loadGateSession().then(setSession);
   }, []);
   if (session === undefined) return null;
-  if (!session || session.eventId !== id) return <Redirect href="/welcome" />;
+  if (!session || session.eventId !== id) return <Redirect href="/gate-join" />;
   return (
     <GateScreen
       eventId={id}
+      eventName={session.eventName}
       role="gate"
       token={() => session.token}
       refresh={async () => {
         // the 24-hour gate token expired: the agent has to join again (their scans stay on the phone)
+        await clearGateSession();
+        setSession(null);
+      }}
+      onLeave={async () => {
         await clearGateSession();
         setSession(null);
       }}

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { radius, spacing, useColors } from '../lib/theme';
+import { radius, spacing, useColors, useIsDark } from '../lib/theme';
 import { Icon, type IconName } from './icons';
 import { useT } from '../lib/i18n';
 
@@ -127,9 +127,12 @@ export function Button({
   style?: StyleProp<ViewStyle>;
 }) {
   const c = useColors();
+  const dark = useIsDark();
   const bg =
     variant === 'primary'
-      ? c.primary
+      ? dark
+        ? c.primary
+        : c.deepEmerald
       : variant === 'danger'
         ? c.danger
         : variant === 'secondary'
@@ -152,17 +155,22 @@ export function Button({
       style={({ pressed }) => [
         {
           minHeight: 52,
-          borderRadius: 14,
+          borderRadius: 999,
           backgroundColor: bg,
           borderWidth: variant === 'secondary' ? 1.5 : 0,
-          borderColor: variant === 'secondary' ? c.primary : 'transparent',
+          borderColor: variant === 'secondary' ? c.border : 'transparent',
           paddingHorizontal: spacing.lg,
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'row',
           gap: spacing.sm,
-          opacity: off ? 0.5 : pressed ? 0.85 : 1,
-          transform: pressed && !off ? [{ scale: 0.98 }] : undefined,
+          shadowColor: variant === 'primary' ? '#0A3F35' : 'transparent',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: variant === 'primary' && !dark && !off ? 0.22 : 0,
+          shadowRadius: 16,
+          elevation: variant === 'primary' && !dark && !off ? 3 : 0,
+          opacity: off ? 0.5 : pressed ? 0.88 : 1,
+          transform: [{ scale: pressed && !off ? 0.98 : 1 }],
         },
         style,
       ]}
@@ -170,9 +178,30 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={fg} />
       ) : icon ? (
-        <Icon name={icon} size={20} color={fg} />
+        <View
+          style={
+            variant === 'primary' || variant === 'danger'
+              ? {
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: 'rgba(255,255,255,0.16)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }
+              : undefined
+          }
+        >
+          <Icon
+            name={icon}
+            size={variant === 'primary' || variant === 'danger' ? 16 : 19}
+            color={fg}
+          />
+        </View>
       ) : null}
-      <Text style={{ color: fg, fontSize: 16, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: fg, fontSize: 16, fontWeight: '700', letterSpacing: -0.1 }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -181,8 +210,14 @@ export function Field({
   label,
   error,
   hint,
+  inputRef,
   ...input
-}: { label: string; error?: string | null; hint?: string } & TextInputProps) {
+}: {
+  label: string;
+  error?: string | null;
+  hint?: string;
+  inputRef?: Ref<TextInput>;
+} & TextInputProps) {
   const c = useColors();
   return (
     <View style={{ gap: spacing.xs }}>
@@ -190,6 +225,7 @@ export function Field({
         {label}
       </Txt>
       <TextInput
+        ref={inputRef}
         accessibilityLabel={label}
         placeholderTextColor={c.muted}
         {...input}
@@ -227,22 +263,35 @@ export function Card({
 }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
-  /** `brand` is the emerald hero card; `soft` a quiet tinted one. */
+  /** `brand` is the deep-emerald hero card; `soft` a quiet tinted one. */
   tone?: 'plain' | 'brand' | 'soft';
   onPress?: () => void;
   label?: string;
 }) {
   const c = useColors();
+  const dark = useIsDark();
   const body = (
     <View
       style={[
         {
-          backgroundColor: tone === 'brand' ? c.primary : tone === 'soft' ? c.bg : c.surface,
-          borderRadius: 16,
-          borderWidth: tone === 'brand' ? 0 : 1,
-          borderColor: c.border,
+          backgroundColor:
+            tone === 'brand'
+              ? dark
+                ? c.primary
+                : c.deepEmerald
+              : tone === 'soft'
+                ? c.bg
+                : c.surface,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: tone === 'brand' ? 'rgba(217,164,65,0.28)' : c.border,
           padding: spacing.lg,
           gap: spacing.sm,
+          shadowColor: '#0A3F35',
+          shadowOffset: { width: 0, height: tone === 'brand' ? 12 : 6 },
+          shadowOpacity: dark ? 0 : tone === 'brand' ? 0.18 : 0.05,
+          shadowRadius: tone === 'brand' ? 24 : 14,
+          elevation: dark ? 0 : tone === 'brand' ? 4 : 1,
         },
         style,
       ]}
@@ -251,11 +300,63 @@ export function Card({
     </View>
   );
   return onPress ? (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}
+    >
       {body}
     </Pressable>
   ) : (
     body
+  );
+}
+
+/** Nested "bezel" card matching `.ks-bezel` + `.ks-core` on the web app. */
+export function BezelCard({
+  children,
+  style,
+  coreStyle,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  coreStyle?: StyleProp<ViewStyle>;
+}) {
+  const c = useColors();
+  const dark = useIsDark();
+  return (
+    <View
+      style={[
+        {
+          borderRadius: 24,
+          padding: 5,
+          backgroundColor: c.bezel,
+          borderWidth: 1,
+          borderColor: c.border,
+          shadowColor: '#0A3F35',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: dark ? 0 : 0.06,
+          shadowRadius: 20,
+          elevation: dark ? 0 : 2,
+        },
+        style,
+      ]}
+    >
+      <View
+        style={[
+          {
+            borderRadius: 19,
+            backgroundColor: c.surface,
+            padding: spacing.lg,
+            gap: spacing.sm,
+          },
+          coreStyle,
+        ]}
+      >
+        {children}
+      </View>
+    </View>
   );
 }
 
@@ -521,23 +622,49 @@ export function Sheet({
       {/* the sheet rides above the keyboard so its buttons stay tappable on Android */}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <Pressable
-          style={{ flex: 1, backgroundColor: '#00000066' }}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.72)' }}
           onPress={onClose}
           accessibilityLabel="close"
         />
         <View
           style={{
-            backgroundColor: c.bg,
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            padding: spacing.lg,
+            backgroundColor: c.surface,
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            borderTopWidth: 1,
+            borderColor: c.border,
+            padding: spacing.xl,
             gap: spacing.md,
             maxHeight: '85%',
           }}
         >
-          <Txt bold size={20}>
-            {title}
-          </Txt>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingBottom: spacing.xs,
+            }}
+          >
+            <Txt bold size={16} color={c.ink}>
+              {title}
+            </Txt>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="close"
+              onPress={onClose}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: c.bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="close" size={18} color={c.muted} />
+            </Pressable>
+          </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ gap: spacing.md }}
@@ -632,25 +759,54 @@ export function Kpi({
   icon?: IconName;
 }) {
   const c = useColors();
+  const dark = useIsDark();
   return (
     <View
       style={{
         flex: 1,
         backgroundColor: c.surface,
-        borderRadius: 16,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: c.border,
         padding: spacing.md,
-        gap: 6,
+        gap: 8,
+        shadowColor: '#0A3F35',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: dark ? 0 : 0.04,
+        shadowRadius: 12,
+        elevation: dark ? 0 : 1,
       }}
     >
-      {icon ? <Icon name={icon} size={20} color={c.primary} /> : null}
-      <Text style={{ fontSize: 28, fontWeight: '800', color: c.ink }}>{String(value)}</Text>
+      {icon ? (
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: c.primarySoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name={icon} size={18} color={c.primary} />
+        </View>
+      ) : null}
+      <Text
+        style={{
+          fontSize: 26,
+          fontWeight: '800',
+          color: c.ink,
+          fontVariant: ['tabular-nums'],
+          letterSpacing: -0.5,
+        }}
+      >
+        {String(value)}
+      </Text>
       <Text
         numberOfLines={2}
         adjustsFontSizeToFit
         minimumFontScale={0.8}
-        style={{ fontSize: 13, color: c.muted }}
+        style={{ fontSize: 12.5, fontWeight: '500', color: c.muted }}
       >
         {label}
       </Text>
@@ -666,14 +822,23 @@ export function FunnelBar({ steps }: { steps: { label: string; value: number }[]
       {steps.map((s, i) => (
         <View key={s.label} style={{ gap: 6 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, color: c.ink }}>{s.label}</Text>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: c.ink }}>{s.value}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '500', color: c.ink }}>{s.label}</Text>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '700',
+                color: c.ink,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {s.value}
+            </Text>
           </View>
-          <View style={{ height: 10, borderRadius: 5, backgroundColor: c.border }}>
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: c.bezel }}>
             <View
               style={{
-                height: 10,
-                borderRadius: 5,
+                height: 8,
+                borderRadius: 4,
                 width: `${Math.max(s.value > 0 ? 3 : 0, (s.value / max) * 100)}%`,
                 backgroundColor: i === steps.length - 1 ? c.success : c.primary,
               }}
@@ -736,6 +901,7 @@ export function Tile({
   selected?: boolean;
 }) {
   const c = useColors();
+  const dark = useIsDark();
   return (
     <Pressable
       accessibilityRole="button"
@@ -748,18 +914,34 @@ export function Tile({
       style={({ pressed }) => ({
         flexGrow: 1,
         flexBasis: '45%',
-        minHeight: 88,
-        gap: 6,
+        minHeight: 94,
+        gap: 8,
         padding: spacing.md,
-        borderRadius: 16,
+        borderRadius: 20,
         borderWidth: selected ? 2 : 1,
         borderColor: selected ? c.primary : c.border,
-        backgroundColor: selected ? c.primary + '12' : c.surface,
-        opacity: pressed ? 0.85 : 1,
-        transform: pressed ? [{ scale: 0.98 }] : undefined,
+        backgroundColor: selected ? c.primarySoft : c.surface,
+        shadowColor: '#0A3F35',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: dark ? 0 : 0.04,
+        shadowRadius: 10,
+        elevation: dark ? 0 : 1,
+        opacity: pressed ? 0.88 : 1,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
     >
-      <Icon name={icon} size={24} color={c.primary} />
+      <View
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 19,
+          backgroundColor: selected ? c.surface : c.primarySoft,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon name={icon} size={20} color={c.primary} />
+      </View>
       <Text style={{ fontSize: 15, fontWeight: '700', color: c.ink }}>{label}</Text>
       {hint ? <Text style={{ fontSize: 13, color: c.muted }}>{hint}</Text> : null}
     </Pressable>

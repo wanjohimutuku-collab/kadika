@@ -1,5 +1,11 @@
 import * as SQLite from 'expo-sqlite';
 import type { Admission, Bundle, GateStore, LocalScan, ScanResult } from '@harusi/gate';
+import { isEncryptedEnvelope, openJson, sealJson } from './encrypted-vault';
+import { getOrCreateVaultKey, randomVaultBytes } from './vault-key';
+
+export const ENCRYPTED_ATTENDANCE_KV = 'encrypted_attendance_v1';
+export const ENCRYPTED_ADMISSIONS_KV = 'encrypted_admissions_v1';
+export const ENCRYPTED_SCANS_KV = 'encrypted_scans_v1';
 
 interface ScanRow {
   client_id: string;
@@ -50,9 +56,11 @@ export class SqliteGateStore implements GateStore {
   }
 
   async saveBundle(bundle: Bundle, etag: string | null) {
+    const key = await getOrCreateVaultKey();
+    const encrypted = sealJson(bundle, key, randomVaultBytes(16));
     await this.db.runAsync(
       'INSERT OR REPLACE INTO bundle (id, json, etag) VALUES (1, ?, ?)',
-      JSON.stringify(bundle),
+      encrypted,
       etag,
     );
   }
@@ -60,9 +68,20 @@ export class SqliteGateStore implements GateStore {
     const r = await this.db.getFirstAsync<{ json: string; etag: string | null }>(
       'SELECT json, etag FROM bundle WHERE id = 1',
     );
-    return r ? { bundle: JSON.parse(r.json) as Bundle, etag: r.etag } : null;
+    if (!r) return null;
+    try {
+      if (isEncryptedEnvelope(r.json)) {
+        const key = await getOrCreateVaultKey();
+        return { bundle: openJson<Bundle>(r.json, key), etag: r.etag };
+      }
+      return { bundle: JSON.parse(r.json) as Bundle, etag: r.etag };
+    } catch {
+      return null;
+    }
   }
   async replaceAdmissions(list: Admission[]) {
+    const key = await getOrCreateVaultKey();
+    const encrypted = sealJson(list, key, randomVaultBytes(16));
     await this.db.withTransactionAsync(async () => {
       await this.db.runAsync('DELETE FROM admissions');
       for (const a of list)
@@ -73,9 +92,23 @@ export class SqliteGateStore implements GateStore {
           a.deviceId,
           a.partyAdmitted,
         );
+      await this.db.runAsync(
+        'INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)',
+        ENCRYPTED_ADMISSIONS_KV,
+        encrypted,
+      );
     });
   }
   async admissions() {
+    const sealed = await this.getKv(ENCRYPTED_ADMISSIONS_KV);
+    if (sealed) {
+      try {
+        const key = await getOrCreateVaultKey();
+        return openJson<Admission[]>(sealed, key);
+      } catch {
+        return [];
+      }
+    }
     const rows = await this.db.getAllAsync<{
       guest_id: string;
       scanned_at: string;
@@ -88,6 +121,13 @@ export class SqliteGateStore implements GateStore {
       deviceId: r.device_id,
       partyAdmitted: r.party,
     }));
+  }
+  private async persistEncryptedScans() {
+    const rows = (await this.db.getAllAsync<ScanRow>('SELECT * FROM scans ORDER BY rowid')).map(
+      toScan,
+    );
+    const key = await getOrCreateVaultKey();
+    await this.setKv(ENCRYPTED_SCANS_KV, sealJson(rows, key, randomVaultBytes(16)));
   }
   async addScan(s: LocalScan) {
     await this.db.runAsync(
@@ -102,17 +142,23 @@ export class SqliteGateStore implements GateStore {
       s.reason ?? null,
       s.synced ? 1 : 0,
     );
+    await this.persistEncryptedScans();
   }
   async scans() {
+    const sealed = await this.getKv(ENCRYPTED_SCANS_KV);
+    if (sealed) {
+      try {
+        const key = await getOrCreateVaultKey();
+        return openJson<LocalScan[]>(sealed, key);
+      } catch {
+        return [];
+      }
+    }
     return (await this.db.getAllAsync<ScanRow>('SELECT * FROM scans ORDER BY rowid')).map(toScan);
   }
   async pendingScans(limit: number) {
-    return (
-      await this.db.getAllAsync<ScanRow>(
-        'SELECT * FROM scans WHERE synced = 0 ORDER BY rowid LIMIT ?',
-        limit,
-      )
-    ).map(toScan);
+    const all = await this.scans();
+    return all.filter((s) => !s.synced).slice(0, limit);
   }
   async applyResults(results: { clientId: string; result: ScanResult }[]) {
     await this.db.withTransactionAsync(async () => {
@@ -123,6 +169,7 @@ export class SqliteGateStore implements GateStore {
           r.clientId,
         );
     });
+    await this.persistEncryptedScans();
   }
   async getKv(key: string) {
     return (
@@ -131,5 +178,11 @@ export class SqliteGateStore implements GateStore {
   }
   async setKv(key: string, value: string) {
     await this.db.runAsync('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)', key, value);
+  }
+  async saveEncryptedSnapshot(envelope: string) {
+    await this.setKv(ENCRYPTED_ATTENDANCE_KV, envelope);
+  }
+  async loadEncryptedSnapshot() {
+    return this.getKv(ENCRYPTED_ATTENDANCE_KV);
   }
 }

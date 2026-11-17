@@ -10,6 +10,7 @@ import {
   ExternalLink,
   FileDown,
   Images,
+  MessageCircle,
   NotebookPen,
   Pencil,
   QrCode,
@@ -33,7 +34,7 @@ import { TextField, Textarea } from '@/components/ui/form';
 import { QrBlock } from '@/components/ui/qr-block';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
-import { eventScopedKeys, qk, useSession } from '@/lib/queries';
+import { eventScopedKeys, qk, useEvent, useSession } from '@/lib/queries';
 import { formatDateTimeShort, formatPhone, formatMoney } from '@/lib/format';
 import { useCurrency } from '@/lib/country';
 import { downloadBlob } from '@/lib/download';
@@ -105,6 +106,7 @@ export default function GuestDetailPage({
   const quota = useQuotaToast(id);
   const queryClient = useQueryClient();
   const session = useSession();
+  const event = useEvent(id);
   const guest = useQuery({ queryKey: qk.guest(gid), queryFn: () => getRepository().getGuest(gid) });
   const messages = useQuery({
     queryKey: qk.guestMessages(gid),
@@ -325,6 +327,29 @@ export default function GuestDetailPage({
                   {t('showQr')}
                 </Button>
               ) : null}
+              {link.data ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  icon={<MessageCircle className="size-4 text-success" aria-hidden="true" />}
+                  onClick={() => {
+                    const text = event.data
+                      ? `${event.data.coupleNames} wanakualika: ${link.data!.shortUrl || link.data!.url}`
+                      : link.data!.url;
+                    const phoneParam = g.phoneE164
+                      ? `phone=${g.phoneE164.replace(/\D/g, '')}&`
+                      : '';
+                    window.open(
+                      `https://api.whatsapp.com/send?${phoneParam}text=${encodeURIComponent(text)}`,
+                      '_blank',
+                      'noopener',
+                    );
+                  }}
+                  data-testid="share-card-whatsapp-action"
+                >
+                  {tch('whatsapp')}
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="secondary"
@@ -536,6 +561,20 @@ export default function GuestDetailPage({
                 <p className="font-mono text-3xl font-bold tracking-widest">{g.shortCode}</p>
                 {link.data ? (
                   <div className="flex w-full flex-col gap-2">
+                    <a
+                      href={`https://api.whatsapp.com/send?${g.phoneE164 ? `phone=${g.phoneE164.replace(/\D/g, '')}&` : ''}text=${encodeURIComponent(
+                        event.data
+                          ? `${event.data.coupleNames} wanakualika: ${link.data.shortUrl || link.data.url}`
+                          : link.data.url,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-input bg-success font-semibold text-white hover:bg-success/90"
+                      data-testid="share-card-whatsapp"
+                    >
+                      <MessageCircle className="size-4" aria-hidden="true" />
+                      {tch('whatsapp')}
+                    </a>
                     <a
                       href={link.data.url}
                       target="_blank"

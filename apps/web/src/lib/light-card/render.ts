@@ -78,6 +78,8 @@ const ICONS = {
   shirt:
     '<path d="M20.4 4.7 16 3a4 4 0 0 1-8 0L3.6 4.7a1 1 0 0 0-.7 1.1l.6 3.5a1 1 0 0 0 1 .8H6V21a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V10.1h1.5a1 1 0 0 0 1-.8l.6-3.5a1 1 0 0 0-.7-1.1"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.1-17.1 1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  whatsapp:
+    '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
   x: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6m0-6 6 6"/>',
 };
 export const icon = (name: keyof typeof ICONS, cls = ''): string =>
@@ -363,6 +365,8 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
 <p class="hint">${icon('sun').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.brightnessHint)}</p>
 ${view.isMock ? `<p class="muted" style="font-size:12px">${esc(t.mockToken)}</p>` : ''}
 <div class="actions no-print">
+<button type="button" class="btn primary" id="hp-share-wa" data-testid="share-whatsapp">${icon('whatsapp')} ${esc(t.shareWhatsapp || 'Shiriki WhatsApp')}</button>
+<button type="button" class="btn" id="hp-dl-card" data-testid="download-card">${esc(t.downloadCard || 'Pakua kadi kamili')}</button>
 <button type="button" class="btn" id="hp-dl-qr" data-testid="download-qr">${esc(t.downloadQr)}</button>
 ${calendarButton}<button type="button" class="btn" id="hp-install">${esc(t.addHome)}</button>
 <button type="button" class="btn" id="hp-print">${esc(t.savePdf)}</button>
@@ -522,6 +526,7 @@ ${closingSection}
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).
+  const palette = resolvePalette(event.themeId, event.palette);
   const T: Record<string, string> = { ...pickKeys(t, SCRIPT_KEYS) };
   T.people1 = people(1);
   T.peopleN = people(2).replace('2', '{n}');
@@ -539,13 +544,24 @@ ${closingSection}
       qrDim,
       qrPath: qrD,
       shortCode: guest.shortCode,
+      guestName: guest.displayName,
       start: event.dateStart,
       couple: event.coupleNames,
       kind: eventKindLabel(event.eventKind, locale),
       kindOf: kindOfName,
+      eyebrow,
       venue: event.venueName,
       dress: event.dressCode ?? '',
       domain: o.domain,
+      primaryColor: palette.primary,
+      onPrimaryColor: palette.onPrimary,
+      surfaceColor: palette.surface,
+      inkColor: palette.ink,
+      coverGradient:
+        event.coverGradient && SAFE_GRADIENT.test(event.coverGradient) ? event.coverGradient : '',
+      dateText: `${formatWeekday(event.dateStart, locale)} ${formatDate(event.dateStart, locale)}`,
+      timeText: time,
+      senderName: sender,
     },
   };
 
@@ -567,7 +583,7 @@ ${closingSection}
     locale,
     title,
     description,
-    palette: resolvePalette(event.themeId, event.palette),
+    palette,
     head: `<link rel="manifest" href="/c/${enc}/manifest.webmanifest"><meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:image" content="/c/${enc}/opengraph-image"><meta name="twitter:card" content="summary_large_image">`,
     body,
     script: `<script type="application/json" id="hp-data">${jsonForScript(data)}</script><script>${CLIENT_SCRIPT}</script>`,
@@ -587,6 +603,11 @@ const SCRIPT_KEYS = [
   'calendarTitle',
   'dressCode',
   'codeLabel',
+  'shareWhatsapp',
+  'downloadCard',
+  'shareCardText',
+  'invitesYou',
+  'metaTitle',
 ];
 
 function pickKeys(src: Msg, keys: string[]): Msg {

@@ -13,6 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { matchesSearch, type Guest, type ScanEntry } from '@harusi/api-client';
+import { ConsoleMobileScannerButton } from '@/components/gate/console-mobile-scanner-button';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
@@ -137,7 +138,11 @@ export default function GatePage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <>
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={<ConsoleMobileScannerButton />}
+      />
       <Banner tone="info" className="mb-4">
         {t('scannerNote')}
       </Banner>

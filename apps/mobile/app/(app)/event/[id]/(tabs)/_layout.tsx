@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { Tabs, useGlobalSearchParams } from 'expo-router';
 import { useEvent } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
-import { useColors } from '../../../../../src/lib/theme';
+import { useColors, useIsDark } from '../../../../../src/lib/theme';
 import { AppHeader } from '../../../../../src/ui/header';
 import { Icon, type IconName } from '../../../../../src/ui/icons';
 import { formatDate } from '../../../../../src/lib/format';
@@ -20,6 +20,7 @@ export default function Tabs_() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const t = useT();
   const c = useColors();
+  const dark = useIsDark();
   const { locale } = useLocale();
   const q = useEvent(id);
   const role = (q.data as { myRole?: string } | undefined)?.myRole ?? 'owner';
@@ -41,13 +42,19 @@ export default function Tabs_() {
           tabBarStyle: gateOnly
             ? { display: 'none' }
             : {
-                minHeight: 68,
-                paddingTop: 6,
-                paddingBottom: 8,
+                minHeight: 72,
+                paddingTop: 8,
+                paddingBottom: 10,
                 backgroundColor: c.surface,
+                borderTopWidth: 1,
                 borderTopColor: c.border,
+                shadowColor: '#0A3F35',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: dark ? 0 : 0.04,
+                shadowRadius: 12,
+                elevation: 4,
               },
-          tabBarLabelStyle: { fontSize: 12, fontWeight: '700' },
+          tabBarLabelStyle: { fontSize: 11.5, fontWeight: '700', marginTop: 2 },
         }}
       >
         {(
@@ -65,7 +72,21 @@ export default function Tabs_() {
             options={{
               title: t(key),
               tabBarIcon: ({ color, focused }) => (
-                <Icon name={ICON[name]!} size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+                <View
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 4,
+                    borderRadius: 16,
+                    backgroundColor: focused ? c.primarySoft : 'transparent',
+                  }}
+                >
+                  <Icon
+                    name={ICON[name]!}
+                    size={22}
+                    color={color}
+                    strokeWidth={focused ? 2.4 : 1.9}
+                  />
+                </View>
               ),
               ...hide(gateOnly && name !== 'gate'),
               ...(name === 'pledges' && role !== 'owner' && role !== 'committee'

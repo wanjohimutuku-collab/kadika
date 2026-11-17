@@ -80,8 +80,23 @@ export class GateService {
   // ---- gate link + PIN
 
   private pick(alphabet: string, n: number): string {
-    const b = this.deps.random(n);
-    return Array.from(b, (x) => alphabet[x % alphabet.length]).join('');
+    const len = alphabet.length;
+    const limit = Math.floor(256 / len) * len;
+    let out = '';
+    for (let round = 0; round < 8 && out.length < n; round++) {
+      const b = this.deps.random(n - out.length);
+      for (let i = 0; i < b.length && out.length < n; i++) {
+        const x = b[i]!;
+        if (x < limit) out += alphabet[x % len];
+      }
+    }
+    if (out.length < n) {
+      const fallback = this.deps.random(n - out.length);
+      for (let i = 0; i < fallback.length && out.length < n; i++) {
+        out += alphabet[fallback[i]! % len];
+      }
+    }
+    return out;
   }
 
   async createLink(eventId: string, userId: string) {

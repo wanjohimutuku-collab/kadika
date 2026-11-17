@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ArrowUpRight, QrCode } from 'lucide-react';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { emit } from '@/lib/analytics-client';
 import type { HomeCopy } from '@/content/home';
 
@@ -71,13 +73,23 @@ export function CtaBand({ copy, primaryHref, demoHref }: CtaBandProps) {
             {copy.whatsappCta}
           </a>
         </div>
-        <a
-          href={primaryHref}
-          onClick={() => emit('home_cta_band_primary')}
-          className="inline-flex min-h-12 items-center justify-center rounded-full bg-white/80 px-6 font-semibold text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(10_63_53/0.2)] transition hover:bg-white"
-        >
-          {copy.primary}
-        </a>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={primaryHref}
+            onClick={() => emit('home_cta_band_primary')}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white/90 px-6 font-semibold text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(10_63_53/0.2)] transition hover:bg-white"
+          >
+            <span>{copy.primary}</span>
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          </a>
+          <Link
+            href="/k"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-ks-green-900/10 px-5 font-semibold text-ks-green-900 transition hover:bg-ks-green-900/15"
+          >
+            <QrCode className="size-4" aria-hidden="true" />
+            <span>{copy.secondary}</span>
+          </Link>
+        </div>
       </div>
     </section>
   );

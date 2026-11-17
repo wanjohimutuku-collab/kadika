@@ -1,16 +1,14 @@
 import { Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { useIsMutating } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocale, useT } from '../lib/i18n';
 import { useOnline } from '../lib/network';
-import { useColors } from '../lib/theme';
+import { useColors, useIsDark } from '../lib/theme';
 import { Icon } from './icons';
 
 /**
- * Header (§17.3): where you are on the left, and two quiet controls on the right: the language
- * (a pill showing the current one, one tap to switch) and the sync state (an icon plus a word for
- * screen readers). The title is the wedding's names; the optional subtitle carries date and venue.
+ * Header (§17.3): where you are on the left, and two quiet controls on the right: a pill-shaped
+ * language switch (matching the web header) and a compact sync status pill.
  */
 export function AppHeader({
   title,
@@ -22,6 +20,7 @@ export function AppHeader({
   onBack?: () => void;
 }) {
   const c = useColors();
+  const dark = useIsDark();
   const t = useT();
   const { locale, setLocale } = useLocale();
   const online = useOnline();
@@ -33,18 +32,30 @@ export function AppHeader({
       : t('states.synced');
   const syncColor = !online ? c.warning : pending > 0 ? c.info : c.success;
   const other = locale === 'sw' ? 'en' : 'sw';
+
   return (
     <SafeAreaView
       edges={['top']}
-      style={{ backgroundColor: c.surface, borderBottomWidth: 1, borderColor: c.border }}
+      style={{
+        backgroundColor: c.surface,
+        borderBottomWidth: 1,
+        borderColor: c.border,
+        shadowColor: '#0A3F35',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: dark ? 0 : 0.05,
+        shadowRadius: 12,
+        elevation: 2,
+      }}
     >
+      {/* Subtle top kitenge-gold accent thread */}
+      <View style={{ height: 2, backgroundColor: c.gold, opacity: 0.7 }} />
       <View
         style={{
           minHeight: 64,
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 8,
-          gap: 4,
+          paddingHorizontal: 10,
+          gap: 6,
         }}
       >
         {onBack ? (
@@ -52,33 +63,69 @@ export function AppHeader({
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}
             onPress={onBack}
-            style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: pressed ? c.primarySoft : c.bg,
+              borderWidth: 1,
+              borderColor: c.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+            })}
           >
             <View style={{ transform: [{ rotate: '180deg' }] }}>
-              <Icon name="next" size={26} color={c.ink} />
+              <Icon name="next" size={22} color={c.ink} />
             </View>
           </Pressable>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('nav.switchEvent')}
-          onPress={() => router.replace('/events')}
-          style={{ flex: 1, minHeight: 48, justifyContent: 'center', paddingLeft: onBack ? 0 : 8 }}
+        <View
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 12,
+            backgroundColor: c.deepEmerald,
+            borderWidth: 1.5,
+            borderColor: c.gold,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: onBack ? 2 : 6,
+          }}
         >
-          <Text numberOfLines={1} style={{ fontSize: 20, fontWeight: '800', color: c.ink }}>
+          <Icon name="gate" size={18} color={c.gold} />
+        </View>
+        <View style={{ flex: 1, minHeight: 48, justifyContent: 'center', paddingLeft: 4 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontSize: 10.5,
+              fontWeight: '800',
+              letterSpacing: 0.8,
+              color: c.primary,
+              textTransform: 'uppercase',
+            }}
+          >
+            {`${t('common.appName')} · ${t('gateApp.gateName')}`}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: 18, fontWeight: '800', letterSpacing: -0.3, color: c.ink }}
+          >
             {title}
           </Text>
           {subtitle ? (
-            <Text numberOfLines={1} style={{ fontSize: 13, color: c.muted }}>
+            <Text numberOfLines={1} style={{ fontSize: 12.5, color: c.muted, marginTop: 1 }}>
               {subtitle}
             </Text>
           ) : null}
-        </Pressable>
+        </View>
+
+        {/* Pill language switcher matching web header */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.switchTo', { lang: t(`common.languageName.${other}`) })}
           onPress={() => setLocale(other)}
-          style={{
+          style={({ pressed }) => ({
             minHeight: 36,
             minWidth: 56,
             flexDirection: 'row',
@@ -88,22 +135,32 @@ export function AppHeader({
             borderRadius: 999,
             borderWidth: 1,
             borderColor: c.border,
+            backgroundColor: pressed ? c.primarySoft : c.bg,
             paddingHorizontal: 10,
-          }}
+          })}
         >
-          <Icon name="language" size={15} color={c.primary} />
-          <Text style={{ fontSize: 13, fontWeight: '800', color: c.primary }}>
+          <Icon name="language" size={14} color={c.primary} />
+          <Text style={{ fontSize: 12.5, fontWeight: '800', color: c.primary }}>
             {locale.toUpperCase()}
           </Text>
         </Pressable>
+
+        {/* Compact sync status pill */}
         <View
           accessible
           accessibilityLabel={sync}
-          style={{ width: 40, height: 48, alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            height: 36,
+            width: 36,
+            borderRadius: 18,
+            backgroundColor: syncColor + '18',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <Icon
             name={!online ? 'offline' : pending > 0 ? 'sync' : 'checkCircle'}
-            size={20}
+            size={18}
             color={syncColor}
           />
         </View>

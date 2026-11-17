@@ -67,6 +67,19 @@ export default function GuestDetail() {
     }
   };
 
+  const shareCardWa = async () => {
+    try {
+      const link = await getRepository().getGuestCardLink(gid);
+      const text = `${g!.displayName}: ${link.shortUrl || link.url}`;
+      const phone = g!.phoneE164 ? `phone=${g!.phoneE164.replace(/\D/g, '')}&` : '';
+      await Linking.openURL(
+        `https://api.whatsapp.com/send?${phone}text=${encodeURIComponent(text)}`,
+      );
+    } catch {
+      setMsg(t('common.error'));
+    }
+  };
+
   const g = q.data;
   const reached = g ? (ORDER[g.status] ?? 0) : 0;
   // a contribution card has no reply and no gate, so its story ends at "opened"
@@ -139,6 +152,14 @@ export default function GuestDetail() {
                 <Pill label={t('status.failed')} tone="danger" />
               ) : null}
             </Card>
+            {g!.phoneE164 ? (
+              <Button
+                variant="secondary"
+                icon="whatsapp"
+                label={t('channel.whatsapp')}
+                onPress={() => void shareCardWa()}
+              />
+            ) : null}
             {canShare && g!.phoneE164 ? (
               <Button
                 variant="secondary"

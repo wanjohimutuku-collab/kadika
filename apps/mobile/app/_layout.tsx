@@ -46,10 +46,14 @@ export default function RootLayout() {
       <QueryClientProvider client={client}>
         <I18nProvider>
           <SessionProvider>
-            <StatusBar style="auto" />
+            <StatusBar style="light" />
             <OfflineBanner />
             <Stack
-              screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: c.bg },
+                animation: 'none',
+              }}
             />
           </SessionProvider>
         </I18nProvider>

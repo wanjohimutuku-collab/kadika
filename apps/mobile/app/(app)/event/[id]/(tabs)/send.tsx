@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Switch, Text, View } from 'react-native';
+import { Linking, Pressable, Switch, Text, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
 import type { SendJob } from '@harusi/api-client';
 import {
@@ -9,6 +9,7 @@ import {
   senderNameFor,
 } from '@harusi/api-client';
 import type { CardKind } from '@harusi/schemas';
+import { eventKindLabel } from '@harusi/schemas';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { formatDate, formatMoney } from '../../../../../src/lib/format';
@@ -289,18 +290,273 @@ export default function Send() {
       ) : null}
 
       <SectionTitle>{t('send.preview')}</SectionTitle>
-      <View
-        style={{
-          alignSelf: 'stretch',
-          backgroundColor: c.primary + '14',
-          borderRadius: 16,
-          borderTopLeftRadius: 4,
-          padding: 14,
-          gap: 8,
-        }}
-      >
-        <Text style={{ fontSize: 15, color: c.ink, lineHeight: 22 }}>{sample}</Text>
-      </View>
+      {channel === 'whatsapp' || channel === 'auto' ? (
+        <View
+          style={{
+            alignSelf: 'stretch',
+            backgroundColor: '#ECE5DD',
+            borderRadius: 16,
+            padding: 12,
+            gap: 10,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Icon name="whatsapp" size={16} color="#128C7E" />
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#075E54' }}>
+              {locale === 'sw' ? 'Muonekano wa Kadi WhatsApp' : 'WhatsApp Card Preview'}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              borderTopLeftRadius: 4,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+              shadowOffset: { width: 0, height: 1 },
+              elevation: 2,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: ev.data?.palette?.primary || c.primary,
+                paddingVertical: 14,
+                paddingHorizontal: 12,
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  paddingHorizontal: 10,
+                  paddingVertical: 3,
+                  borderRadius: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 10,
+                    fontWeight: '800',
+                    letterSpacing: 1,
+                  }}
+                >
+                  {contribution
+                    ? locale === 'sw'
+                      ? 'KADI YA MCHANGO'
+                      : 'CONTRIBUTION CARD'
+                    : locale === 'sw'
+                      ? 'KADI MAALUM YA KUALIKWA'
+                      : 'OFFICIAL INVITATION CARD'}
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontSize: 18,
+                  fontWeight: '800',
+                  textAlign: 'center',
+                  marginTop: 2,
+                }}
+              >
+                {ev.data
+                  ? ev.data.partnerA && ev.data.partnerB
+                    ? `${ev.data.partnerA} & ${ev.data.partnerB}`
+                    : ev.data.title
+                  : 'Harusi Yetu'}
+              </Text>
+
+              <Text style={{ color: '#D4AF37', fontSize: 12 }}>❖ ❖ ❖</Text>
+
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontSize: 12,
+                  fontWeight: '500',
+                  textAlign: 'center',
+                }}
+              >
+                {ev.data?.dateStart ? formatDate(ev.data.dateStart, locale) : ''}
+                {ev.data?.venueName ? ` · ${ev.data.venueName}` : ''}
+              </Text>
+
+              <View
+                style={{
+                  backgroundColor: 'rgba(0,0,0,0.25)',
+                  paddingHorizontal: 12,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  marginTop: 2,
+                }}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>
+                  {locale === 'sw' ? 'Kwa: Ndugu Mualikwa' : 'To: Honoured Guest'}
+                </Text>
+              </View>
+
+              <View
+                style={{
+                  marginTop: 6,
+                  backgroundColor: '#FFFFFF',
+                  padding: 8,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                  elevation: 2,
+                  width: 140,
+                }}
+              >
+                <Icon name="qr" size={48} color="#1E293B" />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '800',
+                    color: '#0F172A',
+                    letterSpacing: 1.5,
+                    marginTop: 2,
+                  }}
+                >
+                  KH-4821
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: '#64748B',
+                    textAlign: 'center',
+                    marginTop: 2,
+                  }}
+                >
+                  {locale === 'sw' ? 'Onyesha mlangoni kwa uthibitisho' : 'Show at gate for entry'}
+                </Text>
+              </View>
+            </View>
+
+            <View
+              style={{
+                backgroundColor: '#F8FAFC',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderTopWidth: 1,
+                borderTopColor: '#E2E8F0',
+                gap: 2,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#64748B' }}>kadisasa.com</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {ev.data
+                  ? ev.data.partnerA && ev.data.partnerB
+                    ? `${ev.data.partnerA} & ${ev.data.partnerB}`
+                    : ev.data.title
+                  : ''}{' '}
+                · {eventKindLabel(ev.data?.eventKind, locale as 'sw' | 'en')}
+              </Text>
+              <Text style={{ fontSize: 11, color: '#64748B' }}>
+                {locale === 'sw'
+                  ? 'Fungua kadi yako rasmi yenye QR code mtandaoni'
+                  : 'Open your official card with QR code online'}
+              </Text>
+            </View>
+
+            <View style={{ padding: 12, gap: 6 }}>
+              <Text style={{ fontSize: 14, color: '#1B1B1F', lineHeight: 20 }}>{sample}</Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Text style={{ fontSize: 11, color: '#64748B' }}>10:42</Text>
+                <Icon name="check" size={14} color="#53BDEB" />
+              </View>
+            </View>
+
+            {/* Quick Action Toolbar to Convert to Image & Send to WhatsApp */}
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 8,
+                paddingHorizontal: 12,
+                paddingBottom: 12,
+                paddingTop: 4,
+              }}
+            >
+              <Pressable
+                onPress={() => {
+                  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(sample)}`;
+                  void Linking.openURL(url);
+                }}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  backgroundColor: '#25D366',
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Icon name="whatsapp" size={16} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
+                  {locale === 'sw' ? 'Tuma Picha WhatsApp' : 'Send Image to WhatsApp'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const url = `https://kadisasa.com/api/card-image?code=KH-4821&couple=${encodeURIComponent(
+                    ev.data
+                      ? ev.data.partnerA && ev.data.partnerB
+                        ? `${ev.data.partnerA} & ${ev.data.partnerB}`
+                        : ev.data.title
+                      : 'Kadi Sasa',
+                  )}&download=1`;
+                  void Linking.openURL(url);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  backgroundColor: '#F1F5F9',
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  borderWidth: 1,
+                  borderColor: '#E2E8F0',
+                }}
+              >
+                <Icon name="download" size={16} color="#0F172A" />
+                <Text style={{ color: '#0F172A', fontWeight: '600', fontSize: 13 }}>
+                  {locale === 'sw' ? 'Pakua Picha' : 'Download Image'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View
+          style={{
+            alignSelf: 'stretch',
+            backgroundColor: c.primary + '14',
+            borderRadius: 16,
+            borderTopLeftRadius: 4,
+            padding: 14,
+            gap: 8,
+          }}
+        >
+          <Text style={{ fontSize: 15, color: c.ink, lineHeight: 22 }}>{sample}</Text>
+        </View>
+      )}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name="sms" size={14} color={c.muted} />
         <Txt size={13} color={c.muted}>

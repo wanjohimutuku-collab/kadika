@@ -25,6 +25,12 @@ export interface WhatsAppCloudOptions {
   templates?: TemplateNames;
   /** Templates approved for one country; used instead of `templates` for that country's events. */
   templatesByCountry?: Record<string, TemplateNames>;
+  /**
+   * The approved templates have an IMAGE header: the card image (`template.mediaUrl`) goes in it,
+   * so guests receive the picture, not just text (ADR 058). Off unless the templates were approved
+   * that way: WhatsApp rejects a header the template does not have.
+   */
+  imageHeader?: boolean;
   baseUrl?: string;
   fetchImpl?: typeof fetch;
 }
@@ -66,6 +72,14 @@ export class WhatsAppCloudProvider implements MessagingProvider {
               name,
               language: { code: template.locale },
               components: [
+                ...(this.o.imageHeader && template.mediaUrl
+                  ? [
+                      {
+                        type: 'header',
+                        parameters: [{ type: 'image', image: { link: template.mediaUrl } }],
+                      },
+                    ]
+                  : []),
                 {
                   type: 'body',
                   parameters: template.params.map((text) => ({ type: 'text', text })),

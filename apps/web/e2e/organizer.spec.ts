@@ -172,7 +172,8 @@ test('owner recolours the card: live preview, unreadable colours block saving, a
 
   // a readable custom colour shows up in the live preview straight away
   await page.getByTestId('palette-hex-primary').fill('#7A1F3D');
-  await expect(page.locator('[style*="--hp-primary: #7A1F3D"]').first()).toBeAttached();
+  // the preview is the server-drawn card image (ADR 058): the colour travels in its URL
+  await expect(page.getByTestId('card-preview-image')).toHaveAttribute('src', /%237A1F3D/i);
 
   // text that cannot be read on the card paper blocks saving and says which pair
   await page.getByTestId('palette-hex-ink').fill('#EEEEEE');

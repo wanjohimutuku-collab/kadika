@@ -49,6 +49,8 @@ COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
 # The standalone output leaves out public/, which holds the guest card's service worker (sw.js).
 COPY --from=build --chown=node:node /repo/apps/web/public ./apps/web/public
+# Fonts read at runtime by /api/card-image (ADR 058); file tracing does not pick them up.
+COPY --from=build --chown=node:node /repo/apps/web/assets ./apps/web/assets
 # The commit this image was built from, reported by /health so a deploy can be confirmed (ADR 035).
 # Set last so it never invalidates the build layers above.
 ARG GIT_SHA=dev

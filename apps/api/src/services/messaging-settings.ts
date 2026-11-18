@@ -67,6 +67,7 @@ export function envSettings(config: Config): MessagingSettings {
               apiVersion: wc?.apiVersion,
               verifyToken: wc?.verifyToken,
               appSecret: wc?.appSecret,
+              imageHeader: wc?.imageHeader ? '1' : undefined,
               templateInvite: wc?.templates.invite,
               templateReminder: wc?.templates.reminder,
               templatePledge: wc?.templates.pledge,
@@ -151,6 +152,7 @@ function configFor(s: MessagingSettings): ProviderConfig {
             apiVersion: wa.apiVersion || 'v21.0',
             verifyToken: wa.verifyToken || null,
             appSecret: wa.appSecret || null,
+            imageHeader: wa.imageHeader === '1',
             templates: templates(wa) ?? {},
             templatesByCountry: keTemplates ? { KE: keTemplates } : {},
           }

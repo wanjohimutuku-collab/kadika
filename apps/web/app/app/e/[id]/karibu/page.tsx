@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { cardTemplateOf, pick } from '@harusi/schemas';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Circle, HandCoins, MessageSquare, Printer, Sparkles } from 'lucide-react';
 import { CardPreview } from '@/components/console/card-preview';
@@ -37,6 +38,7 @@ export default function WelcomePage({ params }: { params: Promise<{ id: string }
   const { id } = use(params);
   const t = useTranslations('welcome');
   const tb = useTranslations('billing');
+  const locale = useLocale() === 'en' ? 'en' : 'sw';
   const router = useRouter();
   const event = useEvent(id);
   const billing = useQuery({
@@ -77,6 +79,12 @@ export default function WelcomePage({ params }: { params: Promise<{ id: string }
             greeting: e.greeting,
             senderName: e.senderName,
             committeePhone: e.committeePhone,
+            // The saved card-image design, so this preview matches what guests get (ADR 058).
+            template: cardTemplateOf(e.cardContent),
+            title: pick(e.cardContent?.design?.title, locale),
+            message: pick(e.cardContent?.design?.message, locale),
+            footer: pick(e.cardContent?.design?.footer, locale),
+            showQr: e.cardContent?.design?.showQr,
           };
           return (
             <section

@@ -398,3 +398,27 @@ describe('WhatsAppCloudProvider templates by country', () => {
     }
   });
 });
+
+describe('WhatsAppCloudProvider image header (ADR 058)', () => {
+  it('puts the card image in the template header only when enabled', async () => {
+    const bodies: unknown[] = [];
+    const fetchImpl = (async (_u: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ messages: [{ id: 'wamid.1' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const t = {
+      kind: 'invite' as const,
+      locale: 'sw' as const,
+      country: 'TZ',
+      params: ['A'],
+      mediaUrl: 'https://x.test/c.png',
+    };
+    const base = { token: 't', phoneNumberId: 'p', templates: { invite: 'inv' }, fetchImpl };
+    await new WhatsAppCloudProvider({ ...base, imageHeader: true }).send('+255712000001', 'x', t);
+    await new WhatsAppCloudProvider(base).send('+255712000001', 'x', t);
+    const comps = (b: unknown) =>
+      (b as { template: { components: { type: string }[] } }).template.components;
+    expect(comps(bodies[0]).map((c) => c.type)).toEqual(['header', 'body']);
+    expect(comps(bodies[1]).map((c) => c.type)).toEqual(['body']);
+  });
+});

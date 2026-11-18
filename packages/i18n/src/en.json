@@ -810,7 +810,7 @@
     "pasteLabel": "Paste names and numbers",
     "pasteHint": "One guest per line, e.g. \"Asha Mwinyi, 0712 345 678, Friends\"",
     "csvLabel": "Upload a CSV or vCard file",
-    "csvHint": "Our CSV (Name, Phone, Group, Party), a Google Contacts CSV or an iPhone vCard (.vcf)",
+    "csvHint": "Columns: Name (or First Name + Second Name), Phone number, Type (D = double, S = single), Group. Also a Google Contacts CSV or an iPhone vCard (.vcf)",
     "chooseFile": "Choose file",
     "template": "Download CSV template",
     "notCsv": "This file can't be read as CSV or vCard",
@@ -820,9 +820,12 @@
     "hasHeader": "First row is headers",
     "fields": {
       "name": "Name",
+      "firstName": "First name",
+      "secondName": "Second name",
       "phone": "Phone",
       "group": "Group",
       "party": "People",
+      "type": "Type (D/S)",
       "smartphone": "Smartphone",
       "ignore": "Ignore"
     },
@@ -837,8 +840,12 @@
     "issue": {
       "name": "Name is incomplete",
       "duplicateFile": "This number appears twice (row {row})",
-      "duplicateExisting": "Already on your list"
+      "duplicateExisting": "Already on your list",
+      "type": "Unknown type \"{value}\": use D (double) or S (single)"
     },
+    "fixType": "Guest type",
+    "typeSingle": "S: single",
+    "typeDouble": "D: double (with partner)",
     "fix": "Fix",
     "fixTitle": "Fix row {row}",
     "keep": "Include",

@@ -3,7 +3,7 @@
     "import": {
       "sourceCsv": "Pakia faili",
       "csvLabel": "Pakia faili la CSV au vCard",
-      "csvHint": "CSV yetu (Jina, Simu, Kikundi, Idadi), CSV ya Google Contacts au vCard (.vcf) ya iPhone",
+      "csvHint": "Safu: Jina (au Jina la kwanza + Jina la pili), Simu, Aina (D = wawili, S = mmoja), Kikundi. Pia CSV ya Google Contacts au vCard (.vcf) ya iPhone",
       "notCsv": "Faili hili halisomeki kama CSV au vCard"
     },
     "contacts": {
@@ -67,7 +67,7 @@
     "import": {
       "sourceCsv": "Upload file",
       "csvLabel": "Upload a CSV or vCard file",
-      "csvHint": "Our CSV (Name, Phone, Group, Party), a Google Contacts CSV or an iPhone vCard (.vcf)",
+      "csvHint": "Columns: Name (or First Name + Second Name), Phone number, Type (D = double, S = single), Group. Also a Google Contacts CSV or an iPhone vCard (.vcf)",
       "notCsv": "This file can't be read as CSV or vCard"
     },
     "contacts": {

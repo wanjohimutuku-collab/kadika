@@ -283,7 +283,7 @@ export default function Import() {
                   >
                     {p.phoneRaw || t('guests.noPhone')}
                     {p.issues.length
-                      ? ` · ${p.issues.map((i) => (i.kind === 'phone' ? t(`validation.phone.${i.error}`) : i.kind === 'name' ? t('validation.name.too_short') : t(i.of === 'file' ? 'import.issue.duplicateFile' : 'import.issue.duplicateExisting', { row: (i.otherRow ?? 0) + 1 }))).join(', ')}`
+                      ? ` · ${p.issues.map((i) => (i.kind === 'phone' ? t(`validation.phone.${i.error}`) : i.kind === 'name' ? t('validation.name.too_short') : i.kind === 'type' ? t('import.issue.type', { value: i.value }) : t(i.of === 'file' ? 'import.issue.duplicateFile' : 'import.issue.duplicateExisting', { row: (i.otherRow ?? 0) + 1 }))).join(', ')}`
                       : ''}
                   </Txt>
                 </View>

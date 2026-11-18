@@ -35,6 +35,8 @@ export interface CardPreviewData {
   footer?: string;
   showQr?: boolean;
   isContribution?: boolean;
+  /** Seats on the sample card; default 2, so the preview shows where DOUBLE / SINGLE is printed. */
+  seats?: number;
 }
 
 /**
@@ -79,6 +81,7 @@ export function CardPreview({
     whatsappMessage: data.whatsappMessage,
     footer: data.footer,
     showQr: data.showQr,
+    seats: data.seats ?? 2,
     locale,
   };
 

@@ -40,6 +40,8 @@ export interface CardImageOptions {
   whatsappMessage?: string;
   footer?: string;
   showQr?: boolean;
+  /** Seats on the card: 1 prints SINGLE, 2 prints DOUBLE under the guest number. */
+  seats?: number;
   scale?: number;
 }
 
@@ -528,6 +530,7 @@ export function cardImageUrl(
   set('wa', options.whatsappMessage);
   set('footer', options.footer);
   if (options.showQr === false) q.set('qr', '0');
+  if (options.seats) q.set('seats', String(options.seats));
   for (const [k, v] of Object.entries(extra)) q.set(k, v);
   return `/api/card-image?${q.toString()}`;
 }

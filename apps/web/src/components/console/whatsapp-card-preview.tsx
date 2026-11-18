@@ -100,6 +100,8 @@ export function WhatsappCardPreview({
     locale,
     isContribution,
     template,
+    // The sample guest holds a Double card, so the preview shows the DOUBLE tag guests see.
+    seats: 2,
     ...design,
     scale: 2,
   };

@@ -28,6 +28,7 @@ import {
 } from '@harusi/api-client';
 import {
   CARD_KINDS,
+  cardTemplateOf,
   pick,
   renderTemplate,
   type CardKind,
@@ -794,7 +795,22 @@ function SendInner({ id }: { id: string }) {
                         locale={previewLang}
                         domain={APP_DOMAIN}
                         isContribution={contribution}
+                        template={cardTemplateOf(e.cardContent)}
+                        design={{
+                          title: pick(e.cardContent?.design?.title, previewLang),
+                          message: pick(e.cardContent?.design?.message, previewLang),
+                          footer: pick(e.cardContent?.design?.footer, previewLang),
+                          showQr: e.cardContent?.design?.showQr,
+                          whatsappMessage: activeWhatsappTemplate,
+                        }}
                         messageText={renderedWhatsappText}
+                        sendCount={total}
+                        sendDisabled={!canSend}
+                        onSendWhatsapp={() => {
+                          // Through the API to each guest's own number, with the card image attached.
+                          setChannel('whatsapp');
+                          setConfirmOpen(true);
+                        }}
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">

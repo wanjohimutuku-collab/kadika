@@ -1,3 +1,4 @@
+import { parseSeatType } from './seat-type';
 import type { Country } from './country';
 import { normalizePhone, type PhoneError } from './phone';
 
@@ -82,7 +83,8 @@ const HEADER_HINTS: Record<Exclude<ImportField, 'ignore'>, RegExp> = {
   name: /^(jina|majina|name|full ?name|mgeni|guest)/i,
   phone: /(simu|phone|namba|mobile|tel|msisdn)/i,
   group: /(kikundi|group|kundi|category|upande)/i,
-  party: /(idadi|party|watu|size|seats)/i,
+  // "Type" / "Aina" columns carry S or D (Single / Double card).
+  party: /(idadi|party|watu|size|seats|^(card )?type$|^aina)/i,
   smartphone: /(smartphone|simu janja)/i,
 };
 
@@ -191,6 +193,8 @@ export function buildPreview(
             : Number.isFinite(party) && party > 0
               ? Math.min(party, 10)
               : 1,
+        // "S"/"D" (Single/Double card) or a number of seats.
+        partySizeAllowed: parseSeatType(col(r, 'party')) ?? 1,
         hasSmartphone: !['no', 'hapana', 'false', '0', 'hana'].includes(smart),
         typeRaw: typed === 'invalid' ? typeRaw : undefined,
       },

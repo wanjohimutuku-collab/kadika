@@ -253,7 +253,9 @@
     "appLink": "Programu ya Android",
     "payToTitle": "Tuma mchango wako kwa:",
     "payToNone": "Wasiliana na kamati kujua namba ya kutuma mchango.",
-    "payToDirect": "Mchango unaenda moja kwa moja kwa wenyeji. Kamati itaandika malipo yako. Usitume PIN yako kwa mtu yeyote."
+    "payToDirect": "Mchango unaenda moja kwa moja kwa wenyeji. Kamati itaandika malipo yako. Usitume PIN yako kwa mtu yeyote.",
+    "seatS": "Single",
+    "seatD": "Double"
   },
   "pay": {
     "title": "Lipa mchango",
@@ -623,7 +625,9 @@
       "remind": "Wageni {count} hawajajibu — tuma kikumbusho",
       "pledges": "Fuatilia michango ya wageni {count} wenye salio",
       "gate": "Andaa lango: alika walinda lango na ujaribu kuingiza mgeni",
-      "done": "Kila kitu kiko sawa. Pumzika!"
+      "done": "Kila kitu kiko sawa. Pumzika!",
+      "addInvites": "Ongeza wageni watakaopata kadi ya mwaliko",
+      "past": "Sherehe imekwisha. Angalia ilivyokwenda kwenye ripoti"
     },
     "nextAction": {
       "import": "Ingiza orodha",
@@ -632,7 +636,9 @@
       "remind": "Tuma kikumbusho",
       "pledges": "Fungua michango",
       "gate": "Fungua lango",
-      "done": "Ona ripoti"
+      "done": "Ona ripoti",
+      "addInvites": "Ongeza wageni",
+      "past": "Ona ripoti"
     },
     "alerts": "Tahadhari",
     "alertFailed": "{count, plural, one {Ujumbe # haukufika} other {Ujumbe # haukufika}}",
@@ -652,7 +658,11 @@
       "import": "Wageni wameingizwa",
       "send": "Kadi zimetumwa kwa {count, plural, one {mgeni #} other {wageni #}}"
     },
-    "seeAll": "Ona yote"
+    "seeAll": "Ona yote",
+    "pastEvent": "{days, plural, one {Ilifanyika siku # iliyopita} other {Ilifanyika siku # zilizopita}}",
+    "funnelEmpty": "Ongeza wageni uone kila mwaliko umefika wapi: umetumwa, umefunguliwa, amethibitisha, amefika.",
+    "funnelEmptyAction": "Ongeza wageni",
+    "kpiContributionCards": "{count, plural, one {+ kadi # ya mchango} other {+ kadi # za mchango}}"
   },
   "guests": {
     "title": "Wageni",
@@ -746,7 +756,11 @@
     "bulkUnmarkPrint": "Ondoa kwenye kuchapisha",
     "printMarked": "{count, plural, one {Mgeni # atapata kadi ya kuchapisha} other {Wageni # watapata kadi ya kuchapisha}}",
     "printUnmarked": "{count, plural, one {Mgeni # ameondolewa kwenye kuchapisha} other {Wageni # wameondolewa kwenye kuchapisha}}",
-    "printBadge": "Kadi ya kuchapisha"
+    "printBadge": "Kadi ya kuchapisha",
+    "seatTypes": {
+      "S": "Kadi ya Single: mgeni 1",
+      "D": "Kadi ya Double: wageni 2"
+    }
   },
   "guestForm": {
     "cardKind": "Aina ya kadi",
@@ -778,7 +792,14 @@
     "printCard": "Kadi ya kuchapisha",
     "printCardHelp": "Mgeni huyu atapata kadi iliyochapishwa. Unaitengeneza kwenye Kadi; inahesabiwa mara moja tu.",
     "prefill": "Chagua kutoka kwenye anwani",
-    "prefillTitle": "Chagua mtu mmoja"
+    "prefillTitle": "Chagua mtu mmoja",
+    "cardType": "Aina ya kadi",
+    "cardTypeHelp": "{count, plural, one {Inaruhusu mgeni # langoni} other {Inaruhusu wageni # langoni}}",
+    "seatTypes": {
+      "S": "Single (S)",
+      "D": "Double (D)",
+      "F": "Familia"
+    }
   },
   "import": {
     "title": "Ingiza orodha ya wageni",
@@ -1005,6 +1026,23 @@
     "whatsappTemplateContribution": "{sender} wanakuomba mchango kwa {kindOf} {couple}. Changia hapa: {link}"
   },
   "cards": {
+    "design": "Muundo wa picha ya kadi",
+    "designHint": "Picha wanayopokea wageni WhatsApp. Haina vitufe: vitufe vya kujibu na kuchangia viko kwenye kadi ya kidijitali inayofunguka kwa kiungo.",
+    "templateClassic": "Klasiki",
+    "templateClassicHint": "Karatasi ya krimu, fremu nyembamba, kila kitu katikati",
+    "templateModern": "Kisasa",
+    "templateModernHint": "Sehemu ya rangi juu, tarehe kama kalenda, QR kama tiketi",
+    "templateScript": "Maandishi ya mkono",
+    "templateScriptHint": "Kadi nyeupe, majina kwa mwandiko, QR pembeni",
+    "templateBotanical": "Maua",
+    "templateBotanicalHint": "Krimu yenye majani na maua juu na chini, QR katikati",
+    "designTitle": "Ujumbe mkuu",
+    "designTitleHint": "Mfano: Wanakualika kushiriki sherehe ya harusi yao. Acha wazi kutumia ujumbe wa kawaida.",
+    "designMessage": "Maandishi ya ziada",
+    "designMessageHint": "Mstari mmoja au zaidi: mawasiliano, namba ya M-Pesa, maelezo.",
+    "designFooter": "Mstari wa mwisho",
+    "designFooterHint": "Mfano: Chakula cha jioni kitafuata",
+    "designShowQr": "Onyesha QR ya mgeni kwenye picha",
     "title": "Kadi",
     "themes": "Mtindo",
     "contrastOk": "Rangi zinasomeka (uwiano {ratio}:1)",
@@ -1649,6 +1687,7 @@
         "apiVersion": "Toleo la Graph API",
         "verifyToken": "Verify token ya webhook",
         "appSecret": "App secret",
+        "imageHeader": "Picha ya kadi kwenye kichwa cha template (1 = ndiyo)",
         "templateInvite": "Mwaliko",
         "templateReminder": "Kikumbusho",
         "templatePledge": "Ahadi",

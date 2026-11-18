@@ -13,6 +13,21 @@ export function localeOf(req: Request): Locale {
   return isLocale(m?.[1]) ? m![1] : defaultLocale;
 }
 
+/**
+ * The public origin the guest opened (behind Coolify's proxy `req.url` is the internal address).
+ * Link-preview crawlers (WhatsApp) need absolute `og:image` URLs.
+ */
+export function originOf(req: Request): string {
+  const u = new URL(req.url);
+  const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? u.host)
+    .split(',')[0]!
+    .trim();
+  const proto = (req.headers.get('x-forwarded-proto') ?? u.protocol.replace(':', ''))
+    .split(',')[0]!
+    .trim();
+  return /^[\w.-]+(:\d+)?$/.test(host) && /^https?$/.test(proto) ? `${proto}://${host}` : u.origin;
+}
+
 /** A per-request page: never cached by shared caches; the service worker keeps the last copy. */
 export function html(body: string, status = 200): Response {
   return new Response(body, {

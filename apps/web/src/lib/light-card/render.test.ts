@@ -90,6 +90,14 @@ describe('business brand on the guest card (ADR 036)', () => {
 });
 
 describe('light guest card', () => {
+  it('uses the real card image (chosen template) as an absolute link-preview image', () => {
+    const html = renderCard(view(), { ...opts, origin: 'https://kadisasa.com' });
+    expect(html).toMatch(
+      /<meta property="og:image" content="https:\/\/kadisasa\.com\/api\/card-image\?token=[^"]+&amp;locale=\w+">/,
+    );
+    expect(html).not.toContain('opengraph-image');
+  });
+
   it('renders the §17.6 essentials with a black-on-white QR and the short code', () => {
     const html = renderCard(view(), opts);
     expect(html).toContain('data-testid="trust-strip"');

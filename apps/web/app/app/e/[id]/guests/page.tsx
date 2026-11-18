@@ -40,7 +40,7 @@ import {
   type GuestFilter,
   type GuestQuery,
 } from '@harusi/api-client';
-import { CARD_KINDS, type CardKind } from '@harusi/schemas';
+import { CARD_KINDS, seatType, type CardKind } from '@harusi/schemas';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { ChannelIcon, GuestStatusPill } from '@/components/console/status';
@@ -320,13 +320,17 @@ function GuestsInner({ id }: { id: string }) {
       cell: (c) => (
         <Link
           href={`/app/e/${id}/guests/${c.row.original.id}`}
-          className="flex items-center gap-2 font-medium hover:underline"
+          className="group flex min-w-0 items-center gap-2.5 font-medium"
+          title={c.getValue()}
         >
           <Avatar name={c.getValue()} size={32} />
-          <span className="truncate">{c.getValue()}</span>
-          {c.row.original.cardKind === 'contribution' ? (
-            <StatusPill tone="info">{t('cardKindContribution')}</StatusPill>
-          ) : null}
+          {/* Name on its own line, card-kind badge under it, so a badge never squeezes the name to "g…". */}
+          <span className="flex min-w-0 flex-col items-start gap-0.5">
+            <span className="max-w-full truncate group-hover:underline">{c.getValue()}</span>
+            {c.row.original.cardKind === 'contribution' ? (
+              <StatusPill tone="info">{t('cardKindContribution')}</StatusPill>
+            ) : null}
+          </span>
         </Link>
       ),
     }),
@@ -348,13 +352,28 @@ function GuestsInner({ id }: { id: string }) {
     }),
     col.accessor('partySizeAllowed', {
       header: t('col.party'),
-      cell: (c) => (
-        <span className="tabular">
-          {c.row.original.rsvpPartySize
-            ? `${c.row.original.rsvpPartySize}/${c.getValue()}`
-            : c.getValue()}
-        </span>
-      ),
+      cell: (c) => {
+        // S = Single card (1 guest), D = Double (2 guests); family cards show only the count.
+        const seat = c.row.original.cardKind !== 'contribution' ? seatType(c.getValue()) : null;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            {seat ? (
+              <span
+                className="inline-flex size-6 items-center justify-center rounded-full border border-ink/25 text-xs font-bold"
+                title={t(`seatTypes.${seat}`)}
+                aria-label={t(`seatTypes.${seat}`)}
+              >
+                {seat}
+              </span>
+            ) : null}
+            <span className="tabular">
+              {c.row.original.rsvpPartySize
+                ? `${c.row.original.rsvpPartySize}/${c.getValue()}`
+                : c.getValue()}
+            </span>
+          </span>
+        );
+      },
     }),
     col.accessor('shortCode', {
       header: t('col.code'),
@@ -466,7 +485,7 @@ function GuestsInner({ id }: { id: string }) {
         </label>
         {contributionTotal > 0 || cardKind !== 'all' ? (
           <div
-            className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+            className="scroll-row -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
             role="group"
             aria-label={t('cardTypeLabel')}
             data-testid="card-kind-filter"
@@ -490,7 +509,7 @@ function GuestsInner({ id }: { id: string }) {
           </div>
         ) : null}
         <div
-          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+          className="scroll-row -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
           role="group"
           aria-label={t('filtersLabel')}
         >
@@ -696,7 +715,15 @@ function GuestsInner({ id }: { id: string }) {
                           )}
                         >
                           {row.getVisibleCells().map((cell) => (
-                            <td key={cell.id} className="max-w-52 px-2.5 py-2">
+                            <td
+                              key={cell.id}
+                              className={cn(
+                                'px-2.5 py-2',
+                                cell.column.id === 'displayName'
+                                  ? 'w-[28%] max-w-72 min-w-48'
+                                  : 'max-w-52',
+                              )}
+                            >
                               {flexRender(cell.column.columnDef.cell, cell.getContext())}
                             </td>
                           ))}
@@ -739,7 +766,7 @@ function GuestsInner({ id }: { id: string }) {
                           )
                         }
                         title={g.displayName}
-                        subtitle={`${g.groupLabel || '—'} · ${g.shortCode}${g.hasSmartphone ? '' : ` · ${t('featurePhone')}`}${g.cardKind === 'contribution' ? ` · ${t('cardKindContribution')}` : ''}`}
+                        subtitle={`${g.groupLabel || '—'} · ${g.shortCode}${g.cardKind !== 'contribution' && seatType(g.partySizeAllowed) ? ` · ${seatType(g.partySizeAllowed)}` : ''}${g.hasSmartphone ? '' : ` · ${t('featurePhone')}`}${g.cardKind === 'contribution' ? ` · ${t('cardKindContribution')}` : ''}`}
                         trailing={
                           <>
                             <ChannelIcon

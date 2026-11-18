@@ -2,7 +2,7 @@ import { createHttpRepository, isRepositoryError, type CardView } from '@harusi/
 import { APP_DOMAIN, USE_MOCKS } from '@/lib/env';
 import { peekCardOnServer } from '@/lib/server-mock';
 import { renderCard, renderProblem } from '@/lib/light-card/render';
-import { API_URL, brandOf, html, localeOf } from '@/lib/light-card/route-utils';
+import { API_URL, brandOf, html, localeOf, originOf } from '@/lib/light-card/route-utils';
 
 /**
  * Guest card (§7.3, §17.6) as a plain HTML route handler: no React runtime on the page, so the
@@ -43,6 +43,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
       brand,
       mode: USE_MOCKS ? 'mock' : 'api',
       apiUrl: API_URL,
+      origin: originOf(req),
     }),
   );
 }

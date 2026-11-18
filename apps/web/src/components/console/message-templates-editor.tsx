@@ -68,7 +68,8 @@ export function MessageTemplatesEditor({ messages, onChange }: Props) {
                 en: t('english'),
                 placeholders: t('placeholders'),
                 insert: t('insert'),
-                linkRequired: t('linkRequired'),
+                // The text names the literal `{link}` placeholder the organiser must type.
+                linkRequired: t('linkRequired', { link: '{link}' }),
                 unknown: (name: string) => t('unknownVar', { name }),
               }}
             />

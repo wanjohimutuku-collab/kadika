@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { GateSeatTag } from './seat-tag';
 import { matchesSearch } from '@harusi/api-client';
 import {
   AlertTriangle,
@@ -88,6 +89,7 @@ type ScanOutcome =
       kind: 'ok';
       guestName: string;
       shortCode: string;
+      seats: number;
       partyAdmitted: number;
       chainDigest: string;
     }
@@ -95,6 +97,7 @@ type ScanOutcome =
       kind: 'duplicate';
       guestName: string;
       shortCode: string;
+      seats: number;
       checkedInAt: string | null;
     }
   | {
@@ -304,6 +307,7 @@ export function MobileGateScanner({
           kind: 'duplicate',
           guestName: result.guest.displayName,
           shortCode: result.guest.shortCode,
+          seats: result.guest.partySizeAllowed,
           checkedInAt: result.guest.checkedInAt,
         });
         return;
@@ -585,6 +589,7 @@ export function MobileGateScanner({
         kind: 'ok',
         guestName: admittedGuest.displayName,
         shortCode: admittedGuest.shortCode,
+        seats: admittedGuest.partySizeAllowed,
         partyAdmitted: partySize,
         chainDigest: digestHex.slice(0, 12),
       });
@@ -948,6 +953,11 @@ export function MobileGateScanner({
                   {confirmCtx.guest.groupLabel} ·{' '}
                   <span className="font-mono text-[#D7DFE8]">{confirmCtx.guest.shortCode}</span>
                 </p>
+                <GateSeatTag
+                  seats={confirmCtx.guest.partySizeAllowed}
+                  locale={sw ? 'sw' : 'en'}
+                  className="mt-2.5 text-[#1FE086]"
+                />
               </div>
               <button
                 type="button"
@@ -1045,6 +1055,11 @@ export function MobileGateScanner({
                   {outcome.guestName} ·{' '}
                   <span className="font-mono text-[#1FE086]">{outcome.shortCode}</span>
                 </p>
+                <GateSeatTag
+                  seats={outcome.seats}
+                  locale={sw ? 'sw' : 'en'}
+                  className="mt-2.5 text-[#1FE086]"
+                />
                 <p className="mt-2 text-xs text-[#9AA4B2]">
                   {sw
                     ? `Watu ${outcome.partyAdmitted} wamehifadhiwa kwenye Vault (#${outcome.chainDigest})`
@@ -1059,6 +1074,11 @@ export function MobileGateScanner({
                 <p className="mt-1 text-sm text-[#C2CBD6]">
                   {outcome.guestName} ({outcome.shortCode})
                 </p>
+                <GateSeatTag
+                  seats={outcome.seats}
+                  locale={sw ? 'sw' : 'en'}
+                  className="mt-2.5 text-amber-300"
+                />
                 <p className="mt-1.5 text-xs text-[#9AA4B2]">
                   {sw
                     ? 'Tiketi hii ilishasajiliwa langoni.'

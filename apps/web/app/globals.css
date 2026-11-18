@@ -103,6 +103,24 @@
   .sheet-in {
     animation: hp-sheet 200ms ease-out both;
   }
+  /* Horizontally scrolling chip/tab rows: no grey scrollbar track under the chips; a soft fade at
+     the trailing edge tells the user the row continues. The fade is dropped once the row wraps (md+). */
+  .no-scrollbar,
+  .scroll-row {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar,
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-row {
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+  @media (min-width: 48rem) {
+    .scroll-row {
+      mask-image: none;
+    }
+  }
   .skeleton {
     background: linear-gradient(90deg, #efe9df 0%, #f6f1ea 50%, #efe9df 100%);
     background-size: 200% 100%;

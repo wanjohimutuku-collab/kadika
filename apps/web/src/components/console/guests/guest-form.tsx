@@ -8,11 +8,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   guestInputSchema,
+  MAX_SEATS,
+  seatsFor,
+  seatType,
   type CardKind,
   type GuestInput,
   type GuestInputParsed,
 } from '@harusi/schemas';
 import { isRepositoryError, type Guest } from '@harusi/api-client';
+import { SegmentedControl } from '@/components/ui/navigation';
 import { Button } from '@/components/ui/button';
 import { Checkbox, PhoneField, Select, TextField, Textarea } from '@/components/ui/form';
 import { Stepper } from '@/components/ui/stepper';
@@ -229,17 +233,37 @@ export function GuestForm({
             <Controller
               control={control}
               name="partySizeAllowed"
-              render={({ field }) => (
-                <Stepper
-                  value={Number(field.value)}
-                  min={1}
-                  max={10}
-                  onChange={field.onChange}
-                  label={t('party')}
-                  decreaseLabel={t('decrease')}
-                  increaseLabel={t('increase')}
-                />
-              )}
+              render={({ field }) => {
+                const seats = Number(field.value);
+                const type = seatType(seats) ?? 'F';
+                return (
+                  <div className="flex flex-col gap-2">
+                    {/* Card type: Single (S) admits 1, Double (D) admits 2; Family keeps the free count. */}
+                    <SegmentedControl
+                      label={t('cardType')}
+                      value={type}
+                      onChange={(v) => field.onChange(v === 'F' ? Math.max(3, seats) : seatsFor(v))}
+                      options={[
+                        { value: 'S', label: t('seatTypes.S') },
+                        { value: 'D', label: t('seatTypes.D') },
+                        { value: 'F', label: t('seatTypes.F') },
+                      ]}
+                    />
+                    <p className="text-sm text-muted">{t('cardTypeHelp', { count: seats })}</p>
+                    {type === 'F' ? (
+                      <Stepper
+                        value={seats}
+                        min={3}
+                        max={MAX_SEATS}
+                        onChange={field.onChange}
+                        label={t('party')}
+                        decreaseLabel={t('decrease')}
+                        increaseLabel={t('increase')}
+                      />
+                    ) : null}
+                  </div>
+                );
+              }}
             />
           ) : null}
         </div>

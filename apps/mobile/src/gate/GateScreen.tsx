@@ -16,6 +16,7 @@ import { store } from '../lib/storage';
 import { playResult } from './sound';
 import { gateLabel } from './device';
 import { useGate } from './use-gate';
+import { SeatTag } from './SeatTag';
 
 const OVERLAY_MS = 2500;
 const BARCODE_SETTINGS: BarcodeSettings = { barcodeTypes: ['qr'] };
@@ -851,6 +852,7 @@ export function GateScreen(p: Props) {
             <Txt color={c.muted} style={{ textAlign: 'center' } as never}>
               {t('gateApp.people', { count: picked.partySizeAllowed })} · {picked.groupLabel ?? ''}
             </Txt>
+            <SeatTag seats={picked.partySizeAllowed} locale={locale} color={c.primary} />
             {picked.partySizeAllowed > 1 ? (
               <View
                 style={{
@@ -1287,6 +1289,7 @@ function ResultOverlay({
   gateOf: (deviceId: string) => string;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const accentColor =
     outcome.kind === 'admit' ? '#1FE086' : outcome.kind === 'duplicate' ? '#F5A623' : '#FF5A5F';
   const icon = outcome.kind === 'admit' ? '✔' : outcome.kind === 'duplicate' ? '⚠' : '✖';
@@ -1379,6 +1382,9 @@ function ResultOverlay({
           <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '800', textAlign: 'center' }}>
             {guest.displayName}
           </Text>
+        ) : null}
+        {guest ? (
+          <SeatTag seats={guest.partySizeAllowed} locale={locale} color={accentColor} />
         ) : null}
         {outcome.kind === 'admit' ? (
           <Text style={{ color: '#8B95A1', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>

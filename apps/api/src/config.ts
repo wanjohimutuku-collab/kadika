@@ -73,6 +73,8 @@ export interface Config {
     apiVersion: string;
     verifyToken: string | null;
     appSecret: string | null;
+    /** The approved templates have an IMAGE header: send the card image in it (ADR 058). */
+    imageHeader?: boolean;
     templates: {
       invite?: string;
       reminder?: string;
@@ -264,6 +266,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
             apiVersion: env.WHATSAPP_API_VERSION ?? 'v21.0',
             verifyToken: env.WHATSAPP_VERIFY_TOKEN ?? null,
             appSecret: env.WHATSAPP_APP_SECRET ?? null,
+            imageHeader: env.WHATSAPP_TEMPLATE_IMAGE_HEADER === '1',
             templates: {
               invite: env.WHATSAPP_TEMPLATE_INVITE,
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,

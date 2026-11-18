@@ -31,6 +31,17 @@ export interface CardImageOptions {
   qrPayload?: string;
   locale?: 'sw' | 'en';
   isContribution?: boolean;
+  /** Which of the two card-image designs to render (ADR 058); default `classic`. */
+  template?: 'classic' | 'modern' | 'script' | 'botanical';
+  /** Organiser's own text for the script / botanical templates. */
+  title?: string;
+  message?: string;
+  /** Organiser's WhatsApp message template: the script / botanical message line falls back to it, minus the link. */
+  whatsappMessage?: string;
+  footer?: string;
+  showQr?: boolean;
+  /** Seats on the card: 1 prints SINGLE, 2 prints DOUBLE under the guest number. */
+  seats?: number;
   scale?: number;
 }
 
@@ -357,48 +368,9 @@ export function renderCardPreviewToCanvas(options: CardImageOptions): HTMLCanvas
     curY += 22;
   }
 
-  // RSVP Pills Mockup
+  // No RSVP buttons in an image: they only exist on the digital card behind the link (ADR 058).
   const rsvpY = curY + 6;
-  const pillW = (trustW - 14) / 2;
-  const pillH = 32;
-
-  // Yes pill (solid primary)
-  ctx.fillStyle = primary;
-  ctx.beginPath();
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(trustX, rsvpY, pillW, pillH, 8);
-  } else {
-    ctx.rect(trustX, rsvpY, pillW, pillH);
-  }
-  ctx.fill();
-
-  ctx.fillStyle = onPrimary;
-  ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(
-    locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending',
-    trustX + pillW / 2,
-    rsvpY + 19,
-  );
-
-  // No pill (outline primary)
-  ctx.strokeStyle = primary;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  if (typeof ctx.roundRect === 'function') {
-    ctx.roundRect(trustX + pillW + 14, rsvpY, pillW, pillH, 8);
-  } else {
-    ctx.rect(trustX + pillW + 14, rsvpY, pillW, pillH);
-  }
-  ctx.stroke();
-
-  ctx.fillStyle = primary;
-  ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
-  ctx.fillText(
-    locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets',
-    trustX + pillW + 14 + pillW / 2,
-    rsvpY + 19,
-  );
+  const pillH = 0;
 
   // QR Code Box (or Contribution summary box)
   if (!options.isContribution) {
@@ -526,10 +498,58 @@ export function renderCardPreviewToCanvas(options: CardImageOptions): HTMLCanvas
   return canvas;
 }
 
+/** `/api/card-image` URL for these options: the same PNG guests receive on WhatsApp. */
+export function cardImageUrl(
+  options: CardImageOptions,
+  extra: Record<string, string> = {},
+): string {
+  const q = new URLSearchParams();
+  const set = (k: string, v: string | null | undefined) => {
+    if (v) q.set(k, v);
+  };
+  q.set('preview', '1');
+  set('template', options.template ?? 'classic');
+  set('partnerA', options.partnerA || options.coupleNames);
+  set('partnerB', options.partnerB ?? undefined);
+  set('eventKind', options.eventKind ?? undefined);
+  set('date', options.dateStart);
+  set('venue', options.venueName);
+  set('dress', options.dressCode);
+  set('sender', options.senderName);
+  set('phone', options.committeePhone);
+  set('theme', options.themeId);
+  set('cover', options.coverGradient ?? undefined);
+  if (options.palette && Object.keys(options.palette).length)
+    q.set('palette', JSON.stringify(options.palette));
+  set('guest', options.guestName);
+  set('code', options.shortCode);
+  set('locale', options.locale);
+  if (options.isContribution) q.set('kind', 'contribution');
+  set('title', options.title);
+  set('message', options.message);
+  set('wa', options.whatsappMessage);
+  set('footer', options.footer);
+  if (options.showQr === false) q.set('qr', '0');
+  if (options.seats) q.set('seats', String(options.seats));
+  for (const [k, v] of Object.entries(extra)) q.set(k, v);
+  return `/api/card-image?${q.toString()}`;
+}
+
 /**
  * Converts card options to an image PNG Blob.
  */
 export async function cardPreviewToBlob(options: CardImageOptions): Promise<Blob> {
+  // The server draws the real template (ADR 058); the canvas is only an offline fallback.
+  if (typeof fetch === 'function' && typeof window !== 'undefined' && navigator.onLine !== false) {
+    try {
+      const res = await fetch(cardImageUrl(options));
+      if (res.ok && (res.headers.get('content-type') ?? '').startsWith('image/')) {
+        return await res.blob();
+      }
+    } catch {
+      // fall through to the canvas
+    }
+  }
   const canvas = renderCardPreviewToCanvas(options);
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {

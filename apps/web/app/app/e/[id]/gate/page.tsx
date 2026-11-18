@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useMemo, useState } from 'react';
+import { GateSeatTag } from '@/components/gate/seat-tag';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -389,6 +390,11 @@ export default function GatePage({ params }: { params: Promise<{ id: string }> }
                 <p className="text-muted">
                   <span className="font-mono">{picked.shortCode}</span> · {picked.groupLabel || '—'}
                 </p>
+                <GateSeatTag
+                  seats={picked.partySizeAllowed}
+                  locale={locale === 'en' ? 'en' : 'sw'}
+                  className="mt-2 text-primary"
+                />
               </div>
             </div>
             {picked.status === 'declined' ? <Banner tone="warning" title={t('declined')} /> : null}

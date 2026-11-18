@@ -22,7 +22,7 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
-import type { Activity, WeddingEvent } from '@harusi/api-client';
+import type { Activity } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import { QueryState } from '@/components/console/query-state';
 import { buttonClasses } from '@/components/ui/button';
@@ -38,27 +38,8 @@ import {
   formatMoneyCompact,
 } from '@/lib/format';
 import { daysUntil } from '@/lib/dates';
+import { nextStep } from '@/lib/next-step';
 import { cn } from '@/lib/cn';
-
-type NextKey = 'import' | 'failed' | 'send' | 'remind' | 'pledges' | 'gate' | 'done';
-
-function nextStep(e: WeddingEvent, days: number): { key: NextKey; count: number; href: string } {
-  const s = e.stats;
-  const base = `/app/e/${e.id}`;
-  const unsent = s.invited - s.sent;
-  const noReply = s.sent - s.confirmed - s.declined;
-
-  if (s.invited === 0) return { key: 'import', count: 0, href: `${base}/guests/import` };
-  if (s.failedMessages > 0)
-    return { key: 'failed', count: s.failedMessages, href: `${base}/guests?filter=failed` };
-  if (unsent > 0) return { key: 'send', count: unsent, href: `${base}/send` };
-  if (noReply > 0 && days <= 21 && days >= 0)
-    return { key: 'remind', count: noReply, href: `${base}/send?kind=reminder` };
-  if (s.guestsWithBalance > 0 && days >= 0)
-    return { key: 'pledges', count: s.guestsWithBalance, href: `${base}/pledges?tab=unpaid` };
-  if (days >= 0 && days <= 7) return { key: 'gate', count: 0, href: `${base}/gate` };
-  return { key: 'done', count: 0, href: `${base}/reports` };
-}
 
 const ACT_ICON: Record<Activity['kind'], React.ReactNode> = {
   rsvp_yes: <CheckCircle2 className="size-5 text-success" aria-hidden="true" />,
@@ -108,7 +89,7 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
       {(e) => {
         const days = daysUntil(e.dateStart);
         const s = e.stats;
-        const next = nextStep(e, days);
+        const next = nextStep(e.id, e.stats, days);
         const pledgePct = e.contributionTarget > 0 ? s.collected / e.contributionTarget : 0;
         const deadlineDays = e.rsvpDeadline ? daysUntil(e.rsvpDeadline) : null;
         const alerts: { key: string; tone: 'danger' | 'warning'; text: string; href: string }[] =
@@ -163,13 +144,26 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
                 >
                   {t('countdown', { days })}
                 </span>
-              ) : null}
+              ) : (
+                <span
+                  className="rounded-full bg-ink/6 px-3 py-1.5 font-semibold text-muted"
+                  data-testid="past-event"
+                >
+                  {t('pastEvent', { days: -days })}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <KpiTile
                 label={t('kpiInvited')}
                 value={s.invited}
+                // Invited counts invitation cards only; say so when contribution-only guests exist (ADR 029).
+                sub={
+                  s.contributionGuests > 0
+                    ? t('kpiContributionCards', { count: s.contributionGuests })
+                    : undefined
+                }
                 icon={<Users className="size-4" />}
               />
               <KpiTile
@@ -257,52 +251,62 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">
               <Card title={t('funnelTitle')} titleId="funnel-h">
-                <FunnelBar
-                  caption={t('funnelTitle')}
-                  stages={[
-                    {
-                      key: 'created',
-                      label: t('funnel.created'),
-                      count: s.invited,
-                      href: funnelBase,
-                    },
-                    {
-                      key: 'sent',
-                      label: t('funnel.sent'),
-                      count: s.sent,
-                      href: `${funnelBase}?filter=unsent`,
-                    },
-                    {
-                      key: 'delivered',
-                      label: t('funnel.delivered'),
-                      count: s.delivered,
-                      href: `${funnelBase}?filter=no_reply`,
-                    },
-                    {
-                      key: 'opened',
-                      label: t('funnel.opened'),
-                      count: s.opened,
-                      href: `${funnelBase}?filter=no_reply`,
-                    },
-                    {
-                      key: 'confirmed',
-                      label: t('funnel.confirmed'),
-                      count: s.confirmed,
-                      href: `${funnelBase}?filter=confirmed`,
-                    },
-                    {
-                      key: 'checked_in',
-                      label: t('funnel.checked_in'),
-                      count: s.attended,
-                      href: `${funnelBase}?filter=checked_in`,
-                    },
-                  ]}
-                  renderLink={(stage, children) => (
-                    <Link href={stage.href!} className="block rounded-input p-1 hover:bg-bg">
-                      {children}
+                {/* Six empty 0% bars say nothing; before the first guest, say what this card will show and how to start. */}
+                {s.invited === 0 ? (
+                  <div className="flex flex-col items-start gap-3 py-2" data-testid="funnel-empty">
+                    <p className="text-muted">{t('funnelEmpty')}</p>
+                    <Link href={`${funnelBase}/new`} className={buttonClasses('secondary', 'sm')}>
+                      {t('funnelEmptyAction')}
                     </Link>
-                  )}
-                />
+                  </div>
+                ) : (
+                  <FunnelBar
+                    caption={t('funnelTitle')}
+                    stages={[
+                      {
+                        key: 'created',
+                        label: t('funnel.created'),
+                        count: s.invited,
+                        href: funnelBase,
+                      },
+                      {
+                        key: 'sent',
+                        label: t('funnel.sent'),
+                        count: s.sent,
+                        href: `${funnelBase}?filter=unsent`,
+                      },
+                      {
+                        key: 'delivered',
+                        label: t('funnel.delivered'),
+                        count: s.delivered,
+                        href: `${funnelBase}?filter=no_reply`,
+                      },
+                      {
+                        key: 'opened',
+                        label: t('funnel.opened'),
+                        count: s.opened,
+                        href: `${funnelBase}?filter=no_reply`,
+                      },
+                      {
+                        key: 'confirmed',
+                        label: t('funnel.confirmed'),
+                        count: s.confirmed,
+                        href: `${funnelBase}?filter=confirmed`,
+                      },
+                      {
+                        key: 'checked_in',
+                        label: t('funnel.checked_in'),
+                        count: s.attended,
+                        href: `${funnelBase}?filter=checked_in`,
+                      },
+                    ]}
+                    renderLink={(stage, children) => (
+                      <Link href={stage.href!} className="block rounded-input p-1 hover:bg-bg">
+                        {children}
+                      </Link>
+                    )}
+                  />
+                )}
                 <ul className="sr-only">
                   <li>
                     {ts('declined')}: {s.declined}

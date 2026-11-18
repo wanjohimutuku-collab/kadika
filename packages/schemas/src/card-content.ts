@@ -15,6 +15,23 @@ export const CARD_KINDS = ['invitation', 'contribution'] as const;
 export type CardKind = (typeof CARD_KINDS)[number];
 export const cardKindSchema = z.enum(CARD_KINDS);
 
+/**
+ * The shareable-image designs (ADR 058). Each serves every occasion (wedding, send-off,
+ * contribution…); the image never draws buttons, those live only on the digital card behind the link.
+ * `script` and `botanical` also show the organiser's own title / message / footer text.
+ */
+export const CARD_TEMPLATES = ['classic', 'modern', 'script', 'botanical'] as const;
+export type CardTemplate = (typeof CARD_TEMPLATES)[number];
+export const cardTemplateSchema = z.enum(CARD_TEMPLATES);
+export const cardTemplateOf = (
+  c: { design?: { template?: string } } | null | undefined,
+): CardTemplate =>
+  (CARD_TEMPLATES as readonly string[]).includes(c?.design?.template ?? '')
+    ? (c!.design!.template as CardTemplate)
+    : 'classic';
+/** Templates that print the organiser's custom `design` text. */
+export const TEXT_TEMPLATES: readonly CardTemplate[] = ['script', 'botanical'];
+
 const text = (max: number) => z.string().max(max);
 /** A text in each language. Both optional; an empty string means "not set". */
 const ltext = (max: number) =>
@@ -363,6 +380,21 @@ export const cardContentSchema = z
         inviteWhatsapp: sms('inviteWhatsapp'),
         reminderWhatsapp: sms('reminderWhatsapp'),
         contributionWhatsapp: sms('contributionWhatsapp'),
+      })
+      .strict()
+      .optional(),
+    /** Which card-image design guests receive; absent means `classic`. */
+    design: z
+      .object({
+        template: cardTemplateSchema.optional(),
+        /** e.g. "Wanakualika kushiriki sherehe ya harusi yao"; `{guest}`, `{hosts}` filled in. */
+        title: ltext(120),
+        /** Longer text (several lines allowed), e.g. contacts or a note. */
+        message: ltext(400),
+        /** Small closing line, e.g. "Chakula cha jioni kitafuata". */
+        footer: ltext(120),
+        /** Show the guest's QR on the image (default true). */
+        showQr: z.boolean().optional(),
       })
       .strict()
       .optional(),

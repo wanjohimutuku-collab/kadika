@@ -3,7 +3,6 @@
 import { useRef, useState } from 'react';
 import { Check, Edit3, HelpCircle, RotateCcw, Save, Sparkles } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { TEMPLATE_VARS, type TemplateVar } from '@harusi/schemas';
 import { Button } from '@/components/ui/button';
 
 export interface AttributeTag {
@@ -18,8 +17,16 @@ export const SWAHILI_TAGS: AttributeTag[] = [
   { tag: '{tarehe}', label: 'Tarehe', description: 'Tarehe ya sherehe au tukio' },
   { tag: '{muda}', label: 'Muda', description: 'Muda au saa ya kuanza sherehe' },
   { tag: '{ukumbi}', label: 'Ukumbi', description: 'Jina la ukumbi na eneo la sherehe' },
-  { tag: '{kiungo}', label: 'Kiungo cha Kadi', description: 'Link ya kufungua kadi ya kidijitali mtandaoni' },
-  { tag: '{kadi}', label: 'Msimbo wa Kadi', description: 'Msimbo mfupi wa uthibitisho mlangoni (mfano KH-4826)' },
+  {
+    tag: '{kiungo}',
+    label: 'Kiungo cha Kadi',
+    description: 'Link ya kufungua kadi ya kidijitali mtandaoni',
+  },
+  {
+    tag: '{kadi}',
+    label: 'Msimbo wa Kadi',
+    description: 'Msimbo mfupi wa uthibitisho mlangoni (mfano KH-4826)',
+  },
   { tag: '{mavazi}', label: 'Mavazi', description: 'Mavazi rasmi yaliyoelekezwa' },
   { tag: '{mtumaji}', label: 'Mtumaji', description: 'Kamati au familia inayotuma mwaliko' },
   { tag: '{simu}', label: 'Simu', description: 'Namba ya simu ya kamati kwa mawasiliano' },
@@ -32,7 +39,11 @@ export const ENGLISH_TAGS: AttributeTag[] = [
   { tag: '{time}', label: 'Time', description: 'Start time of the celebration' },
   { tag: '{venue}', label: 'Venue', description: 'Celebration hall or venue name' },
   { tag: '{link}', label: 'Card Link', description: 'Link to open digital card online' },
-  { tag: '{code}', label: 'Card Code', description: 'Short entry verification code (e.g. KH-4826)' },
+  {
+    tag: '{code}',
+    label: 'Card Code',
+    description: 'Short entry verification code (e.g. KH-4826)',
+  },
   { tag: '{dress}', label: 'Dress Code', description: 'Official dress code instructions' },
   { tag: '{sender}', label: 'Sender', description: 'Organising committee or family' },
   { tag: '{phone}', label: 'Phone', description: 'Committee contact phone number' },
@@ -116,9 +127,7 @@ export function MessageCustomizer({
           </div>
           <div>
             <h3 className="text-sm font-bold text-ink">
-              {locale === 'sw'
-                ? `Hariri Ujumbe wa ${channelName}`
-                : `Edit ${channelName} Message`}
+              {locale === 'sw' ? `Hariri Ujumbe wa ${channelName}` : `Edit ${channelName} Message`}
             </h3>
             <p className="text-xs text-muted">
               {locale === 'sw'
@@ -142,7 +151,13 @@ export function MessageCustomizer({
             <Button
               size="sm"
               variant="secondary"
-              icon={savedSuccess ? <Check className="size-3.5 text-success" /> : <Save className="size-3.5" />}
+              icon={
+                savedSuccess ? (
+                  <Check className="size-3.5 text-success" />
+                ) : (
+                  <Save className="size-3.5" />
+                )
+              }
               onClick={handleSave}
               loading={isSaving}
             >
@@ -163,9 +178,13 @@ export function MessageCustomizer({
         <div className="flex items-center justify-between text-xs font-medium text-muted">
           <span className="flex items-center gap-1">
             <Sparkles className="size-3 text-primary" />
-            <span>{locale === 'sw' ? 'Bofya sifa kuingiza kwenye ujumbe:' : 'Click attribute to insert:'}</span>
+            <span>
+              {locale === 'sw'
+                ? 'Bofya sifa kuingiza kwenye ujumbe:'
+                : 'Click attribute to insert:'}
+            </span>
           </span>
-          <span className="text-[11px] opacity-80">
+          <span className="text-[11px]">
             {locale === 'sw' ? 'Inaingizwa pale mshale ulipo' : 'Inserts at cursor position'}
           </span>
         </div>
@@ -180,7 +199,7 @@ export function MessageCustomizer({
             >
               <span>+</span>
               <span>{t.tag}</span>
-              <span className="text-[10px] opacity-75 font-normal">({t.label})</span>
+              <span className="text-[10px] font-normal">({t.label})</span>
             </button>
           ))}
         </div>

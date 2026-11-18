@@ -47,12 +47,15 @@ describe('normalizeAnyPhone', () => {
     ['+254 712 345 678', '+254712345678'],
     ['+256 701 234 567', '+256701234567'], // Uganda
     ['+250 788 123 456', '+250788123456'], // Rwanda
-    ['+1 555 123 4567', '+15551234567'],   // US
-    ['+44 7911 123456', '+447911123456'],  // UK
+    ['+1 555 123 4567', '+15551234567'], // US
+    ['+44 7911 123456', '+447911123456'], // UK
     ['00256 701 234 567', '+256701234567'],
     ['+44 (0) 7911 123456', '+447911123456'],
   ])('%s → %s', (input, expected, defaultCountry = 'TZ') => {
-    expect(normalizeAnyPhone(input, defaultCountry as 'TZ' | 'KE')).toEqual({ ok: true, e164: expected });
+    expect(normalizeAnyPhone(input, defaultCountry as 'TZ' | 'KE')).toEqual({
+      ok: true,
+      e164: expected,
+    });
   });
 
   it.each([

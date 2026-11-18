@@ -343,7 +343,9 @@ export default function Send() {
             gap: 10,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icon name="whatsapp" size={16} color="#128C7E" />
               <Text style={{ fontSize: 13, fontWeight: '700', color: '#075E54' }}>

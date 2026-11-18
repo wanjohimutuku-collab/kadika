@@ -61,7 +61,9 @@ export class EvolutionWhatsAppProvider implements MessagingProvider {
         });
 
         if (mediaRes.ok) {
-          const json = (await mediaRes.json().catch(() => null)) as { key?: { id?: string } } | null;
+          const json = (await mediaRes.json().catch(() => null)) as {
+            key?: { id?: string };
+          } | null;
           const id = json?.key?.id;
           if (id) return { providerMsgId: id, cost: 0 };
         }

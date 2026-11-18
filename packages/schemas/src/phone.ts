@@ -128,10 +128,7 @@ export function normalizeTzPhone(input: string): PhoneResult {
  * using `defaultCountry` (defaults to 'TZ'). Any international number starting with `+`, `00` or
  * a country code with standard E.164 format (7-15 digits starting with 1-9) is accepted.
  */
-export function normalizeAnyPhone(
-  input: string,
-  defaultCountry: Country = 'TZ',
-): PhoneResult {
+export function normalizeAnyPhone(input: string, defaultCountry: Country = 'TZ'): PhoneResult {
   const homeTry = normalizePhone(input, defaultCountry, ['TZ', 'KE']);
   if (homeTry.ok) return homeTry;
 

@@ -151,6 +151,10 @@ test('staff admin: SMS settings are saved with the secret masked, then reset', a
   await expect(page).toHaveURL(/\/ops\/settings\/messaging$/);
   const sms = page.getByTestId('messaging-sms_tz');
   await expect(sms).toContainText('vigezo vya mazingira');
+  // Typed but unsaved WhatsApp settings survive a save on the SMS card.
+  const wa = page.getByTestId('messaging-whatsapp');
+  await wa.getByLabel('Mtoa huduma').selectOption('cloud');
+  await wa.getByLabel('Phone number ID').fill('555123');
   await sms.getByLabel('Mtoa huduma').selectOption('nextsms');
   await sms.getByRole('button', { name: 'Hifadhi' }).click();
   await expect(sms.getByRole('alert')).toContainText('Nenosiri');
@@ -160,6 +164,8 @@ test('staff admin: SMS settings are saved with the secret masked, then reset', a
   await sms.getByRole('button', { name: 'Hifadhi' }).click();
   await expect(sms).toContainText('Imehifadhiwa (…1234)');
   await expect(sms.getByLabel('Nenosiri')).toHaveValue('');
+  await expect(wa.getByLabel('Mtoa huduma')).toHaveValue('cloud');
+  await expect(wa.getByLabel('Phone number ID')).toHaveValue('555123');
   await shot(page, 'ops-messaging');
   await sms.getByRole('button', { name: 'Rudi kwenye env' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Rudi kwenye env' }).click();

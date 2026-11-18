@@ -30,6 +30,8 @@ export interface CardImageModel {
   sender: string;
   phone: string;
   shortCode: string;
+  /** "Double" / "Single" card type (2 or 1 guests) shown under the code; empty for family cards. */
+  seatLabel?: string;
   /** SVG path of the QR (null on a contribution card). */
   qrPath: string | null;
   qrDim: number;
@@ -43,8 +45,7 @@ export interface CardImageModel {
   footer: string;
 }
 
-export const CARD_IMAGE_WIDTH = 640;
-export const CARD_IMAGE_HEIGHT = 940;
+export { CARD_IMAGE_WIDTH, CARD_IMAGE_HEIGHT } from './size';
 
 // Used when the fonts in `assets/card-fonts` are present (fonts.ts); satori falls back otherwise.
 const SERIF = '"Playfair Display", Georgia, serif';
@@ -69,6 +70,40 @@ function copy(m: CardImageModel) {
       ? 'Jibu mwaliko kupitia kiungo ulichotumiwa'
       : 'Reply through the link you were sent',
   };
+}
+
+/** Card type under the guest code: a small outlined tag, so the gate reads "Double" at a glance. */
+export function SeatTag({
+  m,
+  color,
+  start,
+}: {
+  m: CardImageModel;
+  color: string;
+  /** In a left-aligned column, keep the tag its own width instead of stretching. */
+  start?: boolean;
+}) {
+  if (!m.seatLabel) return null;
+  return (
+    <div
+      style={{
+        display: 'flex',
+        ...(start ? { alignSelf: 'flex-start' as const } : {}),
+        marginTop: 6,
+        padding: '2px 10px',
+        border: `1.5px solid ${color}`,
+        borderRadius: 999,
+        fontFamily: '"DM Sans", sans-serif',
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        color,
+      }}
+    >
+      {m.seatLabel}
+    </div>
+  );
 }
 
 function Qr({ m, size }: { m: CardImageModel; size: number }) {
@@ -280,6 +315,7 @@ export function ClassicCard({ m }: { m: CardImageModel }) {
                 >
                   {m.shortCode}
                 </div>
+                <SeatTag m={m} color={p.ink} start />
                 <div
                   style={{
                     display: 'flex',
@@ -324,6 +360,7 @@ export function ClassicCard({ m }: { m: CardImageModel }) {
               >
                 {m.shortCode}
               </div>
+              <SeatTag m={m} color={p.ink} />
             </div>
           )}
 
@@ -537,6 +574,7 @@ export function ModernCard({ m }: { m: CardImageModel }) {
               >
                 {m.shortCode}
               </div>
+              <SeatTag m={m} color={p.ink} />
               <div
                 style={{
                   display: 'flex',

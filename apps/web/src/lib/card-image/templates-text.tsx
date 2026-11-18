@@ -1,4 +1,4 @@
-import type { CardImageModel } from './templates';
+import { SeatTag, type CardImageModel } from './templates';
 
 /**
  * The two text-led card-image templates (ADR 058): `script` (minimal white card, signature-script
@@ -25,6 +25,18 @@ function Qr({ m, size }: { m: CardImageModel; size: number }) {
     </svg>
   );
 }
+
+const invitedLabel = (m: CardImageModel) =>
+  m.locale === 'sw'
+    ? m.isContribution
+      ? 'Ombi la mchango kwa'
+      : 'Mwaliko maalum kwa'
+    : m.isContribution
+      ? 'A contribution request for'
+      : 'A special invitation for';
+
+const fromLine = (m: CardImageModel) =>
+  `${m.locale === 'sw' ? 'Kutoka' : 'From'}: ${m.sender}${m.phone ? ` · ${m.phone}` : ''}`;
 
 const lines = (text: string) =>
   text
@@ -60,8 +72,9 @@ export function ScriptCard({ m }: { m: CardImageModel }) {
         position: 'relative',
       }}
     >
-      {/* names */}
+      {/* occasion + names */}
       <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: 30 }}>
+        <div style={{ ...caps, fontSize: 12, color: soft, marginBottom: 30 }}>{m.eyebrow}</div>
         <div
           style={{ display: 'flex', fontFamily: SCRIPT, fontSize: 132, lineHeight: 1, color: ink }}
         >
@@ -86,7 +99,9 @@ export function ScriptCard({ m }: { m: CardImageModel }) {
 
       {/* words */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ ...caps, fontSize: 12, color: soft }}>{`${m.eyebrow} · ${m.guestName}`}</div>
+        <div
+          style={{ ...caps, fontSize: 12, color: soft }}
+        >{`${invitedLabel(m)} ${m.guestName}`}</div>
         <div style={{ ...caps, marginTop: 14, maxWidth: 420 }}>{m.title}</div>
         <div
           style={{
@@ -126,9 +141,7 @@ export function ScriptCard({ m }: { m: CardImageModel }) {
               {m.footer}
             </div>
           ) : null}
-          <div style={{ ...caps, fontSize: 10, color: soft, marginTop: 10 }}>
-            {`${m.sender}${m.phone ? ` · ${m.phone}` : ''}`}
-          </div>
+          <div style={{ ...caps, fontSize: 10, color: soft, marginTop: 10 }}>{fromLine(m)}</div>
         </div>
         {m.qrPath ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -136,9 +149,13 @@ export function ScriptCard({ m }: { m: CardImageModel }) {
             <div style={{ ...caps, fontSize: 11, marginTop: 4, letterSpacing: 2 }}>
               {m.shortCode}
             </div>
+            <SeatTag m={m} color={ink} />
           </div>
         ) : (
-          <div style={{ ...caps, fontSize: 12 }}>{m.shortCode}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ ...caps, fontSize: 12 }}>{m.shortCode}</div>
+            <SeatTag m={m} color={ink} />
+          </div>
         )}
       </div>
     </div>
@@ -281,6 +298,21 @@ export function BotanicalCard({ m }: { m: CardImageModel }) {
             textAlign: 'center',
           }}
         >
+          {/* 1. who this card is for */}
+          <div style={{ display: 'flex', fontSize: 14, color: '#6E5A63' }}>{invitedLabel(m)}</div>
+          <div style={{ display: 'flex', fontSize: 20, fontWeight: 700, color: ink, marginTop: 2 }}>
+            {m.guestName}
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              width: 56,
+              height: 1,
+              backgroundColor: '#C9B8A6',
+              margin: '18px 0',
+            }}
+          />
+          {/* 2. the occasion and whose it is */}
           <div
             style={{
               display: 'flex',
@@ -306,9 +338,7 @@ export function BotanicalCard({ m }: { m: CardImageModel }) {
           >
             {m.partnerB ? `${m.partnerA} & ${m.partnerB}` : m.partnerA}
           </div>
-          <div style={{ display: 'flex', fontSize: 15, color: ink, marginTop: 10 }}>
-            {m.guestName}
-          </div>
+          {/* 3. the invitation itself */}
           {m.title ? (
             <div
               style={{
@@ -341,7 +371,7 @@ export function BotanicalCard({ m }: { m: CardImageModel }) {
             </div>
           ) : null}
           <div style={{ display: 'flex', fontSize: 16, color: ink, marginTop: 4 }}>{m.venue}</div>
-          {[...lines(m.message), ...(m.phone ? [m.phone] : [])].map((l, i) => (
+          {lines(m.message).map((l, i) => (
             <div
               key={i}
               style={{ display: 'flex', fontSize: 16, color: ink, marginTop: i ? 2 : 14 }}
@@ -349,6 +379,10 @@ export function BotanicalCard({ m }: { m: CardImageModel }) {
               {l}
             </div>
           ))}
+          {/* 4. who is inviting */}
+          <div style={{ display: 'flex', fontSize: 14, color: '#6E5A63', marginTop: 14 }}>
+            {fromLine(m)}
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -371,6 +405,7 @@ export function BotanicalCard({ m }: { m: CardImageModel }) {
           >
             {m.shortCode}
           </div>
+          <SeatTag m={m} color={ink} />
           <div style={{ display: 'flex', fontSize: 12, color: '#6E5A63', marginTop: 4 }}>
             {m.footer || m.domain}
           </div>

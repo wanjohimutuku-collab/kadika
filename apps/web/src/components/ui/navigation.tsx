@@ -42,7 +42,10 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn('flex w-full gap-1 overflow-x-auto rounded-input bg-ink/6 p-1', className)}
+      className={cn(
+        'no-scrollbar flex w-full gap-1 overflow-x-auto rounded-input bg-ink/6 p-1',
+        className,
+      )}
     >
       {options.map((o, i) => {
         const active = o.value === value;
@@ -93,7 +96,7 @@ export function Tabs({
     <RadixTabs.Root value={value} onValueChange={onValueChange} className={className}>
       <RadixTabs.List
         aria-label={label}
-        className="flex gap-1 overflow-x-auto border-b border-border"
+        className="no-scrollbar flex gap-1 overflow-x-auto border-b border-border"
       >
         {items.map((it) => (
           <RadixTabs.Trigger

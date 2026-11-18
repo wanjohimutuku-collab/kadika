@@ -212,6 +212,7 @@ export function initials(name: string): string {
   const words = name
     .replace(/^(Mama|Baba|Bi\.|Bibi|Mzee|Babu|Dkt\.|Mch\.|Sheikh|Prof\.|Eng\.|Familia ya)\s+/i, '')
     .split(/\s+/)
-    .filter(Boolean);
+    // Couple names ("Asha & Juma", "Asha na Juma") take one letter from each partner, not the joiner.
+    .filter((w) => /^\p{L}/u.test(w) && !/^(na|and)$/i.test(w));
   return ((words[0]?.[0] ?? '') + (words[1]?.[0] ?? '')).toUpperCase() || '?';
 }

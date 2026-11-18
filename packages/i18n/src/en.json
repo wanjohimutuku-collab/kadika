@@ -249,7 +249,9 @@
     "appLink": "Android app",
     "payToTitle": "Send your contribution to:",
     "payToNone": "Ask the committee where to send your contribution.",
-    "payToDirect": "Your contribution goes straight to the hosts, and the committee records it. Never share your PIN with anyone."
+    "payToDirect": "Your contribution goes straight to the hosts, and the committee records it. Never share your PIN with anyone.",
+    "seatS": "Single",
+    "seatD": "Double"
   },
   "pay": {
     "title": "Pay contribution",
@@ -619,7 +621,9 @@
       "remind": "{count} guests have not replied — send a reminder",
       "pledges": "Follow up contributions from {count} guests with a balance",
       "gate": "Prepare the gate: invite gate agents and try a check-in",
-      "done": "Everything is on track. Relax!"
+      "done": "Everything is on track. Relax!",
+      "addInvites": "Add the guests who get an invitation card",
+      "past": "The event is over. See how it went in the report"
     },
     "nextAction": {
       "import": "Import list",
@@ -628,7 +632,9 @@
       "remind": "Send reminder",
       "pledges": "Open contributions",
       "gate": "Open gate",
-      "done": "See report"
+      "done": "See report",
+      "addInvites": "Add guests",
+      "past": "See report"
     },
     "alerts": "Alerts",
     "alertFailed": "{count, plural, one {# message did not arrive} other {# messages did not arrive}}",
@@ -648,7 +654,11 @@
       "import": "Guests were imported",
       "send": "Cards sent to {count, plural, one {# guest} other {# guests}}"
     },
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "pastEvent": "{days, plural, one {Held # day ago} other {Held # days ago}}",
+    "funnelEmpty": "Add guests to see how far each invitation gets: sent, opened, confirmed, arrived.",
+    "funnelEmptyAction": "Add guests",
+    "kpiContributionCards": "{count, plural, one {+ # contribution card} other {+ # contribution cards}}"
   },
   "guests": {
     "title": "Guests",
@@ -742,7 +752,11 @@
     "bulkUnmarkPrint": "Remove from print",
     "printMarked": "{count, plural, one {# guest will get a printed card} other {# guests will get a printed card}}",
     "printUnmarked": "{count, plural, one {# guest removed from printing} other {# guests removed from printing}}",
-    "printBadge": "Printed card"
+    "printBadge": "Printed card",
+    "seatTypes": {
+      "S": "Single card: 1 guest",
+      "D": "Double card: 2 guests"
+    }
   },
   "guestForm": {
     "cardKind": "Card type",
@@ -774,7 +788,14 @@
     "printCard": "Printed card",
     "printCardHelp": "This guest gets a printed card. You generate it on Cards; it counts once.",
     "prefill": "Pick from contacts",
-    "prefillTitle": "Pick one person"
+    "prefillTitle": "Pick one person",
+    "cardType": "Card type",
+    "cardTypeHelp": "{count, plural, one {Admits # guest at the gate} other {Admits # guests at the gate}}",
+    "seatTypes": {
+      "S": "Single (S)",
+      "D": "Double (D)",
+      "F": "Family"
+    }
   },
   "import": {
     "title": "Import guest list",

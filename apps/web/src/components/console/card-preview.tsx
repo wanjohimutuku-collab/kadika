@@ -30,6 +30,8 @@ export interface CardPreviewData {
   /** Custom text / QR toggle for the script and botanical designs. */
   title?: string;
   message?: string;
+  /** WhatsApp message template the message line falls back to, without its link. */
+  whatsappMessage?: string;
   footer?: string;
   showQr?: boolean;
   isContribution?: boolean;
@@ -74,6 +76,7 @@ export function CardPreview({
     template: data.template ?? 'classic',
     title: data.title,
     message: data.message,
+    whatsappMessage: data.whatsappMessage,
     footer: data.footer,
     showQr: data.showQr,
     locale,

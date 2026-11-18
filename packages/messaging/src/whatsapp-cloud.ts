@@ -60,59 +60,76 @@ export class WhatsAppCloudProvider implements MessagingProvider {
   }
 
   async send(to: string, body: string, template?: MessageTemplate): Promise<SendResult> {
-    const f = this.o.fetchImpl ?? fetch;
     const name = template ? this.templateName(template) : undefined;
-    const payload =
-      template && name
-        ? {
-            messaging_product: 'whatsapp',
-            to: toCloudNumber(to),
-            type: 'template',
-            template: {
-              name,
-              language: { code: template.locale },
-              components: [
-                ...(this.o.imageHeader && template.mediaUrl
-                  ? [
-                      {
-                        type: 'header',
-                        parameters: [{ type: 'image', image: { link: template.mediaUrl } }],
-                      },
-                    ]
-                  : []),
-                {
-                  type: 'body',
-                  parameters: template.params.map((text) => ({ type: 'text', text })),
-                },
-              ],
-            },
-          }
-        : {
-            messaging_product: 'whatsapp',
-            to: toCloudNumber(to),
-            type: 'text',
-            text: { body, preview_url: true },
-          };
+    const media = template?.mediaUrl;
+    if (!template || !name) {
+      // Free-form (inside the 24-hour window): the card itself as an image, the text as its caption,
+      // so the guest gets the picture and not just a link. WhatsApp captions stop at 1024 chars.
+      return this.post(
+        media && body.length <= CAPTION_MAX
+          ? { type: 'image', image: { link: media, caption: body } }
+          : { type: 'text', text: { body, preview_url: true } },
+        to,
+      );
+    }
+    const tpl = (header: boolean) => ({
+      type: 'template',
+      template: {
+        name,
+        language: { code: template.locale },
+        components: [
+          ...(header && media
+            ? [{ type: 'header', parameters: [{ type: 'image', image: { link: media } }] }]
+            : []),
+          { type: 'body', parameters: template.params.map((text) => ({ type: 'text', text })) },
+        ],
+      },
+    });
+    const header = !!(this.o.imageHeader && media);
+    try {
+      return await this.post(tpl(header), to);
+    } catch (e) {
+      // The setting is on but this template was approved without an IMAGE header (or its image could
+      // not be fetched): send it without one rather than losing the invitation.
+      if (header && e instanceof CloudError && e.code !== undefined && HEADER_ERRORS.has(e.code))
+        return this.post(tpl(false), to);
+      throw e;
+    }
+  }
+
+  private async post(message: Record<string, unknown>, to: string): Promise<SendResult> {
+    const f = this.o.fetchImpl ?? fetch;
     const res = await f(
       `${this.o.baseUrl ?? 'https://graph.facebook.com'}/${this.o.apiVersion ?? 'v21.0'}/${this.o.phoneNumberId}/messages`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${this.o.token}` },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ messaging_product: 'whatsapp', to: toCloudNumber(to), ...message }),
         signal: AbortSignal.timeout(15_000),
       },
     );
     if (!res.ok) {
       const err = (await res.json().catch(() => null)) as { error?: { code?: number } } | null;
       // The Meta error code is useful for support; the message text can echo the number, so skip it.
-      throw new Error(
-        `whatsapp-cloud ${res.status}${err?.error?.code ? ` code ${err.error.code}` : ''}`,
-      );
+      throw new CloudError(res.status, err?.error?.code);
     }
     const json = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
     const id = json?.messages?.[0]?.id;
     if (!id) throw new Error('whatsapp-cloud: no message id in response');
     return { providerMsgId: id };
+  }
+}
+
+const CAPTION_MAX = 1024;
+/** Meta codes for a template/parameter mismatch or unusable header media. */
+const HEADER_ERRORS = new Set([132000, 132012, 131053, 131052]);
+
+class CloudError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code?: number,
+  ) {
+    super(`whatsapp-cloud ${status}${code ? ` code ${code}` : ''}`);
   }
 }
 

@@ -445,7 +445,8 @@ export function ConsoleHeader({ event, onMore }: { event?: WeddingEvent; onMore?
       <EventSwitcher current={event} />
       <div className="ml-auto flex items-center gap-1">
         <SyncIndicator />
-        <span className="hidden sm:inline-flex">
+        {/* Inside an event, phones reach the language switch from "More"; elsewhere there is no "More", so keep it here. */}
+        <span className={onMore ? 'hidden sm:inline-flex' : 'inline-flex'}>
           <LanguageChip />
         </span>
         {onMore ? (
@@ -462,6 +463,44 @@ export function ConsoleHeader({ event, onMore }: { event?: WeddingEvent; onMore?
         <UserMenu />
       </div>
     </header>
+  );
+}
+
+/** Sidebar on pages outside an event (the events list, account): the organiser's events, so it is never an empty column. */
+function EventsSidebar() {
+  const t = useTranslations('nav');
+  const events = useEvents();
+  const pathname = usePathname();
+  const list = events.data ?? [];
+  return (
+    <nav aria-label={t('events')} className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+      <Link
+        href="/app"
+        aria-current={pathname === '/app' ? 'page' : undefined}
+        className={cn(
+          'flex min-h-11 items-center gap-3 rounded-input px-3 font-medium',
+          pathname === '/app' ? 'bg-primary/10 text-primary' : 'text-ink hover:bg-ink/5',
+        )}
+      >
+        <LayoutGrid className="size-6" aria-hidden="true" />
+        {t('events')}
+      </Link>
+      {list.length ? (
+        <ul className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3">
+          {list.map((e) => (
+            <li key={e.id}>
+              <Link
+                href={`/app/e/${e.id}`}
+                className="flex min-h-11 items-center gap-3 rounded-input px-3 text-ink hover:bg-ink/5"
+              >
+                <Avatar name={e.coupleNames} size={28} />
+                <span className="truncate">{e.coupleNames}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </nav>
   );
 }
 
@@ -524,10 +563,17 @@ export function ConsoleShell({
             })}
           </nav>
         ) : (
-          <div className="flex-1" />
+          <EventsSidebar />
         )}
+        {/* The header already carries the language switch on md+, so the sidebar footer offers a new event instead of a second copy of it. */}
         <div className="border-t border-border p-3">
-          <LanguageChip />
+          <Link
+            href="/app/events/new"
+            className="flex min-h-11 items-center gap-3 rounded-input px-3 font-semibold text-primary hover:bg-primary/8"
+          >
+            <Plus className="size-5" aria-hidden="true" />
+            {t('newEvent')}
+          </Link>
         </div>
       </aside>
       <div className="flex min-w-0 flex-col">

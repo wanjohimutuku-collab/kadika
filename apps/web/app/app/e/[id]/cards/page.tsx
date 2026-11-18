@@ -77,6 +77,8 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
   const [dMessage, setDMessage] = useState('');
   const [dFooter, setDFooter] = useState('');
   const [dShowQr, setDShowQr] = useState(true);
+  // The message line falls back to the saved WhatsApp invitation message, minus its link (empty: the default).
+  const waTemplate = pick(event.data?.cardContent?.messages?.inviteWhatsapp, uiLocale) ?? '';
 
   useEffect(() => {
     if (!event.data) return;
@@ -170,7 +172,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
           committeePhone: e.committeePhone,
           template,
           ...(TEXT_TEMPLATES.includes(template)
-            ? { title: dTitle, message: dMessage, footer: dFooter }
+            ? { title: dTitle, message: dMessage, footer: dFooter, whatsappMessage: waTemplate }
             : {}),
           showQr: dShowQr,
         };
@@ -197,7 +199,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                       <label
                         key={tpl}
                         className={cn(
-                          'flex cursor-pointer flex-col gap-2 rounded-card border-2 p-2',
+                          'flex cursor-pointer flex-col gap-2 rounded-card border-2 p-2 transition-colors hover:border-primary/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2',
                           template === tpl ? 'border-primary' : 'border-border',
                         )}
                         data-testid={`card-template-${tpl}`}
@@ -210,12 +212,14 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                           onChange={() => setTemplate(tpl)}
                         />
                         <img
-                          src={`/api/card-image?preview=1&template=${tpl}&theme=${encodeURIComponent(themeId)}&partnerA=${encodeURIComponent(e.partnerA)}${e.partnerB ? `&partnerB=${encodeURIComponent(e.partnerB)}` : ''}&eventKind=${encodeURIComponent(e.eventKind)}&date=${encodeURIComponent(e.dateStart)}&venue=${encodeURIComponent(e.venueName)}${Object.keys(palette).length ? `&palette=${encodeURIComponent(JSON.stringify(palette))}` : ''}${cover ? `&cover=${encodeURIComponent(cover)}` : ''}${TEXT_TEMPLATES.includes(tpl) ? `&title=${encodeURIComponent(dTitle)}&message=${encodeURIComponent(dMessage)}&footer=${encodeURIComponent(dFooter)}` : ''}${dShowQr ? '' : '&qr=0'}`}
+                          src={`/api/card-image?preview=1&template=${tpl}&theme=${encodeURIComponent(themeId)}&partnerA=${encodeURIComponent(e.partnerA)}${e.partnerB ? `&partnerB=${encodeURIComponent(e.partnerB)}` : ''}&eventKind=${encodeURIComponent(e.eventKind)}&date=${encodeURIComponent(e.dateStart)}&venue=${encodeURIComponent(e.venueName)}${Object.keys(palette).length ? `&palette=${encodeURIComponent(JSON.stringify(palette))}` : ''}${cover ? `&cover=${encodeURIComponent(cover)}` : ''}${TEXT_TEMPLATES.includes(tpl) ? `&title=${encodeURIComponent(dTitle)}&message=${encodeURIComponent(dMessage)}&footer=${encodeURIComponent(dFooter)}${waTemplate ? `&wa=${encodeURIComponent(waTemplate)}` : ''}` : ''}${dShowQr ? '' : '&qr=0'}`}
                           alt=""
                           width={640}
                           height={940}
                           loading="lazy"
-                          className="h-auto w-full rounded-input border border-border"
+                          decoding="async"
+                          // Shimmer shows through until the server-rendered PNG arrives (it takes a second or two).
+                          className="skeleton aspect-[640/940] h-auto w-full rounded-input border border-border"
                         />
                         <span className="flex items-center justify-between font-medium">
                           {t(TEMPLATE_LABEL[tpl])}
@@ -269,7 +273,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
 
                 <Card title={t('themes')} titleId="th-h">
                   <div
-                    className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
+                    className="scroll-row -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
                     role="radiogroup"
                     aria-labelledby="th-h"
                   >

@@ -36,6 +36,8 @@ export interface CardImageOptions {
   /** Organiser's own text for the script / botanical templates. */
   title?: string;
   message?: string;
+  /** Organiser's WhatsApp message template: the script / botanical message line falls back to it, minus the link. */
+  whatsappMessage?: string;
   footer?: string;
   showQr?: boolean;
   scale?: number;
@@ -523,6 +525,7 @@ export function cardImageUrl(
   if (options.isContribution) q.set('kind', 'contribution');
   set('title', options.title);
   set('message', options.message);
+  set('wa', options.whatsappMessage);
   set('footer', options.footer);
   if (options.showQr === false) q.set('qr', '0');
   for (const [k, v] of Object.entries(extra)) q.set(k, v);

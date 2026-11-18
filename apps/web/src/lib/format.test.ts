@@ -46,4 +46,11 @@ describe('format', () => {
     expect(initials('Familia ya Kombo')).toBe('K');
     expect(initials('Asha Mwinyi')).toBe('AM');
   });
+
+  it('builds couple initials from both names, skipping the joiner', () => {
+    expect(initials('Asha & Juma')).toBe('AJ');
+    expect(initials('Asha na Juma')).toBe('AJ');
+    expect(initials('Yusuf and Kelly')).toBe('YK');
+    expect(initials('& Kelly')).toBe('K');
+  });
 });

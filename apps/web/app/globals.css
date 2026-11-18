@@ -405,8 +405,10 @@
       animation-range: entry 0% entry 40%;
     }
   }
+  /* The first hero block holds the page's LCP text: it slides in but never starts invisible, since
+     Chrome does not count opacity-0 text as painted and LCP would wait out the fade (lhci, §10). */
   .ks-enter {
-    animation: ks-rise 0.9s var(--ks-ease) both;
+    animation: ks-lift 0.9s var(--ks-ease) both;
   }
   .ks-enter-2 {
     animation: ks-rise 0.9s 0.12s var(--ks-ease) both;
@@ -431,6 +433,14 @@
   }
   .ks-stagger > :nth-child(n + 6) {
     animation-delay: 0.25s;
+  }
+}
+@keyframes ks-lift {
+  from {
+    transform: translateY(1.25rem);
+  }
+  to {
+    transform: none;
   }
 }
 @keyframes ks-rise {

@@ -118,7 +118,6 @@ function SendInner({ id }: { id: string }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [customWhatsapp, setCustomWhatsapp] = useState<string | null>(null);
-  const [customSms, setCustomSms] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState(true);
   const idem = useRef(newIdempotencyKey());
   const progressRef = useRef<HTMLHeadingElement>(null);
@@ -310,18 +309,6 @@ function SendInner({ id }: { id: string }) {
         const activeWhatsappTemplate =
           customWhatsapp ?? savedWhatsappTemplate ?? defaultWhatsappTemplate;
 
-        const defaultSmsTemplate = contribution
-          ? previewLang === 'sw'
-            ? 'Habari! {mtumaji} wanakuomba mchango kwa {wenyeji}. Kadi: {kiungo}'
-            : 'Hello! {sender} requests contribution for {hosts}. Card: {link}'
-          : kind === 'reminder'
-            ? previewLang === 'sw'
-              ? 'Kikumbusho: Sherehe ya {wenyeji} ni tarehe {tarehe}. Kadi: {kiungo} Namba: {kadi}'
-              : 'Reminder: {hosts} celebration is on {date}. Card: {link} Code: {code}'
-            : previewLang === 'sw'
-              ? 'Habari! {wenyeji} wanakualika: {tarehe}. Kadi yako: {kiungo} Namba: {kadi}'
-              : 'Hello! {hosts} invite you: {date}. Card: {link} Code: {code}';
-
         const savedSmsTemplate = pick(
           contribution
             ? e.cardContent?.messages?.contributionSms
@@ -331,7 +318,10 @@ function SendInner({ id }: { id: string }) {
           previewLang,
         );
 
-        const activeSmsTemplate = customSms ?? savedSmsTemplate ?? defaultSmsTemplate;
+        // One message for both channels: the organiser's WhatsApp text is also the SMS text (as the API
+        // sends it); an older SMS-only text applies when there is no WhatsApp text.
+        const ownWhatsapp = customWhatsapp ?? savedWhatsappTemplate;
+        const ownSms = ownWhatsapp ?? savedSmsTemplate;
 
         const validDate = !Number.isNaN(Date.parse(e.dateStart));
         const sampleVars: Record<string, string> = {
@@ -366,8 +356,7 @@ function SendInner({ id }: { id: string }) {
         };
 
         const renderedWhatsappText = renderTemplate(activeWhatsappTemplate, sampleVars);
-        const renderedSmsText =
-          customSms || savedSmsTemplate ? renderTemplate(activeSmsTemplate, sampleVars) : smsText;
+        const renderedSmsText = ownSms ? renderTemplate(ownSms, sampleVars) : smsText;
         const segs = smsSegments(renderedSmsText);
         const p = preview.data;
         const counts = autoBreakdown.data?.byChannel ?? { whatsapp: 0, sms: 0, print: 0 };
@@ -725,36 +714,26 @@ function SendInner({ id }: { id: string }) {
 
                       {editingMessage ? (
                         <MessageCustomizer
-                          channelName={channel === 'sms' ? 'SMS' : 'WhatsApp'}
-                          value={channel === 'sms' ? activeSmsTemplate : activeWhatsappTemplate}
-                          defaultValue={
-                            channel === 'sms' ? defaultSmsTemplate : defaultWhatsappTemplate
-                          }
-                          onChange={(val) => {
-                            if (channel === 'sms') setCustomSms(val);
-                            else setCustomWhatsapp(val);
-                          }}
+                          channelName="WhatsApp & SMS"
+                          value={ownWhatsapp ?? savedSmsTemplate ?? defaultWhatsappTemplate}
+                          defaultValue={defaultWhatsappTemplate}
+                          onChange={setCustomWhatsapp}
                           onSave={async () => {
-                            const isSms = channel === 'sms';
-                            const key = contribution
-                              ? isSms
-                                ? 'contributionSms'
-                                : 'contributionWhatsapp'
+                            // Saved under both keys, so WhatsApp and SMS guests get the same words.
+                            const base = contribution
+                              ? 'contribution'
                               : kind === 'reminder'
-                                ? isSms
-                                  ? 'reminderSms'
-                                  : 'reminderWhatsapp'
-                                : isSms
-                                  ? 'inviteSms'
-                                  : 'inviteWhatsapp';
-                            const val = isSms ? activeSmsTemplate : activeWhatsappTemplate;
-                            const existingPerKey =
-                              (
-                                e.cardContent?.messages as
-                                  Record<string, { sw?: string; en?: string }> | undefined
-                              )?.[key] ?? {};
+                                ? 'reminder'
+                                : 'invite';
+                            const val = ownWhatsapp ?? savedSmsTemplate ?? defaultWhatsappTemplate;
+                            const msgs = e.cardContent?.messages as
+                              Record<string, { sw?: string; en?: string }> | undefined;
                             await saveMessages.mutateAsync({
-                              [key]: { ...existingPerKey, [previewLang]: val },
+                              [`${base}Whatsapp`]: {
+                                ...msgs?.[`${base}Whatsapp`],
+                                [previewLang]: val,
+                              },
+                              [`${base}Sms`]: { ...msgs?.[`${base}Sms`], [previewLang]: val },
                             });
                           }}
                           isSaving={saveMessages.isPending}

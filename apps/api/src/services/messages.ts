@@ -135,8 +135,9 @@ function custom(event: EventRow, key: TemplateKey, locale: Locale): string | und
 }
 
 /**
- * The SMS text for one guest. An organiser's own template wins; otherwise the built-in wording. WhatsApp
- * uses Meta-approved templates, so custom text applies to SMS only (the editor says so).
+ * The SMS text for one guest. The organiser's custom WhatsApp text for this message wins, so a guest
+ * reached by SMS reads the same words as one reached on WhatsApp; then their own SMS text (older
+ * events); otherwise the built-in wording.
  */
 export function composeSms(
   type: 'invite' | 'reminder' | 'contribution' | 'pledge' | 'memories',
@@ -156,7 +157,13 @@ export function composeSms(
     contribution: 'contributionSms',
     pledge: 'pledgeReminderSms',
   };
-  const own = custom(i.event, key[type], locale);
+  const sameAsWhatsapp: Partial<Record<typeof type, TemplateKey>> = {
+    invite: 'inviteWhatsapp',
+    reminder: 'reminderWhatsapp',
+    contribution: 'contributionWhatsapp',
+  };
+  const wa = sameAsWhatsapp[type];
+  const own = (wa && custom(i.event, wa, locale)) || custom(i.event, key[type], locale);
   const vars = messageVars(i);
   if (own) return renderTemplate(own, vars);
   const [a = '', b = ''] = i.event.coupleNames.split('&').map((x) => x.trim());

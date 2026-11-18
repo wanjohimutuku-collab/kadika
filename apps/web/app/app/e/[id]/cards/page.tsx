@@ -77,6 +77,8 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
   const [dMessage, setDMessage] = useState('');
   const [dFooter, setDFooter] = useState('');
   const [dShowQr, setDShowQr] = useState(true);
+  // The message line falls back to the saved WhatsApp invitation message, minus its link (empty: the default).
+  const waTemplate = pick(event.data?.cardContent?.messages?.inviteWhatsapp, uiLocale) ?? '';
 
   useEffect(() => {
     if (!event.data) return;
@@ -170,7 +172,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
           committeePhone: e.committeePhone,
           template,
           ...(TEXT_TEMPLATES.includes(template)
-            ? { title: dTitle, message: dMessage, footer: dFooter }
+            ? { title: dTitle, message: dMessage, footer: dFooter, whatsappMessage: waTemplate }
             : {}),
           showQr: dShowQr,
         };
@@ -210,7 +212,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                           onChange={() => setTemplate(tpl)}
                         />
                         <img
-                          src={`/api/card-image?preview=1&template=${tpl}&theme=${encodeURIComponent(themeId)}&partnerA=${encodeURIComponent(e.partnerA)}${e.partnerB ? `&partnerB=${encodeURIComponent(e.partnerB)}` : ''}&eventKind=${encodeURIComponent(e.eventKind)}&date=${encodeURIComponent(e.dateStart)}&venue=${encodeURIComponent(e.venueName)}${Object.keys(palette).length ? `&palette=${encodeURIComponent(JSON.stringify(palette))}` : ''}${cover ? `&cover=${encodeURIComponent(cover)}` : ''}${TEXT_TEMPLATES.includes(tpl) ? `&title=${encodeURIComponent(dTitle)}&message=${encodeURIComponent(dMessage)}&footer=${encodeURIComponent(dFooter)}` : ''}${dShowQr ? '' : '&qr=0'}`}
+                          src={`/api/card-image?preview=1&template=${tpl}&theme=${encodeURIComponent(themeId)}&partnerA=${encodeURIComponent(e.partnerA)}${e.partnerB ? `&partnerB=${encodeURIComponent(e.partnerB)}` : ''}&eventKind=${encodeURIComponent(e.eventKind)}&date=${encodeURIComponent(e.dateStart)}&venue=${encodeURIComponent(e.venueName)}${Object.keys(palette).length ? `&palette=${encodeURIComponent(JSON.stringify(palette))}` : ''}${cover ? `&cover=${encodeURIComponent(cover)}` : ''}${TEXT_TEMPLATES.includes(tpl) ? `&title=${encodeURIComponent(dTitle)}&message=${encodeURIComponent(dMessage)}&footer=${encodeURIComponent(dFooter)}${waTemplate ? `&wa=${encodeURIComponent(waTemplate)}` : ''}` : ''}${dShowQr ? '' : '&qr=0'}`}
                           alt=""
                           width={640}
                           height={940}

@@ -16,6 +16,7 @@ import {
   type CardTemplate,
 } from '@harusi/schemas/card-content';
 import { pickMessages } from '@harusi/i18n';
+import { seatType } from '@harusi/schemas';
 import { senderNameFor } from '@harusi/api-client';
 import { formatIcu } from '@/lib/icu';
 import { formatDateShort, formatPhone, formatTime, formatWeekday, swahiliTime } from '@/lib/format';
@@ -29,6 +30,7 @@ import {
   type CardImageModel,
 } from '@/lib/card-image/templates';
 import { loadCardFonts } from '@/lib/card-image/fonts';
+import { cardMessageFromWhatsapp } from '@/lib/card-image/message';
 
 export const runtime = 'nodejs';
 
@@ -86,6 +88,8 @@ export async function GET(req: NextRequest) {
   const guestName =
     guest?.displayName || q.get('guest') || (locale === 'sw' ? 'Ndugu Mualikwa' : 'Honoured Guest');
   const shortCode = guest?.shortCode || q.get('code') || 'KH-4826';
+  // Single (1 guest) or Double (2 guests) card type; family cards (3+) carry no tag.
+  const seats = guest?.partySizeAllowed ?? (Number(q.get('seats')) || 0);
 
   let overrides = ev?.palette;
   if (!ev && q.get('palette')) {
@@ -156,7 +160,35 @@ export async function GET(req: NextRequest) {
       : sw
         ? 'Unakaribishwa kwa furaha kushiriki nasi sherehe hii'
         : 'You are warmly invited to share in this celebration');
-  const message = own2('message');
+  // No card message of their own: the WhatsApp message they send (or the default), minus the link,
+  // which the image cannot carry; the caption under it has the link.
+  const message =
+    own2('message') ||
+    cardMessageFromWhatsapp(
+      pick(
+        isContribution ? content.messages?.contributionWhatsapp : content.messages?.inviteWhatsapp,
+        locale,
+      ) ||
+        q.get('wa') ||
+        undefined,
+      {
+        guest: guestName,
+        hosts: coupleNames,
+        sender,
+        venue,
+        dress,
+        code: shortCode,
+        date: valid
+          ? `${formatWeekday(dateStart, locale)}, ${formatDateShort(dateStart, locale)}`
+          : '',
+        time: valid
+          ? locale === 'sw'
+            ? `Saa ${swahiliTime(dateStart)}`
+            : formatTime(dateStart, locale)
+          : '',
+      },
+      { locale, contribution: isContribution },
+    );
   const footer =
     own2('footer') ||
     (dress && !isContribution ? (sw ? `Mavazi: ${dress}` : `Dress: ${dress}`) : '');
@@ -189,6 +221,10 @@ export async function GET(req: NextRequest) {
     sender,
     phone: phoneRaw ? formatPhone(phoneRaw, ev?.country ?? 'TZ') : '',
     shortCode,
+    seatLabel:
+      !isContribution && seats > 0 && seatType(seats)
+        ? (t[seatType(seats) === 'D' ? 'seatD' : 'seatS'] ?? '')
+        : '',
     qrPath: qrD,
     qrDim,
     palette,

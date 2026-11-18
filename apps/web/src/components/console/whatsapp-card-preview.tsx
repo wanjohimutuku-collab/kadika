@@ -29,7 +29,14 @@ export interface WhatsappCardPreviewProps {
   /** Card-image design (ADR 058); default `classic`. */
   template?: CardTemplate;
   /** Custom text / QR toggle for the image (script, botanical). */
-  design?: { title?: string; message?: string; footer?: string; showQr?: boolean };
+  design?: {
+    title?: string;
+    message?: string;
+    footer?: string;
+    showQr?: boolean;
+    /** WhatsApp message template the card message falls back to, without its link. */
+    whatsappMessage?: string;
+  };
   /**
    * Sends this card image to the guests' own WhatsApp numbers through the API (the page confirms
    * first). Never a browser share: the organiser's phone is not the sender.

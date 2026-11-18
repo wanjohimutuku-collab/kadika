@@ -1,4 +1,4 @@
-import type { CardImageModel } from './templates';
+import { SeatTag, type CardImageModel } from './templates';
 
 /**
  * The two text-led card-image templates (ADR 058): `script` (minimal white card, signature-script
@@ -149,9 +149,13 @@ export function ScriptCard({ m }: { m: CardImageModel }) {
             <div style={{ ...caps, fontSize: 11, marginTop: 4, letterSpacing: 2 }}>
               {m.shortCode}
             </div>
+            <SeatTag m={m} color={ink} />
           </div>
         ) : (
-          <div style={{ ...caps, fontSize: 12 }}>{m.shortCode}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ ...caps, fontSize: 12 }}>{m.shortCode}</div>
+            <SeatTag m={m} color={ink} />
+          </div>
         )}
       </div>
     </div>
@@ -401,6 +405,7 @@ export function BotanicalCard({ m }: { m: CardImageModel }) {
           >
             {m.shortCode}
           </div>
+          <SeatTag m={m} color={ink} />
           <div style={{ display: 'flex', fontSize: 12, color: '#6E5A63', marginTop: 4 }}>
             {m.footer || m.domain}
           </div>

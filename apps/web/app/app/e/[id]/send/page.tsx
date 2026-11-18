@@ -801,6 +801,7 @@ function SendInner({ id }: { id: string }) {
                           message: pick(e.cardContent?.design?.message, previewLang),
                           footer: pick(e.cardContent?.design?.footer, previewLang),
                           showQr: e.cardContent?.design?.showQr,
+                          whatsappMessage: activeWhatsappTemplate,
                         }}
                         messageText={renderedWhatsappText}
                         sendCount={total}

@@ -1,4 +1,4 @@
-import { eventKindLabel, eventKindOf, occasionOf } from '@harusi/schemas';
+import { eventKindLabel, eventKindOf, occasionOf, seatType } from '@harusi/schemas';
 import {
   flag,
   pick,
@@ -143,6 +143,7 @@ h2{font-size:18px;font-weight:600}
 .qrbox{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
 .qrbox svg{display:block;width:232px;height:232px;background:#fff}
 .code{font:700 36px/1.1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em}
+.seat-tag{display:inline-block;margin-top:8px;padding:2px 12px;border:1.5px solid currentColor;border-radius:999px;font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase}
 .hint{display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:var(--t-accent);padding:6px 12px;font-size:14px;font-weight:500}
 .qr .actions{display:grid;grid-template-columns:1fr;gap:8px;width:100%}
 @media(min-width:420px){.qr .actions{grid-template-columns:1fr 1fr}}
@@ -363,7 +364,7 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
       ? `<section class="qr" id="hp-qr" aria-labelledby="qr-title"${view.rsvp.status === 'declined' ? ' hidden' : ''}>
 <h2 id="qr-title">${esc(t.qrTitle)}</h2>
 <div class="qrbox" data-testid="qr-block"><svg role="img" aria-label="${esc(fmt(t.qrAlt!, { code: guest.shortCode }))}" viewBox="0 0 ${qrDim} ${qrDim}" shape-rendering="crispEdges"><rect width="${qrDim}" height="${qrDim}" fill="#FFFFFF"/><path d="${qrD}" fill="#000000"/></svg></div>
-<p><span class="muted" style="font-size:14px;display:block">${esc(t.codeLabel)}</span><span class="code" data-testid="short-code">${esc(guest.shortCode)}</span></p>
+<p><span class="muted" style="font-size:14px;display:block">${esc(t.codeLabel)}</span><span class="code" data-testid="short-code">${esc(guest.shortCode)}</span>${!isContribution && seatType(partyMax) ? `<br><span class="seat-tag" data-testid="seat-type">${esc(seatType(partyMax) === 'D' ? t.seatD! : t.seatS!)}</span>` : ''}</p>
 <p class="muted" style="font-size:14px">${esc(t.codeHelp)}</p>
 <p class="hint">${icon('sun').replace('width="24" height="24"', 'width="16" height="16"')} ${esc(t.brightnessHint)}</p>
 ${view.isMock ? `<p class="muted" style="font-size:12px">${esc(t.mockToken)}</p>` : ''}

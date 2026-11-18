@@ -40,7 +40,7 @@ import {
   type GuestFilter,
   type GuestQuery,
 } from '@harusi/api-client';
-import { CARD_KINDS, type CardKind } from '@harusi/schemas';
+import { CARD_KINDS, seatType, type CardKind } from '@harusi/schemas';
 import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { ChannelIcon, GuestStatusPill } from '@/components/console/status';
@@ -352,13 +352,28 @@ function GuestsInner({ id }: { id: string }) {
     }),
     col.accessor('partySizeAllowed', {
       header: t('col.party'),
-      cell: (c) => (
-        <span className="tabular">
-          {c.row.original.rsvpPartySize
-            ? `${c.row.original.rsvpPartySize}/${c.getValue()}`
-            : c.getValue()}
-        </span>
-      ),
+      cell: (c) => {
+        // S = Single card (1 guest), D = Double (2 guests); family cards show only the count.
+        const seat = c.row.original.cardKind !== 'contribution' ? seatType(c.getValue()) : null;
+        return (
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            {seat ? (
+              <span
+                className="inline-flex size-6 items-center justify-center rounded-full border border-ink/25 text-xs font-bold"
+                title={t(`seatTypes.${seat}`)}
+                aria-label={t(`seatTypes.${seat}`)}
+              >
+                {seat}
+              </span>
+            ) : null}
+            <span className="tabular">
+              {c.row.original.rsvpPartySize
+                ? `${c.row.original.rsvpPartySize}/${c.getValue()}`
+                : c.getValue()}
+            </span>
+          </span>
+        );
+      },
     }),
     col.accessor('shortCode', {
       header: t('col.code'),
@@ -751,7 +766,7 @@ function GuestsInner({ id }: { id: string }) {
                           )
                         }
                         title={g.displayName}
-                        subtitle={`${g.groupLabel || '—'} · ${g.shortCode}${g.hasSmartphone ? '' : ` · ${t('featurePhone')}`}${g.cardKind === 'contribution' ? ` · ${t('cardKindContribution')}` : ''}`}
+                        subtitle={`${g.groupLabel || '—'} · ${g.shortCode}${g.cardKind !== 'contribution' && seatType(g.partySizeAllowed) ? ` · ${seatType(g.partySizeAllowed)}` : ''}${g.hasSmartphone ? '' : ` · ${t('featurePhone')}`}${g.cardKind === 'contribution' ? ` · ${t('cardKindContribution')}` : ''}`}
                         trailing={
                           <>
                             <ChannelIcon

@@ -6,6 +6,7 @@ export * from './time';
 export * from './operators';
 export * from './pilot';
 export * from './import';
+export * from './seat-type';
 export * from './short-code';
 export * from './domain';
 export * from './card-content';

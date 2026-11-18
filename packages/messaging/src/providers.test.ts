@@ -421,4 +421,56 @@ describe('WhatsAppCloudProvider image header (ADR 058)', () => {
     expect(comps(bodies[0]).map((c) => c.type)).toEqual(['header', 'body']);
     expect(comps(bodies[1]).map((c) => c.type)).toEqual(['body']);
   });
+
+  it('sends the card as an image with the text as caption when there is no template', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchImpl = (async (_u: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ messages: [{ id: 'wamid.2' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const t = {
+      kind: 'invite' as const,
+      locale: 'sw' as const,
+      country: 'KE',
+      params: ['A'],
+      mediaUrl: 'https://x.test/c.png',
+    };
+    await new WhatsAppCloudProvider({ token: 't', phoneNumberId: 'p', fetchImpl }).send(
+      '+254712000001',
+      'Karibu https://x.test/s/abc',
+      t,
+    );
+    expect(bodies[0]).toMatchObject({
+      type: 'image',
+      image: { link: 'https://x.test/c.png', caption: 'Karibu https://x.test/s/abc' },
+    });
+  });
+
+  it('retries without the header when the template was approved without one', async () => {
+    const bodies: { template: { components: { type: string }[] } }[] = [];
+    const fetchImpl = (async (_u: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return bodies.length === 1
+        ? new Response(JSON.stringify({ error: { code: 132012 } }), { status: 400 })
+        : new Response(JSON.stringify({ messages: [{ id: 'wamid.3' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const r = await new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: 'p',
+      templates: { invite: 'inv' },
+      imageHeader: true,
+      fetchImpl,
+    }).send('+255712000001', 'x', {
+      kind: 'invite',
+      locale: 'sw',
+      country: 'TZ',
+      params: ['A'],
+      mediaUrl: 'https://x.test/c.png',
+    });
+    expect(r.providerMsgId).toBe('wamid.3');
+    expect(bodies.map((b) => b.template.components.map((c) => c.type))).toEqual([
+      ['header', 'body'],
+      ['body'],
+    ]);
+  });
 });

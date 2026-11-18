@@ -43,8 +43,7 @@ export interface CardImageModel {
   footer: string;
 }
 
-export const CARD_IMAGE_WIDTH = 640;
-export const CARD_IMAGE_HEIGHT = 940;
+export { CARD_IMAGE_WIDTH, CARD_IMAGE_HEIGHT } from './size';
 
 // Used when the fonts in `assets/card-fonts` are present (fonts.ts); satori falls back otherwise.
 const SERIF = '"Playfair Display", Georgia, serif';

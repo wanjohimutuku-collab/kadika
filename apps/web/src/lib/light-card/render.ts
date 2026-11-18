@@ -22,6 +22,7 @@ import {
   formatWeekday,
   swahiliTime,
 } from '../format';
+import { CARD_IMAGE_HEIGHT, CARD_IMAGE_WIDTH } from '../card-image/size';
 import { CLIENT_SCRIPT } from './client-script';
 
 /**
@@ -43,6 +44,8 @@ export interface LightCardOptions {
   /** `mock`: the browser overlays its local demo state. `api`: RSVP posts to `apiUrl`. */
   mode: 'mock' | 'api';
   apiUrl: string;
+  /** Public origin of this page, for absolute link-preview URLs (WhatsApp ignores relative ones). */
+  origin?: string;
 }
 
 export const esc = (v: unknown): string =>
@@ -579,12 +582,15 @@ ${closingSection}
         venue: event.venueName,
       });
   const enc = encodeURIComponent(view.token);
+  // The link preview is the guest's real card in the organiser's chosen template (ADR 058), the
+  // same PNG WhatsApp media sends, not a generic design.
+  const ogImage = `${o.origin ?? `https://${o.domain}`}/api/card-image?token=${enc}&locale=${locale}`;
   return shell({
     locale,
     title,
     description,
     palette,
-    head: `<link rel="manifest" href="/c/${enc}/manifest.webmanifest"><meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:image" content="/c/${enc}/opengraph-image"><meta name="twitter:card" content="summary_large_image">`,
+    head: `<link rel="manifest" href="/c/${enc}/manifest.webmanifest"><meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:image" content="${esc(ogImage)}"><meta property="og:image:type" content="image/png"><meta property="og:image:width" content="${CARD_IMAGE_WIDTH}"><meta property="og:image:height" content="${CARD_IMAGE_HEIGHT}"><meta name="twitter:card" content="summary_large_image">`,
     body,
     script: `<script type="application/json" id="hp-data">${jsonForScript(data)}</script><script>${CLIENT_SCRIPT}</script>`,
   });

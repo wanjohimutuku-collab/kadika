@@ -46,3 +46,7 @@ most drew fake "Ndio, Nitafika / Hapana, Sitafika" pills. Guests tapped pills th
   opens the normal send confirmation; the API sends to each guest's own number with the card image
   (`mediaUrl`). Evolution sends it as media; WhatsApp Cloud sends it as the template's IMAGE header
   when `WHATSAPP_TEMPLATE_IMAGE_HEADER=1` (only once the templates are approved with that header).
+  If Meta rejects the header (template approved without one) it resends without it; with no
+  template it sends an `image` message with the text as caption instead of a bare link.
+- The guest card's link preview (`og:image` on `/c/[token]`) is the same absolute
+  `/api/card-image?token=…` PNG, so WhatsApp's preview shows the chosen template, not a generic design.

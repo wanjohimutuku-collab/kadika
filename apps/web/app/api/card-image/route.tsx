@@ -31,6 +31,7 @@ import {
 } from '@/lib/card-image/templates';
 import { loadCardFonts } from '@/lib/card-image/fonts';
 import { cardMessageFromWhatsapp } from '@/lib/card-image/message';
+import { cardDomain } from '@/lib/card-image/domain';
 
 export const runtime = 'nodejs';
 
@@ -229,7 +230,7 @@ export async function GET(req: NextRequest) {
     qrDim,
     palette,
     cover,
-    domain: q.get('domain') || url.host.replace(/^www\./, '') || 'kadisasa.com',
+    domain: cardDomain(req),
   };
 
   const file = `kadi-${shortCode.toLowerCase()}.png`;

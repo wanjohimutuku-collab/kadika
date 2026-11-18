@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DatabaseZap, RotateCcw, Save, Send } from 'lucide-react';
@@ -43,7 +43,13 @@ export default function MessagingSettingsPage() {
           <>
             <ImportFromEnvironment />
             {v.routes.map((r) => (
-              <RouteCard key={r.route} view={r} kenyaEnabled={v.kenyaEnabled} />
+              // Remount (fresh form) only when this route's saved settings change: a save, reset or
+              // import on another route must not wipe what staff typed here and have not saved yet.
+              <RouteCard
+                key={`${r.route}:${r.source}:${r.provider}:${r.updatedAt ?? ''}`}
+                view={r}
+                kenyaEnabled={v.kenyaEnabled}
+              />
             ))}
             <Webhooks view={v} />
           </>
@@ -109,12 +115,8 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
   const [error, setError] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [testTo, setTestTo] = useState('');
-
-  // A save or reset returns fresh values: show them, and never keep a typed secret in the form.
-  useEffect(() => {
-    setProvider(view.provider);
-    setValues(view.fields);
-  }, [view]);
+  // A save or reset of this route remounts the card (see its key), so the form shows the saved values
+  // and never keeps a typed secret.
 
   // A missing-fields refusal names the fields in the panel's language; anything else as it came.
   const explain = (e: unknown) => {

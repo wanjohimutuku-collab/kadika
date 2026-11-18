@@ -1,29 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Check,
-  CheckCheck,
-  Download,
-  Globe,
-  Image as ImageIcon,
-  Send,
-  ShieldCheck,
-} from 'lucide-react';
+import { Check, CheckCheck, Download, Globe, Image as ImageIcon, Send } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { eventKindLabel, eventKindOf } from '@harusi/schemas';
+import { eventKindLabel, type CardTemplate } from '@harusi/schemas';
 import type { PaletteOverrides } from '@harusi/ui-tokens';
-import { resolvePalette } from '@harusi/ui-tokens/palette';
-import { QrBlock } from '@/components/ui/qr-block';
-import { OrnamentBand, OrnamentDiamond } from '@/components/card/ornament';
-import { formatDateShort, formatTime, swahiliTime } from '@/lib/format';
-import {
-  downloadCardImage,
-  shareCardImageViaWhatsApp,
-  type CardImageOptions,
-} from '@/lib/card-canvas';
-
-const SAMPLE_PAYLOAD = 'v1.0192f1a0.preview0.2.1.MOCKSIG';
+import { cardImageUrl, downloadCardImage, type CardImageOptions } from '@/lib/card-canvas';
 
 export interface WhatsappCardPreviewProps {
   eventKind?: string | null;
@@ -44,6 +26,18 @@ export interface WhatsappCardPreviewProps {
   messageText: string;
   domain?: string;
   isContribution?: boolean;
+  /** Card-image design (ADR 058); default `classic`. */
+  template?: CardTemplate;
+  /** Custom text / QR toggle for the image (script, botanical). */
+  design?: { title?: string; message?: string; footer?: string; showQr?: boolean };
+  /**
+   * Sends this card image to the guests' own WhatsApp numbers through the API (the page confirms
+   * first). Never a browser share: the organiser's phone is not the sender.
+   */
+  onSendWhatsapp: () => void;
+  /** How many guests the send would reach; shown on the button. */
+  sendCount?: number;
+  sendDisabled?: boolean;
 }
 
 /**
@@ -70,20 +64,15 @@ export function WhatsappCardPreview({
   messageText,
   domain = 'kadisasa.com',
   isContribution = false,
+  template = 'classic',
+  design,
+  onSendWhatsapp,
+  sendCount,
+  sendDisabled = false,
 }: WhatsappCardPreviewProps) {
   const [downloading, setDownloading] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const palette = resolvePalette(themeId, overrides);
-  const valid = !Number.isNaN(Date.parse(dateStart));
-  const timeStr = valid
-    ? locale === 'sw'
-      ? swahiliTime(dateStart)
-      : formatTime(dateStart, locale)
-    : '';
-  const dateStr = valid ? formatDateShort(dateStart, locale) : '';
-  const kindOf = eventKindOf(eventKind, locale);
   const kindLabel = eventKindLabel(eventKind, locale);
 
   const cardImageOptions: CardImageOptions = {
@@ -103,6 +92,8 @@ export function WhatsappCardPreview({
     shortCode,
     locale,
     isContribution,
+    template,
+    ...design,
     scale: 2,
   };
 
@@ -114,33 +105,10 @@ export function WhatsappCardPreview({
       setTimeout(() => setFeedback(null), 3000);
     } catch {
       // Fallback to server image endpoint
-      const url = `/api/card-image?code=${encodeURIComponent(shortCode)}&couple=${encodeURIComponent(coupleNames)}&download=1`;
+      const url = cardImageUrl(cardImageOptions, { download: '1' });
       window.open(url, '_blank');
     } finally {
       setDownloading(false);
-    }
-  };
-
-  const handleShareWhatsApp = async () => {
-    try {
-      setSharing(true);
-      const res = await shareCardImageViaWhatsApp(cardImageOptions, {
-        messageText,
-      });
-      if (res.method === 'download-and-whatsapp') {
-        setFeedback(
-          locale === 'sw'
-            ? 'Picha imepakuliwa, tayari kutuma WhatsApp!'
-            : 'Image downloaded, ready to send on WhatsApp!',
-        );
-        setTimeout(() => setFeedback(null), 4000);
-      }
-    } catch {
-      // Fallback to plain whatsapp link
-      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(messageText)}`;
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
-    } finally {
-      setSharing(false);
     }
   };
 
@@ -166,78 +134,18 @@ export function WhatsappCardPreview({
 
       {/* Preview of the card image that will be sent to WhatsApp */}
       <div className="overflow-hidden rounded-xl border border-emerald-300/60 bg-surface shadow-sm dark:border-emerald-700/60">
-        {/* Cover Header Banner */}
-        <div
-          className="relative flex flex-col items-center justify-center px-4 pt-5 pb-2 text-center"
-          style={{
-            background: coverGradient || palette.primary,
-            color: palette.onPrimary,
-          }}
-        >
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="relative flex flex-col items-center gap-0.5">
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-90">
-              {kindOf.toUpperCase()}
-            </span>
-            <p className="font-display text-2xl leading-tight font-bold">{coupleNames || '—'}</p>
-            <OrnamentDiamond className="my-1 [--hp-pattern:#fff]" />
-            {valid ? (
-              <p className="text-xs font-semibold">
-                {dateStr}
-                {timeStr ? ` · ${timeStr}` : ''}
-              </p>
-            ) : null}
-            <p className="text-[11px] opacity-90">{venueName || '—'}</p>
-          </div>
-          <OrnamentBand
-            className="relative mt-2 block w-full bg-transparent opacity-85"
-            id="wa-pv-band"
-          />
-        </div>
-
-        {/* Card Body with Guest Info & QR Code */}
-        <div className="flex flex-col gap-2 border-t border-border bg-white p-3 text-xs dark:bg-zinc-900">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                <ShieldCheck className="size-3.5 shrink-0" />
-                <span>
-                  {locale === 'sw'
-                    ? `Ujumbe kutoka: ${senderName || (coupleNames ? 'Familia ya ' + coupleNames : 'Kamati')}`
-                    : `Invitation from: ${senderName || coupleNames || 'Committee'}`}
-                </span>
-              </div>
-              <p className="text-xs text-muted">
-                {locale === 'sw' ? 'Mwaliko kwa:' : 'Invitation for:'}
-              </p>
-              <p className="truncate text-sm font-bold text-ink">{guestName}</p>
-              {dressCode ? (
-                <p className="text-[11px] text-muted">
-                  {locale === 'sw' ? 'Mavazi:' : 'Dress code:'}{' '}
-                  <span className="font-medium text-ink">{dressCode}</span>
-                </p>
-              ) : null}
-            </div>
-
-            {!isContribution ? (
-              <div className="flex shrink-0 flex-col items-center rounded-lg border border-border bg-white p-1.5 shadow-xs dark:bg-zinc-800">
-                <QrBlock payload={SAMPLE_PAYLOAD} alt="QR Code" size={72} />
-                <span className="mt-0.5 font-mono text-[11px] font-bold tracking-widest text-black dark:text-white">
-                  {shortCode}
-                </span>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pt-0.5">
-            <span className="flex min-h-7 items-center justify-center rounded-md bg-emerald-700 text-[11px] font-semibold text-white">
-              {locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending'}
-            </span>
-            <span className="flex min-h-7 items-center justify-center rounded-md border border-emerald-600 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-              {locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets'}
-            </span>
-          </div>
-        </div>
+        {/* The exact PNG guests receive (ADR 058): no buttons, those live on the digital card. */}
+        <img
+          src={cardImageUrl(cardImageOptions)}
+          alt={
+            locale === 'sw' ? `Picha ya kadi ya ${coupleNames}` : `Card image for ${coupleNames}`
+          }
+          width={640}
+          height={940}
+          loading="lazy"
+          className="block h-auto w-full bg-surface"
+          data-testid="whatsapp-card-image"
+        />
 
         {/* Rich Link Meta Strip */}
         <div className="flex flex-col gap-0.5 border-t border-emerald-200/50 bg-emerald-100/60 p-2.5 dark:border-emerald-800/40 dark:bg-emerald-900/30">
@@ -270,19 +178,17 @@ export function WhatsappCardPreview({
       <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-emerald-200/60 pt-2 dark:border-emerald-800/40">
         <button
           type="button"
-          onClick={handleShareWhatsApp}
-          disabled={sharing}
+          onClick={onSendWhatsapp}
+          disabled={sendDisabled}
+          data-testid="send-image-whatsapp"
           className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-bold text-[#0b2e1a] shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Send className="size-3.5" />
           <span>
-            {sharing
-              ? locale === 'sw'
-                ? 'Inatayarisha…'
-                : 'Preparing…'
-              : locale === 'sw'
-                ? 'Tuma Picha WhatsApp'
-                : 'Send Image to WhatsApp'}
+            {locale === 'sw'
+              ? 'Tuma picha kwa WhatsApp ya wageni'
+              : "Send image to guests' WhatsApp"}
+            {sendCount ? ` (${sendCount})` : ''}
           </span>
         </button>
 

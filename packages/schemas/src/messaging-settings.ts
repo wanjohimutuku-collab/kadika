@@ -57,6 +57,8 @@ export const MESSAGING_PROVIDERS = {
       { key: 'apiVersion' },
       { key: 'verifyToken', secret: true },
       { key: 'appSecret', secret: true },
+      // `1` when the approved templates have an IMAGE header for the card picture (ADR 058).
+      { key: 'imageHeader' },
       ...TEMPLATE_FIELDS,
     ],
   },

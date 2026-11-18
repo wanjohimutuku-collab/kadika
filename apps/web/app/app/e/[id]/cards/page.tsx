@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Check, FileDown, Grid2x2, ImagePlus, Ruler } from 'lucide-react';
@@ -32,8 +32,21 @@ import { useQuotaToast } from '@/components/console/quota';
 import { minPrintSizeMm, printQrIssues, qrMatrix } from '@/lib/qr';
 import { downloadBlob } from '@/lib/download';
 import { cn } from '@/lib/cn';
+import {
+  CARD_TEMPLATES,
+  TEXT_TEMPLATES,
+  cardTemplateOf,
+  pick,
+  type CardTemplate,
+} from '@harusi/schemas';
 
 const SAMPLE_PAYLOAD = 'v1.0192f1a0.preview0.2.1.MOCKSIG';
+const TEMPLATE_LABEL = {
+  classic: 'templateClassic',
+  modern: 'templateModern',
+  script: 'templateScript',
+  botanical: 'templateBotanical',
+} as const satisfies Record<CardTemplate, string>;
 const COVERS = [
   { id: 'theme', value: '' },
   { id: 'sunset', value: 'linear-gradient(160deg,#7A3E2B 0%,#C2703D 45%,#E8B66B 100%)' },
@@ -58,6 +71,12 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
   const [format, setFormat] = useState<PrintFormat>('A6');
   const [qrMm, setQrMm] = useState(30);
   const [view, setView] = useState<'phone' | 'print'>('phone');
+  const [template, setTemplate] = useState<CardTemplate>('classic');
+  const uiLocale = useLocale() === 'en' ? 'en' : 'sw';
+  const [dTitle, setDTitle] = useState('');
+  const [dMessage, setDMessage] = useState('');
+  const [dFooter, setDFooter] = useState('');
+  const [dShowQr, setDShowQr] = useState(true);
 
   useEffect(() => {
     if (!event.data) return;
@@ -67,7 +86,13 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
     setGreeting(event.data.greeting);
     setDressCode(event.data.dressCode);
     setExtraNote(event.data.extraNote);
-  }, [event.data]);
+    setTemplate(cardTemplateOf(event.data.cardContent));
+    const d = event.data.cardContent?.design;
+    setDTitle(pick(d?.title, uiLocale) ?? '');
+    setDMessage(pick(d?.message, uiLocale) ?? '');
+    setDFooter(pick(d?.footer, uiLocale) ?? '');
+    setDShowQr(d?.showQr !== false);
+  }, [event.data, uiLocale]);
 
   const modules = useMemo(() => qrMatrix(SAMPLE_PAYLOAD).size, []);
   const minMm = minPrintSizeMm(modules);
@@ -83,6 +108,18 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
         greeting,
         dressCode,
         extraNote,
+        // ADR 058: the shareable image's design lives with the rest of the card wording.
+        cardContent: {
+          ...(event.data?.cardContent ?? {}),
+          design: {
+            ...(event.data?.cardContent?.design ?? {}),
+            template,
+            title: { ...event.data?.cardContent?.design?.title, [uiLocale]: dTitle.trim() },
+            message: { ...event.data?.cardContent?.design?.message, [uiLocale]: dMessage.trim() },
+            footer: { ...event.data?.cardContent?.design?.footer, [uiLocale]: dFooter.trim() },
+            showQr: dShowQr,
+          },
+        },
       }),
     onSuccess: async () => {
       toast({ tone: 'success', title: t('saved') });
@@ -131,6 +168,11 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
           extraNote,
           senderName: e.senderName,
           committeePhone: e.committeePhone,
+          template,
+          ...(TEXT_TEMPLATES.includes(template)
+            ? { title: dTitle, message: dMessage, footer: dFooter }
+            : {}),
+          showQr: dShowQr,
         };
         return (
           <>
@@ -148,6 +190,83 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
             />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
               <div className="flex min-w-0 flex-col gap-5">
+                <Card title={t('design')} titleId="tpl-h">
+                  <p className="mb-3 text-sm text-muted">{t('designHint')}</p>
+                  <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="tpl-h">
+                    {CARD_TEMPLATES.map((tpl) => (
+                      <label
+                        key={tpl}
+                        className={cn(
+                          'flex cursor-pointer flex-col gap-2 rounded-card border-2 p-2',
+                          template === tpl ? 'border-primary' : 'border-border',
+                        )}
+                        data-testid={`card-template-${tpl}`}
+                      >
+                        <input
+                          type="radio"
+                          name="card-template"
+                          className="sr-only"
+                          checked={template === tpl}
+                          onChange={() => setTemplate(tpl)}
+                        />
+                        <img
+                          src={`/api/card-image?preview=1&template=${tpl}&theme=${encodeURIComponent(themeId)}&partnerA=${encodeURIComponent(e.partnerA)}${e.partnerB ? `&partnerB=${encodeURIComponent(e.partnerB)}` : ''}&eventKind=${encodeURIComponent(e.eventKind)}&date=${encodeURIComponent(e.dateStart)}&venue=${encodeURIComponent(e.venueName)}${Object.keys(palette).length ? `&palette=${encodeURIComponent(JSON.stringify(palette))}` : ''}${cover ? `&cover=${encodeURIComponent(cover)}` : ''}${TEXT_TEMPLATES.includes(tpl) ? `&title=${encodeURIComponent(dTitle)}&message=${encodeURIComponent(dMessage)}&footer=${encodeURIComponent(dFooter)}` : ''}${dShowQr ? '' : '&qr=0'}`}
+                          alt=""
+                          width={640}
+                          height={940}
+                          loading="lazy"
+                          className="h-auto w-full rounded-input border border-border"
+                        />
+                        <span className="flex items-center justify-between font-medium">
+                          {t(TEMPLATE_LABEL[tpl])}
+                          {template === tpl ? (
+                            <Check className="size-5 text-primary" aria-hidden="true" />
+                          ) : null}
+                        </span>
+                        <span className="text-xs text-muted">
+                          {t(`${TEMPLATE_LABEL[tpl]}Hint`)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {TEXT_TEMPLATES.includes(template) ? (
+                    <div className="mt-4 flex flex-col gap-4">
+                      <TextField
+                        label={t('designTitle')}
+                        hint={t('designTitleHint')}
+                        maxLength={120}
+                        value={dTitle}
+                        onChange={(ev) => setDTitle(ev.target.value)}
+                      />
+                      <Textarea
+                        label={t('designMessage')}
+                        hint={t('designMessageHint')}
+                        rows={3}
+                        maxLength={400}
+                        value={dMessage}
+                        onChange={(ev) => setDMessage(ev.target.value)}
+                      />
+                      <TextField
+                        label={t('designFooter')}
+                        hint={t('designFooterHint')}
+                        maxLength={120}
+                        value={dFooter}
+                        onChange={(ev) => setDFooter(ev.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                  <label className="mt-4 flex min-h-11 items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-5"
+                      checked={dShowQr}
+                      onChange={(ev) => setDShowQr(ev.target.checked)}
+                      data-testid="card-design-qr"
+                    />
+                    {t('designShowQr')}
+                  </label>
+                </Card>
+
                 <Card title={t('themes')} titleId="th-h">
                   <div
                     className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
@@ -366,7 +485,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                   ]}
                 />
                 {view === 'phone' ? (
-                  <CardPreview data={data} />
+                  <CardPreview data={data} sendHref={`/app/e/${id}/send`} />
                 ) : (
                   <PrintCard
                     data={data}

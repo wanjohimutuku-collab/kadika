@@ -197,14 +197,22 @@ export const CLIENT_SCRIPT = String.raw`
     x.fillText('Kadi Sasa · Mwaliko Rasmi · ' + (S.domain || 'kadisasa.com'), 320, cy + ch - 25);
     return c;
   }
+  // The image is the server's template (ADR 058), the same PNG sent on WhatsApp; the canvas is the offline fallback.
+  function cardBlob(done) {
+    function local() { var c = renderCardCanvas(2); if (c && c.toBlob) c.toBlob(done, 'image/png'); else done(null); }
+    if (!navigator.onLine || !window.fetch) { local(); return; }
+    fetch('/api/card-image?token=' + encodeURIComponent(S.token) + '&locale=' + (document.documentElement.lang === 'en' ? 'en' : 'sw'))
+      .then(function (r) { if (!r.ok) throw 0; return r.blob(); })
+      .then(function (b) { done(b); })
+      .catch(local);
+  }
   $('#hp-share-wa').addEventListener('click', function () {
     var shareMsg = (T.shareCardText
       ? fmt(T.shareCardText, { couple: S.couple, kindOf: S.kindOf, guest: S.guestName, code: S.shortCode })
       : (S.couple + ' - ' + S.shortCode)) + '\n' + location.href;
     var waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(shareMsg);
-    var c = renderCardCanvas(2);
-    if (c && c.toBlob && navigator.share) {
-      c.toBlob(function (blob) {
+    if (navigator.share) {
+      cardBlob(function (blob) {
         if (!blob) { window.open(waUrl, '_blank'); return; }
         var file = new File([blob], 'kadi-' + S.shortCode + '.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -214,14 +222,16 @@ export const CLIENT_SCRIPT = String.raw`
         } else {
           window.open(waUrl, '_blank');
         }
-      }, 'image/png');
+      });
     } else {
       window.open(waUrl, '_blank');
     }
   });
   $('#hp-dl-card').addEventListener('click', function () {
-    var c = renderCardCanvas(2);
-    save(c.toDataURL('image/png'), 'kadi-' + S.shortCode + '.png');
+    cardBlob(function (blob) {
+      if (!blob) return;
+      var u = URL.createObjectURL(blob); save(u, 'kadi-' + S.shortCode + '.png'); setTimeout(function () { URL.revokeObjectURL(u); }, 2000);
+    });
   });
   $('#hp-dl-qr').addEventListener('click', function () {
     var q = 12, dim = S.qrDim, c = document.createElement('canvas'), label = Math.round(q * 5);

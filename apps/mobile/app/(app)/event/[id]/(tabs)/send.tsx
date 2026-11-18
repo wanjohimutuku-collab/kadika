@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Image, Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
 import type { SendJob } from '@harusi/api-client';
 import {
@@ -9,8 +9,9 @@ import {
   senderNameFor,
 } from '@harusi/api-client';
 import type { CardKind } from '@harusi/schemas';
-import { eventKindLabel, renderTemplate } from '@harusi/schemas';
+import { cardTemplateOf, eventKindLabel, pick, renderTemplate } from '@harusi/schemas';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
+import { WEB_URL } from '../../../../../src/lib/repo';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { formatDate, formatMoney } from '../../../../../src/lib/format';
 import { useEventLocale } from '../../../../../src/lib/country';
@@ -44,6 +45,31 @@ export default function Send() {
     card === 'contribution' ? 'contribution' : 'invitation',
   );
   const contribution = cardKind === 'contribution';
+  // Card images are drawn by the web app (`/api/card-image`), in the event's saved template.
+  const cardImageUri = useMemo(() => {
+    const e = ev.data;
+    const q = new URLSearchParams({ preview: '1', locale, code: 'KH-4821' });
+    if (e) {
+      q.set('template', cardTemplateOf(e.cardContent));
+      q.set('partnerA', e.partnerA || e.title);
+      if (e.partnerB) q.set('partnerB', e.partnerB);
+      q.set('eventKind', e.eventKind ?? '');
+      q.set('date', e.dateStart);
+      q.set('venue', e.venueName);
+      q.set('theme', e.themeId);
+      if (e.dressCode) q.set('dress', e.dressCode);
+      if (e.coverGradient) q.set('cover', e.coverGradient);
+      if (e.palette && Object.keys(e.palette).length) q.set('palette', JSON.stringify(e.palette));
+      const d = e.cardContent?.design;
+      for (const k of ['title', 'message', 'footer'] as const) {
+        const v = pick(d?.[k], locale);
+        if (v) q.set(k, v);
+      }
+      if (d?.showQr === false) q.set('qr', '0');
+    }
+    if (contribution) q.set('kind', 'contribution');
+    return `${WEB_URL}/api/card-image?${q.toString()}`;
+  }, [ev.data, locale, contribution]);
   const guests = useGuests(id, { filter: 'unsent', cardKind });
   const send = useSend(id);
   const retry = useRetryFailed(id);
@@ -470,163 +496,13 @@ export default function Send() {
               elevation: 2,
             }}
           >
-            <View
-              style={{
-                backgroundColor: ev.data?.palette?.primary || c.primary,
-                paddingVertical: 14,
-                paddingHorizontal: 12,
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <View
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.18)',
-                  paddingHorizontal: 10,
-                  paddingVertical: 3,
-                  borderRadius: 10,
-                }}
-              >
-                <Text
-                  style={{
-                    color: '#FFFFFF',
-                    fontSize: 10,
-                    fontWeight: '800',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {contribution
-                    ? locale === 'sw'
-                      ? 'KADI YA MCHANGO'
-                      : 'CONTRIBUTION CARD'
-                    : locale === 'sw'
-                      ? 'KADI MAALUM YA KUALIKWA'
-                      : 'OFFICIAL INVITATION CARD'}
-                </Text>
-              </View>
-
-              <Text
-                style={{
-                  color: '#FFFFFF',
-                  fontSize: 18,
-                  fontWeight: '800',
-                  textAlign: 'center',
-                  marginTop: 2,
-                }}
-              >
-                {ev.data
-                  ? ev.data.partnerA && ev.data.partnerB
-                    ? `${ev.data.partnerA} & ${ev.data.partnerB}`
-                    : ev.data.title
-                  : 'Harusi Yetu'}
-              </Text>
-
-              <Text style={{ color: '#D4AF37', fontSize: 12 }}>❖ ❖ ❖</Text>
-
-              <Text
-                style={{
-                  color: 'rgba(255,255,255,0.9)',
-                  fontSize: 12,
-                  fontWeight: '500',
-                  textAlign: 'center',
-                }}
-              >
-                {ev.data?.dateStart ? formatDate(ev.data.dateStart, locale) : ''}
-                {ev.data?.venueName ? ` · ${ev.data.venueName}` : ''}
-              </Text>
-
-              <View
-                style={{
-                  backgroundColor: 'rgba(0,0,0,0.25)',
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  marginTop: 2,
-                }}
-              >
-                <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>
-                  {locale === 'sw' ? 'Kwa: Ndugu Mualikwa' : 'To: Honoured Guest'}
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  marginTop: 6,
-                  backgroundColor: '#FFFFFF',
-                  padding: 8,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.1,
-                  shadowRadius: 3,
-                  elevation: 2,
-                  width: 140,
-                }}
-              >
-                <Icon name="qr" size={48} color="#1E293B" />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: '800',
-                    color: '#0F172A',
-                    letterSpacing: 1.5,
-                    marginTop: 2,
-                  }}
-                >
-                  KH-4821
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: '#64748B',
-                    textAlign: 'center',
-                    marginTop: 2,
-                  }}
-                >
-                  {locale === 'sw' ? 'Onyesha mlangoni kwa uthibitisho' : 'Show at gate for entry'}
-                </Text>
-              </View>
-
-              {/* RSVP Pills Mockup */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  gap: 8,
-                  width: '100%',
-                  paddingHorizontal: 8,
-                  marginTop: 4,
-                }}
-              >
-                <View
-                  style={{
-                    flex: 1,
-                    backgroundColor: '#059669',
-                    borderRadius: 6,
-                    paddingVertical: 6,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>
-                    {locale === 'sw' ? 'Ndio, Nitafika' : 'Yes, Attending'}
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    flex: 1,
-                    borderWidth: 1.5,
-                    borderColor: '#059669',
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 6,
-                    paddingVertical: 6,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: '#059669', fontSize: 11, fontWeight: '700' }}>
-                    {locale === 'sw' ? 'Hapana, Sitafika' : 'No, Regrets'}
-                  </Text>
-                </View>
-              </View>
-            </View>
+            {/* The exact card image guests receive, in the event's chosen template (ADR 058). */}
+            <Image
+              source={{ uri: cardImageUri }}
+              accessibilityLabel={locale === 'sw' ? 'Picha ya kadi' : 'Card image'}
+              style={{ width: '100%', aspectRatio: 640 / 940, backgroundColor: '#F8FAFC' }}
+              resizeMode="cover"
+            />
 
             <View
               style={{
@@ -683,10 +559,9 @@ export default function Send() {
             >
               <Pressable
                 onPress={() => {
-                  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(
-                    renderedWhatsappMessage,
-                  )}`;
-                  void Linking.openURL(url);
+                  // Through the API to each guest's own WhatsApp number, image attached.
+                  setChannel('whatsapp');
+                  setConfirm(true);
                 }}
                 style={{
                   flex: 1,
@@ -702,18 +577,14 @@ export default function Send() {
               >
                 <Icon name="whatsapp" size={16} color="#FFFFFF" />
                 <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>
-                  {locale === 'sw' ? 'Tuma Picha WhatsApp' : 'Send Image to WhatsApp'}
+                  {locale === 'sw'
+                    ? 'Tuma picha kwa WhatsApp ya wageni'
+                    : "Send image to guests' WhatsApp"}
                 </Text>
               </Pressable>
               <Pressable
                 onPress={() => {
-                  const url = `https://kadisasa.com/api/card-image?code=KH-4821&couple=${encodeURIComponent(
-                    ev.data
-                      ? ev.data.partnerA && ev.data.partnerB
-                        ? `${ev.data.partnerA} & ${ev.data.partnerB}`
-                        : ev.data.title
-                      : 'Kadi Sasa',
-                  )}&download=1`;
+                  const url = `${cardImageUri}&download=1`;
                   void Linking.openURL(url);
                 }}
                 style={{

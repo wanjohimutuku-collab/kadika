@@ -28,4 +28,18 @@ describe('/api/card-image route', () => {
       'attachment; filename="kadi-kh-9999.png"',
     );
   });
+
+  it('renders both templates for invitation and contribution cards', async () => {
+    for (const template of ['classic', 'modern']) {
+      for (const kind of ['', '&kind=contribution']) {
+        const req = new Request(
+          `http://localhost:3000/api/card-image?preview=1&template=${template}&partnerA=Neema&eventKind=Send-off&code=KH-1234${kind}`,
+        );
+        const res = await GET(req as unknown as NextRequest);
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toContain('image/png');
+        expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(5000);
+      }
+    }
+  }, 30_000);
 });

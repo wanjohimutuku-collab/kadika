@@ -163,7 +163,14 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
                 >
                   {t('countdown', { days })}
                 </span>
-              ) : null}
+              ) : (
+                <span
+                  className="rounded-full bg-ink/6 px-3 py-1.5 font-semibold text-muted"
+                  data-testid="past-event"
+                >
+                  {t('pastEvent', { days: -days })}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -257,52 +264,62 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">
               <Card title={t('funnelTitle')} titleId="funnel-h">
-                <FunnelBar
-                  caption={t('funnelTitle')}
-                  stages={[
-                    {
-                      key: 'created',
-                      label: t('funnel.created'),
-                      count: s.invited,
-                      href: funnelBase,
-                    },
-                    {
-                      key: 'sent',
-                      label: t('funnel.sent'),
-                      count: s.sent,
-                      href: `${funnelBase}?filter=unsent`,
-                    },
-                    {
-                      key: 'delivered',
-                      label: t('funnel.delivered'),
-                      count: s.delivered,
-                      href: `${funnelBase}?filter=no_reply`,
-                    },
-                    {
-                      key: 'opened',
-                      label: t('funnel.opened'),
-                      count: s.opened,
-                      href: `${funnelBase}?filter=no_reply`,
-                    },
-                    {
-                      key: 'confirmed',
-                      label: t('funnel.confirmed'),
-                      count: s.confirmed,
-                      href: `${funnelBase}?filter=confirmed`,
-                    },
-                    {
-                      key: 'checked_in',
-                      label: t('funnel.checked_in'),
-                      count: s.attended,
-                      href: `${funnelBase}?filter=checked_in`,
-                    },
-                  ]}
-                  renderLink={(stage, children) => (
-                    <Link href={stage.href!} className="block rounded-input p-1 hover:bg-bg">
-                      {children}
+                {/* Six empty 0% bars say nothing; before the first guest, say what this card will show and how to start. */}
+                {s.invited === 0 ? (
+                  <div className="flex flex-col items-start gap-3 py-2" data-testid="funnel-empty">
+                    <p className="text-muted">{t('funnelEmpty')}</p>
+                    <Link href={`${funnelBase}/new`} className={buttonClasses('secondary', 'sm')}>
+                      {t('funnelEmptyAction')}
                     </Link>
-                  )}
-                />
+                  </div>
+                ) : (
+                  <FunnelBar
+                    caption={t('funnelTitle')}
+                    stages={[
+                      {
+                        key: 'created',
+                        label: t('funnel.created'),
+                        count: s.invited,
+                        href: funnelBase,
+                      },
+                      {
+                        key: 'sent',
+                        label: t('funnel.sent'),
+                        count: s.sent,
+                        href: `${funnelBase}?filter=unsent`,
+                      },
+                      {
+                        key: 'delivered',
+                        label: t('funnel.delivered'),
+                        count: s.delivered,
+                        href: `${funnelBase}?filter=no_reply`,
+                      },
+                      {
+                        key: 'opened',
+                        label: t('funnel.opened'),
+                        count: s.opened,
+                        href: `${funnelBase}?filter=no_reply`,
+                      },
+                      {
+                        key: 'confirmed',
+                        label: t('funnel.confirmed'),
+                        count: s.confirmed,
+                        href: `${funnelBase}?filter=confirmed`,
+                      },
+                      {
+                        key: 'checked_in',
+                        label: t('funnel.checked_in'),
+                        count: s.attended,
+                        href: `${funnelBase}?filter=checked_in`,
+                      },
+                    ]}
+                    renderLink={(stage, children) => (
+                      <Link href={stage.href!} className="block rounded-input p-1 hover:bg-bg">
+                        {children}
+                      </Link>
+                    )}
+                  />
+                )}
                 <ul className="sr-only">
                   <li>
                     {ts('declined')}: {s.declined}

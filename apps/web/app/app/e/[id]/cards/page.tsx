@@ -197,7 +197,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                       <label
                         key={tpl}
                         className={cn(
-                          'flex cursor-pointer flex-col gap-2 rounded-card border-2 p-2',
+                          'flex cursor-pointer flex-col gap-2 rounded-card border-2 p-2 transition-colors hover:border-primary/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2',
                           template === tpl ? 'border-primary' : 'border-border',
                         )}
                         data-testid={`card-template-${tpl}`}
@@ -215,7 +215,9 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                           width={640}
                           height={940}
                           loading="lazy"
-                          className="h-auto w-full rounded-input border border-border"
+                          decoding="async"
+                          // Shimmer shows through until the server-rendered PNG arrives (it takes a second or two).
+                          className="skeleton aspect-[640/940] h-auto w-full rounded-input border border-border"
                         />
                         <span className="flex items-center justify-between font-medium">
                           {t(TEMPLATE_LABEL[tpl])}
@@ -269,7 +271,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
 
                 <Card title={t('themes')} titleId="th-h">
                   <div
-                    className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
+                    className="scroll-row -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
                     role="radiogroup"
                     aria-labelledby="th-h"
                   >

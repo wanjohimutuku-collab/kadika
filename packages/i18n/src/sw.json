@@ -652,7 +652,10 @@
       "import": "Wageni wameingizwa",
       "send": "Kadi zimetumwa kwa {count, plural, one {mgeni #} other {wageni #}}"
     },
-    "seeAll": "Ona yote"
+    "seeAll": "Ona yote",
+    "pastEvent": "{days, plural, one {Ilifanyika siku # iliyopita} other {Ilifanyika siku # zilizopita}}",
+    "funnelEmpty": "Ongeza wageni uone kila mwaliko umefika wapi: umetumwa, umefunguliwa, amethibitisha, amefika.",
+    "funnelEmptyAction": "Ongeza wageni"
   },
   "guests": {
     "title": "Wageni",

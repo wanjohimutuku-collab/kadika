@@ -648,7 +648,10 @@
       "import": "Guests were imported",
       "send": "Cards sent to {count, plural, one {# guest} other {# guests}}"
     },
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "pastEvent": "{days, plural, one {Held # day ago} other {Held # days ago}}",
+    "funnelEmpty": "Add guests to see how far each invitation gets: sent, opened, confirmed, arrived.",
+    "funnelEmptyAction": "Add guests"
   },
   "guests": {
     "title": "Guests",

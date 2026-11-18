@@ -145,16 +145,17 @@ export async function GET(req: NextRequest) {
       : '';
   const own2 = (k: 'title' | 'message' | 'footer') => q.get(k) ?? fill(pick(design[k], locale));
   const sw = locale === 'sw';
-  const plural = !!partnerB;
+  // Reads on its own after the guest greeting and the honoree names (no dangling subject, and the
+  // occasion is not repeated: the eyebrow already names it). The sender is printed separately.
   const title =
     own2('title') ||
     (isContribution
       ? sw
         ? 'Tunakuomba kwa heshima kuchangia kufanikisha sherehe hii'
-        : 'kindly ask for your support towards this celebration'
+        : 'We kindly ask for your support towards this celebration'
       : sw
-        ? `${plural ? 'Wanakualika' : 'Anakualika'} kwa furaha kushiriki sherehe ya ${kindName.toLowerCase()}`
-        : `${plural ? 'invite' : 'invites'} you to share in the ${kindName.toLowerCase()} celebration`);
+        ? 'Unakaribishwa kwa furaha kushiriki nasi sherehe hii'
+        : 'You are warmly invited to share in this celebration');
   const message = own2('message');
   const footer =
     own2('footer') ||

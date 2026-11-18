@@ -5,6 +5,17 @@
 1. Phone number + OTP login.
 2. Create event (names, date, venue with map pin, language, theme).
 3. Import guests: paste list, CSV, or contacts picker; normalise to E.164 (`+255…`); dedupe.
+   CSV columns are matched by header, case-insensitive, English or Swahili (the column mapping can
+   be changed in the preview):
+   - Name: one `Name` / `Jina` column, **or** `First Name` + `Second Name` (`Jina la kwanza` +
+     `Jina la pili`; also `Last name`, `Surname`), joined with a space into the display name.
+   - `Phone number` / `Simu`: optional; normalised to E.164 (TZ, plus KE where Kenya is enabled).
+   - `Type` / `Aina`: `D` or `Double` = party size 2 (guest plus one partner); `S` or `Single` = 1.
+     Blank keeps the default (an `Idadi`/party column if present, else 1). Any other value marks the
+     row invalid with a per-row error the organiser can fix in the preview.
+   - Optional: `Kikundi`/Group, `Idadi`/Party, `Smartphone`. A recognised Type wins over Idadi.
+   - Template: the downloadable sample (`CSV_TEMPLATE` in `packages/schemas/src/import.ts`) is
+     `Jina,Simu,Aina,Kikundi`. The same parser serves `POST /v1/events/:id/guests/import`.
 4. Choose card template; preview.
 5. Choose delivery per guest group: WhatsApp / SMS / Print / Mixed.
 6. Send (queued) → dashboard.

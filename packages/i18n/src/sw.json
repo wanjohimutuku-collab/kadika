@@ -793,7 +793,7 @@
     "pasteLabel": "Bandika majina na namba",
     "pasteHint": "Mgeni mmoja kwa kila mstari, mf. \"Asha Mwinyi, 0712 345 678, Marafiki\"",
     "csvLabel": "Pakia faili la CSV au vCard",
-    "csvHint": "CSV yetu (Jina, Simu, Kikundi, Idadi), CSV ya Google Contacts au vCard (.vcf) ya iPhone",
+    "csvHint": "Safu: Jina (au Jina la kwanza + Jina la pili), Simu, Aina (D = wawili, S = mmoja), Kikundi. Pia CSV ya Google Contacts au vCard (.vcf) ya iPhone",
     "chooseFile": "Chagua faili",
     "template": "Pakua kiolezo cha CSV",
     "notCsv": "Faili hili halisomeki kama CSV au vCard",
@@ -803,9 +803,12 @@
     "hasHeader": "Mstari wa kwanza ni vichwa",
     "fields": {
       "name": "Jina",
+      "firstName": "Jina la kwanza",
+      "secondName": "Jina la pili",
       "phone": "Simu",
       "group": "Kikundi",
       "party": "Idadi",
+      "type": "Aina (D/S)",
       "smartphone": "Smartphone",
       "ignore": "Puuza"
     },
@@ -820,8 +823,12 @@
     "issue": {
       "name": "Jina halijakamilika",
       "duplicateFile": "Namba hii imejirudia (mstari {row})",
-      "duplicateExisting": "Tayari yupo kwenye orodha"
+      "duplicateExisting": "Tayari yupo kwenye orodha",
+      "type": "Aina \"{value}\" haijulikani: tumia D (wawili) au S (mmoja)"
     },
+    "fixType": "Aina ya mgeni",
+    "typeSingle": "S: mmoja",
+    "typeDouble": "D: wawili (na mwenzi)",
     "fix": "Rekebisha",
     "fixTitle": "Rekebisha mstari {row}",
     "keep": "Jumuisha",

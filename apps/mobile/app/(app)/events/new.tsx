@@ -4,8 +4,6 @@ import { router } from 'expo-router';
 import {
   defaultEventTitle,
   eventInputSchema,
-  eventKindLabel,
-  eventKindSuggestions,
   hostNames,
 } from '@harusi/schemas';
 import { COUNTRIES, type Country } from '@harusi/schemas/country';
@@ -16,6 +14,22 @@ import { AppHeader } from '../../../src/ui/header';
 import { Button, Chip, Field, Screen, Segmented, Txt } from '../../../src/ui/kit';
 
 const THEMES = ['emerald-gold', 'navy-silver', 'terracotta', 'rose-sage'] as const;
+type CardFlow = 'informal' | 'corporate' | 'contribution';
+
+const FLOW_KINDS: Record<CardFlow, { sw: readonly string[]; en: readonly string[] }> = {
+  informal: {
+    sw: ['Harusi', 'Send-off', 'Uchumba', 'Siku ya Kuzaliwa'],
+    en: ['Wedding', 'Send-off', 'Engagement', 'Birthday'],
+  },
+  corporate: {
+    sw: ['Kampuni', 'Mkutano', 'Hafla Rasmi'],
+    en: ['Corporate Invites', 'Conference', 'Gala Dinner'],
+  },
+  contribution: {
+    sw: ['Harambee', 'Mchango', 'Kumbukumbu', 'Chama'],
+    en: ['Harambee', 'Fundraiser', 'Memorial', 'Chama'],
+  },
+};
 
 /** Date as `YYYY-MM-DD` and time as `HH:MM`, in East Africa Time (UTC+3: Dar es Salaam and Nairobi). */
 function toIso(date: string, time: string): string | null {
@@ -31,7 +45,9 @@ export default function NewEvent() {
   const create = useCreateEvent();
   const [country, setCountry] = useState<Country>('TZ');
   // the event type starts as the first suggestion in the language of the screen (Wedding / Harusi)
-  const [kind, setKind] = useState<string>(eventKindSuggestions(locale)[0]!);
+  const [flow, setFlow] = useState<CardFlow>('informal');
+  const [kind, setKind] = useState<string>(FLOW_KINDS.informal[locale][0]!);
+  const [pledgesEnabled, setPledgesEnabled] = useState(false);
   const [a, setA] = useState('');
   const [b, setB] = useState('');
   const [date, setDate] = useState('');
@@ -55,6 +71,7 @@ export default function NewEvent() {
       dressCode: dress,
       languageDefault: locale,
       themeId: theme,
+      pledgesEnabled,
     });
     if (!parsed.success) {
       const e: Record<string, string> = {};
@@ -94,6 +111,38 @@ export default function NewEvent() {
             ))}
           </View>
         ) : null}
+        <Segmented
+          value={flow}
+          onChange={(next) => {
+            setFlow(next);
+            setKind(FLOW_KINDS[next][locale][0]!);
+            setPledgesEnabled(next === 'contribution');
+          }}
+          options={[
+            {
+              value: 'informal',
+              label: locale === 'sw' ? 'Sherehe' : 'Informal',
+            },
+            {
+              value: 'corporate',
+              label: locale === 'sw' ? 'Kampuni' : 'Corporate',
+            },
+            {
+              value: 'contribution',
+              label: locale === 'sw' ? 'Michango' : 'Contribution',
+            },
+          ]}
+        />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {FLOW_KINDS[flow][locale].map((k) => (
+            <Chip
+              key={k}
+              label={k}
+              active={kind.trim().toLowerCase() === k.toLowerCase()}
+              onPress={() => setKind(k)}
+            />
+          ))}
+        </View>
         <Field
           label={t('wizard.kind')}
           hint={t('wizard.kindHint')}
@@ -102,16 +151,6 @@ export default function NewEvent() {
           maxLength={40}
           error={errors.eventKind}
         />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {eventKindSuggestions(locale).map((k) => (
-            <Chip
-              key={k}
-              label={k}
-              active={eventKindLabel(kind, locale) === k}
-              onPress={() => setKind(k)}
-            />
-          ))}
-        </View>
         <Field label={t('wizard.hostA')} value={a} onChangeText={setA} error={errors.partnerA} />
         <Field label={t('wizard.hostB')} value={b} onChangeText={setB} error={errors.partnerB} />
         <Field

@@ -19,8 +19,9 @@ export const cardKindSchema = z.enum(CARD_KINDS);
  * The shareable-image designs (ADR 058). Each serves every occasion (wedding, send-off,
  * contribution…); the image never draws buttons, those live only on the digital card behind the link.
  * `script` and `botanical` also show the organiser's own title / message / footer text.
+ * `custom` unlocks freeform drag-and-drop element positioning, custom fonts, imported images and backgrounds.
  */
-export const CARD_TEMPLATES = ['classic', 'modern', 'script', 'botanical'] as const;
+export const CARD_TEMPLATES = ['classic', 'modern', 'script', 'botanical', 'custom'] as const;
 export type CardTemplate = (typeof CARD_TEMPLATES)[number];
 export const cardTemplateSchema = z.enum(CARD_TEMPLATES);
 export const cardTemplateOf = (
@@ -30,7 +31,7 @@ export const cardTemplateOf = (
     ? (c!.design!.template as CardTemplate)
     : 'classic';
 /** Templates that print the organiser's custom `design` text. */
-export const TEXT_TEMPLATES: readonly CardTemplate[] = ['script', 'botanical'];
+export const TEXT_TEMPLATES: readonly CardTemplate[] = ['script', 'botanical', 'custom'];
 
 const text = (max: number) => z.string().max(max);
 /** A text in each language. Both optional; an empty string means "not set". */
@@ -295,6 +296,239 @@ const showFlags = <K extends string>(keys: readonly K[]) =>
 
 export const programmeItemSchema = z.object({ time: text(20), title: text(100) }).strict();
 
+export const CARD_FONTS = [
+  'playfair',
+  'script',
+  'dmsans',
+  'cinzel',
+  'cormorant',
+  'greatvibes',
+  'montserrat',
+  'mono',
+] as const;
+export type CardFont = (typeof CARD_FONTS)[number];
+export const cardFontSchema = z.enum(CARD_FONTS);
+
+export const CUSTOM_ELEMENT_TYPES = [
+  'eyebrow',
+  'names',
+  'title',
+  'message',
+  'date',
+  'venue',
+  'dress',
+  'guest',
+  'qr',
+  'sender',
+  'footer',
+  'freeText',
+  'image',
+  'divider',
+] as const;
+export type CustomElementType = (typeof CUSTOM_ELEMENT_TYPES)[number];
+export const customElementTypeSchema = z.enum(CUSTOM_ELEMENT_TYPES);
+
+export const customElementSchema = z
+  .object({
+    id: z.string().max(60),
+    type: customElementTypeSchema,
+    x: z.number().min(0).max(100),
+    y: z.number().min(0).max(100),
+    width: z.number().min(2).max(100).optional(),
+    height: z.number().min(1).max(100).optional(),
+    fontFamily: cardFontSchema.optional(),
+    fontSize: z.number().min(6).max(120).optional(),
+    fontWeight: z.enum(['normal', 'medium', 'bold', 'black']).optional(),
+    fontStyle: z.enum(['normal', 'italic']).optional(),
+    textAlign: z.enum(['left', 'center', 'right']).optional(),
+    color: z.string().max(50).optional(),
+    letterSpacing: z.number().min(-4).max(20).optional(),
+    textTransform: z.enum(['none', 'uppercase', 'capitalize', 'lowercase']).optional(),
+    content: ltext(600),
+    imageUrl: z.string().max(2_000_000).optional(),
+    imageAlt: z.string().max(100).optional(),
+    borderRadius: z.number().min(0).max(100).optional(),
+    opacity: z.number().min(0).max(100).optional(),
+    visible: z.boolean().optional(),
+    zIndex: z.number().int().min(0).max(100).optional(),
+  })
+  .strict();
+export type CustomElement = z.infer<typeof customElementSchema>;
+
+export const customCardBackgroundSchema = z
+  .object({
+    type: z.enum(['color', 'gradient', 'image']).optional().default('color'),
+    color: z.string().max(50).optional(),
+    gradient: z.string().max(400).optional(),
+    imageUrl: z.string().max(2_000_000).optional(),
+    overlayOpacity: z.number().min(0).max(100).optional(),
+  })
+  .strict();
+export type CustomCardBackground = z.infer<typeof customCardBackgroundSchema>;
+
+export const customCardFrameSchema = z
+  .object({
+    show: z.boolean().optional().default(true),
+    style: z.enum(['single', 'double', 'dashed', 'none']).optional().default('double'),
+    color: z.string().max(50).optional(),
+    width: z.number().min(1).max(10).optional(),
+    inset: z.number().min(0).max(60).optional(),
+  })
+  .strict();
+export type CustomCardFrame = z.infer<typeof customCardFrameSchema>;
+
+export const customCardDesignSchema = z
+  .object({
+    background: customCardBackgroundSchema.optional(),
+    frame: customCardFrameSchema.optional(),
+    elements: z.array(customElementSchema).max(40).optional(),
+    textColor: z.string().max(50).optional(),
+    accentColor: z.string().max(50).optional(),
+  })
+  .strict();
+export type CustomCardDesign = z.infer<typeof customCardDesignSchema>;
+
+/** Returns default initial draggable elements for the custom card studio. */
+export function defaultCustomElements(): CustomElement[] {
+  return [
+    {
+      id: 'el-eyebrow',
+      type: 'eyebrow',
+      x: 50,
+      y: 9,
+      fontFamily: 'playfair',
+      fontSize: 13,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+      visible: true,
+      zIndex: 1,
+    },
+    {
+      id: 'el-names',
+      type: 'names',
+      x: 50,
+      y: 18,
+      fontFamily: 'playfair',
+      fontSize: 36,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 2,
+    },
+    {
+      id: 'el-divider',
+      type: 'divider',
+      x: 50,
+      y: 27,
+      visible: true,
+      zIndex: 3,
+    },
+    {
+      id: 'el-title',
+      type: 'title',
+      x: 50,
+      y: 31,
+      fontFamily: 'playfair',
+      fontSize: 14,
+      fontWeight: 'normal',
+      fontStyle: 'italic',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 4,
+    },
+    {
+      id: 'el-guest',
+      type: 'guest',
+      x: 50,
+      y: 39,
+      fontFamily: 'dmsans',
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 5,
+    },
+    {
+      id: 'el-message',
+      type: 'message',
+      x: 50,
+      y: 47,
+      fontFamily: 'dmsans',
+      fontSize: 12,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 6,
+    },
+    {
+      id: 'el-date',
+      type: 'date',
+      x: 50,
+      y: 57,
+      fontFamily: 'playfair',
+      fontSize: 15,
+      fontWeight: 'bold',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 7,
+    },
+    {
+      id: 'el-venue',
+      type: 'venue',
+      x: 50,
+      y: 64,
+      fontFamily: 'dmsans',
+      fontSize: 13,
+      fontWeight: 'medium',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 8,
+    },
+    {
+      id: 'el-dress',
+      type: 'dress',
+      x: 50,
+      y: 70,
+      fontFamily: 'dmsans',
+      fontSize: 11,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 9,
+    },
+    {
+      id: 'el-qr',
+      type: 'qr',
+      x: 50,
+      y: 80,
+      visible: true,
+      zIndex: 10,
+    },
+    {
+      id: 'el-sender',
+      type: 'sender',
+      x: 50,
+      y: 93,
+      fontFamily: 'dmsans',
+      fontSize: 11,
+      fontWeight: 'medium',
+      fontStyle: 'normal',
+      textAlign: 'center',
+      visible: true,
+      zIndex: 11,
+    },
+  ];
+}
+
 export const cardContentSchema = z
   .object({
     sender: z
@@ -395,6 +629,8 @@ export const cardContentSchema = z
         footer: ltext(120),
         /** Show the guest's QR on the image (default true). */
         showQr: z.boolean().optional(),
+        /** Drag-and-drop customization: custom background, frame, elements & fonts. */
+        custom: customCardDesignSchema.optional(),
       })
       .strict()
       .optional(),

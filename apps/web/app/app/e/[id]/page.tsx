@@ -23,6 +23,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { Activity } from '@harusi/api-client';
+import { allowsDonations } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { QueryState } from '@/components/console/query-state';
 import { buttonClasses } from '@/components/ui/button';
@@ -89,7 +90,8 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
       {(e) => {
         const days = daysUntil(e.dateStart);
         const s = e.stats;
-        const next = nextStep(e.id, e.stats, days);
+        const showDonations = allowsDonations(e.eventKind, e.pledgesEnabled);
+        const next = nextStep(e.id, e.stats, days, e.eventKind, e.pledgesEnabled);
         const pledgePct = e.contributionTarget > 0 ? s.collected / e.contributionTarget : 0;
         const deadlineDays = e.rsvpDeadline ? daysUntil(e.rsvpDeadline) : null;
         const alerts: { key: string; tone: 'danger' | 'warning'; text: string; href: string }[] =
@@ -109,6 +111,7 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
             href: `/app/e/${id}/gate`,
           });
         if (
+          showDonations &&
           s.guestsWithBalance > 0 &&
           deadlineDays !== null &&
           deadlineDays >= 0 &&
@@ -154,13 +157,18 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div
+              className={cn(
+                'grid gap-3',
+                showDonations ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3',
+              )}
+            >
               <KpiTile
                 label={t('kpiInvited')}
                 value={s.invited}
                 // Invited counts invitation cards only; say so when contribution-only guests exist (ADR 029).
                 sub={
-                  s.contributionGuests > 0
+                  showDonations && s.contributionGuests > 0
                     ? t('kpiContributionCards', { count: s.contributionGuests })
                     : undefined
                 }
@@ -179,7 +187,7 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
                 sub={t('kpiPeople', { count: s.headcountAttended })}
                 icon={<DoorOpen className="size-4" />}
               />
-              {session.data?.role !== 'gate' ? (
+              {showDonations && session.data?.role !== 'gate' ? (
                 <KpiTile
                   label={t('kpiPledges')}
                   value={formatMoneyCompact(s.collected, cur)}
@@ -312,7 +320,7 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
                     {ts('declined')}: {s.declined}
                   </li>
                 </ul>
-                {e.contributionTarget > 0 && session.data?.role !== 'gate' ? (
+                {showDonations && e.contributionTarget > 0 && session.data?.role !== 'gate' ? (
                   <div className="mt-5 flex flex-col gap-2">
                     <p className="flex justify-between text-sm font-semibold">
                       <span>

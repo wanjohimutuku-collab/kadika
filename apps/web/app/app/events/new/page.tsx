@@ -7,12 +7,13 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Check, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Building2, Check, Heart, ImagePlus, Wallet } from 'lucide-react';
 import {
   defaultEventTitle,
   eventInputSchema,
   eventKindSuggestions,
   hostNames,
+  occasionOf,
   type EventInput,
 } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
@@ -32,7 +33,6 @@ import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
 import { COUNTRIES, currencyOf } from '@harusi/schemas/country';
 import { Select, TextField } from '@/components/ui/form';
-import { KindChips } from '@/components/console/kind-chips';
 import { KENYA_ENABLED } from '@/lib/country';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
@@ -44,6 +44,29 @@ import { cn } from '@/lib/cn';
 const DRAFT_KEY = 'harusi.draft.event';
 const STEPS = ['names', 'venue', 'style', 'review'] as const;
 type Step = (typeof STEPS)[number];
+type CardFlow = 'informal' | 'corporate' | 'contribution';
+
+const FLOW_KINDS: Record<CardFlow, { sw: readonly string[]; en: readonly string[] }> = {
+  informal: {
+    sw: ['Harusi', 'Send-off', 'Uchumba', 'Siku ya Kuzaliwa'],
+    en: ['Wedding', 'Send-off', 'Engagement', 'Birthday'],
+  },
+  corporate: {
+    sw: ['Kampuni', 'Mkutano', 'Hafla Rasmi'],
+    en: ['Corporate Invites', 'Conference', 'Gala Dinner'],
+  },
+  contribution: {
+    sw: ['Harambee', 'Mchango', 'Kumbukumbu', 'Chama'],
+    en: ['Harambee', 'Fundraiser', 'Memorial', 'Chama'],
+  },
+};
+
+function flowOf(kind: string | undefined, pledgesEnabled: boolean | undefined): CardFlow {
+  const occ = occasionOf(kind);
+  if (occ === 'corporate') return 'corporate';
+  if (occ === 'other' || pledgesEnabled) return 'contribution';
+  return 'informal';
+}
 const STEP_FIELDS: Record<Step, (keyof EventInput)[]> = {
   names: [
     'country',
@@ -54,6 +77,7 @@ const STEP_FIELDS: Record<Step, (keyof EventInput)[]> = {
     'dateStart',
     'rsvpDeadline',
     'contributionTarget',
+    'pledgesEnabled',
   ],
   venue: ['venueName', 'venueMapUrl', 'dressCode', 'languageDefault'],
   style: ['themeId', 'coverGradient'],
@@ -82,6 +106,7 @@ const EMPTY: EventInput = {
   coverGradient: '',
   rsvpDeadline: '',
   contributionTarget: 0,
+  pledgesEnabled: false,
 };
 
 function readDraft(): { values: EventInput; step: Step } | null {
@@ -267,13 +292,125 @@ export default function NewEventPage() {
                   options={COUNTRIES.map((c) => ({ value: c, label: tc(`countries.${c}`) }))}
                 />
               ) : null}
-              <KindChips
-                label={t('kind')}
-                value={values.eventKind ?? ''}
-                onChange={(k) =>
-                  setValue('eventKind', k, { shouldDirty: true, shouldValidate: true })
-                }
-              />
+
+              {/* Flow chooser: Invitation (Informal or Corporate) vs Contribution Cards */}
+              {(() => {
+                const activeFlow = flowOf(values.eventKind, values.pledgesEnabled);
+                const selectFlow = (next: CardFlow) => {
+                  const firstKind = FLOW_KINDS[next][locale][0]!;
+                  setValue('eventKind', firstKind, { shouldDirty: true, shouldValidate: true });
+                  if (next === 'contribution') {
+                    setValue('pledgesEnabled', true, { shouldDirty: true, shouldValidate: true });
+                  } else {
+                    setValue('pledgesEnabled', false, { shouldDirty: true, shouldValidate: true });
+                    setValue('contributionTarget', 0, { shouldDirty: true });
+                  }
+                };
+                const flows: {
+                  id: CardFlow;
+                  icon: React.ReactNode;
+                  title: string;
+                  desc: string;
+                }[] = [
+                  {
+                    id: 'informal',
+                    icon: <Heart className="size-4" />,
+                    title: locale === 'sw' ? 'Mwaliko wa Sherehe' : 'Informal Invitation',
+                    desc:
+                      locale === 'sw'
+                        ? 'Harusi, Send-off, Uchumba, Siku ya Kuzaliwa'
+                        : 'Wedding, Send-off, Engagement, Birthday',
+                  },
+                  {
+                    id: 'corporate',
+                    icon: <Building2 className="size-4" />,
+                    title: locale === 'sw' ? 'Mwaliko wa Kampuni' : 'Corporate Invitation',
+                    desc:
+                      locale === 'sw'
+                        ? 'Kampuni, Mkutano, Hafla Rasmi'
+                        : 'Corporate Invites, Conference, Gala',
+                  },
+                  {
+                    id: 'contribution',
+                    icon: <Wallet className="size-4" />,
+                    title: locale === 'sw' ? 'Kadi za Michango' : 'Contribution Cards',
+                    desc:
+                      locale === 'sw'
+                        ? 'Harambee, Mchango, Kumbukumbu, Chama'
+                        : 'Harambee, Fundraiser, Memorial, Chama',
+                  },
+                ];
+                return (
+                  <div className="flex flex-col gap-3">
+                    <div
+                      className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+                      role="radiogroup"
+                      aria-label={locale === 'sw' ? 'Aina ya kadi' : 'Card flow'}
+                      data-testid="card-flow-selector"
+                    >
+                      {flows.map((f) => {
+                        const active = activeFlow === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => selectFlow(f.id)}
+                            className={cn(
+                              'flex flex-col items-start gap-1 rounded-card border-2 p-3 text-left transition-colors',
+                              active
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border bg-surface hover:border-primary/40',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'flex items-center gap-1.5 text-sm font-semibold',
+                                active ? 'text-primary' : 'text-ink',
+                              )}
+                            >
+                              {f.icon}
+                              {f.title}
+                            </span>
+                            <span className="text-xs text-muted">{f.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div
+                      role="group"
+                      aria-label={t('kind')}
+                      className="flex flex-wrap gap-2"
+                      data-testid="kind-chips"
+                    >
+                      {FLOW_KINDS[activeFlow][locale].map((k) => {
+                        const active =
+                          (values.eventKind ?? '').trim().toLowerCase() === k.toLowerCase();
+                        return (
+                          <button
+                            key={k}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() =>
+                              setValue('eventKind', k, { shouldDirty: true, shouldValidate: true })
+                            }
+                            className={cn(
+                              'min-h-10 rounded-full border px-3.5 text-sm font-semibold',
+                              active
+                                ? 'border-primary bg-primary text-on-primary'
+                                : 'border-border bg-surface text-ink',
+                            )}
+                          >
+                            {k}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <TextField
                 label={t('kind')}
                 hint={t('kindHint')}
@@ -323,14 +460,16 @@ export default function NewEventPage() {
                   optionalLabel={tc('optional')}
                   {...register('rsvpDeadline')}
                 />
-                <TextField
-                  label={t('target')}
-                  inputMode="numeric"
-                  prefix={currencyOf(values.country ?? 'TZ')}
-                  optionalLabel={tc('optional')}
-                  {...register('contributionTarget')}
-                  error={fieldError(formState.errors.contributionTarget)}
-                />
+                {flowOf(values.eventKind, values.pledgesEnabled) === 'contribution' ? (
+                  <TextField
+                    label={t('target')}
+                    inputMode="numeric"
+                    prefix={currencyOf(values.country ?? 'TZ')}
+                    optionalLabel={tc('optional')}
+                    {...register('contributionTarget')}
+                    error={fieldError(formState.errors.contributionTarget)}
+                  />
+                ) : null}
               </div>
             </>
           ) : null}

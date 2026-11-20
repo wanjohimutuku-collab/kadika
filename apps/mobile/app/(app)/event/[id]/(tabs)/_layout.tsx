@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import { Tabs, useGlobalSearchParams } from 'expo-router';
+import { allowsDonations } from '@harusi/schemas';
 import { useEvent } from '../../../../../src/lib/queries';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { useColors, useIsDark } from '../../../../../src/lib/theme';
@@ -89,7 +90,9 @@ export default function Tabs_() {
                 </View>
               ),
               ...hide(gateOnly && name !== 'gate'),
-              ...(name === 'pledges' && role !== 'owner' && role !== 'committee'
+              ...(name === 'pledges' &&
+              (role !== 'owner' && role !== 'committee' ||
+                !allowsDonations(q.data?.eventKind, q.data?.pledgesEnabled))
                 ? { href: null }
                 : {}),
             }}

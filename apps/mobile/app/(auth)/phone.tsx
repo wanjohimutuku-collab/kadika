@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
+import { isRepositoryError } from '@harusi/api-client';
 import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { getRepository } from '../../src/lib/repo';
 import { parsePhone } from '../../src/lib/country';
-import { FirebasePhoneError, loadAuthConfig, startPhoneSignIn } from '../../src/lib/firebase-phone';
+import {
+  FirebasePhoneError,
+  hasFirebaseAuth,
+  loadAuthConfig,
+  resetAuthConfigCache,
+  startPhoneSignIn,
+} from '../../src/lib/firebase-phone';
 import { useLocale, useT } from '../../src/lib/i18n';
 import { Banner, Button, Chip, Field, Screen, Txt } from '../../src/ui/kit';
 
@@ -18,8 +25,8 @@ export default function Phone() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void loadAuthConfig().then((cfg) => {
-      if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
+    void Promise.all([loadAuthConfig(), hasFirebaseAuth()]).then(([cfg, fbAvailable]) => {
+      if (cfg.otpProvider === 'firebase' && cfg.anyCountry && fbAvailable) {
         setAnyCountry(true);
       }
     });
@@ -36,15 +43,29 @@ export default function Phone() {
       // Firebase Phone Auth or our own SMS code, as the API says (ADR 048).
       // Firebase may refuse to send; our own SMS code then goes instead and our API checks it.
       let firebase = false;
-      if ((await loadAuthConfig()).otpProvider === 'firebase')
+      const cfg = await loadAuthConfig();
+      if (cfg.otpProvider === 'firebase') {
         firebase = (await startPhoneSignIn(p.e164, locale)) === 'firebase';
-      else await getRepository().requestOtp(p.e164, { language: locale });
+      } else {
+        try {
+          await getRepository().requestOtp(p.e164, { language: locale });
+        } catch (err) {
+          // If auth config was stale/fallback 'sms' while API is on 'firebase', switch automatically.
+          if (isRepositoryError(err) && err.code === 'conflict') {
+            resetAuthConfigCache();
+            firebase = (await startPhoneSignIn(p.e164, locale)) === 'firebase';
+          } else {
+            throw err;
+          }
+        }
+      }
       router.push({
         pathname: '/otp',
         params: { phone: p.e164, ...(firebase ? { via: 'firebase' } : {}) },
       });
     } catch (e) {
-      const code = (e as { code?: string }).code;
+      const err = e as { code?: string; details?: { retryAfterSeconds?: number } };
+      const code = err.code;
       const reason = e instanceof FirebasePhoneError ? e.reason : null;
       setError(
         reason === 'update_app'
@@ -53,8 +74,8 @@ export default function Phone() {
             ? t('validation.phone.invalid_chars')
             : reason === 'too_many'
               ? t('auth.tooManyRequests')
-              : code === 'rate_limited'
-                ? t('auth.rateLimited', { seconds: 30 })
+              : code === 'rate_limited' || code === 'locked'
+                ? t('auth.rateLimited', { seconds: err.details?.retryAfterSeconds ?? 30 })
                 : code === 'offline'
                   ? t('states.offlineBanner')
                   : t('states.errorBody'),

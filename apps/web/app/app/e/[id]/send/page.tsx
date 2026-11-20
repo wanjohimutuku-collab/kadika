@@ -28,6 +28,7 @@ import {
 } from '@harusi/api-client';
 import {
   CARD_KINDS,
+  allowsDonations,
   cardTemplateOf,
   pick,
   renderTemplate,
@@ -486,23 +487,25 @@ function SendInner({ id }: { id: string }) {
               <div className="flex flex-col gap-5">
                 <Card>
                   <div className="flex flex-col gap-4">
-                    <SegmentedControl<CardKind>
-                      label={t('cardType')}
-                      value={cardKind}
-                      onChange={setCardKind}
-                      options={CARD_KINDS.map((k) => ({
-                        value: k,
-                        // the count sits under the name so both fit side by side on a phone
-                        label: (
-                          <span className="flex flex-col items-center leading-tight">
-                            <span>{t(`cardTypes.${k}`)}</span>
-                            <span className="tabular text-xs font-normal">
-                              {k === 'contribution' ? contributionGuests : e.stats.invited}
+                    {allowsDonations(e.eventKind, e.pledgesEnabled) ? (
+                      <SegmentedControl<CardKind>
+                        label={t('cardType')}
+                        value={cardKind}
+                        onChange={setCardKind}
+                        options={CARD_KINDS.map((k) => ({
+                          value: k,
+                          // the count sits under the name so both fit side by side on a phone
+                          label: (
+                            <span className="flex flex-col items-center leading-tight">
+                              <span>{t(`cardTypes.${k}`)}</span>
+                              <span className="tabular text-xs font-normal">
+                                {k === 'contribution' ? contributionGuests : e.stats.invited}
+                              </span>
                             </span>
-                          </span>
-                        ),
-                      }))}
-                    />
+                          ),
+                        }))}
+                      />
+                    ) : null}
                     {contribution ? (
                       <div className="flex flex-col gap-3" data-testid="contribution-help">
                         <p className="text-sm text-muted">{t('contributionHelp')}</p>
@@ -780,6 +783,7 @@ function SendInner({ id }: { id: string }) {
                           message: pick(e.cardContent?.design?.message, previewLang),
                           footer: pick(e.cardContent?.design?.footer, previewLang),
                           showQr: e.cardContent?.design?.showQr,
+                          custom: e.cardContent?.design?.custom,
                           whatsappMessage: activeWhatsappTemplate,
                         }}
                         messageText={renderedWhatsappText}

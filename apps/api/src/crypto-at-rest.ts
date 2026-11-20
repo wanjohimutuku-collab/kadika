@@ -83,3 +83,157 @@ export async function decryptField(
   );
   return new TextDecoder().decode(plain);
 }
+
+type KeyScope = 'user' | 'event' | 'engagement';
+const scopedKeys = new Map<string, Promise<Awaited<ReturnType<typeof crypto.subtle.importKey>>>>();
+
+/**
+ * Derives a distinct 256-bit AES-GCM key for a specific user, event, or engagement scope via
+ * HKDF-SHA256. Keys are cached by (master, scope, id) so User A's key cannot decrypt User B's
+ * data and Event A's key cannot decrypt Event B's data.
+ */
+async function deriveScopedKey(
+  masterSecretB64: string,
+  scope: KeyScope,
+  scopeId: string,
+): Promise<Awaited<ReturnType<typeof crypto.subtle.importKey>>> {
+  const cacheKey = `${masterSecretB64}:${scope}:${scopeId}`;
+  const cached = scopedKeys.get(cacheKey);
+  if (cached) return cached;
+
+  const p = (async () => {
+    const raw = new Uint8Array(Buffer.from(masterSecretB64, 'base64'));
+    if (raw.length !== 32) {
+      throw new Error('KEY_ENC_SECRET must be 32 bytes, base64 (openssl rand -base64 32)');
+    }
+    const baseKey = await crypto.subtle.importKey('raw', raw, 'HKDF', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      {
+        name: 'HKDF',
+        hash: 'SHA-256',
+        salt: new TextEncoder().encode(`harusi-pass:${scope}:v1`),
+        info: new TextEncoder().encode(scopeId),
+      },
+      baseKey,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt'],
+    );
+  })();
+
+  scopedKeys.set(cacheKey, p);
+  return p;
+}
+
+async function encryptWithScopedKey(
+  masterSecretB64: string,
+  scope: KeyScope,
+  scopeId: string,
+  aad: string,
+  plain: string,
+): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveScopedKey(masterSecretB64, scope, scopeId);
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(aad) },
+      key,
+      new TextEncoder().encode(plain),
+    ),
+  );
+  const out = new Uint8Array(iv.length + ct.length);
+  out.set(iv);
+  out.set(ct, iv.length);
+  return b64(out);
+}
+
+async function decryptWithScopedKey(
+  masterSecretB64: string,
+  scope: KeyScope,
+  scopeId: string,
+  aad: string,
+  blob: string,
+): Promise<string> {
+  const bytes = unb64(blob);
+  const key = await deriveScopedKey(masterSecretB64, scope, scopeId);
+  const plain = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: bytes.slice(0, 12), additionalData: new TextEncoder().encode(aad) },
+    key,
+    bytes.slice(12),
+  );
+  return new TextDecoder().decode(plain);
+}
+
+/** Per-event AES-256-GCM encryption: only this `eventId` can decrypt its data. */
+export function encryptForEvent(
+  eventId: string,
+  plain: string,
+  masterSecretB64: string,
+  context: string,
+): Promise<string> {
+  return encryptWithScopedKey(masterSecretB64, 'event', eventId, `event:${eventId}:${context}`, plain);
+}
+
+export function decryptForEvent(
+  eventId: string,
+  blob: string,
+  masterSecretB64: string,
+  context: string,
+): Promise<string> {
+  return decryptWithScopedKey(masterSecretB64, 'event', eventId, `event:${eventId}:${context}`, blob);
+}
+
+/** Per-user AES-256-GCM encryption: only this `userId` can decrypt their data. */
+export function encryptForUser(
+  userId: string,
+  plain: string,
+  masterSecretB64: string,
+  context: string,
+): Promise<string> {
+  return encryptWithScopedKey(masterSecretB64, 'user', userId, `user:${userId}:${context}`, plain);
+}
+
+export function decryptForUser(
+  userId: string,
+  blob: string,
+  masterSecretB64: string,
+  context: string,
+): Promise<string> {
+  return decryptWithScopedKey(masterSecretB64, 'user', userId, `user:${userId}:${context}`, blob);
+}
+
+/**
+ * Per-engagement AES-256-GCM encryption for guest interactions (RSVP, gate check-in, opt-out,
+ * memories): bound to both `eventId` and `guestId`.
+ */
+export function encryptEngagement(
+  eventId: string,
+  guestId: string,
+  plain: string,
+  masterSecretB64: string,
+  context: string,
+): Promise<string> {
+  return encryptWithScopedKey(
+    masterSecretB64,
+    'engagement',
+    `${eventId}:${guestId}`,
+    `engagement:${eventId}:${guestId}:${context}`,
+    plain,
+  );
+}
+
+export function decryptEngagement(
+  eventId: string,
+  guestId: string,
+  blob: string,
+  masterSecretB64: string,
+  context: string,
+): Promise<string> {
+  return decryptWithScopedKey(
+    masterSecretB64,
+    'engagement',
+    `${eventId}:${guestId}`,
+    `engagement:${eventId}:${guestId}:${context}`,
+    blob,
+  );
+}

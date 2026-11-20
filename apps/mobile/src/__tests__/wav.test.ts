@@ -30,6 +30,6 @@ describe('tone WAV generator', () => {
       toneWav(SOUNDS.admit),
     ])
       expect(toBase64(bytes)).toBe(Buffer.from(bytes).toString('base64'));
-    expect(Object.keys(SOUNDS).sort()).toEqual(['admit', 'deny', 'duplicate']);
+    expect(Object.keys(SOUNDS).sort()).toEqual(['admit', 'alarm', 'deny', 'duplicate']);
   });
 });

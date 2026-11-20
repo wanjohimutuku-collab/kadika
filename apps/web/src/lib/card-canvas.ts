@@ -1,4 +1,4 @@
-import { defaultSender, eventKindLabel, eventKindOf, hostNames } from '@harusi/schemas';
+import { defaultSender, eventKindLabel, eventKindOf, hostNames, type CardTemplate, type CustomCardDesign } from '@harusi/schemas';
 import type { PaletteOverrides } from '@harusi/ui-tokens/palette';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
 import {
@@ -31,9 +31,11 @@ export interface CardImageOptions {
   qrPayload?: string;
   locale?: 'sw' | 'en';
   isContribution?: boolean;
-  /** Which of the two card-image designs to render (ADR 058); default `classic`. */
-  template?: 'classic' | 'modern' | 'script' | 'botanical';
-  /** Organiser's own text for the script / botanical templates. */
+  /** Which of the card-image designs to render (ADR 058); default `classic`. */
+  template?: CardTemplate;
+  /** Custom drag-and-drop elements, background, frame, and fonts. */
+  custom?: CustomCardDesign;
+  /** Organiser's own text for the script / botanical / custom templates. */
   title?: string;
   message?: string;
   /** Organiser's WhatsApp message template: the script / botanical message line falls back to it, minus the link. */
@@ -535,6 +537,48 @@ export function cardImageUrl(
   return `/api/card-image?${q.toString()}`;
 }
 
+/** Longest GET preview URL we build; beyond it a Card Studio design goes in a POST body. */
+const MAX_GET_URL = 6000;
+
+/**
+ * How to fetch the card image for these options. A `custom` design rides in the URL while small
+ * (cacheable `<img src>`), and in a POST body once it holds photos, which no URL can carry.
+ */
+export function cardImageRequest(
+  options: CardImageOptions,
+  extra: Record<string, string> = {},
+): { url: string; body?: string } {
+  const url = cardImageUrl(options, extra);
+  if ((options.template ?? 'classic') !== 'custom' || !options.custom) return { url };
+  const json = JSON.stringify(options.custom);
+  const inline = `${url}&custom=${encodeURIComponent(json)}`;
+  if (inline.length <= MAX_GET_URL) return { url: inline };
+  return { url, body: JSON.stringify({ custom: options.custom }) };
+}
+
+/** Fetches the server-drawn card image (GET or POST, see `cardImageRequest`). */
+export async function fetchCardImage(
+  options: CardImageOptions,
+  init: { signal?: AbortSignal; extra?: Record<string, string> } = {},
+): Promise<Blob> {
+  const r = cardImageRequest(options, init.extra);
+  const res = await fetch(
+    r.url,
+    r.body
+      ? {
+          method: 'POST',
+          body: r.body,
+          headers: { 'content-type': 'application/json' },
+          signal: init.signal,
+        }
+      : { signal: init.signal },
+  );
+  if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('image/')) {
+    throw new Error(`card image ${res.status}`);
+  }
+  return res.blob();
+}
+
 /**
  * Converts card options to an image PNG Blob.
  */
@@ -542,10 +586,7 @@ export async function cardPreviewToBlob(options: CardImageOptions): Promise<Blob
   // The server draws the real template (ADR 058); the canvas is only an offline fallback.
   if (typeof fetch === 'function' && typeof window !== 'undefined' && navigator.onLine !== false) {
     try {
-      const res = await fetch(cardImageUrl(options));
-      if (res.ok && (res.headers.get('content-type') ?? '').startsWith('image/')) {
-        return await res.blob();
-      }
+      return await fetchCardImage(options);
     } catch {
       // fall through to the canvas
     }

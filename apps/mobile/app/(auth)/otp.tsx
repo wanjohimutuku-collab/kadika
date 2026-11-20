@@ -157,18 +157,30 @@ export default function Otp() {
         label={wait > 0 ? t('auth.resendIn', { seconds: wait }) : t('auth.resend')}
         disabled={wait > 0}
         onPress={async () => {
-          if (firebase)
-            await startPhoneSignIn(phone!, locale, true).then(
-              (via) => setFirebase(via === 'firebase'),
-              () => undefined,
+          setError(null);
+          try {
+            if (firebase) {
+              const viaRes = await startPhoneSignIn(phone!, locale, true);
+              setFirebase(viaRes === 'firebase');
+            } else {
+              // Our own SMS code: the SMS flow, or Firebase refused earlier (fallback, else the API
+              // answers use_firebase); the flag changes nothing in the SMS flow.
+              await getRepository().requestOtp(phone!, { fallback: true, language: locale });
+            }
+            setWait(30);
+          } catch (e) {
+            const err = e as { code?: string; details?: { retryAfterSeconds?: number } };
+            const reason = e instanceof FirebasePhoneError ? e.reason : null;
+            setError(
+              reason === 'too_many'
+                ? t('auth.tooManyRequests')
+                : err.code === 'rate_limited' || err.code === 'locked'
+                  ? t('auth.rateLimited', { seconds: err.details?.retryAfterSeconds ?? 30 })
+                  : err.code === 'offline'
+                    ? t('states.offlineBanner')
+                    : t('states.errorBody'),
             );
-          // Our own SMS code: the SMS flow, or Firebase refused earlier (fallback, else the API
-          // answers use_firebase); the flag changes nothing in the SMS flow.
-          else
-            await getRepository()
-              .requestOtp(phone!, { fallback: true, language: locale })
-              .catch(() => undefined);
-          setWait(30);
+          }
         }}
       />
       <Button variant="ghost" label={t('auth.changePhone')} onPress={() => router.back()} />

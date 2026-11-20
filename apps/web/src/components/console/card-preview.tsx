@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { Download, Send } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { hostNames, type CardTemplate } from '@harusi/schemas';
+import { hostNames, type CardTemplate, type CustomCardDesign } from '@harusi/schemas';
 import type { PaletteOverrides } from '@harusi/ui-tokens/palette';
-import { cardImageUrl, downloadCardImage, type CardImageOptions } from '@/lib/card-canvas';
+import { downloadCardImage, type CardImageOptions } from '@/lib/card-canvas';
+import { useCardImageSrc } from '@/lib/use-card-image';
 
 export interface CardPreviewData {
   eventKind?: string;
@@ -34,6 +35,8 @@ export interface CardPreviewData {
   whatsappMessage?: string;
   footer?: string;
   showQr?: boolean;
+  /** Custom drag-and-drop elements, background, frame, and fonts. */
+  custom?: CustomCardDesign;
   isContribution?: boolean;
   /** Seats on the sample card; default 2, so the preview shows where DOUBLE / SINGLE is printed. */
   seats?: number;
@@ -81,9 +84,11 @@ export function CardPreview({
     whatsappMessage: data.whatsappMessage,
     footer: data.footer,
     showQr: data.showQr,
+    custom: data.custom,
     seats: data.seats ?? 2,
     locale,
   };
+  const { src: imgSrc } = useCardImageSrc(options);
 
   const handleDownload = async () => {
     try {
@@ -101,16 +106,20 @@ export function CardPreview({
       >
         <div className="overflow-hidden rounded-[1.5rem] bg-surface">
           {/* Regenerates as the organiser edits; the browser cancels the stale request. */}
-          <img
-            src={cardImageUrl(options)}
-            alt={
-              locale === 'sw' ? `Picha ya kadi ya ${coupleNames}` : `Card image for ${coupleNames}`
-            }
-            width={640}
-            height={940}
-            className="block h-auto w-full"
-            data-testid="card-preview-image"
-          />
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={
+                locale === 'sw' ? `Picha ya kadi ya ${coupleNames}` : `Card image for ${coupleNames}`
+              }
+              width={640}
+              height={940}
+              className="block h-auto w-full"
+              data-testid="card-preview-image"
+            />
+          ) : (
+            <div className="skeleton aspect-[640/940] w-full" />
+          )}
         </div>
       </div>
       <div className="flex w-full max-w-[300px] gap-2">

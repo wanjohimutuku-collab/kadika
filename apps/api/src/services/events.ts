@@ -103,6 +103,7 @@ export class EventService {
           timezone: timezoneOf(country),
           brandTheme: mergeBrandTheme(null, input.brandTheme),
           cardContent: input.cardContent ?? { sender: { kind: 'family' } },
+          ...(input.pledgesEnabled !== undefined ? { pledgesEnabled: input.pledgesEnabled } : {}),
         })
         .returning();
       await tx

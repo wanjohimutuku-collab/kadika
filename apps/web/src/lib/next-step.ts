@@ -1,7 +1,8 @@
 import type { WeddingEvent } from '@harusi/api-client';
+import { allowsDonations } from '@harusi/schemas';
 
 export type NextKey =
-  'import' | 'addInvites' | 'failed' | 'send' | 'remind' | 'pledges' | 'gate' | 'past' | 'done';
+  | 'import' | 'addInvites' | 'failed' | 'send' | 'remind' | 'pledges' | 'gate' | 'past' | 'done';
 
 export type NextStepStats = Pick<
   WeddingEvent['stats'],
@@ -23,17 +24,20 @@ export function nextStep(
   eventId: string,
   s: NextStepStats,
   days: number,
+  eventKind?: string | null,
+  pledgesEnabled?: boolean | null,
 ): { key: NextKey; count: number; href: string } {
   const base = `/app/e/${eventId}`;
+  const showDonations = eventKind !== undefined ? allowsDonations(eventKind, pledgesEnabled) : true;
   if (days < 0) {
-    if (s.guestsWithBalance > 0)
+    if (showDonations && s.guestsWithBalance > 0)
       return { key: 'pledges', count: s.guestsWithBalance, href: `${base}/pledges?tab=unpaid` };
     return { key: 'past', count: 0, href: `${base}/reports` };
   }
   const unsent = s.invited - s.sent;
   const noReply = s.sent - s.confirmed - s.declined;
   if (s.invited === 0)
-    return s.contributionGuests > 0
+    return showDonations && s.contributionGuests > 0
       ? { key: 'addInvites', count: 0, href: `${base}/guests/new` }
       : { key: 'import', count: 0, href: `${base}/guests/import` };
   if (s.failedMessages > 0)
@@ -41,7 +45,7 @@ export function nextStep(
   if (unsent > 0) return { key: 'send', count: unsent, href: `${base}/send` };
   if (noReply > 0 && days <= 21)
     return { key: 'remind', count: noReply, href: `${base}/send?kind=reminder` };
-  if (s.guestsWithBalance > 0)
+  if (showDonations && s.guestsWithBalance > 0)
     return { key: 'pledges', count: s.guestsWithBalance, href: `${base}/pledges?tab=unpaid` };
   if (days <= 7) return { key: 'gate', count: 0, href: `${base}/gate` };
   return { key: 'done', count: 0, href: `${base}/reports` };

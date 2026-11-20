@@ -6,7 +6,9 @@ import {
   generateGuestToken,
   guestTokenMatches,
   hashGuestToken,
+  openEngagementPayload,
   parseQrToken,
+  sealEngagementPayload,
   shortId,
   signQrToken,
   verifyQrToken,
@@ -141,5 +143,24 @@ describe('short code alphabet', () => {
   it('has no ambiguous characters', () => {
     for (const ch of ['0', 'O', '1', 'I', 'L'])
       expect(SHORT_CODE_LETTERS + SHORT_CODE_DIGITS).not.toContain(ch);
+  });
+});
+
+describe('engagement payload encryption', () => {
+  it('seals and opens payloads bound to key and context', async () => {
+    const key1 = new Uint8Array(32).fill(1);
+    const key2 = new Uint8Array(32).fill(2);
+    const sealed = await sealEngagementPayload(
+      { guestId: 'g1', status: 'confirmed', partySize: 2 },
+      key1,
+      'event-1:g1:rsvp',
+    );
+    expect(await openEngagementPayload(sealed, key1, 'event-1:g1:rsvp')).toEqual({
+      guestId: 'g1',
+      status: 'confirmed',
+      partySize: 2,
+    });
+    expect(await openEngagementPayload(sealed, key2, 'event-1:g1:rsvp')).toBeNull();
+    expect(await openEngagementPayload(sealed, key1, 'event-2:g1:rsvp')).toBeNull();
   });
 });

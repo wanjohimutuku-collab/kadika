@@ -4,7 +4,7 @@ import { use, useEffect, useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Check, FileDown, Grid2x2, ImagePlus, Ruler } from 'lucide-react';
+import { Check, FileDown, Grid2x2, ImagePlus, Ruler, Sparkles } from 'lucide-react';
 import {
   contrastRatio,
   paletteContrastIssues,
@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/console/page-header';
 import { QueryState } from '@/components/console/query-state';
 import { CardPreview } from '@/components/console/card-preview';
 import { PrintCard, type PrintFormat } from '@/components/console/print-card';
+import { CardStudioModal } from '@/components/console/card-studio';
 import { Button } from '@/components/ui/button';
 import { Banner, Card, Skeleton } from '@/components/ui/display';
 import { SegmentedControl } from '@/components/ui/navigation';
@@ -32,12 +33,15 @@ import { useQuotaToast } from '@/components/console/quota';
 import { minPrintSizeMm, printQrIssues, qrMatrix } from '@/lib/qr';
 import { downloadBlob } from '@/lib/download';
 import { cn } from '@/lib/cn';
+import type { CardImageOptions } from '@/lib/card-canvas';
+import { useCardImageSrc } from '@/lib/use-card-image';
 import {
   CARD_TEMPLATES,
   TEXT_TEMPLATES,
   cardTemplateOf,
   pick,
   type CardTemplate,
+  type CustomCardDesign,
 } from '@harusi/schemas';
 
 const SAMPLE_PAYLOAD = 'v1.0192f1a0.preview0.2.1.MOCKSIG';
@@ -46,12 +50,32 @@ const TEMPLATE_LABEL = {
   modern: 'templateModern',
   script: 'templateScript',
   botanical: 'templateBotanical',
+  custom: 'templateCustom',
 } as const satisfies Record<CardTemplate, string>;
 const COVERS = [
   { id: 'theme', value: '' },
   { id: 'sunset', value: 'linear-gradient(160deg,#7A3E2B 0%,#C2703D 45%,#E8B66B 100%)' },
   { id: 'garden', value: 'linear-gradient(160deg,#20402F 0%,#3F6E4E 50%,#A9C48E 100%)' },
 ] as const;
+
+function TemplateThumb({ options }: { options: CardImageOptions }) {
+  const { src } = useCardImageSrc(options);
+  if (!src) {
+    return <div className="skeleton aspect-[640/940] w-full rounded-input border border-border" />;
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      width={640}
+      height={940}
+      loading="lazy"
+      decoding="async"
+      // Shimmer shows through until the server-rendered PNG arrives (it takes a second or two).
+      className="skeleton aspect-[640/940] h-auto w-full rounded-input border border-border"
+    />
+  );
+}
 
 export default function CardsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -72,6 +96,8 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
   const [qrMm, setQrMm] = useState(30);
   const [view, setView] = useState<'phone' | 'print'>('phone');
   const [template, setTemplate] = useState<CardTemplate>('classic');
+  const [customDesign, setCustomDesign] = useState<CustomCardDesign | undefined>(undefined);
+  const [studioOpen, setStudioOpen] = useState(false);
   const uiLocale = useLocale() === 'en' ? 'en' : 'sw';
   const [dTitle, setDTitle] = useState('');
   const [dMessage, setDMessage] = useState('');
@@ -94,6 +120,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
     setDMessage(pick(d?.message, uiLocale) ?? '');
     setDFooter(pick(d?.footer, uiLocale) ?? '');
     setDShowQr(d?.showQr !== false);
+    setCustomDesign(d?.custom);
   }, [event.data, uiLocale]);
 
   const modules = useMemo(() => qrMatrix(SAMPLE_PAYLOAD).size, []);
@@ -120,6 +147,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
             message: { ...event.data?.cardContent?.design?.message, [uiLocale]: dMessage.trim() },
             footer: { ...event.data?.cardContent?.design?.footer, [uiLocale]: dFooter.trim() },
             showQr: dShowQr,
+            ...(customDesign ? { custom: customDesign } : {}),
           },
         },
       }),
@@ -175,6 +203,7 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
             ? { title: dTitle, message: dMessage, footer: dFooter, whatsappMessage: waTemplate }
             : {}),
           showQr: dShowQr,
+          custom: customDesign,
         };
         return (
           <>
@@ -211,15 +240,30 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                           checked={template === tpl}
                           onChange={() => setTemplate(tpl)}
                         />
-                        <img
-                          src={`/api/card-image?preview=1&template=${tpl}&theme=${encodeURIComponent(themeId)}&partnerA=${encodeURIComponent(e.partnerA)}${e.partnerB ? `&partnerB=${encodeURIComponent(e.partnerB)}` : ''}&eventKind=${encodeURIComponent(e.eventKind)}&date=${encodeURIComponent(e.dateStart)}&venue=${encodeURIComponent(e.venueName)}${Object.keys(palette).length ? `&palette=${encodeURIComponent(JSON.stringify(palette))}` : ''}${cover ? `&cover=${encodeURIComponent(cover)}` : ''}${TEXT_TEMPLATES.includes(tpl) ? `&title=${encodeURIComponent(dTitle)}&message=${encodeURIComponent(dMessage)}&footer=${encodeURIComponent(dFooter)}${waTemplate ? `&wa=${encodeURIComponent(waTemplate)}` : ''}` : ''}${dShowQr ? '' : '&qr=0'}&seats=2`}
-                          alt=""
-                          width={640}
-                          height={940}
-                          loading="lazy"
-                          decoding="async"
-                          // Shimmer shows through until the server-rendered PNG arrives (it takes a second or two).
-                          className="skeleton aspect-[640/940] h-auto w-full rounded-input border border-border"
+                        <TemplateThumb
+                          options={{
+                            template: tpl,
+                            themeId,
+                            partnerA: e.partnerA,
+                            partnerB: e.partnerB,
+                            eventKind: e.eventKind,
+                            dateStart: e.dateStart,
+                            venueName: e.venueName,
+                            palette,
+                            coverGradient: cover,
+                            ...(TEXT_TEMPLATES.includes(tpl)
+                              ? {
+                                  title: dTitle,
+                                  message: dMessage,
+                                  footer: dFooter,
+                                  whatsappMessage: waTemplate,
+                                }
+                              : {}),
+                            showQr: dShowQr,
+                            ...(tpl === 'custom' && customDesign ? { custom: customDesign } : {}),
+                            seats: 2,
+                            locale: uiLocale,
+                          }}
                         />
                         <span className="flex items-center justify-between font-medium">
                           {t(TEMPLATE_LABEL[tpl])}
@@ -232,6 +276,38 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                         </span>
                       </label>
                     ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-card border-2 border-primary/20 bg-primary/5 p-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-ink">
+                          {uiLocale === 'sw'
+                            ? 'Studio ya Kadi (Drag & Drop)'
+                            : 'Card Studio (Drag & Drop)'}
+                        </h4>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase text-primary">
+                          {t('studioBadge')}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted">
+                        {uiLocale === 'sw'
+                          ? 'Buruta vipengele, badili fonti, weka picha au stika, na rekebisha mandhari na fremu.'
+                          : 'Drag elements freely, change fonts, upload photos or stickers, and style your background and frame.'}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setTemplate('custom');
+                        setStudioOpen(true);
+                      }}
+                      className="shrink-0"
+                    >
+                      <Sparkles className="mr-1.5 size-4" />
+                      {t('openStudio')}
+                    </Button>
                   </div>
                   {TEXT_TEMPLATES.includes(template) ? (
                     <div className="mt-4 flex flex-col gap-4">
@@ -501,6 +577,31 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                 )}
               </aside>
             </div>
+
+            {studioOpen && (
+              <CardStudioModal
+                open={studioOpen}
+                onOpenChange={setStudioOpen}
+                initialDesign={customDesign}
+                onSave={(newDesign) => {
+                  setCustomDesign(newDesign);
+                  setTemplate('custom');
+                }}
+                event={{
+                  partnerA: e.partnerA,
+                  partnerB: e.partnerB,
+                  coupleNames: e.partnerB ? `${e.partnerA} & ${e.partnerB}` : e.partnerA,
+                  eventKind: e.eventKind,
+                  dateStart: e.dateStart,
+                  venueName: e.venueName,
+                  dressCode,
+                  senderName: e.senderName,
+                  committeePhone: e.committeePhone,
+                  themeId,
+                }}
+                locale={uiLocale}
+              />
+            )}
           </>
         );
       }}

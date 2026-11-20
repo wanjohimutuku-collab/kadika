@@ -111,7 +111,7 @@ export function GateScreen(p: Props) {
     if (busy.current || !curG.engine.current) return;
     busy.current = true;
     try {
-      if (isMockPayload(data)) {
+      if (curG.isDemoMode && isMockPayload(data)) {
         const guestShort = data.split('.')[2] ?? '';
         const guest = curG.findByGuestShort(guestShort);
         if (guest) {
@@ -119,15 +119,17 @@ export function GateScreen(p: Props) {
           return;
         }
       }
-      const rawLast = data.trim().split(/[/?#]/).filter(Boolean).pop() ?? data;
-      const sc = normalizeShortCode(data) ?? normalizeShortCode(rawLast);
+      const trimmed = data.trim();
+      const rawLast = trimmed.split(/[/?#]/).filter(Boolean).pop() ?? trimmed;
+      const sc = normalizeShortCode(trimmed) ?? normalizeShortCode(rawLast);
       if (sc) {
         curShow(await curG.engine.current.scanCode(sc));
         return;
       }
-      const qrOutcome = await curG.engine.current.scanQr(data);
+      const qrToken = rawLast.startsWith('v1.') ? rawLast : trimmed;
+      const qrOutcome = await curG.engine.current.scanQr(qrToken);
       if (qrOutcome.kind === 'admit') {
-        await curG.rememberSignedToken(qrOutcome.guest.id, data);
+        await curG.rememberSignedToken(qrOutcome.guest.id, qrToken);
       }
       curShow(qrOutcome);
     } catch {
@@ -174,7 +176,8 @@ export function GateScreen(p: Props) {
     g.engine.current && query.trim().length >= 2 ? g.engine.current.search(query) : [];
   const canOverride = p.role !== 'gate';
   const submitCode = async () => {
-    const o = await g.engine.current!.scanCode(code);
+    if (!g.engine.current?.ready) return;
+    const o = await g.engine.current.scanCode(code);
     setSheet(null);
     setCode('');
     show(o);
@@ -260,7 +263,10 @@ export function GateScreen(p: Props) {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('gateApp.syncTitle')}
-            onPress={() => setSheet('sync')}
+            onPress={() => {
+              setSheet('sync');
+              void g.verifyLocalAttendance();
+            }}
             style={{
               height: 32,
               borderRadius: 16,

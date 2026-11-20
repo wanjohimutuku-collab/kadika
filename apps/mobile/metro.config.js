@@ -2,6 +2,13 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
+// Keep Metro's serverRoot aligned with projectRoot so Gradle's relative --entry-file resolves
+// correctly in a pnpm monorepo (expo/metro-config otherwise sets unstable_serverRoot to repo root).
+config.server = {
+  ...config.server,
+  unstable_serverRoot: __dirname,
+};
+
 // Avoid watching Next.js ephemeral build outputs
 config.resolver.blockList = [
   ...(Array.isArray(config.resolver.blockList)

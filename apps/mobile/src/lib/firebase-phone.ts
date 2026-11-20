@@ -36,6 +36,10 @@ export function loadAuthConfig(): Promise<AuthConfig> {
   return config;
 }
 
+export function resetAuthConfigCache(): void {
+  config = null;
+}
+
 /** The module, or null when this build has no Firebase app configured. */
 async function firebaseAuth(): Promise<AuthModule | null> {
   try {
@@ -45,6 +49,10 @@ async function firebaseAuth(): Promise<AuthModule | null> {
   } catch {
     return null;
   }
+}
+
+export async function hasFirebaseAuth(): Promise<boolean> {
+  return (await firebaseAuth()) !== null;
 }
 
 function reasonOf(err: unknown): PhoneSignInError {
@@ -66,6 +74,7 @@ async function allowCode(phone: string): Promise<void> {
   try {
     await getRepository().startFirebaseSignIn(phone);
   } catch (err) {
+    if (isRepositoryError(err) && err.code === 'offline') throw err;
     const code = isRepositoryError(err) ? err.code : '';
     throw new FirebasePhoneError(
       code === 'rate_limited' || code === 'locked'

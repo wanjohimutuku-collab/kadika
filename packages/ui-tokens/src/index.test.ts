@@ -17,7 +17,7 @@ describe('ui tokens', () => {
     expect(Object.keys(darkColors).sort()).toEqual(Object.keys(lightColors).sort());
   });
   it('uses the Kadisasa brand primary', () => {
-    expect(lightColors.primary).toBe('#ED1C24');
+    expect(lightColors.primary).toBe('#C81018');
   });
   it('tokens.css is in sync with the TS tokens', () => {
     const file = readFileSync(new URL('../tokens.css', import.meta.url), 'utf8');

@@ -256,8 +256,12 @@
 }
 
 .ks {
-  --ks-green-900: #0a3f35;
-  --ks-red-600: #ed1c24;
+  --ks-green-900: #0a0a07;
+  --ks-green-700: #c81018;
+  --ks-green-100: #fde8e9;
+  --ks-gold-500: #d9a441;
+  --ks-gold-100: #fbf1dc;
+  --ks-red-600: #c81018;
   --ks-ink: #0a0a07;
   --ks-muted: #5b6662;
   --ks-paper: #fbfaf7;
@@ -282,7 +286,7 @@
   /* Text-on-tint shade: 5.9:1 on saffron-100, 6.8:1 on white (base terracotta is only 4:1 on tints). */
   --ks-terracotta-700: #9a3f1e;
   /* Shared components that read the app tokens (buttons, focus ring) follow the site palette here. */
-  --hp-primary: #ed1c24;
+  --hp-primary: #c81018;
   --hp-bg: var(--ks-paper);
   --hp-ink: var(--ks-ink);
   --hp-muted: var(--ks-muted);

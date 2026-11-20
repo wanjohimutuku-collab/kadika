@@ -4,7 +4,7 @@ export const lightColors = {
   surface: '#FFFFFF',
   ink: '#0A0A07',
   muted: '#5F6368',
-  primary: '#ED1C24',
+  primary: '#C81018',
   onPrimary: '#FFFFFF',
   accent: '#0A0A07',
   border: '#E6DFD3',

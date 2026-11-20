@@ -146,7 +146,10 @@ async function render(req: NextRequest, opts: { custom?: unknown } = {}) {
     if (parsed.success) custom = parsed.data;
   }
   if (custom?.background?.gradient && !SAFE_GRADIENT.test(custom.background.gradient)) {
-    custom = { ...custom, background: { ...custom.background, type: 'color', gradient: undefined } };
+    custom = {
+      ...custom,
+      background: { ...custom.background, type: 'color', gradient: undefined },
+    };
   }
 
   // Same eyebrow wording as the digital card (ADR 041), the organiser's own text first.

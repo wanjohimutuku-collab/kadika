@@ -3,11 +3,7 @@ import { Image, Platform, Pressable, ScrollView, View } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { router, useGlobalSearchParams } from 'expo-router';
-import {
-  cardTemplateOf,
-  pick,
-  type CardTemplate,
-} from '@harusi/schemas';
+import { cardTemplateOf, pick, type CardTemplate } from '@harusi/schemas';
 import { themeIds, themes, type ThemeId } from '@harusi/ui-tokens';
 import { WEB_URL, getRepository } from '../../../../src/lib/repo';
 import { useEvent, useUpdateEvent } from '../../../../src/lib/queries';
@@ -15,15 +11,7 @@ import { useLocale, useT } from '../../../../src/lib/i18n';
 import { radius, spacing, useColors } from '../../../../src/lib/theme';
 import { AppHeader } from '../../../../src/ui/header';
 import { Icon } from '../../../../src/ui/icons';
-import {
-  Banner,
-  Button,
-  Field,
-  Screen,
-  SectionTitle,
-  Skeleton,
-  Txt,
-} from '../../../../src/ui/kit';
+import { Banner, Button, Field, Screen, SectionTitle, Skeleton, Txt } from '../../../../src/ui/kit';
 
 type Layout = { format: 'A6' | 'A5'; layout: 'single' | 'a4-4up' | 'test-sheet'; label: string };
 
@@ -200,7 +188,9 @@ export default function Cards() {
         </View>
 
         {/* Section 2: Template Selection */}
-        <SectionTitle>{locale === 'sw' ? 'Chagua Kiolezo cha Kadi' : 'Select Card Template'}</SectionTitle>
+        <SectionTitle>
+          {locale === 'sw' ? 'Chagua Kiolezo cha Kadi' : 'Select Card Template'}
+        </SectionTitle>
         <View style={{ gap: spacing.sm }}>
           {TEMPLATE_INFO.map((tpl) => {
             const isSelected = template === tpl.id;
@@ -248,7 +238,11 @@ export default function Cards() {
 
         {/* Section 3: Themes / Colors */}
         <SectionTitle>{t('cards.themes')}</SectionTitle>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: spacing.sm }}
+        >
           {themeIds.map((tid) => {
             const th = themes[tid];
             const isSelected = themeId === tid;

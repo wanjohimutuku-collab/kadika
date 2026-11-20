@@ -53,8 +53,12 @@ describe('nextStep', () => {
     expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'corporate')).toMatchObject({
       key: 'past',
     });
-    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, 10, 'wedding').key).not.toBe('pledges');
-    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, 10, 'corporate').key).not.toBe('pledges');
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, 10, 'wedding').key).not.toBe(
+      'pledges',
+    );
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, 10, 'corporate').key).not.toBe(
+      'pledges',
+    );
 
     // When aim IS collecting contributions (pledgesEnabled = true)
     expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'wedding', true)).toMatchObject({

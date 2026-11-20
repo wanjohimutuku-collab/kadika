@@ -38,12 +38,8 @@ describe('per-user, per-event, and per-engagement encryption isolation', () => {
     expect(await decryptEngagement('event-A', 'guest-1', sealed, MASTER, 'rsvp')).toBe(
       JSON.stringify({ rsvp: 'confirmed', partySize: 2 }),
     );
-    await expect(
-      decryptEngagement('event-B', 'guest-1', sealed, MASTER, 'rsvp'),
-    ).rejects.toThrow();
-    await expect(
-      decryptEngagement('event-A', 'guest-2', sealed, MASTER, 'rsvp'),
-    ).rejects.toThrow();
+    await expect(decryptEngagement('event-B', 'guest-1', sealed, MASTER, 'rsvp')).rejects.toThrow();
+    await expect(decryptEngagement('event-A', 'guest-2', sealed, MASTER, 'rsvp')).rejects.toThrow();
     await expect(
       decryptEngagement('event-A', 'guest-1', sealed, MASTER, 'checkin'),
     ).rejects.toThrow();

@@ -205,4 +205,3 @@ export interface StudioEventData {
   domain?: string;
   themeId?: string;
 }
-

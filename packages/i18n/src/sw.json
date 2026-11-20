@@ -1356,6 +1356,18 @@
     "signOut": "Toka",
     "privacyLink": "Soma sera ya faragha"
   },
+  "theme": {
+    "title": "Rangi za Brand na Muonekano",
+    "presets": "Mipangilio ya Rangi",
+    "custom": "Weka Rangi Zako",
+    "primary": "Rangi Kuu",
+    "bg": "Mandharinyuma Nyeusi",
+    "preview": "Muonekano wa Moja kwa Moja",
+    "apply": "Hifadhi Rangi",
+    "reset": "Rejesha Asili ya Kadisasa",
+    "saved": "Rangi za brand zimehifadhiwa",
+    "invalid": "Rangi ya heksi si sahihi (mfano #ED1C24)"
+  },
   "devStates": {
     "title": "Hali zote za skrini",
     "intro": "Kila skrini katika kila hali ya §17.10. Ukurasa huu upo kwenye toleo la majaribio tu.",

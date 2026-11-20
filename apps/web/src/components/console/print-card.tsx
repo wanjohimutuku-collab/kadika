@@ -80,9 +80,7 @@ export function PrintCard({
         {imgSrc ? (
           <img
             src={imgSrc}
-            alt={
-              locale === 'sw' ? `Kadi ya kuchapisha (${format})` : `Printable card (${format})`
-            }
+            alt={locale === 'sw' ? `Kadi ya kuchapisha (${format})` : `Printable card (${format})`}
             className="h-full w-full object-cover"
             data-testid="print-card-image"
           />

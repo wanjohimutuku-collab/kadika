@@ -9,7 +9,10 @@ async function importAesKey(keyBytes: Uint8Array) {
   if (keyBytes.length !== 32) throw new Error('engagement key must be 32 bytes');
   return crypto.subtle.importKey(
     'raw',
-    keyBytes.buffer.slice(keyBytes.byteOffset, keyBytes.byteOffset + keyBytes.byteLength) as ArrayBuffer,
+    keyBytes.buffer.slice(
+      keyBytes.byteOffset,
+      keyBytes.byteOffset + keyBytes.byteLength,
+    ) as ArrayBuffer,
     'AES-GCM',
     false,
     ['encrypt', 'decrypt'],
@@ -32,7 +35,10 @@ export async function sealEngagementPayload(
       {
         name: 'AES-GCM',
         iv: iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer,
-        additionalData: aad.buffer.slice(aad.byteOffset, aad.byteOffset + aad.byteLength) as ArrayBuffer,
+        additionalData: aad.buffer.slice(
+          aad.byteOffset,
+          aad.byteOffset + aad.byteLength,
+        ) as ArrayBuffer,
       },
       key,
       pt.buffer.slice(pt.byteOffset, pt.byteOffset + pt.byteLength) as ArrayBuffer,
@@ -60,7 +66,10 @@ export async function openEngagementPayload<T = unknown>(
       {
         name: 'AES-GCM',
         iv: iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer,
-        additionalData: aad.buffer.slice(aad.byteOffset, aad.byteOffset + aad.byteLength) as ArrayBuffer,
+        additionalData: aad.buffer.slice(
+          aad.byteOffset,
+          aad.byteOffset + aad.byteLength,
+        ) as ArrayBuffer,
       },
       key,
       ct.buffer.slice(ct.byteOffset, ct.byteOffset + ct.byteLength) as ArrayBuffer,

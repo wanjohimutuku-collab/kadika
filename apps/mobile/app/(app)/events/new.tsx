@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import {
-  defaultEventTitle,
-  eventInputSchema,
-  hostNames,
-} from '@harusi/schemas';
+import { defaultEventTitle, eventInputSchema, hostNames } from '@harusi/schemas';
 import { COUNTRIES, type Country } from '@harusi/schemas/country';
 import { KENYA_ENABLED } from '../../../src/lib/country';
 import { useCreateEvent } from '../../../src/lib/queries';

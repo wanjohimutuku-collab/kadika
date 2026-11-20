@@ -64,7 +64,7 @@ export function playGateSound(kind: GateSoundKind): void {
     // Pulse 2: 160Hz alarm tone
     osc.frequency.setValueAtTime(160, now + 0.17);
     gain.gain.setValueAtTime(0.15, now + 0.17);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
     osc.connect(gain);
     gain.connect(ctx.destination);

@@ -91,7 +91,7 @@ export default function Tabs_() {
               ),
               ...hide(gateOnly && name !== 'gate'),
               ...(name === 'pledges' &&
-              (role !== 'owner' && role !== 'committee' ||
+              ((role !== 'owner' && role !== 'committee') ||
                 !allowsDonations(q.data?.eventKind, q.data?.pledgesEnabled))
                 ? { href: null }
                 : {}),

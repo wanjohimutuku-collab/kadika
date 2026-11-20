@@ -1,4 +1,11 @@
-import { defaultSender, eventKindLabel, eventKindOf, hostNames, type CardTemplate, type CustomCardDesign } from '@harusi/schemas';
+import {
+  defaultSender,
+  eventKindLabel,
+  eventKindOf,
+  hostNames,
+  type CardTemplate,
+  type CustomCardDesign,
+} from '@harusi/schemas';
 import type { PaletteOverrides } from '@harusi/ui-tokens/palette';
 import { resolvePalette } from '@harusi/ui-tokens/palette';
 import {

@@ -2,7 +2,7 @@ import type { WeddingEvent } from '@harusi/api-client';
 import { allowsDonations } from '@harusi/schemas';
 
 export type NextKey =
-  | 'import' | 'addInvites' | 'failed' | 'send' | 'remind' | 'pledges' | 'gate' | 'past' | 'done';
+  'import' | 'addInvites' | 'failed' | 'send' | 'remind' | 'pledges' | 'gate' | 'past' | 'done';
 
 export type NextStepStats = Pick<
   WeddingEvent['stats'],

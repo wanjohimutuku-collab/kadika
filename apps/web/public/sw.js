@@ -4,8 +4,7 @@ const VERSION = 'v2';
 const PAGES = `hp-pages-${VERSION}`;
 const ASSETS = `hp-assets-${VERSION}`;
 const GUEST_PATH = /^\/(c|s|k)(\/|$)/;
-const IS_LOCAL =
-  self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+const IS_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 self.addEventListener('install', () => self.skipWaiting());
 

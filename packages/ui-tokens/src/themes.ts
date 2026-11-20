@@ -16,9 +16,9 @@ export interface CardTheme {
 export const themes: Record<ThemeId, CardTheme> = {
   'emerald-gold': {
     id: 'emerald-gold',
-    primary: lightColors.primary,
-    onPrimary: lightColors.onPrimary,
-    accent: lightColors.accent,
+    primary: '#0F5C4D',
+    onPrimary: '#FFFFFF',
+    accent: '#B8893B',
     pattern: '#B8893B',
   },
   'navy-silver': {

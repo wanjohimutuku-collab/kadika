@@ -1352,6 +1352,18 @@
     "signOut": "Sign out",
     "privacyLink": "Read the privacy notice"
   },
+  "theme": {
+    "title": "Branding & Theme Colors",
+    "presets": "Brand Presets",
+    "custom": "Custom Colors",
+    "primary": "Primary Color",
+    "bg": "Dark Background",
+    "preview": "Live Preview",
+    "apply": "Apply Colors",
+    "reset": "Reset to Kadisasa Default",
+    "saved": "Branding colors updated",
+    "invalid": "Invalid hex colour (e.g. #ED1C24)"
+  },
   "devStates": {
     "title": "All screen states",
     "intro": "Every screen in every §17.10 state. This page exists in demo builds only.",

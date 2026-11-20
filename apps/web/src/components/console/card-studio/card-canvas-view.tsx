@@ -77,10 +77,7 @@ export function CardCanvasView({
     : '';
 
   // Pointer Drag Handler for Elements
-  const handlePointerDown = (
-    e: ReactPointerEvent<HTMLDivElement>,
-    element: CustomElement,
-  ) => {
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>, element: CustomElement) => {
     e.stopPropagation();
     onSelectElement(element.id);
 
@@ -342,4 +339,3 @@ export function CardCanvasView({
     </div>
   );
 }
-

@@ -107,6 +107,11 @@ export default function Events() {
           })
         )}
         <Button
+          variant="secondary"
+          label={t('theme.title')}
+          onPress={() => router.push('/theme')}
+        />
+        <Button
           variant="ghost"
           label={t('nav.signOut')}
           onPress={async () => {

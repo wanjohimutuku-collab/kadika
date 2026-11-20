@@ -83,6 +83,11 @@ export default function Settings() {
             { value: 'en', label: t('common.languageName.en') },
           ]}
         />
+        <Button
+          variant="secondary"
+          label={t('theme.title')}
+          onPress={() => router.push('/theme')}
+        />
         <Txt size={14}>{t('settings.timezoneValue')}</Txt>
       </Screen>
     </View>

@@ -171,7 +171,13 @@ export function encryptForEvent(
   masterSecretB64: string,
   context: string,
 ): Promise<string> {
-  return encryptWithScopedKey(masterSecretB64, 'event', eventId, `event:${eventId}:${context}`, plain);
+  return encryptWithScopedKey(
+    masterSecretB64,
+    'event',
+    eventId,
+    `event:${eventId}:${context}`,
+    plain,
+  );
 }
 
 export function decryptForEvent(
@@ -180,7 +186,13 @@ export function decryptForEvent(
   masterSecretB64: string,
   context: string,
 ): Promise<string> {
-  return decryptWithScopedKey(masterSecretB64, 'event', eventId, `event:${eventId}:${context}`, blob);
+  return decryptWithScopedKey(
+    masterSecretB64,
+    'event',
+    eventId,
+    `event:${eventId}:${context}`,
+    blob,
+  );
 }
 
 /** Per-user AES-256-GCM encryption: only this `userId` can decrypt their data. */

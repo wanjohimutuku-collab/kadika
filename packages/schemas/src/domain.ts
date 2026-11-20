@@ -223,10 +223,7 @@ export function isInvitationFirstOccasion(kind: string | null | undefined): bool
  */
 export function allowsDonations(
   kindOrEvent:
-    | string
-    | null
-    | undefined
-    | { eventKind?: string | null; pledgesEnabled?: boolean | null },
+    string | null | undefined | { eventKind?: string | null; pledgesEnabled?: boolean | null },
   pledgesEnabledParam?: boolean | null,
 ): boolean {
   if (typeof kindOrEvent === 'object' && kindOrEvent !== null) {

@@ -33,9 +33,12 @@ function playWebAudio(kind: Kind): void {
       }
       offset += t.ms / 1000;
     }
-    setTimeout(() => {
-      void ctx.close().catch(() => {});
-    }, (offset - ctx.currentTime) * 1000 + 200);
+    setTimeout(
+      () => {
+        void ctx.close().catch(() => {});
+      },
+      (offset - ctx.currentTime) * 1000 + 200,
+    );
   } catch {
     /* ignore */
   }

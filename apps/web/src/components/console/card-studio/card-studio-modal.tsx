@@ -25,12 +25,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import type {
-  CardFont,
-  CustomCardDesign,
-  CustomCardFrame,
-  CustomElement,
-} from '@harusi/schemas';
+import type { CardFont, CustomCardDesign, CustomCardFrame, CustomElement } from '@harusi/schemas';
 import { defaultCustomElements, pick } from '@harusi/schemas';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
@@ -120,7 +115,9 @@ export function CardStudioModal({
   });
 
   const [activeElementId, setActiveElementId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'elements' | 'background' | 'frame' | 'presets'>('elements');
+  const [activeTab, setActiveTab] = useState<'elements' | 'background' | 'frame' | 'presets'>(
+    'elements',
+  );
   const [bgTab, setBgTab] = useState<'color' | 'gradient' | 'image'>(
     design.background?.type || 'color',
   );
@@ -327,7 +324,8 @@ export function CardStudioModal({
         accentColor: '#2D5A3D',
         elements: defaultCustomElements().map((el) => ({
           ...el,
-          fontFamily: el.type === 'names' ? 'cormorant' : el.type === 'eyebrow' ? 'dmsans' : 'playfair',
+          fontFamily:
+            el.type === 'names' ? 'cormorant' : el.type === 'eyebrow' ? 'dmsans' : 'playfair',
           color: el.type === 'divider' ? '#2D5A3D' : '#1A3323',
         })),
       });
@@ -384,9 +382,7 @@ export function CardStudioModal({
                 title={locale === 'sw' ? 'Rudisha mwanzo' : 'Reset layout'}
               >
                 <RotateCcw className="mr-1.5 size-4" />
-                <span className="hidden sm:inline">
-                  {locale === 'sw' ? 'Rudisha' : 'Reset'}
-                </span>
+                <span className="hidden sm:inline">{locale === 'sw' ? 'Rudisha' : 'Reset'}</span>
               </Button>
               <Button
                 size="sm"
@@ -642,7 +638,8 @@ export function CardStudioModal({
                             <div className="grid grid-cols-2 gap-2">
                               <div className="flex flex-col gap-1">
                                 <label className="text-xs font-medium text-muted">
-                                  {locale === 'sw' ? 'Ukubwa' : 'Size'} ({activeElement.fontSize ?? 16}px)
+                                  {locale === 'sw' ? 'Ukubwa' : 'Size'} (
+                                  {activeElement.fontSize ?? 16}px)
                                 </label>
                                 <input
                                   type="range"
@@ -682,9 +679,7 @@ export function CardStudioModal({
                                   onClick={() =>
                                     updateElement(activeElement.id, {
                                       fontStyle:
-                                        activeElement.fontStyle === 'italic'
-                                          ? 'normal'
-                                          : 'italic',
+                                        activeElement.fontStyle === 'italic' ? 'normal' : 'italic',
                                     })
                                   }
                                   className={cn(
@@ -708,7 +703,9 @@ export function CardStudioModal({
                               <div className="flex items-center gap-1">
                                 <button
                                   type="button"
-                                  onClick={() => updateElement(activeElement.id, { textAlign: 'left' })}
+                                  onClick={() =>
+                                    updateElement(activeElement.id, { textAlign: 'left' })
+                                  }
                                   className={cn(
                                     'rounded-lg border p-1.5 transition-colors',
                                     activeElement.textAlign === 'left'
@@ -720,7 +717,9 @@ export function CardStudioModal({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => updateElement(activeElement.id, { textAlign: 'center' })}
+                                  onClick={() =>
+                                    updateElement(activeElement.id, { textAlign: 'center' })
+                                  }
                                   className={cn(
                                     'rounded-lg border p-1.5 transition-colors',
                                     activeElement.textAlign === 'center' || !activeElement.textAlign
@@ -732,7 +731,9 @@ export function CardStudioModal({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => updateElement(activeElement.id, { textAlign: 'right' })}
+                                  onClick={() =>
+                                    updateElement(activeElement.id, { textAlign: 'right' })
+                                  }
                                   className={cn(
                                     'rounded-lg border p-1.5 transition-colors',
                                     activeElement.textAlign === 'right'
@@ -783,7 +784,8 @@ export function CardStudioModal({
                             <div className="grid grid-cols-2 gap-2">
                               <div className="flex flex-col gap-1">
                                 <label className="text-xs font-medium text-muted">
-                                  {locale === 'sw' ? 'Upana' : 'Width'} ({activeElement.width ?? 25}%)
+                                  {locale === 'sw' ? 'Upana' : 'Width'} ({activeElement.width ?? 25}
+                                  %)
                                 </label>
                                 <input
                                   type="range"
@@ -800,7 +802,8 @@ export function CardStudioModal({
                               </div>
                               <div className="flex flex-col gap-1">
                                 <label className="text-xs font-medium text-muted">
-                                  {locale === 'sw' ? 'Urefu' : 'Height'} ({activeElement.height ?? 25}%)
+                                  {locale === 'sw' ? 'Urefu' : 'Height'} (
+                                  {activeElement.height ?? 25}%)
                                 </label>
                                 <input
                                   type="range"
@@ -902,9 +905,7 @@ export function CardStudioModal({
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                {el.visible === false && (
-                                  <EyeOff className="size-3 text-muted" />
-                                )}
+                                {el.visible === false && <EyeOff className="size-3 text-muted" />}
                                 <span className="text-[10px] text-muted">
                                   {Math.round(el.x)}%, {Math.round(el.y)}%
                                 </span>
@@ -1026,7 +1027,9 @@ export function CardStudioModal({
 
                         <div className="flex flex-col gap-2">
                           <span className="text-xs font-semibold text-muted">
-                            {locale === 'sw' ? 'Rangi za Kifahari za Harusi' : 'Luxury Wedding Colors'}
+                            {locale === 'sw'
+                              ? 'Rangi za Kifahari za Harusi'
+                              : 'Luxury Wedding Colors'}
                           </span>
                           <div className="grid grid-cols-3 gap-2">
                             {LUXURY_BG_COLORS.map((c) => (
@@ -1064,7 +1067,9 @@ export function CardStudioModal({
                     {bgTab === 'gradient' && (
                       <div className="flex flex-col gap-3">
                         <span className="text-xs font-semibold text-muted">
-                          {locale === 'sw' ? 'Mifumo ya Gradient ya Kifahari' : 'Luxury Gradient Presets'}
+                          {locale === 'sw'
+                            ? 'Mifumo ya Gradient ya Kifahari'
+                            : 'Luxury Gradient Presets'}
                         </span>
                         <div className="grid grid-cols-2 gap-2">
                           {LUXURY_GRADIENTS.map((g) => (
@@ -1200,7 +1205,9 @@ export function CardStudioModal({
                       {/* Accent Color */}
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium">
-                          {locale === 'sw' ? 'Rangi ya Nakshi & Mistari' : 'Accent / Ornament Color'}
+                          {locale === 'sw'
+                            ? 'Rangi ya Nakshi & Mistari'
+                            : 'Accent / Ornament Color'}
                         </span>
                         <input
                           type="color"
@@ -1247,7 +1254,8 @@ export function CardStudioModal({
                             }
                             className={cn(
                               'flex items-center justify-center rounded-xl border py-2.5 text-xs font-medium transition-all',
-                              design.frame?.style === st.id || (!design.frame?.show && st.id === 'none')
+                              design.frame?.style === st.id ||
+                                (!design.frame?.show && st.id === 'none')
                                 ? 'border-primary bg-primary/10 text-primary font-semibold'
                                 : 'border-border text-muted hover:border-primary/40 hover:text-ink',
                             )}

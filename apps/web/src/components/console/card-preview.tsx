@@ -110,7 +110,9 @@ export function CardPreview({
             <img
               src={imgSrc}
               alt={
-                locale === 'sw' ? `Picha ya kadi ya ${coupleNames}` : `Card image for ${coupleNames}`
+                locale === 'sw'
+                  ? `Picha ya kadi ya ${coupleNames}`
+                  : `Card image for ${coupleNames}`
               }
               width={640}
               height={940}

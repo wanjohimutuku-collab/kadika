@@ -131,7 +131,14 @@ export function CustomCard({ m }: { m: CardImageModel }) {
           alt=""
           width={CARD_W}
           height={CARD_H}
-          style={{ position: 'absolute', top: 0, left: 0, width: CARD_W, height: CARD_H, objectFit: 'cover' }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: CARD_W,
+            height: CARD_H,
+            objectFit: 'cover',
+          }}
         />
       ) : null}
       {bgImage && bg?.overlayOpacity ? (

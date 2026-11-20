@@ -9,7 +9,13 @@ import {
   senderNameFor,
 } from '@harusi/api-client';
 import type { CardKind } from '@harusi/schemas';
-import { allowsDonations, cardTemplateOf, eventKindLabel, pick, renderTemplate } from '@harusi/schemas';
+import {
+  allowsDonations,
+  cardTemplateOf,
+  eventKindLabel,
+  pick,
+  renderTemplate,
+} from '@harusi/schemas';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { WEB_URL } from '../../../../../src/lib/repo';
 import { useLocale, useT } from '../../../../../src/lib/i18n';

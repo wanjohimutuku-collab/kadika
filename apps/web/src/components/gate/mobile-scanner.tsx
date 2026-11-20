@@ -41,6 +41,7 @@ import {
   type WebAdmissionRecord,
   type WebVaultVerification,
 } from '@/lib/web-gate-scanner';
+import { playGateSound } from '@/lib/gate-audio';
 
 interface DetectedBarcode {
   rawValue?: string;
@@ -106,34 +107,8 @@ type ScanOutcome =
       detail: string;
     };
 
-function playFeedbackTone(kind: 'ok' | 'warn'): void {
-  try {
-    const w = globalThis as {
-      AudioContext?: typeof AudioContext;
-      webkitAudioContext?: typeof AudioContext;
-    };
-    const Ctor = w.AudioContext ?? w.webkitAudioContext;
-    if (!Ctor) return;
-    const ctx = new Ctor();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(kind === 'ok' ? 880 : 320, ctx.currentTime);
-    if (kind === 'ok') {
-      osc.frequency.exponentialRampToValueAtTime(1180, ctx.currentTime + 0.08);
-    }
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.17);
-    window.setTimeout(() => {
-      void ctx.close();
-    }, 260);
-  } catch {
-    // Ignore audio context autoplay restrictions.
-  }
+function playFeedbackTone(kind: 'ok' | 'warn' | 'alarm' | 'success'): void {
+  playGateSound(kind === 'ok' || kind === 'success' ? 'success' : 'alarm');
 }
 
 export function MobileGateScanner({
@@ -299,7 +274,7 @@ export function MobileGateScanner({
       }
 
       if (result.kind === 'duplicate') {
-        if (soundOn) playFeedbackTone('warn');
+        if (soundOn) playFeedbackTone('alarm');
         setConfirmCtx(null);
         setCodeSheetOpen(false);
         setSearchSheetOpen(false);
@@ -314,7 +289,7 @@ export function MobileGateScanner({
       }
 
       if (result.kind === 'contribution_only') {
-        if (soundOn) playFeedbackTone('warn');
+        if (soundOn) playFeedbackTone('alarm');
         setConfirmCtx(null);
         setOutcome({
           kind: 'error',
@@ -326,7 +301,7 @@ export function MobileGateScanner({
         return;
       }
 
-      if (soundOn) playFeedbackTone('warn');
+      if (soundOn) playFeedbackTone('alarm');
       setConfirmCtx(null);
       setOutcome({
         kind: 'error',

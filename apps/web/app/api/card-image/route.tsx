@@ -10,6 +10,7 @@ import {
 } from '@harusi/schemas';
 import {
   CARD_TEMPLATES,
+  customCardDesignSchema,
   pick,
   renderTemplate,
   type CardContent,
@@ -36,14 +37,41 @@ import { cardDomain } from '@/lib/card-image/domain';
 export const runtime = 'nodejs';
 
 const SAMPLE_PAYLOAD = 'v1.0192f1a0.preview0.2.1.MOCKSIG';
-const SAFE_GRADIENT = /^[\w\s#%.,()+/-]{1,300}$/;
+const SAFE_GRADIENT = /^[\w\s#%.,()+/-]{1,400}$/;
+/** A studio design with inline photos is large; it comes in the POST body, capped here. */
+const MAX_POST_BYTES = 4 * 1024 * 1024;
+
+function safeJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+}
 
 /**
- * The shareable card image (WhatsApp media, downloads, console previews) in one of the two
+ * The shareable card image (WhatsApp media, downloads, console previews) in one of the
  * templates (ADR 058). It is a picture only: no RSVP/pay buttons; those live on `/c/[token]`.
  * With `token` (or `code`) the real card is used; query params fill in for previews.
  */
 export async function GET(req: NextRequest) {
+  return render(req);
+}
+
+/**
+ * Same as GET, for previews of a Card Studio design that is too large for a URL (uploaded photos):
+ * the query string carries the usual params, the JSON body `{ "custom": CustomCardDesign }`.
+ */
+export async function POST(req: NextRequest) {
+  const len = Number(req.headers.get('content-length') ?? 0);
+  if (len > MAX_POST_BYTES) return new Response('Payload too large', { status: 413 });
+  const text = await req.text();
+  if (text.length > MAX_POST_BYTES) return new Response('Payload too large', { status: 413 });
+  const body = safeJson(text) as { custom?: unknown } | undefined;
+  return render(req, { custom: body?.custom });
+}
+
+async function render(req: NextRequest, opts: { custom?: unknown } = {}) {
   const url = new URL(req.url);
   const q = url.searchParams;
   const locale = (q.get('locale') === 'en' ? 'en' : 'sw') as 'sw' | 'en';
@@ -109,6 +137,20 @@ export async function GET(req: NextRequest) {
     ? (qTemplate as CardTemplate)
     : cardTemplateOf(content);
   const design = content.design ?? {};
+
+  // A design sent by the studio (POST body, or `custom=` on small GET previews) wins over the saved one.
+  let custom = design.custom;
+  const rawCustom = opts.custom ?? (q.get('custom') ? safeJson(q.get('custom')!) : undefined);
+  if (rawCustom !== undefined) {
+    const parsed = customCardDesignSchema.safeParse(rawCustom);
+    if (parsed.success) custom = parsed.data;
+  }
+  if (custom?.background?.gradient && !SAFE_GRADIENT.test(custom.background.gradient)) {
+    custom = {
+      ...custom,
+      background: { ...custom.background, type: 'color', gradient: undefined },
+    };
+  }
 
   // Same eyebrow wording as the digital card (ADR 041), the organiser's own text first.
   const t = (
@@ -231,6 +273,7 @@ export async function GET(req: NextRequest) {
     palette,
     cover,
     domain: cardDomain(req),
+    custom,
   };
 
   const file = `kadi-${shortCode.toLowerCase()}.png`;

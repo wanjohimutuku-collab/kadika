@@ -1,12 +1,12 @@
-// Design tokens from CLAUDE.md §17.2. Dark values apply to the mobile app only.
+// Design tokens from CLAUDE.md §17.2, rebranded with Kadisasa Red (#ED1C24) and Rich Black (#0A0A07). Dark values apply to the mobile app only.
 export const lightColors = {
   bg: '#FBF8F3',
   surface: '#FFFFFF',
-  ink: '#1B1B1F',
+  ink: '#0A0A07',
   muted: '#5F6368',
-  primary: '#0F5C4D',
+  primary: '#C81018',
   onPrimary: '#FFFFFF',
-  accent: '#B8893B',
+  accent: '#0A0A07',
   border: '#E6DFD3',
   success: '#1E7D3A',
   warning: '#B26A00',
@@ -17,13 +17,13 @@ export const lightColors = {
 export type ColorToken = keyof typeof lightColors;
 
 export const darkColors: Record<ColorToken, string> = {
-  bg: '#121413',
-  surface: '#1C1F1D',
+  bg: '#0A0A07',
+  surface: '#141411',
   ink: '#F2EFE9',
   muted: '#A7ADA9',
-  primary: '#4CC2A6',
-  onPrimary: '#08241D',
-  accent: '#D9B26A',
+  primary: '#ED1C24',
+  onPrimary: '#FFFFFF',
+  accent: '#ED1C24',
   border: '#2C312E',
   success: '#5BD17F',
   warning: '#F0B34A',

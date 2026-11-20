@@ -26,9 +26,14 @@ describe('event kinds (ADR 024, 041)', () => {
     expect(eventKindLabel(null, 'sw')).toBe('Harusi');
   });
 
-  it('offers the same three suggestions in both languages', () => {
-    expect(eventKindSuggestions('sw')).toEqual(['Harusi', 'Send-off', 'Uchumba']);
-    expect(eventKindSuggestions('en')).toEqual(['Wedding', 'Send-off', 'Engagement']);
+  it('offers the same suggestions in both languages', () => {
+    expect(eventKindSuggestions('sw')).toEqual(['Harusi', 'Send-off', 'Uchumba', 'Kampuni']);
+    expect(eventKindSuggestions('en')).toEqual([
+      'Wedding',
+      'Send-off',
+      'Engagement',
+      'Corporate Invites',
+    ]);
     expect([...EVENT_KIND_SUGGESTIONS]).toEqual(eventKindSuggestions('en'));
   });
 });

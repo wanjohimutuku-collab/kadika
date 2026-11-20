@@ -1,9 +1,10 @@
 /* Guest-card service worker (§7.3): the card shell, its assets and the last card view
  * stay available offline after the first open. Console routes are never cached. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const PAGES = `hp-pages-${VERSION}`;
 const ASSETS = `hp-assets-${VERSION}`;
 const GUEST_PATH = /^\/(c|s|k)(\/|$)/;
+const IS_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -47,6 +48,7 @@ self.addEventListener('message', (event) => {
 });
 
 function isAsset(url) {
+  if (IS_LOCAL && url.pathname.startsWith('/_next/static/')) return false;
   return (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||

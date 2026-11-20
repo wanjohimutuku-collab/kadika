@@ -1,6 +1,7 @@
-import type { CardTemplate } from '@harusi/schemas';
+import type { CardTemplate, CustomCardDesign } from '@harusi/schemas';
 import type { Palette } from '@harusi/ui-tokens/palette';
 import { BotanicalCard, ScriptCard } from './templates-text';
+import { CustomCard } from './templates-custom';
 
 /**
  * The two shareable card-image designs (ADR 058), rendered by `next/og` (satori) at 640×940.
@@ -43,6 +44,8 @@ export interface CardImageModel {
   title: string;
   message: string;
   footer: string;
+  /** Free drag-and-drop customization: custom background, frame, elements & fonts. */
+  custom?: CustomCardDesign;
 }
 
 export { CARD_IMAGE_WIDTH, CARD_IMAGE_HEIGHT } from './size';
@@ -632,6 +635,8 @@ export function CardImage({ m }: { m: CardImageModel }) {
       return <ScriptCard m={m} />;
     case 'botanical':
       return <BotanicalCard m={m} />;
+    case 'custom':
+      return <CustomCard m={m} />;
     default:
       return <ClassicCard m={m} />;
   }

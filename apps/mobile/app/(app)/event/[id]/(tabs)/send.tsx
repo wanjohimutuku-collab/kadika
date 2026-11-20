@@ -9,7 +9,13 @@ import {
   senderNameFor,
 } from '@harusi/api-client';
 import type { CardKind } from '@harusi/schemas';
-import { cardTemplateOf, eventKindLabel, pick, renderTemplate } from '@harusi/schemas';
+import {
+  allowsDonations,
+  cardTemplateOf,
+  eventKindLabel,
+  pick,
+  renderTemplate,
+} from '@harusi/schemas';
 import { useEvent, useGuests, useRetryFailed, useSend } from '../../../../../src/lib/queries';
 import { WEB_URL } from '../../../../../src/lib/repo';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
@@ -258,13 +264,15 @@ export default function Send() {
           selected={!contribution}
           onPress={() => setCardKind('invitation')}
         />
-        <Tile
-          icon="pledges"
-          label={t('send.cardTypes.contribution')}
-          hint={String(contributionGuests)}
-          selected={contribution}
-          onPress={() => setCardKind('contribution')}
-        />
+        {allowsDonations(ev.data?.eventKind, ev.data?.pledgesEnabled) ? (
+          <Tile
+            icon="pledges"
+            label={t('send.cardTypes.contribution')}
+            hint={String(contributionGuests)}
+            selected={contribution}
+            onPress={() => setCardKind('contribution')}
+          />
+        ) : null}
       </View>
       {contribution ? (
         <>

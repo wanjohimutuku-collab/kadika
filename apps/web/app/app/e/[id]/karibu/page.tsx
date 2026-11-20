@@ -85,6 +85,7 @@ export default function WelcomePage({ params }: { params: Promise<{ id: string }
             message: pick(e.cardContent?.design?.message, locale),
             footer: pick(e.cardContent?.design?.footer, locale),
             showQr: e.cardContent?.design?.showQr,
+            custom: e.cardContent?.design?.custom,
           };
           return (
             <section

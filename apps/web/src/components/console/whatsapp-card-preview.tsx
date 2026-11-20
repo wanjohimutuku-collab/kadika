@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { Check, CheckCheck, Download, Globe, Image as ImageIcon, Send } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { eventKindLabel, type CardTemplate } from '@harusi/schemas';
+import { eventKindLabel, type CardTemplate, type CustomCardDesign } from '@harusi/schemas';
 import type { PaletteOverrides } from '@harusi/ui-tokens';
 import { cardImageUrl, downloadCardImage, type CardImageOptions } from '@/lib/card-canvas';
+import { useCardImageSrc } from '@/lib/use-card-image';
 
 export interface WhatsappCardPreviewProps {
   eventKind?: string | null;
@@ -34,6 +35,8 @@ export interface WhatsappCardPreviewProps {
     message?: string;
     footer?: string;
     showQr?: boolean;
+    /** Free drag-and-drop customization: custom background, frame, elements & fonts. */
+    custom?: CustomCardDesign;
     /** WhatsApp message template the card message falls back to, without its link. */
     whatsappMessage?: string;
   };
@@ -105,6 +108,7 @@ export function WhatsappCardPreview({
     ...design,
     scale: 2,
   };
+  const { src: imgSrc } = useCardImageSrc(cardImageOptions);
 
   const handleDownloadImage = async () => {
     try {
@@ -144,17 +148,21 @@ export function WhatsappCardPreview({
       {/* Preview of the card image that will be sent to WhatsApp */}
       <div className="overflow-hidden rounded-xl border border-emerald-300/60 bg-surface shadow-sm dark:border-emerald-700/60">
         {/* The exact PNG guests receive (ADR 058): no buttons, those live on the digital card. */}
-        <img
-          src={cardImageUrl(cardImageOptions)}
-          alt={
-            locale === 'sw' ? `Picha ya kadi ya ${coupleNames}` : `Card image for ${coupleNames}`
-          }
-          width={640}
-          height={940}
-          loading="lazy"
-          className="block h-auto w-full bg-surface"
-          data-testid="whatsapp-card-image"
-        />
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={
+              locale === 'sw' ? `Picha ya kadi ya ${coupleNames}` : `Card image for ${coupleNames}`
+            }
+            width={640}
+            height={940}
+            loading="lazy"
+            className="block h-auto w-full bg-surface"
+            data-testid="whatsapp-card-image"
+          />
+        ) : (
+          <div className="skeleton aspect-[640/940] w-full" />
+        )}
 
         {/* Rich Link Meta Strip */}
         <div className="flex flex-col gap-0.5 border-t border-emerald-200/50 bg-emerald-100/60 p-2.5 dark:border-emerald-800/40 dark:bg-emerald-900/30">

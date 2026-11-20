@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { pickMessages, type Locale } from '@harusi/i18n';
+import { allowsDonations } from '@harusi/schemas';
 import { PayFlow } from '@/components/card/pay-flow';
 import { previewCardOnServer } from '@/lib/server-card';
 import { USE_MOCKS } from '@/lib/env';
@@ -19,6 +20,8 @@ export default async function PayPage({ params }: { params: Promise<{ token: str
   const preview = await previewCardOnServer(token);
   // Guests pay the hosts directly (ADR 043): the card itself lists where to send a contribution. With
   // mocks the switch lives in the browser's dev panel, which the server cannot see, so the mock decides.
+  if (preview?.event && !allowsDonations(preview.event.eventKind, preview.event.pledgesEnabled))
+    redirect(`/c/${encodeURIComponent(token)}`);
   if (!USE_MOCKS && preview?.event && !preview.event.onlinePay)
     redirect(`/c/${encodeURIComponent(token)}`);
   const country = preview?.event?.country ?? 'TZ';

@@ -40,6 +40,37 @@ describe('nextStep', () => {
     expect(at({ guestsWithBalance: 4 }, -5)).toMatchObject({ key: 'pledges', count: 4 });
   });
 
+  it('omits pledge follow-ups for wedding, send-off, engagement, and corporate events unless aim is contributions', () => {
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'wedding')).toMatchObject({
+      key: 'past',
+    });
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'sendoff')).toMatchObject({
+      key: 'past',
+    });
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'engagement')).toMatchObject({
+      key: 'past',
+    });
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'corporate')).toMatchObject({
+      key: 'past',
+    });
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, 10, 'wedding').key).not.toBe(
+      'pledges',
+    );
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, 10, 'corporate').key).not.toBe(
+      'pledges',
+    );
+
+    // When aim IS collecting contributions (pledgesEnabled = true)
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'wedding', true)).toMatchObject({
+      key: 'pledges',
+      count: 4,
+    });
+    expect(nextStep('e1', { ...base, guestsWithBalance: 4 }, -5, 'corporate', true)).toMatchObject({
+      key: 'pledges',
+      count: 4,
+    });
+  });
+
   it('treats the event day as upcoming', () => {
     expect(at({}, 0).key).toBe('gate');
   });

@@ -98,6 +98,8 @@ a{color:inherit}
 .ic{flex:none;vertical-align:-5px}
 .card{max-width:32rem;margin:0 auto;background:var(--surface);overflow:hidden}
 @media(min-width:768px){.card{margin:24px auto;border:1px solid var(--border);border-radius:16px}}
+.card-hero{background:var(--bg);border-bottom:1px solid var(--border)}
+.card-hero img{display:block;width:100%;height:auto}
 .cover{position:relative;text-align:center;color:var(--hp-on-primary);background:var(--hp-primary)}
 .cover:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.38))}
 .cover>div{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:28px 20px 40px}
@@ -347,10 +349,6 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
     event.venueMapUrl && /^https?:\/\//i.test(event.venueMapUrl.trim())
       ? event.venueMapUrl.trim()
       : `https://www.openstreetmap.org/search?query=${encodeURIComponent(event.venueName)}`;
-  const cover =
-    event.coverGradient && SAFE_GRADIENT.test(event.coverGradient)
-      ? ` style="background:${esc(event.coverGradient)}"`
-      : '';
   const time =
     locale === 'sw'
       ? `Saa ${swahiliTime(event.dateStart)} (${formatClock(event.dateStart)})`
@@ -466,7 +464,6 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
     : L(inv.eyebrow)
       ? say(L(inv.eyebrow)!)
       : fmt(t.weddingOf!, { kind: kindName, kindOf: kindOfName });
-  const showWhen = !isContribution || shown(con.show, 'eventDetails');
   const lead = isContribution
     ? `<p class="lead">${esc(L(con.greeting) ? say(L(con.greeting)!) : fmt(t.contribGreeting!, { guest: guest.displayName, couple: event.coupleNames, kindOf: kindOfName.toLowerCase() }))}</p>`
     : L(inv.greeting)
@@ -510,11 +507,11 @@ ${venueNote ? paras(venueNote, ' class="muted mt"') : ''}</section>`;
     !isContribution && L(inv.footerNote) ? paras(L(inv.footerNote)!, ' class="muted"') : '';
   const privacyHref = event.country === 'KE' ? '/ke/privacy' : '/privacy';
 
+  const enc = encodeURIComponent(view.token);
+  const cardImgPath = `/api/card-image?token=${enc}&locale=${locale}`;
   const body = `<div id="hp-offline" class="offline-bar" role="status" hidden>${esc(m.states.offlineCached)}</div>
 <main class="card" data-testid="guest-card" data-card-kind="${isContribution ? 'contribution' : 'invitation'}">
-<header class="cover"${cover}><div><p class="eyebrow">${esc(eyebrow)}</p>
-<h1 class="names">${esc(event.partnerA)}${event.partnerB ? ` <small>&amp;</small> ${esc(event.partnerB)}` : ''}</h1>
-${showWhen ? `<p class="when">${esc(formatWeekday(event.dateStart, locale))} ${esc(formatDate(event.dateStart, locale))}</p><p>${esc(time)}</p>` : ''}</div></header><div class="band" aria-hidden="true"></div>
+<div class="card-hero"><img src="${esc(cardImgPath)}" alt="${esc(event.coupleNames)}" width="${CARD_IMAGE_WIDTH}" height="${CARD_IMAGE_HEIGHT}" loading="eager" decoding="async" data-testid="guest-card-image"></div>
 ${lead}
 ${message}
 ${trust}
@@ -582,10 +579,9 @@ ${closingSection}
         date: formatDate(event.dateStart, locale),
         venue: event.venueName,
       });
-  const enc = encodeURIComponent(view.token);
   // The link preview is the guest's real card in the organiser's chosen template (ADR 058), the
   // same PNG WhatsApp media sends, not a generic design.
-  const ogImage = `${o.origin ?? `https://${o.domain}`}/api/card-image?token=${enc}&locale=${locale}`;
+  const ogImage = `${o.origin ?? `https://${o.domain}`}${cardImgPath}`;
   return shell({
     locale,
     title,

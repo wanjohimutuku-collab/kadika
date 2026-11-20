@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Linking, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
-import { CARD_KINDS, type CardKind } from '@harusi/schemas';
+import { CARD_KINDS, allowsDonations, type CardKind } from '@harusi/schemas';
 import {
   buildPreview,
   contactsToRows,
@@ -9,7 +9,7 @@ import {
   parsePastedList,
   summarizePreview,
 } from '@harusi/schemas/import';
-import { useGuests, useImportGuests } from '../../../../../src/lib/queries';
+import { useEvent, useGuests, useImportGuests } from '../../../../../src/lib/queries';
 import { useT } from '../../../../../src/lib/i18n';
 import { useColors } from '../../../../../src/lib/theme';
 import { AppHeader } from '../../../../../src/ui/header';
@@ -31,12 +31,14 @@ export default function Import() {
   const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const t = useT();
   const c = useColors();
+  const event = useEvent(id);
+  const showCardKindPicker = allowsDonations(event.data?.eventKind, event.data?.pledgesEnabled);
   const existing = useGuests(id);
   const imp = useImportGuests(id);
   const [step, setStep] = useState<1 | 2>(1);
   // the whole list is one card type: invitation cards, or contribution cards when it came from that link
   const [cardKind, setCardKind] = useState<CardKind>(
-    card === 'contribution' ? 'contribution' : 'invitation',
+    showCardKindPicker && card === 'contribution' ? 'contribution' : 'invitation',
   );
   const [text, setText] = useState('');
   const [source, setSource] = useState<Source>('paste');
@@ -165,15 +167,22 @@ export default function Import() {
       >
         {step === 1 ? (
           <>
-            <Txt size={14} bold>
-              {t('import.cardKind')}
-            </Txt>
-            <Segmented<CardKind>
-              value={cardKind}
-              onChange={setCardKind}
-              options={CARD_KINDS.map((k) => ({ value: k, label: t(`guestForm.cardKinds.${k}`) }))}
-            />
-            {listing ? null : <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>}
+            {showCardKindPicker ? (
+              <>
+                <Txt size={14} bold>
+                  {t('import.cardKind')}
+                </Txt>
+                <Segmented<CardKind>
+                  value={cardKind}
+                  onChange={setCardKind}
+                  options={CARD_KINDS.map((k) => ({
+                    value: k,
+                    label: t(`guestForm.cardKinds.${k}`),
+                  }))}
+                />
+                {listing ? null : <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>}
+              </>
+            ) : null}
             <Segmented<Source>
               value={source}
               onChange={setSource}

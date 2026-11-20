@@ -8,7 +8,7 @@ import { I18nProvider, useT } from '../src/lib/i18n';
 import { SessionProvider } from '../src/lib/session';
 import { setupNetwork, useOnline } from '../src/lib/network';
 import { Banner } from '../src/ui/kit';
-import { useColors } from '../src/lib/theme';
+import { ThemeProvider, useColors } from '../src/lib/theme';
 
 setupNetwork();
 
@@ -20,6 +20,23 @@ function OfflineBanner() {
     <View style={{ paddingHorizontal: 12, paddingTop: 8 }}>
       <Banner tone="warning" text={t('states.offlineBanner')} />
     </View>
+  );
+}
+
+function RootNavigator() {
+  const c = useColors();
+  return (
+    <>
+      <StatusBar style="light" />
+      <OfflineBanner />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: c.bg },
+          animation: 'none',
+        }}
+      />
+    </>
   );
 }
 
@@ -39,22 +56,15 @@ export default function RootLayout() {
         },
       }),
   );
-  const c = useColors();
   useEffect(() => undefined, []);
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={client}>
         <I18nProvider>
           <SessionProvider>
-            <StatusBar style="light" />
-            <OfflineBanner />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: c.bg },
-                animation: 'none',
-              }}
-            />
+            <ThemeProvider>
+              <RootNavigator />
+            </ThemeProvider>
           </SessionProvider>
         </I18nProvider>
       </QueryClientProvider>

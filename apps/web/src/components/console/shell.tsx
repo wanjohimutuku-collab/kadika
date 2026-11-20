@@ -34,6 +34,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
+import { allowsDonations } from '@harusi/schemas';
 import { cn } from '@/lib/cn';
 import { getMock, getRepository } from '@/lib/repo';
 import { useNetworkStatus } from '@/lib/use-mock-controls';
@@ -126,21 +127,28 @@ export function smsRouteAllowed(eventId: string, pathname: string): boolean {
 export function navItems(
   eventId: string,
   product: WeddingEvent['product'] = 'cards',
+  eventKind?: string | null,
+  pledgesEnabled?: boolean | null,
 ): { primary: NavItem[]; secondary: NavItem[] } {
   if (product === 'sms') return smsNavItems(eventId);
   const base = `/app/e/${eventId}`;
   const i = 'size-6';
+  const showPledges = allowsDonations(eventKind, pledgesEnabled);
   return {
     primary: [
       { key: 'overview', href: base, icon: <LayoutDashboard className={i} aria-hidden="true" /> },
       { key: 'guests', href: `${base}/guests`, icon: <Users className={i} aria-hidden="true" /> },
       { key: 'send', href: `${base}/send`, icon: <Send className={i} aria-hidden="true" /> },
       { key: 'gate', href: `${base}/gate`, icon: <ScanLine className={i} aria-hidden="true" /> },
-      {
-        key: 'pledges',
-        href: `${base}/pledges`,
-        icon: <HandCoins className={i} aria-hidden="true" />,
-      },
+      ...(showPledges
+        ? [
+            {
+              key: 'pledges' as const,
+              href: `${base}/pledges`,
+              icon: <HandCoins className={i} aria-hidden="true" />,
+            },
+          ]
+        : []),
     ],
     secondary: [
       {
@@ -519,7 +527,9 @@ export function ConsoleShell({
   const session = useSession();
   const [moreOpen, setMoreOpen] = useState(false);
   const isOwner = session.data?.role === 'owner';
-  const nav = eventId ? navItems(eventId, event?.product) : null;
+  const nav = eventId
+    ? navItems(eventId, event?.product, event?.eventKind, event?.pledgesEnabled)
+    : null;
   const visibleSecondary = nav?.secondary.filter((n) => isOwner || !n.ownerOnly) ?? [];
   const all = nav ? [...nav.primary, ...visibleSecondary] : [];
 

@@ -16,8 +16,8 @@ describe('ui tokens', () => {
   it('defines the same tokens in light and dark', () => {
     expect(Object.keys(darkColors).sort()).toEqual(Object.keys(lightColors).sort());
   });
-  it('uses the §17.2 emerald primary', () => {
-    expect(lightColors.primary).toBe('#0F5C4D');
+  it('uses the Kadisasa brand primary', () => {
+    expect(lightColors.primary).toBe('#C81018');
   });
   it('tokens.css is in sync with the TS tokens', () => {
     const file = readFileSync(new URL('../tokens.css', import.meta.url), 'utf8');

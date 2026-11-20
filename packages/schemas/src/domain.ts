@@ -127,11 +127,29 @@ export type GuestInputParsed = z.output<typeof guestInputSchema>;
  */
 export const EVENT_KINDS = [
   { sw: 'Harusi', en: 'Wedding', aliases: ['harusi', 'wedding'] },
-  { sw: 'Send-off', en: 'Send-off', aliases: ['send-off', 'sendoff', 'send off'] },
-  { sw: 'Uchumba', en: 'Engagement', aliases: ['uchumba', 'engagement'] },
+  { sw: 'Send-off', en: 'Send-off', aliases: ['send-off', 'sendoff', 'send off', 'kitchenparty'] },
+  { sw: 'Uchumba', en: 'Engagement', aliases: ['uchumba', 'engagement', 'ruracio'] },
+  {
+    sw: 'Kampuni',
+    en: 'Corporate Invites',
+    aliases: [
+      'corporate',
+      'corporate invites',
+      'corporate invite',
+      'kampuni',
+      'mkutano',
+      'business',
+      'company',
+    ],
+  },
 ] as const;
 /** Quick suggestions for the free-text "type of invitation" field; anything else may be typed. */
-export const EVENT_KIND_SUGGESTIONS = ['Wedding', 'Send-off', 'Engagement'] as const;
+export const EVENT_KIND_SUGGESTIONS = [
+  'Wedding',
+  'Send-off',
+  'Engagement',
+  'Corporate Invites',
+] as const;
 /**
  * The kind with the "of" that goes with it: "Harusi ya" but "Uchumba wa" in Swahili, because the little word
  * agrees with the noun ("uchumba" takes "wa"); "Engagement of" in English. A kind the organiser typed is
@@ -139,10 +157,16 @@ export const EVENT_KIND_SUGGESTIONS = ['Wedding', 'Send-off', 'Engagement'] as c
  */
 export function eventKindOf(kind: string | null | undefined, locale: 'sw' | 'en'): string {
   const label = eventKindLabel(kind, locale);
-  if (locale === 'en') return `${label} of`;
-  return `${label} ${label.toLowerCase() === 'uchumba' ? 'wa' : 'ya'}`;
+  if (locale === 'en') {
+    if (label.toLowerCase().includes('corporate')) return `${label} for`;
+    return `${label} of`;
+  }
+  const lower = label.toLowerCase();
+  if (lower === 'uchumba') return `${label} wa`;
+  if (lower === 'kampuni') return `Mwaliko wa ${label} wa`;
+  return `${label} ya`;
 }
-/** The suggestions in the reader's language: Wedding, Send-off, Engagement, or Harusi, Send-off, Uchumba. */
+/** The suggestions in the reader's language: Wedding, Send-off, Engagement, Corporate Invites. */
 export function eventKindSuggestions(locale: 'sw' | 'en'): string[] {
   return EVENT_KINDS.map((k) => k[locale]);
 }
@@ -156,10 +180,10 @@ export function eventKindLabel(kind: string | null | undefined, locale: 'sw' | '
   return known ? known[locale] : text;
 }
 /**
- * The three card categories the product ships presets for (uchumba, send-off, wedding). The kind itself stays
+ * The card categories the product ships presets for (uchumba, send-off, wedding, corporate). The kind itself stays
  * free text (ADR 024); this only chooses default wording, so any other kind behaves as before.
  */
-export const OCCASIONS = ['wedding', 'engagement', 'sendoff', 'other'] as const;
+export const OCCASIONS = ['wedding', 'engagement', 'sendoff', 'corporate', 'other'] as const;
 export type Occasion = (typeof OCCASIONS)[number];
 export function occasionOf(kind: string | null | undefined): Occasion {
   const k =
@@ -171,7 +195,53 @@ export function occasionOf(kind: string | null | undefined): Occasion {
   if (k.includes('uchumba') || k.includes('engagement') || k.includes('ruracio'))
     return 'engagement';
   if (k.includes('sendoff') || k.includes('kitchenparty')) return 'sendoff';
+  if (
+    k.includes('corporate') ||
+    k.includes('kampuni') ||
+    k.includes('mkutano') ||
+    k.includes('business') ||
+    k.includes('company')
+  )
+    return 'corporate';
   return 'other';
+}
+
+/**
+ * Returns true if the ceremony/event is invitation-first (Wedding, Send-off, Engagement, Corporate Invites)
+ * where contribution options should disappear unless collecting contributions is the explicit aim.
+ */
+export function isInvitationFirstOccasion(kind: string | null | undefined): boolean {
+  const occ = occasionOf(kind);
+  return occ === 'wedding' || occ === 'sendoff' || occ === 'engagement' || occ === 'corporate';
+}
+
+/**
+ * Whether the event allows donations / contributions / pledges.
+ * When Wedding, Send-off, Engagement, or Corporate Invites is selected,
+ * options for contributions disappear UNLESS the aim is collecting contributions (`pledgesEnabled === true`).
+ * For general/other kinds (e.g. fundraisers, community Harambee), contributions are allowed by default.
+ */
+export function allowsDonations(
+  kindOrEvent:
+    string | null | undefined | { eventKind?: string | null; pledgesEnabled?: boolean | null },
+  pledgesEnabledParam?: boolean | null,
+): boolean {
+  if (typeof kindOrEvent === 'object' && kindOrEvent !== null) {
+    return allowsDonations(kindOrEvent.eventKind, kindOrEvent.pledgesEnabled);
+  }
+
+  const kind = kindOrEvent;
+  const isInviteFirst = isInvitationFirstOccasion(kind);
+
+  if (isInviteFirst) {
+    // For Wedding, Send-off, Engagement, and Corporate Invites:
+    // Option for contributions should disappear unless the aim is collecting contributions!
+    return pledgesEnabledParam === true;
+  }
+
+  // Other kinds (fundraisers, charity, community Harambee, etc.):
+  // Donations are allowed unless explicitly disabled (pledgesEnabled === false)
+  return pledgesEnabledParam !== false;
 }
 /** Host names joined for display; a single host has no dangling ampersand. */
 export function hostNames(a: string, b?: string | null): string {
@@ -232,6 +302,7 @@ export const eventInputSchema = z.object({
   palette: paletteOverridesSchema.optional(),
   rsvpDeadline: z.string().optional().default(''),
   contributionTarget: z.coerce.number().int().min(0).optional().default(0),
+  pledgesEnabled: z.boolean().optional(),
   /** Texts, labels and toggles for the cards and messages; new events start family-sent (ADR 029). */
   cardContent: cardContentSchema.optional(),
 });

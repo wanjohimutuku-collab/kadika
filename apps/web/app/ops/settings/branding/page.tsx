@@ -313,6 +313,34 @@ function BrandingForm({ view }: { view: BrandingView }) {
         </Card>
 
         <Card title={t('colours.title')} titleId="brand-colours">
+          <div className="mb-4 flex flex-wrap gap-2">
+            {[
+              { label: 'Kadisasa Red & Black', p: '#ED1C24', a: '#0A0A07' },
+              { label: 'Emerald & Gold', p: '#0F5C4D', a: '#B8893B' },
+              { label: 'Navy & Silver', p: '#1F3A5F', a: '#6B7785' },
+              { label: 'Terracotta', p: '#9A3B1F', a: '#A0662A' },
+            ].map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-bg"
+                onClick={() => {
+                  setPrimary(preset.p);
+                  setAccent(preset.a);
+                }}
+              >
+                <span
+                  className="size-3 rounded-full border border-white shadow-xs"
+                  style={{ backgroundColor: preset.p }}
+                />
+                <span
+                  className="size-3 rounded-full border border-white shadow-xs"
+                  style={{ backgroundColor: preset.a }}
+                />
+                {preset.label}
+              </button>
+            ))}
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <ColourField
               label={t('colours.primary')}

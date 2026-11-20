@@ -7,6 +7,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  allowsDonations,
   guestInputSchema,
   MAX_SEATS,
   seatsFor,
@@ -22,7 +23,7 @@ import { Checkbox, PhoneField, Select, TextField, Textarea } from '@/components/
 import { Stepper } from '@/components/ui/stepper';
 import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
-import { eventScopedKeys, qk } from '@/lib/queries';
+import { eventScopedKeys, qk, useEvent } from '@/lib/queries';
 import { useFieldError } from '@/lib/use-field-error';
 import { formatPhone } from '@/lib/format';
 import { CardKindPicker } from './card-kind-picker';
@@ -84,6 +85,8 @@ export function GuestForm({
   const queryClient = useQueryClient();
   const listId = useId();
   const country = usePhoneCountry();
+  const event = useEvent(eventId);
+  const showCardKindPicker = allowsDonations(event.data?.eventKind, event.data?.pledgesEnabled);
   const [prefill, setPrefill] = useState(false);
   const groups = useQuery({
     queryKey: qk.groups(eventId),
@@ -177,22 +180,24 @@ export function GuestForm({
             </Button>
           </div>
         ) : null}
-        <CardKindPicker
-          name="cardKind"
-          testId="guest-card-kind"
-          legend={t('cardKind')}
-          help={t('cardKindHelp')}
-          labels={{
-            invitation: t('cardKinds.invitation'),
-            contribution: t('cardKinds.contribution'),
-          }}
-          value={cardKind}
-          onChange={(k) => {
-            setValue('cardKind', k, { shouldDirty: true });
-            // a contribution card has no reply, so there is no party to count
-            if (k === 'contribution') setValue('partySizeAllowed', 1);
-          }}
-        />
+        {showCardKindPicker ? (
+          <CardKindPicker
+            name="cardKind"
+            testId="guest-card-kind"
+            legend={t('cardKind')}
+            help={t('cardKindHelp')}
+            labels={{
+              invitation: t('cardKinds.invitation'),
+              contribution: t('cardKinds.contribution'),
+            }}
+            value={cardKind}
+            onChange={(k) => {
+              setValue('cardKind', k, { shouldDirty: true });
+              // a contribution card has no reply, so there is no party to count
+              if (k === 'contribution') setValue('partySizeAllowed', 1);
+            }}
+          />
+        ) : null}
         <TextField
           label={t('name')}
           hint={t('nameHint')}

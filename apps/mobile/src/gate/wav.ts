@@ -55,12 +55,29 @@ export function toBase64(bytes: Uint8Array): string {
   return out;
 }
 
-/** Rising two-tone for admit, a single beep for duplicate, a long low buzz for deny (§17.5). */
+/** Rising two-tone for admit, multi-pulse alert for duplicate, alarm buzzer for deny. */
 export const SOUNDS = {
   admit: [
     { hz: 660, ms: 90 },
     { hz: 880, ms: 140 },
   ],
-  duplicate: [{ hz: 520, ms: 220 }],
-  deny: [{ hz: 160, ms: 520 }],
+  duplicate: [
+    { hz: 360, ms: 120 },
+    { hz: 0, ms: 40 },
+    { hz: 240, ms: 200 },
+  ],
+  deny: [
+    { hz: 240, ms: 130 },
+    { hz: 0, ms: 40 },
+    { hz: 240, ms: 130 },
+    { hz: 0, ms: 40 },
+    { hz: 160, ms: 260 },
+  ],
+  alarm: [
+    { hz: 240, ms: 130 },
+    { hz: 0, ms: 40 },
+    { hz: 240, ms: 130 },
+    { hz: 0, ms: 40 },
+    { hz: 160, ms: 260 },
+  ],
 } satisfies Record<string, Tone[]>;

@@ -38,6 +38,7 @@ import { useToast } from '@/components/ui/toast';
 import { getRepository } from '@/lib/repo';
 import { eventScopedKeys, qk } from '@/lib/queries';
 import { formatClock, formatDateTimeShort } from '@/lib/format';
+import { playGateSound } from '@/lib/gate-audio';
 
 const RESULT_TONE: Record<ScanEntry['result'], Tone> = {
   ok: 'success',
@@ -119,7 +120,9 @@ export default function GatePage({ params }: { params: Promise<{ id: string }> }
               )
               .at(-1)
           : undefined;
-      setOutcome({ kind: entry.result === 'duplicate' ? 'duplicate' : 'ok', entry, first });
+      const isDuplicate = entry.result === 'duplicate';
+      playGateSound(isDuplicate ? 'alarm' : 'success');
+      setOutcome({ kind: isDuplicate ? 'duplicate' : 'ok', entry, first });
       setPicked(null);
       setQ('');
       setReason('');
@@ -129,7 +132,10 @@ export default function GatePage({ params }: { params: Promise<{ id: string }> }
         ),
       );
     },
-    onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
+    onError: () => {
+      playGateSound('alarm');
+      toast({ tone: 'error', title: ts('errorTitle') });
+    },
   });
 
   const choose = (g: Guest) => {

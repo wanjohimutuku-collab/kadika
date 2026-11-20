@@ -146,3 +146,73 @@ describe('default sender line', () => {
     expect(defaultSender('Harusi', 'Asha & Juma', 'couple')).toBe('Asha & Juma');
   });
 });
+
+describe('custom card design schema', () => {
+  it('validates a custom card design with elements, free fonts, images, and backgrounds', () => {
+    const custom = {
+      template: 'custom' as const,
+      title: { sw: 'Ujumbe maalum' },
+      custom: {
+        background: {
+          type: 'gradient' as const,
+          gradient: 'linear-gradient(135deg, #1A3628 0%, #0A1C14 100%)',
+          overlayOpacity: 15,
+        },
+        frame: {
+          show: true,
+          style: 'double' as const,
+          color: '#E8B66B',
+          width: 2,
+          inset: 20,
+        },
+        textColor: '#FFFFFF',
+        accentColor: '#E8B66B',
+        elements: [
+          {
+            id: 'names-1',
+            type: 'names' as const,
+            x: 50,
+            y: 20,
+            fontFamily: 'playfair' as const,
+            fontSize: 40,
+            fontWeight: 'bold' as const,
+            color: '#E8B66B',
+            textAlign: 'center' as const,
+          },
+          {
+            id: 'free-text-1',
+            type: 'freeText' as const,
+            x: 50,
+            y: 35,
+            fontFamily: 'script' as const,
+            fontSize: 24,
+            content: { sw: 'Karibuni Wote', en: 'All Are Welcome' },
+            textAlign: 'center' as const,
+          },
+          {
+            id: 'custom-img-1',
+            type: 'image' as const,
+            x: 50,
+            y: 50,
+            width: 30,
+            height: 20,
+            imageUrl:
+              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            borderRadius: 50,
+            opacity: 90,
+          },
+          {
+            id: 'qr-1',
+            type: 'qr' as const,
+            x: 50,
+            y: 80,
+            visible: true,
+          },
+        ],
+      },
+    };
+
+    const parsed = cardContentSchema.safeParse({ design: custom });
+    expect(parsed.success).toBe(true);
+  });
+});

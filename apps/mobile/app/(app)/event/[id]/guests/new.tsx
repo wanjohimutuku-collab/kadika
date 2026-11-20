@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router, useGlobalSearchParams } from 'expo-router';
-import { CARD_KINDS, type CardKind } from '@harusi/schemas';
+import { CARD_KINDS, allowsDonations, type CardKind } from '@harusi/schemas';
 import type { ContactLite } from '@harusi/schemas/import';
-import { useCreateGuest } from '../../../../../src/lib/queries';
+import { useCreateGuest, useEvent } from '../../../../../src/lib/queries';
 import { parsePhone, useEventLocale } from '../../../../../src/lib/country';
 import { useLocale, useT } from '../../../../../src/lib/i18n';
 import { readDeviceContacts } from '../../../../../src/lib/device-contacts';
@@ -26,6 +26,8 @@ export default function NewGuest() {
   const { id, card } = useGlobalSearchParams<{ id: string; card?: string }>();
   const t = useT();
   const { locale } = useLocale();
+  const event = useEvent(id);
+  const showCardKindPicker = allowsDonations(event.data?.eventKind, event.data?.pledgesEnabled);
   const create = useCreateGuest(id);
   const { country } = useEventLocale(id);
   const [name, setName] = useState('');
@@ -34,7 +36,7 @@ export default function NewGuest() {
   const [party, setParty] = useState(1);
   // links from the send screen and the import screen arrive with ?card=contribution
   const [cardKind, setCardKind] = useState<CardKind>(
-    card === 'contribution' ? 'contribution' : 'invitation',
+    showCardKindPicker && card === 'contribution' ? 'contribution' : 'invitation',
   );
   const [smart, setSmart] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; phone?: string; form?: string }>({});
@@ -136,15 +138,22 @@ export default function NewGuest() {
           label={t('guestForm.prefill')}
           onPress={openPicker}
         />
-        <Txt size={14} bold>
-          {t('guestForm.cardKind')}
-        </Txt>
-        <Segmented<CardKind>
-          value={cardKind}
-          onChange={setCardKind}
-          options={CARD_KINDS.map((k) => ({ value: k, label: t(`guestForm.cardKinds.${k}`) }))}
-        />
-        <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>
+        {showCardKindPicker ? (
+          <>
+            <Txt size={14} bold>
+              {t('guestForm.cardKind')}
+            </Txt>
+            <Segmented<CardKind>
+              value={cardKind}
+              onChange={setCardKind}
+              options={CARD_KINDS.map((k) => ({
+                value: k,
+                label: t(`guestForm.cardKinds.${k}`),
+              }))}
+            />
+            <Txt size={14}>{t('guestForm.cardKindHelp')}</Txt>
+          </>
+        ) : null}
         <Field
           label={t('guestForm.name')}
           hint={t('guestForm.nameHint')}

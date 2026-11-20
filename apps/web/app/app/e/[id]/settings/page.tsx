@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
-import { eventKindSuggestions } from '@harusi/schemas';
+import { allowsDonations, eventKindSuggestions, isInvitationFirstOccasion } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { KindChips } from '@/components/console/kind-chips';
 import { MessageTemplatesEditor } from '@/components/console/message-templates-editor';
@@ -181,8 +181,12 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <QueryState query={event} skeleton={<Skeleton className="h-96" />}>
-      {(e) =>
-        !form ? null : (
+      {(e) => {
+        if (!form) return null;
+        const currentKind = form.eventKind || e.eventKind;
+        const isInviteFirst = isInvitationFirstOccasion(currentKind);
+        const canDonate = allowsDonations(currentKind, form.pledgesEnabled);
+        return (
           <div className="mx-auto max-w-3xl pb-24 md:pb-0">
             <PageHeader
               title={t('title')}
@@ -249,15 +253,17 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
                     onChange={(ev) => set('dateStart', ev.target.value)}
                     hint={tw('dateHint')}
                   />
-                  <TextField
-                    label={tw('target')}
-                    prefix={cur}
-                    inputMode="numeric"
-                    value={String(form.contributionTarget)}
-                    onChange={(ev) =>
-                      set('contributionTarget', Number(ev.target.value.replace(/\D/g, '')) || 0)
-                    }
-                  />
+                  {canDonate ? (
+                    <TextField
+                      label={tw('target')}
+                      prefix={cur}
+                      inputMode="numeric"
+                      value={String(form.contributionTarget)}
+                      onChange={(ev) =>
+                        set('contributionTarget', Number(ev.target.value.replace(/\D/g, '')) || 0)
+                      }
+                    />
+                  ) : null}
                 </div>
               </Card>
               <Card title={t('venue')} titleId="vn-h">
@@ -300,70 +306,78 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
                     onChange={(ev) => set('whatsappFallbackHours', Number(ev.target.value) || 6)}
                   />
                 </div>
-                <div className="mt-3">
-                  <Switch
-                    checked={form.pledgesEnabled}
-                    onCheckedChange={(v) => set('pledgesEnabled', v)}
-                    label={t('pledgesEnabled')}
-                  />
-                </div>
+                {!isInviteFirst || form.pledgesEnabled ? (
+                  <div className="mt-4 rounded-card border border-border p-3.5 bg-surface/50">
+                    <Switch
+                      checked={form.pledgesEnabled}
+                      onCheckedChange={(v) => {
+                        set('pledgesEnabled', v);
+                        if (!v) set('contributionTarget', 0);
+                      }}
+                      label={isInviteFirst ? t('aimContributions') : t('pledgesEnabled')}
+                      description={isInviteFirst ? t('aimContributionsDesc') : undefined}
+                    />
+                  </div>
+                ) : null}
               </Card>
-              <Card title={t('payToTitle')} titleId="payto-h">
-                <p className="mb-3 text-sm text-muted">{t('payToHint')}</p>
-                <div className="flex flex-col gap-3" data-testid="pay-to-editor">
-                  {form.payTo.map((a, i) => (
-                    <div
-                      key={i}
-                      className="grid grid-cols-1 items-end gap-3 rounded-card border border-border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
-                    >
-                      {(['label', 'account', 'name'] as const).map((k) => (
-                        <TextField
-                          key={k}
-                          label={t(
-                            k === 'label'
-                              ? 'payToLabel'
-                              : k === 'account'
-                                ? 'payToAccount'
-                                : 'payToName',
-                          )}
-                          value={a[k]}
-                          maxLength={k === 'name' ? 80 : 40}
-                          onChange={(ev) =>
+              {canDonate ? (
+                <Card title={t('payToTitle')} titleId="payto-h">
+                  <p className="mb-3 text-sm text-muted">{t('payToHint')}</p>
+                  <div className="flex flex-col gap-3" data-testid="pay-to-editor">
+                    {form.payTo.map((a, i) => (
+                      <div
+                        key={i}
+                        className="grid grid-cols-1 items-end gap-3 rounded-card border border-border p-3 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                      >
+                        {(['label', 'account', 'name'] as const).map((k) => (
+                          <TextField
+                            key={k}
+                            label={t(
+                              k === 'label'
+                                ? 'payToLabel'
+                                : k === 'account'
+                                  ? 'payToAccount'
+                                  : 'payToName',
+                            )}
+                            value={a[k]}
+                            maxLength={k === 'name' ? 80 : 40}
+                            onChange={(ev) =>
+                              set(
+                                'payTo',
+                                form.payTo.map((x, j) =>
+                                  j === i ? { ...x, [k]: ev.target.value } : x,
+                                ),
+                              )
+                            }
+                          />
+                        ))}
+                        <Button
+                          variant="ghost"
+                          onClick={() =>
                             set(
                               'payTo',
-                              form.payTo.map((x, j) =>
-                                j === i ? { ...x, [k]: ev.target.value } : x,
-                              ),
+                              form.payTo.filter((_, j) => j !== i),
                             )
                           }
-                        />
-                      ))}
+                        >
+                          {t('payToRemove')}
+                        </Button>
+                      </div>
+                    ))}
+                    {form.payTo.length < 4 ? (
                       <Button
-                        variant="ghost"
+                        variant="secondary"
+                        className="self-start"
                         onClick={() =>
-                          set(
-                            'payTo',
-                            form.payTo.filter((_, j) => j !== i),
-                          )
+                          set('payTo', [...form.payTo, { label: 'M-Pesa', account: '', name: '' }])
                         }
                       >
-                        {t('payToRemove')}
+                        {t('payToAdd')}
                       </Button>
-                    </div>
-                  ))}
-                  {form.payTo.length < 4 ? (
-                    <Button
-                      variant="secondary"
-                      className="self-start"
-                      onClick={() =>
-                        set('payTo', [...form.payTo, { label: 'M-Pesa', account: '', name: '' }])
-                      }
-                    >
-                      {t('payToAdd')}
-                    </Button>
-                  ) : null}
-                </div>
-              </Card>
+                    ) : null}
+                  </div>
+                </Card>
+              ) : null}
               <Card title={t('trust')} titleId="tr-h">
                 <div className="grid grid-cols-1 gap-4">
                   <TextField
@@ -464,8 +478,8 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
               onConfirm={() => del.mutate()}
             />
           </div>
-        )
-      }
+        );
+      }}
     </QueryState>
   );
 }

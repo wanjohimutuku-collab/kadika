@@ -33,7 +33,7 @@ import {
   type ImportRowInput,
   type PreviewRow,
 } from '@harusi/api-client';
-import type { CardKind } from '@harusi/schemas';
+import { allowsDonations, type CardKind } from '@harusi/schemas';
 import { PageHeader } from '@/components/console/page-header';
 import { CardKindPicker } from '@/components/console/guests/card-kind-picker';
 import { ContactsSheet } from '@/components/console/guests/contacts-sheet';
@@ -45,7 +45,7 @@ import { BottomSheet } from '@/components/ui/overlay';
 import { PhoneField } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { getRepository, newIdempotencyKey } from '@/lib/repo';
-import { eventScopedKeys, qk } from '@/lib/queries';
+import { eventScopedKeys, qk, useEvent } from '@/lib/queries';
 import { downloadBlob } from '@/lib/download';
 import { cn } from '@/lib/cn';
 import { useQuotaToast } from '@/components/console/quota';
@@ -69,6 +69,9 @@ function ImportInner({ id }: { id: string }) {
     queryKey: qk.guests(id),
     queryFn: () => getRepository().listGuests(id),
   });
+
+  const event = useEvent(id);
+  const showCardKind = allowsDonations(event.data?.eventKind, event.data?.pledgesEnabled);
 
   // a link from the send page arrives with ?card=contribution: the whole list is asked for a contribution
   const [cardKind, setCardKind] = useState<CardKind>(
@@ -238,18 +241,20 @@ function ImportInner({ id }: { id: string }) {
           className="flex flex-col gap-4 rounded-card border border-border bg-surface p-4 md:p-6"
           data-testid="import-source"
         >
-          <CardKindPicker
-            name="importCardKind"
-            testId="import-card-kind"
-            legend={t('cardKind')}
-            help={tf('cardKindHelp')}
-            labels={{
-              invitation: tf('cardKinds.invitation'),
-              contribution: tf('cardKinds.contribution'),
-            }}
-            value={cardKind}
-            onChange={setCardKind}
-          />
+          {showCardKind ? (
+            <CardKindPicker
+              name="importCardKind"
+              testId="import-card-kind"
+              legend={t('cardKind')}
+              help={tf('cardKindHelp')}
+              labels={{
+                invitation: tf('cardKinds.invitation'),
+                contribution: tf('cardKinds.contribution'),
+              }}
+              value={cardKind}
+              onChange={setCardKind}
+            />
+          ) : null}
           <SegmentedControl<Source>
             label={t('steps.source')}
             value={source}

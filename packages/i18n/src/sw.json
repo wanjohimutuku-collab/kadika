@@ -568,6 +568,8 @@
     "date": "Tarehe na saa",
     "dateHint": "Saa za Afrika Mashariki (EAT)",
     "rsvpDeadline": "Mwisho wa kujibu",
+    "aimContributions": "Lengo ni kukusanya michango",
+    "aimContributionsDesc": "Washa ikiwa hafla hii inahusisha michango au ahadi za fedha.",
     "target": "Lengo la michango (TZS)",
     "venueName": "Ukumbi",
     "venueMap": "Kiungo cha ramani",
@@ -1029,6 +1031,10 @@
     "templateScriptHint": "Kadi nyeupe, majina kwa mwandiko, QR pembeni",
     "templateBotanical": "Maua",
     "templateBotanicalHint": "Krimu yenye majani na maua juu na chini, QR katikati",
+    "templateCustom": "Kadi Maalum (Studio)",
+    "templateCustomHint": "Drag & drop, maandishi na fonti huru, picha zako, na mandhari unayochagua",
+    "openStudio": "Fungua Studio ya Kadi (Drag & Drop)",
+    "studioBadge": "Huru / Custom",
     "designTitle": "Ujumbe mkuu",
     "designTitleHint": "Mfano: Wanakualika kushiriki sherehe ya harusi yao. Acha wazi kutumia ujumbe wa kawaida.",
     "designMessage": "Maandishi ya ziada",
@@ -1303,6 +1309,8 @@
     "deleteType": "Andika {word} ili kuthibitisha",
     "deleteWord": "FUTA",
     "deleted": "Harusi imefutwa",
+    "aimContributions": "Lengo ni kukusanya michango",
+    "aimContributionsDesc": "Washa ikiwa hafla hii inahusisha michango au ahadi za fedha.",
     "pledgesEnabled": "Ruhusu michango kwenye kadi",
     "fallbackHours": "Subiri saa ngapi kabla ya SMS",
     "payToTitle": "Mahali pa kutuma michango",
@@ -1325,7 +1333,7 @@
       "insert": "Bonyeza kuingiza",
       "preview": "Onyesho",
       "reset": "Rudisha chaguomsingi",
-      "linkRequired": "Jumuisha {link} ili wageni waweze kufungua kadi.",
+      "linkRequired": "Jumuisha '{link}' ili wageni waweze kufungua kadi.",
       "unknownVar": "Thamani \"{name}\" haijulikani."
     }
   },
@@ -1347,6 +1355,18 @@
     "deletionDone": "Ombi la kufuta limepokelewa ({date}).",
     "signOut": "Toka",
     "privacyLink": "Soma sera ya faragha"
+  },
+  "theme": {
+    "title": "Rangi za Brand na Muonekano",
+    "presets": "Mipangilio ya Rangi",
+    "custom": "Weka Rangi Zako",
+    "primary": "Rangi Kuu",
+    "bg": "Mandharinyuma Nyeusi",
+    "preview": "Muonekano wa Moja kwa Moja",
+    "apply": "Hifadhi Rangi",
+    "reset": "Rejesha Asili ya Kadisasa",
+    "saved": "Rangi za brand zimehifadhiwa",
+    "invalid": "Rangi ya heksi si sahihi (mfano #ED1C24)"
   },
   "devStates": {
     "title": "Hali zote za skrini",

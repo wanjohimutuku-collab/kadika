@@ -2,11 +2,11 @@
 :root {
   --hp-bg: #FBF8F3;
   --hp-surface: #FFFFFF;
-  --hp-ink: #1B1B1F;
+  --hp-ink: #0A0A07;
   --hp-muted: #5F6368;
-  --hp-primary: #0F5C4D;
+  --hp-primary: #C81018;
   --hp-on-primary: #FFFFFF;
-  --hp-accent: #B8893B;
+  --hp-accent: #0A0A07;
   --hp-border: #E6DFD3;
   --hp-success: #1E7D3A;
   --hp-warning: #B26A00;
@@ -15,7 +15,7 @@
   --hp-gate-admit: #075E20;
   --hp-gate-duplicate: #7A4A00;
   --hp-gate-deny: #8C1D17;
-  --hp-pattern: #B8893B;
+  --hp-pattern: #0A0A07;
   --hp-radius-card: 12px;
   --hp-radius-input: 8px;
   --hp-radius-pill: 999px;

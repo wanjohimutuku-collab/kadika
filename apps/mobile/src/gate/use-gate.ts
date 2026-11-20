@@ -82,30 +82,42 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
   const scannedTokensRef = useRef<Record<string, string>>({});
   const guestsByShort = useRef(new Map<string, BundleGuest>());
 
+  const persistVaultSnapshot = useCallback(
+    async (bundle: Bundle): Promise<{ envelope: string; fileUri: string | null } | null> => {
+      const s = store.current;
+      if (!s) return null;
+      const key = await getOrCreateVaultKey();
+      const [admissions, scans] = await Promise.all([s.admissions(), s.scans()]);
+      const snapshot = buildAttendanceSnapshot({
+        bundle,
+        admissions,
+        scans,
+        deviceId: deviceIdRef.current || 'local-device',
+        scannedTokens: scannedTokensRef.current,
+      });
+      const envelope = sealJson(snapshot, key, randomVaultBytes(16));
+      await s.setKv(ENCRYPTED_ATTENDANCE_KV, envelope);
+      const fileUri = await writeEncryptedAttendanceFile(eventId, envelope);
+      return { envelope, fileUri };
+    },
+    [eventId],
+  );
+
   const persistAndVerifyVault = useCallback(
     async (bundle: Bundle): Promise<LocalVerifyReport | null> => {
       const s = store.current;
       if (!s) return null;
       try {
         const key = await getOrCreateVaultKey();
-        const [admissions, scans] = await Promise.all([s.admissions(), s.scans()]);
-        const snapshot = buildAttendanceSnapshot({
-          bundle,
-          admissions,
-          scans,
-          deviceId: deviceIdRef.current || 'local-device',
-          scannedTokens: scannedTokensRef.current,
-        });
-        const envelope = sealJson(snapshot, key, randomVaultBytes(16));
-        await s.setKv(ENCRYPTED_ATTENDANCE_KV, envelope);
-        const fileUri = await writeEncryptedAttendanceFile(eventId, envelope);
+        const saved = await persistVaultSnapshot(bundle);
+        if (!saved) return null;
         const readBack = await readEncryptedAttendanceFile(eventId);
-        const targetEnvelope = readBack.envelope ?? envelope;
+        const targetEnvelope = readBack.envelope ?? saved.envelope;
         const report = verifyEncryptedAttendance(
           targetEnvelope,
           key,
           bundle,
-          fileUri ?? readBack.uri,
+          saved.fileUri ?? readBack.uri,
         );
         setVaultReport(report);
         return report;
@@ -125,7 +137,7 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
         return failed;
       }
     },
-    [eventId],
+    [eventId, persistVaultSnapshot],
   );
 
   const rememberSignedToken = useCallback(async (guestId: string, rawToken: string) => {
@@ -143,44 +155,52 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
     }
   }, []);
 
-  const refreshStats = useCallback(async () => {
-    if (!engine.current) return;
-    const base = await engine.current.stats();
-    const saved = store.current ? await store.current.loadBundle() : null;
-    if (saved) {
-      guestsByShort.current = new Map(saved.bundle.guests.map((g) => [g.guestShort, g]));
-    }
-    const totalPeople = saved
-      ? saved.bundle.guests.reduce((sum, g) => sum + g.partySizeAllowed, 0)
-      : 0;
-    const admittedMap = new Map<string, number>();
-    const validIds = new Set(saved?.bundle.guests.map((g) => g.id) ?? []);
-    if (store.current) {
-      for (const a of await store.current.admissions()) {
-        if (validIds.size === 0 || validIds.has(a.guestId)) {
-          admittedMap.set(a.guestId, a.partyAdmitted);
+  const refreshStats = useCallback(
+    async (opts?: { verifyVault?: boolean }) => {
+      if (!engine.current) return;
+      const base = await engine.current.stats();
+      const saved = store.current ? await store.current.loadBundle() : null;
+      if (saved) {
+        guestsByShort.current = new Map(saved.bundle.guests.map((g) => [g.guestShort, g]));
+      }
+      const totalPeople = saved
+        ? saved.bundle.guests.reduce((sum, g) => sum + g.partySizeAllowed, 0)
+        : 0;
+      const admittedMap = new Map<string, number>();
+      const validIds = new Set(saved?.bundle.guests.map((g) => g.id) ?? []);
+      if (store.current) {
+        for (const a of await store.current.admissions()) {
+          if (validIds.size === 0 || validIds.has(a.guestId)) {
+            admittedMap.set(a.guestId, a.partyAdmitted);
+          }
+        }
+        for (const s of await store.current.scans()) {
+          if (
+            !s.synced &&
+            !s.override &&
+            s.guestId &&
+            (validIds.size === 0 || validIds.has(s.guestId)) &&
+            (s.result === 'ok' || s.result === 'manual_ok') &&
+            !admittedMap.has(s.guestId)
+          ) {
+            admittedMap.set(s.guestId, s.partyAdmitted);
+          }
         }
       }
-      for (const s of await store.current.scans()) {
-        if (
-          !s.synced &&
-          !s.override &&
-          s.guestId &&
-          (validIds.size === 0 || validIds.has(s.guestId)) &&
-          (s.result === 'ok' || s.result === 'manual_ok') &&
-          !admittedMap.has(s.guestId)
-        ) {
-          admittedMap.set(s.guestId, s.partyAdmitted);
+      const admittedPeople = [...admittedMap.values()].reduce((sum, n) => sum + n, 0);
+      setEvent(engine.current.event);
+      setStats({ ...base, admittedPeople, totalPeople });
+      if (saved) {
+        if (opts?.verifyVault) {
+          await persistAndVerifyVault(saved.bundle);
+        } else {
+          // Persist the encrypted snapshot without re-verifying all Ed25519 signatures on every scan.
+          await persistVaultSnapshot(saved.bundle).catch(() => null);
         }
       }
-    }
-    const admittedPeople = [...admittedMap.values()].reduce((sum, n) => sum + n, 0);
-    setEvent(engine.current.event);
-    setStats({ ...base, admittedPeople, totalPeople });
-    if (saved) {
-      await persistAndVerifyVault(saved.bundle);
-    }
-  }, [persistAndVerifyVault]);
+    },
+    [persistAndVerifyVault, persistVaultSnapshot],
+  );
 
   const findByGuestShort = useCallback(
     (guestShort: string): BundleGuest | null => guestsByShort.current.get(guestShort) ?? null,
@@ -259,7 +279,7 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
           };
           await engine.current.installBundle(upgraded, existing.etag);
         }
-        await refreshStats();
+        await refreshStats({ verifyVault: true });
         setLastSync(await s.getKv('lastSyncAt'));
         setState('ready'); // the saved bundle is enough: works fully offline
       } else await download();
@@ -274,13 +294,16 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
     if (!e || state !== 'ready') return;
     if (tokenRef.current() === 'mock-gate-token') {
       setSyncError(false);
-      await refreshStats();
+      await refreshStats({ verifyVault: true });
       return;
     }
     const r = await e.sync(api.current);
     setSyncError(!!r.error);
-    if (!r.error) setLastSync(await store.current!.getKv('lastSyncAt'));
-    await refreshStats();
+    if (!r.error) {
+      setLastSync(await store.current!.getKv('lastSyncAt'));
+      await e.refreshBundle(api.current).catch(() => false);
+    }
+    await refreshStats({ verifyVault: true });
   }, [state, refreshStats]);
 
   // background: retry with backoff while online, and pick up reissues from a fresh bundle
@@ -366,6 +389,7 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
     stats,
     refreshStats,
     findByGuestShort,
+    isDemoMode: tokenRef.current() === 'mock-gate-token',
     lastSync,
     syncError,
     syncNow,

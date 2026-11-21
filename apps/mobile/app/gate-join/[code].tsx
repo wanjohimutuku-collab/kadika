@@ -10,6 +10,7 @@ import { applyMaskedInput, mask } from '../../src/gate/mask';
 import { saveGateSession } from '../../src/gate/gate-session';
 import { gateCodeFrom } from '../../src/gate/join-code';
 import { useLocale, useT } from '../../src/lib/i18n';
+import { useSession } from '../../src/lib/session';
 import { spacing, useColors } from '../../src/lib/theme';
 import { AppHeader } from '../../src/ui/header';
 import { Icon } from '../../src/ui/icons';
@@ -29,6 +30,7 @@ export default function GateJoin() {
   const { code: param } = useLocalSearchParams<{ code: string }>();
   const t = useT();
   const { locale } = useLocale();
+  const { session } = useSession();
   const sw = locale === 'sw';
   const c = useColors();
   const [perm, requestPerm] = useCameraPermissions();
@@ -388,7 +390,7 @@ export default function GateJoin() {
               label={sw ? 'Mandaaji' : 'Organizer'}
               onPress={async () => {
                 await stopCameraBeforeNav();
-                router.push('/phone');
+                router.push(session ? '/events' : '/phone');
               }}
             />
           </View>

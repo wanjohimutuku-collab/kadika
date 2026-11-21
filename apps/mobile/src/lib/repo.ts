@@ -19,6 +19,13 @@ export const WEB_URL: string = (
 
 type Tokens = { accessToken: string; refreshToken: string } | null;
 let cache: Tokens = null;
+const clearedListeners = new Set<() => void>();
+
+/** Subscribes to token-clearing events (e.g. failed refresh or sign-out). */
+export function onTokensCleared(fn: () => void): () => void {
+  clearedListeners.add(fn);
+  return () => clearedListeners.delete(fn);
+}
 
 /** Loads the saved session before the first render so the app opens signed in. */
 export async function loadTokens(): Promise<void> {
@@ -33,8 +40,12 @@ export async function loadTokens(): Promise<void> {
 const tokens: TokenStore = {
   get: () => cache,
   set: (t) => {
+    const wasSet = cache !== null;
     cache = t;
     void secureSet(TOKEN_KEY, t ? JSON.stringify(t) : null);
+    if (!t && wasSet) {
+      for (const fn of clearedListeners) fn();
+    }
   },
 };
 

@@ -521,7 +521,7 @@ export const scheduledSends = pgTable(
     kind: sendKindEnum('kind').notNull(),
     /** Which cards the send is for: invitation cards, contribution cards, or null for both (older rows). */
     cardKind: cardKindEnum('card_kind'),
-    /** `remaining` | `unanswered` | `all` | `{ guestIds }` | `{ group }` (see `SendTarget`). */
+    /** `remaining` | `unanswered` | `confirmed` | `all` | `{ guestIds }` | `{ group }` (see `SendTarget`). */
     target: jsonb('target').$type<string | Record<string, unknown>>().notNull(),
     channel: text('channel').notNull().default('auto'),
     scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),

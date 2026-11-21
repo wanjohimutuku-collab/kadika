@@ -36,11 +36,18 @@ const BACKOFF_MS = [500, 2_000];
 const CLAIM_STALE_MS = 15 * 60_000;
 
 /**
- * Who a send goes to. `remaining` and `failed` fit invitations; `unanswered` (invited, no reply yet) and
- * `all` (everyone invited who has not declined) fit reminders; ids and a group fit both (ADR 030).
+ * Who a send goes to. `remaining` and `failed` fit invitations; `unanswered` (invited, no reply yet),
+ * `confirmed` (guests who confirmed attendance), and `all` (everyone invited who has not declined)
+ * fit reminders; ids and a group fit both (ADR 030).
  */
 export type SendTarget =
-  'remaining' | 'failed' | 'unanswered' | 'all' | { guestIds: string[] } | { group: string };
+  | 'remaining'
+  | 'failed'
+  | 'unanswered'
+  | 'confirmed'
+  | 'all'
+  | { guestIds: string[] }
+  | { group: string };
 export type SendKind = 'invite' | 'reminder';
 export interface SendInput {
   target: SendTarget;
@@ -64,7 +71,9 @@ const OPEN_INVITATION = ['sent', 'delivered', 'opened'] as const;
 export function assertTargetFits(kind: SendKind, t: SendTarget): void {
   if (typeof t !== 'string') return;
   const fits =
-    kind === 'invite' ? t === 'remaining' || t === 'failed' : t === 'unanswered' || t === 'all';
+    kind === 'invite'
+      ? t === 'remaining' || t === 'failed'
+      : t === 'unanswered' || t === 'confirmed' || t === 'all';
   if (!fits) throw new ApiError('validation', `The audience "${t}" does not fit a ${kind}`);
 }
 
@@ -709,6 +718,7 @@ export class DeliveryService {
       const picked = rows.filter(({ guest, inv }) => {
         if (guest.cardKind !== 'invitation') return false;
         if (t === 'unanswered') return open(inv.status);
+        if (t === 'confirmed') return inv.status === 'confirmed';
         if (t === 'all') return open(inv.status) || inv.status === 'confirmed';
         if (typeof t === 'string') return false;
         if ('guestIds' in t)

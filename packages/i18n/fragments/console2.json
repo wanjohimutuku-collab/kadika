@@ -119,6 +119,7 @@
       "audience": "Walengwa",
       "audiences": {
         "unsent": "Wote waliobaki",
+        "confirmed": "Waliothibitisha",
         "group": "Kikundi",
         "selected": "Waliochaguliwa",
         "all": "Wote"
@@ -319,6 +320,7 @@
       "audience": "Recipients",
       "audiences": {
         "unsent": "All remaining",
+        "confirmed": "Confirmed",
         "group": "Group",
         "selected": "Selected",
         "all": "Everyone"

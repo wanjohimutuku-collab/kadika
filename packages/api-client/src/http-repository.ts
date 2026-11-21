@@ -1271,7 +1271,9 @@ export function createHttpRepository(
         : kind === 'reminder'
           ? a.kind === 'all'
             ? 'all'
-            : 'unanswered'
+            : a.kind === 'confirmed'
+              ? 'confirmed'
+              : 'unanswered'
           : 'remaining';
   impl.sendInvitations = async (eventId, req) => {
     if (req.kind === 'thank_you')

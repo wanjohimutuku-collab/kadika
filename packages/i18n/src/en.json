@@ -939,6 +939,7 @@
     "audience": "Recipients",
     "audiences": {
       "unsent": "All remaining",
+      "confirmed": "Confirmed",
       "group": "Group",
       "selected": "Selected",
       "all": "Everyone"

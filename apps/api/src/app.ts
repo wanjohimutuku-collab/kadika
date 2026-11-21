@@ -137,7 +137,7 @@ const eventBase = z.object({
 });
 /** Who a send goes to (ADR 030); whether the audience fits the kind is checked by the service. */
 const sendTargetSchema = z.union([
-  z.enum(['remaining', 'failed', 'unanswered', 'all']),
+  z.enum(['remaining', 'failed', 'unanswered', 'confirmed', 'all']),
   z.object({ guestIds: z.array(z.string().uuid()).min(1).max(1000) }),
   z.object({ group: z.string().min(1).max(40) }),
 ]);

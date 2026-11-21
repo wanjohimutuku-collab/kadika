@@ -422,6 +422,7 @@ export type MemoryUpload = Blob | { uri: string; name: string; type: string };
 export interface SendRequest {
   audience:
     | { kind: 'unsent' }
+    | { kind: 'confirmed' }
     | { kind: 'group'; group: string }
     | { kind: 'selected'; guestIds: string[] }
     | { kind: 'all' };

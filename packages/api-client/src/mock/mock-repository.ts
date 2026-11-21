@@ -1183,6 +1183,8 @@ export class MockRepository implements Repository {
       switch (a.kind) {
         case 'unsent':
           return invited.filter(open);
+        case 'confirmed':
+          return invited.filter((g) => g.status === 'confirmed');
         case 'group':
           return invited.filter((g) => g.groupLabel === a.group && open(g));
         case 'selected': {
@@ -1198,6 +1200,8 @@ export class MockRepository implements Repository {
         return all.filter((g) =>
           kind === 'invite' ? STATUS_RANK[g.status] <= STATUS_RANK.queued : g.status !== 'declined',
         );
+      case 'confirmed':
+        return [];
       case 'group':
         return all.filter((g) => g.groupLabel === a.group);
       case 'selected': {

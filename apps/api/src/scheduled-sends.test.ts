@@ -97,6 +97,18 @@ describe('reminders the organiser asks for (ADR 030)', () => {
     expect(await reminders(c.id)).toHaveLength(0);
   });
 
+  it('can remind only guests who confirmed attendance', async () => {
+    const { ev, t, a, b, c, d } = await invitedFive('0766300006');
+    const res = await send(ev.id, t, { target: 'confirmed', kind: 'reminder', channel: 'sms' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ total: 1, sent: 1, skipped: 0, failed: 0 });
+    expect(ctx.sms.sent.map((m) => m.to)).toEqual(['+255712300002']);
+    expect(await reminders(a.id)).toHaveLength(0);
+    expect(await reminders(b.id)).toHaveLength(1);
+    expect(await reminders(c.id)).toHaveLength(0);
+    expect(await reminders(d.id)).toHaveLength(0);
+  });
+
   it('does not text the same guest twice within the cooldown, but may after it', async () => {
     const { ev, t } = await invitedFive('0766300003');
     const ask = () => send(ev.id, t, { target: 'unanswered', kind: 'reminder', channel: 'sms' });
@@ -113,6 +125,7 @@ describe('reminders the organiser asks for (ADR 030)', () => {
   it('refuses an audience that does not fit, and a reminder for an event that is over', async () => {
     const { ev, t } = await invitedFive('0766300004');
     expect((await send(ev.id, t, { target: 'remaining', kind: 'reminder' })).status).toBe(400);
+    expect((await send(ev.id, t, { target: 'confirmed', kind: 'invite' })).status).toBe(400);
     expect((await send(ev.id, t, { target: 'unanswered' })).status).toBe(400);
     ctx.clock.now += 61 * DAY;
     const late = await send(ev.id, await renew('0766300004'), {

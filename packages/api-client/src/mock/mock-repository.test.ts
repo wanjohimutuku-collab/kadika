@@ -231,6 +231,17 @@ describe('MockRepository', () => {
     const open = guests.filter((g) => ['sent', 'delivered', 'opened'].includes(g.status));
     expect(job.total).toBe(open.length);
     expect(guests.some((g) => g.status === 'confirmed')).toBe(true); // they are left alone
+
+    const confirmedJob = await repo.sendInvitations(ev.id, {
+      audience: { kind: 'confirmed' },
+      channel: 'auto',
+      whatsappFallbackToSms: true,
+      scheduleAt: null,
+      kind: 'reminder',
+      idempotencyKey: 'rm2',
+    });
+    const confirmed = guests.filter((g) => g.cardKind === 'invitation' && g.status === 'confirmed');
+    expect(confirmedJob.total).toBe(confirmed.length);
   });
 
   it('records a manual payment once per idempotency key and updates the balance', async () => {

@@ -66,7 +66,7 @@ import { APP_DOMAIN } from '@/lib/env';
 import { cn } from '@/lib/cn';
 import { useQuotaToast } from '@/components/console/quota';
 
-type AudienceKind = 'unsent' | 'group' | 'selected' | 'all';
+type AudienceKind = 'unsent' | 'confirmed' | 'group' | 'selected' | 'all';
 type Channel = 'auto' | MessageChannel;
 type Kind = 'invite' | 'reminder';
 
@@ -108,6 +108,9 @@ function SendInner({ id }: { id: string }) {
     params.get('kind') === 'reminder' ? 'reminder' : 'invite',
   );
   const kind: Kind = cardKind === 'contribution' ? 'invite' : kindChoice;
+  useEffect(() => {
+    if (kind !== 'reminder' && audience === 'confirmed') setAudience('unsent');
+  }, [kind, audience]);
   const [group, setGroup] = useState('');
   const [channel, setChannel] = useState<Channel>('auto');
   const [fallback, setFallback] = useState(true);
@@ -570,7 +573,10 @@ function SendInner({ id }: { id: string }) {
                         label={t('audience')}
                         value={audience}
                         onChange={setAudience}
-                        options={(['unsent', 'group', 'selected', 'all'] as const).map((a) => ({
+                        options={(kind === 'reminder'
+                          ? (['unsent', 'confirmed', 'group', 'selected', 'all'] as const)
+                          : (['unsent', 'group', 'selected', 'all'] as const)
+                        ).map((a) => ({
                           value: a,
                           label: t(`audiences.${a}`),
                         }))}

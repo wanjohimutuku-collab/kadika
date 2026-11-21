@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Linking, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import brandIcon from '../../assets/icon.png';
-import { CameraView, useCameraPermissions, type BarcodeSettings } from 'expo-camera';
+import { CameraView, type BarcodeSettings } from 'expo-camera';
+import { useLiveCameraPermission } from '../lib/camera-permission';
 import { useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -44,7 +45,7 @@ export function GateScreen(p: Props) {
   const sw = locale === 'sw';
   const c = useColors();
   const g = useGate(p);
-  const [perm, requestPerm] = useCameraPermissions();
+  const [perm, requestPerm] = useLiveCameraPermission();
   const [torch, setTorch] = useState(false);
   const [haptics, setHaptics] = useState(true);
   useEffect(() => {

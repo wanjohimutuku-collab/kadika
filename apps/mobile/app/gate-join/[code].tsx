@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Linking, Pressable, StyleSheet, Text, View, type TextInput } from 'react-native';
 import brandIcon from '../../assets/icon.png';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { CameraView, useCameraPermissions, type BarcodeSettings } from 'expo-camera';
+import { CameraView, type BarcodeSettings } from 'expo-camera';
+import { useLiveCameraPermission } from '../../src/lib/camera-permission';
 import { API_URL } from '../../src/lib/repo';
 import { getDeviceId, gateLabel } from '../../src/gate/device';
 import { DEMO_EVENT_ID } from '../../src/gate/demo-bundle';
@@ -33,7 +34,7 @@ export default function GateJoin() {
   const { session } = useSession();
   const sw = locale === 'sw';
   const c = useColors();
-  const [perm, requestPerm] = useCameraPermissions();
+  const [perm, requestPerm] = useLiveCameraPermission();
   const [focused, setFocused] = useState(true);
   const [scanning, setScanning] = useState(true);
   const [code, setCode] = useState(gateCodeFrom(String(param ?? '')));

@@ -136,8 +136,12 @@ export function GateJoinScanner({ code, brandName }: GateJoinScannerProps) {
 
       const headers = { authorization: `Bearer ${joinBody.accessToken}` };
       const [bundleRes, admittedRes] = await Promise.all([
-        fetch(`${API_URL}/v1/events/${encodeURIComponent(joinBody.event.id)}/gate/bundle`, { headers }),
-        fetch(`${API_URL}/v1/events/${encodeURIComponent(joinBody.event.id)}/gate/admitted`, { headers }),
+        fetch(`${API_URL}/v1/events/${encodeURIComponent(joinBody.event.id)}/gate/bundle`, {
+          headers,
+        }),
+        fetch(`${API_URL}/v1/events/${encodeURIComponent(joinBody.event.id)}/gate/admitted`, {
+          headers,
+        }),
       ]);
       if (!bundleRes.ok) {
         setPinError(

@@ -297,7 +297,7 @@ export function AppMockup({ labels }: { labels: AppMockupLabels }) {
 
           <div className="flex items-center justify-between px-4 pt-2 pb-1">
             <span className="text-sm font-bold text-[#0a2640]">{labels.event}</span>
-            <span className="rounded-full bg-[#5469d4]/10 px-2 py-0.5 text-[10px] font-bold text-[#5469d4]">
+            <span className="rounded-full bg-[#5469d4]/10 px-2 py-0.5 text-[10px] font-bold text-[#3b4cc0]">
               SW | EN
             </span>
           </div>
@@ -356,7 +356,7 @@ export function AppMockup({ labels }: { labels: AppMockupLabels }) {
                   className="flex items-center justify-between py-1.5 first:pt-0.5 last:pb-0"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#5469d4]/10 text-[8.5px] font-bold text-[#5469d4]">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#5469d4]/10 text-[8.5px] font-bold text-[#3b4cc0]">
                       {g.initials}
                     </span>
                     <div className="min-w-0">

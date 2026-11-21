@@ -14,10 +14,10 @@ test.describe('home demo studio · English default', () => {
     await page.goto('/');
 
     const studio = page.locator('#jaribu-mwenyewe');
-    const names = studio.getByLabel(/Couple names/);
+    const names = studio.getByLabel(/Host, couple, or event name/);
     await names.fill('Zuhura & Khalid');
 
-    await expect(studio).toContainText('Zuhura', { timeout: 1000 });
+    await expect(studio.locator('img').first()).toHaveAttribute('src', /Zuhura/);
 
     const [popup] = await Promise.all([
       context.waitForEvent('page'),
@@ -37,10 +37,10 @@ test.describe('home demo studio · Swahili', () => {
     await page.goto('/sw');
 
     const studio = page.locator('#jaribu-mwenyewe');
-    const names = studio.getByLabel(/Majina ya wana-ndoa/);
+    const names = studio.getByLabel(/Majina au jina la tukio/);
     await names.fill('Zuhura & Khalid');
 
-    await expect(studio).toContainText('Zuhura', { timeout: 1000 });
+    await expect(studio.locator('img').first()).toHaveAttribute('src', /Zuhura/);
 
     const [popup] = await Promise.all([
       context.waitForEvent('page'),

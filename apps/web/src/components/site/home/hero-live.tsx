@@ -443,7 +443,9 @@ export function HeroLive(props: HeroLiveProps) {
               <span>
                 {props.locale === 'sw' ? 'Mwonekano wa Moja kwa Moja' : 'Live Card Preview'}
               </span>
-              <span className="text-[#494d59]/50">·</span>
+              <span aria-hidden="true" className="text-[#494d59]">
+                ·
+              </span>
               <span className="text-[#5469d4]">{props.form.themeNames[themeId]}</span>
             </div>
 

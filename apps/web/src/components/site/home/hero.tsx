@@ -166,7 +166,8 @@ export function Hero(props: HeroProps) {
             <PhoneCardMockup src={heroCardReq.url} alt={props.previewFrameAlt} />
 
             {/* Floating proof 1: Guest RSVP funnel */}
-            <div className="absolute -left-6 top-8 hidden w-48 rounded-2xl border border-[#e3e8ee] bg-white/95 p-3.5 shadow-[0_18px_40px_-14px_rgb(10_38_64/0.18)] backdrop-blur sm:block">
+            {/* top-16 keeps it clear of the phone's status bar: overlapping it hides the white "9:41" behind white and fails axe color-contrast. */}
+            <div className="absolute -left-6 top-16 hidden w-48 rounded-2xl border border-[#e3e8ee] bg-white/95 p-3.5 shadow-[0_18px_40px_-14px_rgb(10_38_64/0.18)] backdrop-blur sm:block">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#494d59]">
                   {s.guestsTitle}

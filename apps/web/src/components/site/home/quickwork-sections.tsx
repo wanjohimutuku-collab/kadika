@@ -247,7 +247,7 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
         {/* Active plane stage */}
         <div className="qw-card grid items-center gap-10 overflow-hidden bg-gradient-to-br from-white via-white to-[#f6f9fc] p-6 md:grid-cols-[1fr_1.05fr] md:p-10">
           <div className="flex flex-col gap-4">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#5469d4]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[#5469d4]">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#5469d4]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[#3b4cc0]">
               <span className="qw-ripple-dot" aria-hidden="true" />
               {current.planeTitle}
             </span>

@@ -361,7 +361,9 @@ export default async function PricingPage() {
                     </p>
                     <ul
                       className={`mt-1 space-y-2 border-t pt-4 text-sm ${
-                        highlight ? 'border-white/15 text-white/90' : 'border-ks-line text-ks-ink/85'
+                        highlight
+                          ? 'border-white/15 text-white/90'
+                          : 'border-ks-line text-ks-ink/85'
                       }`}
                     >
                       <li className="flex items-center gap-2">
@@ -387,7 +389,11 @@ export default async function PricingPage() {
                       </li>
                     </ul>
                   </div>
-                  <PillLink href="/login" kind={highlight ? 'onDark' : 'secondary'} className="w-full">
+                  <PillLink
+                    href="/login"
+                    kind={highlight ? 'onDark' : 'secondary'}
+                    className="w-full"
+                  >
                     {t('cta')}
                   </PillLink>
                 </div>

@@ -29,13 +29,7 @@ import type { SiteMarket } from '@/lib/site-locale';
  * 5. RoleCardsSection (Component 6: 4-column "Built for every role" grid)
  */
 
-export function TrustChannelBar({
-  locale,
-  market,
-}: {
-  locale: 'sw' | 'en';
-  market: SiteMarket;
-}) {
+export function TrustChannelBar({ locale, market }: { locale: 'sw' | 'en'; market: SiteMarket }) {
   const title =
     locale === 'sw'
       ? 'Imeundwa kwa njia za mawasiliano na malipo zinazotumika Afrika Mashariki'
@@ -44,7 +38,13 @@ export function TrustChannelBar({
   const channels =
     market === 'ke'
       ? ['WhatsApp', 'SMS Fallback', 'A6 / A4 Print PDF', 'Offline QR Gate', 'M-Pesa Ledger']
-      : ['WhatsApp', 'SMS Fallback', 'A6 / A4 Print PDF', 'Offline QR Gate', 'M-Pesa · Mixx · Airtel'];
+      : [
+          'WhatsApp',
+          'SMS Fallback',
+          'A6 / A4 Print PDF',
+          'Offline QR Gate',
+          'M-Pesa · Mixx · Airtel',
+        ];
 
   return (
     <section aria-label={title} className="border-b border-[#e2e7f3] bg-white py-8">
@@ -110,8 +110,7 @@ export function AutomationPillGrid({
           <h2 className="text-[30px] font-bold leading-[1.15] tracking-[-0.025em] text-[#100e24] md:text-[42px]">
             {isSw ? (
               <>
-                <span className="gp-highlight">Simamia kila mwaliko</span> kwa sherehe na hafla
-                zote
+                <span className="gp-highlight">Simamia kila mwaliko</span> kwa sherehe na hafla zote
               </>
             ) : (
               <>
@@ -223,7 +222,10 @@ export function AutopilotPillars({ locale }: { locale: 'sw' | 'en' }) {
           {cards.map((card) => {
             const Icon = card.icon;
             return (
-              <article key={card.title} className="gp-card flex flex-col justify-between gap-6 p-6 md:p-7">
+              <article
+                key={card.title}
+                className="gp-card flex flex-col justify-between gap-6 p-6 md:p-7"
+              >
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f6f4ff] px-3 py-1 text-xs font-semibold text-[#4338ca]">

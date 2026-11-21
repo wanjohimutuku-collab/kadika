@@ -759,7 +759,11 @@ export const GEO_PAGES: ContentPageDef[] = [
       'kadi-za-mwaliko-tanzania',
       'jinsi-ya-kuchagua-huduma-ya-kadi-za-kadi',
       'michango-ya-harusi',
-    ].map((s) => (s === 'jinsi-ya-kuchagua-huduma-ya-kadi-za-kadi' ? 'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko' : s)),
+    ].map((s) =>
+      s === 'jinsi-ya-kuchagua-huduma-ya-kadi-za-kadi'
+        ? 'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko'
+        : s,
+    ),
     sw: {
       nav: 'E-cards Tanzania',
       title: 'Kadi za Kidijitali (E-Cards) Tanzania | Kadi Sasa',
@@ -790,11 +794,36 @@ export const GEO_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Kigezo', 'Picha ya WhatsApp', 'Kadi ya karatasi', 'E-card ya Kadi Sasa (QR)'],
               rows: [
-                ['Kila mgeni ana kadi yake', 'Hapana (inasambazwa)', 'Ndiyo', 'Ndiyo (WhatsApp, SMS & PDF)'],
-                ['Majibu (RSVP) ya moja kwa moja', 'Hapana', 'Hapana', 'Ndiyo, pamoja na idadi ya watu'],
-                ['Usalama langoni', 'Mtu yeyote anaweza kuforward', 'Inaweza kunakiliwa', 'QR ya mara moja + namba fupi'],
-                ['Mtandao ukikatika ukumbini', 'Haikaguliwi', 'Haina rekodi', 'Lango la Android linafanya kazi offline'],
-                ['Wazee wasio na smartphone', 'Hawapati', 'Wanapata', 'Wanapata SMS au PDF ya kuchapisha'],
+                [
+                  'Kila mgeni ana kadi yake',
+                  'Hapana (inasambazwa)',
+                  'Ndiyo',
+                  'Ndiyo (WhatsApp, SMS & PDF)',
+                ],
+                [
+                  'Majibu (RSVP) ya moja kwa moja',
+                  'Hapana',
+                  'Hapana',
+                  'Ndiyo, pamoja na idadi ya watu',
+                ],
+                [
+                  'Usalama langoni',
+                  'Mtu yeyote anaweza kuforward',
+                  'Inaweza kunakiliwa',
+                  'QR ya mara moja + namba fupi',
+                ],
+                [
+                  'Mtandao ukikatika ukumbini',
+                  'Haikaguliwi',
+                  'Haina rekodi',
+                  'Lango la Android linafanya kazi offline',
+                ],
+                [
+                  'Wazee wasio na smartphone',
+                  'Hawapati',
+                  'Wanapata',
+                  'Wanapata SMS au PDF ya kuchapisha',
+                ],
               ],
             },
           ],
@@ -851,11 +880,31 @@ export const GEO_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Feature', 'Plain WhatsApp image', 'Paper cards only', 'Kadi Sasa QR e-card'],
               rows: [
-                ['Unique card per guest', 'No (forwarded freely)', 'Yes', 'Yes (WhatsApp, SMS & printable PDF)'],
+                [
+                  'Unique card per guest',
+                  'No (forwarded freely)',
+                  'Yes',
+                  'Yes (WhatsApp, SMS & printable PDF)',
+                ],
                 ['Live RSVP & party size', 'No', 'No', 'Yes, tracked per guest'],
-                ['Gate security', 'Anyone can screenshot/forward', 'Can be duplicated', 'One-time signed QR + short code'],
-                ['Venue network outage', 'No verification', 'Manual list only', 'Offline Android QR gate check-in'],
-                ['Elders without smartphones', 'Excluded', 'Included', 'Included via SMS & print-ready PDF'],
+                [
+                  'Gate security',
+                  'Anyone can screenshot/forward',
+                  'Can be duplicated',
+                  'One-time signed QR + short code',
+                ],
+                [
+                  'Venue network outage',
+                  'No verification',
+                  'Manual list only',
+                  'Offline Android QR gate check-in',
+                ],
+                [
+                  'Elders without smartphones',
+                  'Excluded',
+                  'Included',
+                  'Included via SMS & print-ready PDF',
+                ],
               ],
             },
           ],

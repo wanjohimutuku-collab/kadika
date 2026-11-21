@@ -250,10 +250,7 @@ export function TrustStrip({
         </ul>
       </div>
       {cta ? (
-        <Link
-          href={cta.href}
-          className="qw-btn-primary shrink-0 text-sm"
-        >
+        <Link href={cta.href} className="qw-btn-primary shrink-0 text-sm">
           {cta.label}
         </Link>
       ) : null}
@@ -354,7 +351,10 @@ export function AppMockup({ labels }: { labels: AppMockupLabels }) {
             </div>
             <div className="flex flex-col divide-y divide-[#eff2f7]">
               {recentGuests.map((g) => (
-                <div key={g.initials} className="flex items-center justify-between py-1.5 first:pt-0.5 last:pb-0">
+                <div
+                  key={g.initials}
+                  className="flex items-center justify-between py-1.5 first:pt-0.5 last:pb-0"
+                >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#5469d4]/10 text-[8.5px] font-bold text-[#5469d4]">
                       {g.initials}

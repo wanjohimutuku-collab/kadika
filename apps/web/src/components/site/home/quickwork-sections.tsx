@@ -185,7 +185,14 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
   const current = planes.find((p) => p.id === activePlane) ?? planes[3]!;
 
   const orbitNodes = isSw
-    ? ['Skani QR', 'Bila Mtandao', 'Zuia Marudio', 'Idadi Halisi', 'Walinzi Wengi', 'Sawa Papo Hapo']
+    ? [
+        'Skani QR',
+        'Bila Mtandao',
+        'Zuia Marudio',
+        'Idadi Halisi',
+        'Walinzi Wengi',
+        'Sawa Papo Hapo',
+      ]
     : ['QR Scan', 'Offline Ready', 'Duplicate Guard', 'Live Count', 'Multi-Usher', 'Instant Sync'];
 
   const deliverEngines = [
@@ -210,7 +217,11 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
         </div>
 
         {/* Plane switcher tabs */}
-        <div className="flex flex-wrap justify-center gap-2.5" role="tablist" aria-label="Platform planes">
+        <div
+          className="flex flex-wrap justify-center gap-2.5"
+          role="tablist"
+          aria-label="Platform planes"
+        >
           {planes.map((plane) => {
             const active = plane.id === activePlane;
             return (
@@ -252,7 +263,9 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
               /* Quickwork.co Signature Orbit Hub Animation */
               <div
                 className="qw-orbit relative flex size-[270px] items-center justify-center sm:size-[300px]"
-                aria-label={isSw ? 'Mzunguko wa ukaguzi wa lango la QR' : 'QR gate verification orbit'}
+                aria-label={
+                  isSw ? 'Mzunguko wa ukaguzi wa lango la QR' : 'QR gate verification orbit'
+                }
               >
                 {/* Outer orbit ring */}
                 <div className="absolute inset-2 rounded-full border border-dashed border-[#5469d4]/30" />
@@ -284,7 +297,9 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
                   <div className="qw-hub-ring-2 absolute inset-1.5 rounded-full border-2 border-transparent border-b-[#a960ee] border-l-[#f86a71]" />
                   <div className="qw-hub-core relative flex size-16 flex-col items-center justify-center rounded-full bg-white text-[#0a2640] ring-1 ring-[#e3e8ee]">
                     <QrCode className="size-6 text-[#5469d4]" aria-hidden="true" />
-                    <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider">QR Hub</span>
+                    <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider">
+                      QR Hub
+                    </span>
                   </div>
                 </div>
               </div>
@@ -432,7 +447,10 @@ export function QuickworkDarkReliability({
       ];
 
   return (
-    <section id="platform-features-section" className="qw-navy-band relative overflow-hidden py-16 text-white md:py-24">
+    <section
+      id="platform-features-section"
+      className="qw-navy-band relative overflow-hidden py-16 text-white md:py-24"
+    >
       <Container className="flex flex-col gap-14">
         <div className="grid items-center gap-10 md:grid-cols-[1.15fr_0.85fr]">
           <div className="flex flex-col gap-4">

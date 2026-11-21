@@ -27,12 +27,12 @@ export function siteButton(kind: ButtonKind = 'primary') {
   return cn(
     btnBase,
     kind === 'primary' &&
-    'bg-ks-green-700 py-1.5 pr-1.5 pl-6 text-white shadow-[0_10px_24px_-12px_rgb(15_92_77/0.7)] hover:bg-ks-green-900',
+      'bg-ks-green-700 py-1.5 pr-1.5 pl-6 text-white shadow-[0_10px_24px_-12px_rgb(15_92_77/0.7)] hover:bg-ks-green-900',
     kind === 'secondary' &&
-    'bg-white px-6 text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.25)] hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.6)]',
+      'bg-white px-6 text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.25)] hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.6)]',
     kind === 'onDark' && 'bg-white py-1.5 pr-1.5 pl-6 text-ks-green-900 hover:bg-ks-gold-100',
     kind === 'outlineOnDark' &&
-    'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.4)] hover:bg-white/10',
+      'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.4)] hover:bg-white/10',
   );
 }
 

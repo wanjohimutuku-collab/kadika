@@ -3910,7 +3910,10 @@ export class MockRepository implements Repository {
     });
   }
 
-  private parseBrandImageDataUrl(file: { mime: string; data: string }, field: 'logo' | 'favicon'): string {
+  private parseBrandImageDataUrl(
+    file: { mime: string; data: string },
+    field: 'logo' | 'favicon',
+  ): string {
     if (!(LOGO_MIMES as readonly string[]).includes(file.mime))
       throw new RepositoryError('validation', 'The image must be SVG, PNG, JPEG or WebP', {
         field: 'mime',

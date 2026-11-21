@@ -125,8 +125,9 @@ export function HeroLive(props: HeroLiveProps) {
 
   const secondaryHref = `${props.secondaryBaseHref}?names=${encodeURIComponent(
     names,
-  )}&date=${encodeURIComponent(dateISO)}&event=${encodeURIComponent(eventType)}${themeChoice !== 'auto' ? `&theme=${encodeURIComponent(themeChoice)}` : ''
-    }`;
+  )}&date=${encodeURIComponent(dateISO)}&event=${encodeURIComponent(eventType)}${
+    themeChoice !== 'auto' ? `&theme=${encodeURIComponent(themeChoice)}` : ''
+  }`;
 
   const shareTitle = useMemo(() => view.event?.coupleNames ?? 'Kadi', [view.event?.coupleNames]);
 
@@ -298,7 +299,6 @@ export function HeroLive(props: HeroLiveProps) {
             </div>
 
             <div className="flex flex-col gap-4 rounded-2xl border border-[#e3e8ee] bg-[#f6f9fc]/75 p-4 md:p-5">
-
               <label className="flex flex-col gap-1.5 text-sm font-semibold text-[#0a2640]">
                 {props.form.names}
                 <input
@@ -440,7 +440,9 @@ export function HeroLive(props: HeroLiveProps) {
           <div className="group relative mt-8 flex flex-col items-center justify-center gap-5 px-4 py-6 md:px-6 lg:mt-0">
             <div className="relative flex items-center gap-2 rounded-full border border-[#e3e8ee] bg-[#f6f9fc] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0a2640]">
               <span aria-hidden="true" className="qw-ripple-dot" />
-              <span>{props.locale === 'sw' ? 'Mwonekano wa Moja kwa Moja' : 'Live Card Preview'}</span>
+              <span>
+                {props.locale === 'sw' ? 'Mwonekano wa Moja kwa Moja' : 'Live Card Preview'}
+              </span>
               <span className="text-[#494d59]/50">·</span>
               <span className="text-[#5469d4]">{props.form.themeNames[themeId]}</span>
             </div>

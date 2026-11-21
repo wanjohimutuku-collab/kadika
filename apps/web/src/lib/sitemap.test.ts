@@ -40,7 +40,12 @@ describe('sitemaps', () => {
 describe('locale switch targets', () => {
   it('links the same page in each edition, or the other market home', () => {
     expect(editionTargets('/', 'en')).toEqual({ sw: '/sw', en: '/', ke: '/ke', ug: '/ug' });
-    expect(editionTargets('/bei', 'en')).toEqual({ sw: '/sw/bei', en: '/bei', ke: '/ke', ug: '/ug' });
+    expect(editionTargets('/bei', 'en')).toEqual({
+      sw: '/sw/bei',
+      en: '/bei',
+      ke: '/ke',
+      ug: '/ug',
+    });
     expect(editionTargets('/ug', 'en')).toEqual({ sw: '/sw', en: '/', ke: '/ke', ug: '/ug' });
     expect(editionTargets('/wedding-contributions', 'en').ke).toBe(
       '/ke/wedding-contributions-guide',

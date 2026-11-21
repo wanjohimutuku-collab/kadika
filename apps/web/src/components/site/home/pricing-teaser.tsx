@@ -110,14 +110,21 @@ export function PricingTeaser({
                     <p className="tabular text-4xl font-bold tracking-tight">
                       {formatMoney(t.price[currency], currency)}
                     </p>
-                    <p className={cn('mt-1 text-sm', emphasised ? 'text-white/80' : 'text-[#494d59]')}>
+                    <p
+                      className={cn(
+                        'mt-1 text-sm',
+                        emphasised ? 'text-white/80' : 'text-[#494d59]',
+                      )}
+                    >
                       {perCardLabel} · {formatNumber(exampleCount)} = {exampleTotal}
                     </p>
                   </div>
                   <ul
                     className={cn(
                       'flex flex-col gap-2 border-t pt-4 text-sm',
-                      emphasised ? 'border-white/15 text-white/90' : 'border-[#e3e8ee] text-[#494d59]',
+                      emphasised
+                        ? 'border-white/15 text-white/90'
+                        : 'border-[#e3e8ee] text-[#494d59]',
                     )}
                   >
                     {list.map((item) => (
@@ -152,7 +159,10 @@ export function PricingTeaser({
         </div>
         <p className="mt-6 text-sm text-[#494d59]">
           {copy.footnote} ·{' '}
-          <Link href={comparisonHref} className="font-medium text-[#5469d4] underline underline-offset-4">
+          <Link
+            href={comparisonHref}
+            className="font-medium text-[#5469d4] underline underline-offset-4"
+          >
             {copy.comparisonLink}
           </Link>
         </p>

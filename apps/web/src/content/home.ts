@@ -1547,7 +1547,11 @@ function ug(p: PriceFacts, domain: string): HomeCopy {
       {
         eyebrow: 'Pledge cards',
         title: 'UGX pledges and payments that watch themselves.',
-        bullets: ['MTN MoMo & Airtel Money records', 'CSV reports', 'Private: only you see the figures'],
+        bullets: [
+          'MTN MoMo & Airtel Money records',
+          'CSV reports',
+          'Private: only you see the figures',
+        ],
         linkLabel: 'Learn more',
         linkSlug: 'uganda-wedding-pledge-cards-guide',
       },

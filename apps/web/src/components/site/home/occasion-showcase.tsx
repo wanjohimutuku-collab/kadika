@@ -115,11 +115,7 @@ export function OccasionShowcase({
         </div>
 
         {/* Active category panel */}
-        <div
-          role="tabpanel"
-          id={`panel-${active.id}`}
-          aria-labelledby={`tab-${active.id}`}
-        >
+        <div role="tabpanel" id={`panel-${active.id}`} aria-labelledby={`tab-${active.id}`}>
           <div className="grid items-center gap-8 pt-4 md:grid-cols-[1.15fr_0.85fr] md:pt-6">
             {/* Left: Selling points */}
             <div className="flex flex-col gap-5">

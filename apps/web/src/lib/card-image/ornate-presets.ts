@@ -1,11 +1,7 @@
 import type { CustomCardDesign } from '@harusi/schemas';
 import { defaultCustomElements } from '@harusi/schemas';
 
-export type OrnatePresetId =
-  | 'floralCorner'
-  | 'wildflowerArch'
-  | 'mandalaArch'
-  | 'marigoldGarland';
+export type OrnatePresetId = 'floralCorner' | 'wildflowerArch' | 'mandalaArch' | 'marigoldGarland';
 
 function toSvgDataUri(svg: string): string {
   // Works in both browser (btoa) and Node (Buffer) without escaping issues in CSS url(...)
@@ -114,9 +110,11 @@ export function ornateStudioPreset(preset: OrnatePresetId): CustomCardDesign {
       textColor: '#3D3734',
       accentColor: '#A43242',
       elements: baseElements.map((el) => {
-        if (el.type === 'names') return { ...el, fontFamily: 'script', fontSize: 54, y: 34, color: '#2B2624' };
+        if (el.type === 'names')
+          return { ...el, fontFamily: 'script', fontSize: 54, y: 34, color: '#2B2624' };
         if (el.type === 'eyebrow') return { ...el, fontFamily: 'dmsans', y: 16, color: '#3D3734' };
-        if (el.type === 'title') return { ...el, fontFamily: 'playfair', fontStyle: 'normal', fontSize: 22, y: 22 };
+        if (el.type === 'title')
+          return { ...el, fontFamily: 'playfair', fontStyle: 'normal', fontSize: 22, y: 22 };
         if (el.type === 'guest') return { ...el, y: 29, color: '#6B625D' };
         if (el.type === 'date') return { ...el, y: 47, color: '#3D3734' };
         if (el.type === 'venue') return { ...el, y: 53 };
@@ -133,14 +131,27 @@ export function ornateStudioPreset(preset: OrnatePresetId): CustomCardDesign {
       textColor: '#33312E',
       accentColor: '#7E6D41',
       elements: baseElements.map((el) => {
-        if (el.type === 'eyebrow') return { ...el, fontFamily: 'dmsans', fontSize: 11, y: 19, color: '#33312E' };
-        if (el.type === 'guest') return { ...el, fontFamily: 'playfair', fontStyle: 'italic', y: 24, color: '#5E5A52' };
-        if (el.type === 'names') return { ...el, fontFamily: 'playfair', fontSize: 32, y: 30, textTransform: 'uppercase', color: '#7E6D41' };
-        if (el.type === 'title') return { ...el, fontFamily: 'dmsans', fontStyle: 'normal', fontSize: 12, y: 40 };
-        if (el.type === 'date') return { ...el, fontFamily: 'playfair', fontSize: 18, y: 47, color: '#33312E' };
+        if (el.type === 'eyebrow')
+          return { ...el, fontFamily: 'dmsans', fontSize: 11, y: 19, color: '#33312E' };
+        if (el.type === 'guest')
+          return { ...el, fontFamily: 'playfair', fontStyle: 'italic', y: 24, color: '#5E5A52' };
+        if (el.type === 'names')
+          return {
+            ...el,
+            fontFamily: 'playfair',
+            fontSize: 32,
+            y: 30,
+            textTransform: 'uppercase',
+            color: '#7E6D41',
+          };
+        if (el.type === 'title')
+          return { ...el, fontFamily: 'dmsans', fontStyle: 'normal', fontSize: 12, y: 40 };
+        if (el.type === 'date')
+          return { ...el, fontFamily: 'playfair', fontSize: 18, y: 47, color: '#33312E' };
         if (el.type === 'venue') return { ...el, fontFamily: 'dmsans', fontSize: 11, y: 54 };
         if (el.type === 'qr') return { ...el, y: 65 };
-        if (el.type === 'sender') return { ...el, y: 88, fontFamily: 'playfair', fontStyle: 'italic' };
+        if (el.type === 'sender')
+          return { ...el, y: 88, fontFamily: 'playfair', fontStyle: 'italic' };
         return el;
       }),
     };
@@ -152,10 +163,29 @@ export function ornateStudioPreset(preset: OrnatePresetId): CustomCardDesign {
       textColor: '#3D3832',
       accentColor: '#A48642',
       elements: baseElements.map((el) => {
-        if (el.type === 'eyebrow') return { ...el, fontFamily: 'dmsans', fontSize: 11, y: 20, color: '#9C8042' };
-        if (el.type === 'title') return { ...el, fontFamily: 'playfair', fontWeight: 'bold', fontStyle: 'normal', fontSize: 22, y: 24, color: '#5E4923' };
-        if (el.type === 'names') return { ...el, fontFamily: 'playfair', fontStyle: 'italic', fontSize: 30, y: 33, color: '#3D3832' };
-        if (el.type === 'date') return { ...el, fontFamily: 'playfair', fontSize: 18, y: 46, color: '#3D3832' };
+        if (el.type === 'eyebrow')
+          return { ...el, fontFamily: 'dmsans', fontSize: 11, y: 20, color: '#9C8042' };
+        if (el.type === 'title')
+          return {
+            ...el,
+            fontFamily: 'playfair',
+            fontWeight: 'bold',
+            fontStyle: 'normal',
+            fontSize: 22,
+            y: 24,
+            color: '#5E4923',
+          };
+        if (el.type === 'names')
+          return {
+            ...el,
+            fontFamily: 'playfair',
+            fontStyle: 'italic',
+            fontSize: 30,
+            y: 33,
+            color: '#3D3832',
+          };
+        if (el.type === 'date')
+          return { ...el, fontFamily: 'playfair', fontSize: 18, y: 46, color: '#3D3832' };
         if (el.type === 'guest') return { ...el, y: 52, color: '#5E4923' };
         if (el.type === 'venue') return { ...el, y: 58 };
         if (el.type === 'qr') return { ...el, y: 72 };
@@ -170,12 +200,26 @@ export function ornateStudioPreset(preset: OrnatePresetId): CustomCardDesign {
     textColor: '#2B2118',
     accentColor: '#9E7B30',
     elements: baseElements.map((el) => {
-      if (el.type === 'eyebrow') return { ...el, fontFamily: 'playfair', fontSize: 12, textTransform: 'none', letterSpacing: 0, y: 17, color: '#2B2118' };
-      if (el.type === 'names') return { ...el, fontFamily: 'script', fontSize: 48, y: 25, color: '#5E1A22' };
-      if (el.type === 'venue') return { ...el, fontFamily: 'playfair', fontSize: 14, y: 40, color: '#5E1A22' };
-      if (el.type === 'date') return { ...el, fontFamily: 'playfair', fontSize: 14, y: 47, color: '#2B2118' };
-      if (el.type === 'title') return { ...el, fontFamily: 'playfair', fontSize: 16, y: 54, color: '#5E1A22' };
-      if (el.type === 'message') return { ...el, fontFamily: 'playfair', fontSize: 12, y: 61, color: '#5C4D3C' };
+      if (el.type === 'eyebrow')
+        return {
+          ...el,
+          fontFamily: 'playfair',
+          fontSize: 12,
+          textTransform: 'none',
+          letterSpacing: 0,
+          y: 17,
+          color: '#2B2118',
+        };
+      if (el.type === 'names')
+        return { ...el, fontFamily: 'script', fontSize: 48, y: 25, color: '#5E1A22' };
+      if (el.type === 'venue')
+        return { ...el, fontFamily: 'playfair', fontSize: 14, y: 40, color: '#5E1A22' };
+      if (el.type === 'date')
+        return { ...el, fontFamily: 'playfair', fontSize: 14, y: 47, color: '#2B2118' };
+      if (el.type === 'title')
+        return { ...el, fontFamily: 'playfair', fontSize: 16, y: 54, color: '#5E1A22' };
+      if (el.type === 'message')
+        return { ...el, fontFamily: 'playfair', fontSize: 12, y: 61, color: '#5C4D3C' };
       if (el.type === 'qr') return { ...el, y: 74 };
       return el;
     }),

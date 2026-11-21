@@ -528,11 +528,31 @@ export const UGANDA_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Factor', 'Paper cards (Nasser Road)', 'Digital e-cards with QR'],
               rows: [
-                ['Delivery time', 'Days or weeks of hand-delivery & boda couriers', 'Instant via WhatsApp or SMS'],
-                ['Diaspora & upcountry reach', 'Requires courier or photo forwarding', 'One tap anywhere in the world'],
-                ['RSVP & headcount', 'Manual phone calls and guesswork', 'Automatic guest replies & party size'],
-                ['Gate security', 'Blank cards can be shared or copied', 'Unique one-time QR + short card number'],
-                ['Elder etiquette', 'Traditional & expected by senior relatives', 'Print-ready PDF fallback with same QR'],
+                [
+                  'Delivery time',
+                  'Days or weeks of hand-delivery & boda couriers',
+                  'Instant via WhatsApp or SMS',
+                ],
+                [
+                  'Diaspora & upcountry reach',
+                  'Requires courier or photo forwarding',
+                  'One tap anywhere in the world',
+                ],
+                [
+                  'RSVP & headcount',
+                  'Manual phone calls and guesswork',
+                  'Automatic guest replies & party size',
+                ],
+                [
+                  'Gate security',
+                  'Blank cards can be shared or copied',
+                  'Unique one-time QR + short card number',
+                ],
+                [
+                  'Elder etiquette',
+                  'Traditional & expected by senior relatives',
+                  'Print-ready PDF fallback with same QR',
+                ],
               ],
             },
           ],
@@ -576,11 +596,23 @@ export const UGANDA_PAGES: ContentPageDef[] = [
               t: 'table',
               head: ['Kipengele', 'Kadi za karatasi', 'E-cards zenye QR'],
               rows: [
-                ['Muda wa kufika', 'Siku kadhaa za kusambaza kwa mkono', 'Papo hapo kwa WhatsApp au SMS'],
+                [
+                  'Muda wa kufika',
+                  'Siku kadhaa za kusambaza kwa mkono',
+                  'Papo hapo kwa WhatsApp au SMS',
+                ],
                 ['Wageni wa mbali', 'Inahitaji usafirishaji', 'Kiungo kimoja popote duniani'],
                 ['Majibu (RSVP)', 'Kupiga simu na kukisia', 'Majibu ya moja kwa moja kwenye simu'],
-                ['Usalama langoni', 'Kadi zinaweza kunakiliwa', 'QR ya kipekee ya mara moja na namba fupi'],
-                ['Heshima kwa wazee', 'Inapendwa na wazee wengi', 'PDF ya kuchapisha yenye QR ileile'],
+                [
+                  'Usalama langoni',
+                  'Kadi zinaweza kunakiliwa',
+                  'QR ya kipekee ya mara moja na namba fupi',
+                ],
+                [
+                  'Heshima kwa wazee',
+                  'Inapendwa na wazee wengi',
+                  'PDF ya kuchapisha yenye QR ileile',
+                ],
               ],
             },
           ],

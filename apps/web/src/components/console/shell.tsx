@@ -520,9 +520,7 @@ function EventsSidebar() {
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm transition-colors',
-                      active
-                        ? 'bg-primary/10 font-medium text-primary'
-                        : 'text-ink hover:bg-ink/5',
+                      active ? 'bg-primary/10 font-medium text-primary' : 'text-ink hover:bg-ink/5',
                     )}
                   >
                     <Avatar name={e.coupleNames} size={28} />

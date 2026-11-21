@@ -25,8 +25,7 @@ const lines = (text: string) =>
     .map((l) => l.trim())
     .filter(Boolean);
 
-const invitedPrefix = (m: CardImageModel) =>
-  m.locale === 'sw' ? 'KWA HESHIMA YA' : 'IN HONOR OF';
+const invitedPrefix = (m: CardImageModel) => (m.locale === 'sw' ? 'KWA HESHIMA YA' : 'IN HONOR OF');
 
 /* ------------------------------------------------------------------------------------------------
  * 1. Floral Corner — Warm ivory paper, lush autumn/terracotta watercolor floral bouquets at
@@ -370,7 +369,15 @@ export function FloralCornerCard({ m }: { m: CardImageModel }) {
           >
             <Qr m={m} size={76} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', fontSize: 13, fontWeight: 700, letterSpacing: 2, color: ink }}>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  color: ink,
+                }}
+              >
                 {m.shortCode}
               </div>
               <SeatTag m={m} color={ink} start />
@@ -380,8 +387,23 @@ export function FloralCornerCard({ m }: { m: CardImageModel }) {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 18 }}>
-            <div style={{ display: 'flex', fontSize: 12, fontWeight: 700, letterSpacing: 2, color: ink }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginTop: 18,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 2,
+                color: ink,
+              }}
+            >
               {m.shortCode}
             </div>
             <SeatTag m={m} color={ink} />
@@ -763,14 +785,38 @@ export function WildflowerArchCard({ m }: { m: CardImageModel }) {
             }}
           >
             <Qr m={m} size={76} />
-            <div style={{ display: 'flex', fontSize: 11, fontWeight: 700, letterSpacing: 2, color: ink, marginTop: 4 }}>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: 2,
+                color: ink,
+                marginTop: 4,
+              }}
+            >
               {m.shortCode}
             </div>
             <SeatTag m={m} color={ink} />
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 18 }}>
-            <div style={{ display: 'flex', fontSize: 12, fontWeight: 700, letterSpacing: 2, color: ink }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginTop: 18,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: 2,
+                color: ink,
+              }}
+            >
               {m.shortCode}
             </div>
             <SeatTag m={m} color={ink} />
@@ -1108,7 +1154,15 @@ export function MandalaArchCard({ m }: { m: CardImageModel }) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ display: 'flex', fontSize: 12, fontWeight: 700, letterSpacing: 2, color: ink }}>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  color: ink,
+                }}
+              >
                 {m.shortCode}
               </div>
               <SeatTag m={m} color={ink} />
@@ -1243,7 +1297,12 @@ function MarigoldGarlandArt() {
         {/* Groom (left) */}
         <g transform="translate(-52, -25)">
           {/* Dhoti / Kurta */}
-          <path d="M -32 70 Q -36 10 -8 0 L 18 5 Q 28 35 18 70 Z" fill="#FBF8F2" stroke="#D8CEBE" strokeWidth="1.2" />
+          <path
+            d="M -32 70 Q -36 10 -8 0 L 18 5 Q 28 35 18 70 Z"
+            fill="#FBF8F2"
+            stroke="#D8CEBE"
+            strokeWidth="1.2"
+          />
           {/* Head & Hair */}
           <circle cx="4" cy="-16" r="14" fill="#E6B89C" />
           <path d="M -10 -18 Q -8 -34 10 -32 Q 20 -26 16 -14 Q 8 -24 -10 -18 Z" fill="#231D1A" />
@@ -1255,7 +1314,12 @@ function MarigoldGarlandArt() {
         {/* Bride (right) */}
         <g transform="translate(34, -10)">
           {/* Red & Gold Saree */}
-          <path d="M -28 55 Q -22 -4 4 -8 L 28 2 Q 48 34 44 55 Z" fill="#C41E22" stroke="#8C1014" strokeWidth="1" />
+          <path
+            d="M -28 55 Q -22 -4 4 -8 L 28 2 Q 48 34 44 55 Z"
+            fill="#C41E22"
+            stroke="#8C1014"
+            strokeWidth="1"
+          />
           <path d="M -10 -4 Q 10 24 38 44" stroke="#E8B84B" strokeWidth="2.5" fill="none" />
           {/* Head & Hair */}
           <circle cx="0" cy="-22" r="13" fill="#EBBFA6" />
@@ -1267,8 +1331,22 @@ function MarigoldGarlandArt() {
 
         {/* Havan Kund (Sacred Fire Altar) */}
         <g transform="translate(0, 62)">
-          <polygon points="-46,16 46,16 56,36 -56,36" fill="#B84220" stroke="#E0A642" strokeWidth="2" />
-          <rect x="-64" y="36" width="128" height="12" rx="2" fill="#9E3316" stroke="#E0A642" strokeWidth="1.5" />
+          <polygon
+            points="-46,16 46,16 56,36 -56,36"
+            fill="#B84220"
+            stroke="#E0A642"
+            strokeWidth="2"
+          />
+          <rect
+            x="-64"
+            y="36"
+            width="128"
+            height="12"
+            rx="2"
+            fill="#9E3316"
+            stroke="#E0A642"
+            strokeWidth="1.5"
+          />
           {/* Flames */}
           <path d="M -18 16 Q -12 -14 0 -24 Q 12 -14 18 16 Z" fill="#F5821F" />
           <path d="M -10 16 Q 0 -6 10 16 Z" fill="#FFD23F" />
@@ -1390,12 +1468,16 @@ export function MarigoldGarlandCard({ m }: { m: CardImageModel }) {
         </div>
 
         {/* Venue & Date */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 18 }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 18 }}
+        >
           <div style={{ display: 'flex', fontSize: 20, fontWeight: 700, color: maroon }}>
             {m.locale === 'sw' ? 'Ukumbi' : 'Venue'}
           </div>
           {m.dateLine ? (
-            <div style={{ display: 'flex', fontSize: 14, color: ink, marginTop: 4 }}>{m.dateLine}</div>
+            <div style={{ display: 'flex', fontSize: 14, color: ink, marginTop: 4 }}>
+              {m.dateLine}
+            </div>
           ) : null}
           {m.venue ? (
             <div
@@ -1415,13 +1497,22 @@ export function MarigoldGarlandCard({ m }: { m: CardImageModel }) {
         </div>
 
         {/* Time / Title */}
-        {(m.timeLine || m.title) ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 14 }}>
+        {m.timeLine || m.title ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginTop: 14,
+            }}
+          >
             <div style={{ display: 'flex', fontSize: 18, fontWeight: 700, color: maroon }}>
               {m.title || (m.locale === 'sw' ? 'Chakula cha Jioni' : 'Dinner')}
             </div>
             {m.timeLine ? (
-              <div style={{ display: 'flex', fontSize: 14, color: ink, marginTop: 2 }}>{m.timeLine}</div>
+              <div style={{ display: 'flex', fontSize: 14, color: ink, marginTop: 2 }}>
+                {m.timeLine}
+              </div>
             ) : null}
           </div>
         ) : null}
@@ -1484,7 +1575,16 @@ export function MarigoldGarlandCard({ m }: { m: CardImageModel }) {
           }}
         >
           <Qr m={m} size={64} />
-          <div style={{ display: 'flex', fontSize: 10, fontFamily: SANS, fontWeight: 700, color: ink, marginTop: 3 }}>
+          <div
+            style={{
+              display: 'flex',
+              fontSize: 10,
+              fontFamily: SANS,
+              fontWeight: 700,
+              color: ink,
+              marginTop: 3,
+            }}
+          >
             {m.shortCode}
           </div>
           <SeatTag m={m} color={ink} />

@@ -140,7 +140,8 @@ export class BrandingService {
       fontDisplay: s.fontDisplay as BrandingInput['fontDisplay'],
       logoUrl: s.logoData && s.logoMime ? `/v1/branding/logo?v=${s.logoVersion}` : null,
       logoMime: s.logoData ? (s.logoMime as LogoMime | null) : null,
-      faviconUrl: s.faviconData && s.faviconMime ? `/v1/branding/favicon?v=${s.faviconVersion}` : null,
+      faviconUrl:
+        s.faviconData && s.faviconMime ? `/v1/branding/favicon?v=${s.faviconVersion}` : null,
       faviconMime: s.faviconData ? (s.faviconMime as LogoMime | null) : null,
       onPrimary: s.primary ? onPrimaryFor(s.primary) : null,
       updatedAt: s.updatedAt.toISOString(),
@@ -375,7 +376,11 @@ export class BrandingService {
     return this.view(caller);
   }
 
-  private toLogoFile(data: string | null, mimeRaw: string | null, version: number): LogoFile | null {
+  private toLogoFile(
+    data: string | null,
+    mimeRaw: string | null,
+    version: number,
+  ): LogoFile | null {
     if (!data || !mimeRaw) return null;
     const mime = mimeRaw as LogoMime;
     const body = mime === 'image/svg+xml' ? Buffer.from(data, 'utf8') : Buffer.from(data, 'base64');

@@ -178,9 +178,7 @@ export function SiteNav({
                               href={l.href}
                               className={cn(
                                 'group flex items-start gap-3.5 rounded-xl p-3 transition-colors',
-                                active
-                                  ? 'bg-[#f6f9fc] text-[#5469d4]'
-                                  : 'hover:bg-[#f6f9fc]',
+                                active ? 'bg-[#f6f9fc] text-[#5469d4]' : 'hover:bg-[#f6f9fc]',
                               )}
                               aria-current={active ? 'page' : undefined}
                             >

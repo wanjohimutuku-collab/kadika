@@ -1,4 +1,14 @@
-import { ArrowUpRight, CheckCircle2, FileText, MessageSquare, QrCode, ShieldCheck, Smartphone, Users, Wallet } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  FileText,
+  MessageSquare,
+  QrCode,
+  ShieldCheck,
+  Smartphone,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { SiteLink as Link } from '@/components/site/site-link';
 import { cardImageRequest } from '@/lib/card-canvas';
 import { PhoneCardMockup } from '@/components/site/home/phone-card-mockup';
@@ -64,7 +74,10 @@ export function Hero(props: HeroProps) {
   ] as const;
 
   return (
-    <section id="header-section" className="relative overflow-hidden border-b border-[#e3e8ee] bg-white">
+    <section
+      id="header-section"
+      className="relative overflow-hidden border-b border-[#e3e8ee] bg-white"
+    >
       {/* Quickwork.co signature animated slanted trapezoid gradient */}
       <div
         aria-hidden="true"

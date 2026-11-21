@@ -195,7 +195,8 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
             {
               '@type': 'Service',
               name: c.title.split(' | ')[0],
-              serviceType: 'Digital e-cards, invitations, RSVP, contribution tracking and QR guest check-in',
+              serviceType:
+                'Digital e-cards, invitations, RSVP, contribution tracking and QR guest check-in',
               provider: { '@id': ORG_ID },
               areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
               availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
@@ -207,7 +208,8 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
               applicationCategory: 'LifestyleApplication',
               operatingSystem: 'Web, Android',
               url: SITE_URL,
-              inLanguage: market === 'ke' ? ['en-KE'] : market === 'ug' ? ['en-UG'] : ['sw-TZ', 'en-TZ'],
+              inLanguage:
+                market === 'ke' ? ['en-KE'] : market === 'ug' ? ['en-UG'] : ['sw-TZ', 'en-TZ'],
               featureList: [
                 'Digital invitations for weddings, parties, community and corporate events',
                 'WhatsApp and SMS digital invitation cards',
@@ -317,7 +319,10 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
       </div>
 
       {/* Platform Bento Grid: Four-step workflow & signature product deep dives */}
-      <section aria-labelledby="jinsi-inavyofanya-kazi" className="bg-[#f6f9fc] pb-16 pt-8 md:pb-24">
+      <section
+        aria-labelledby="jinsi-inavyofanya-kazi"
+        className="bg-[#f6f9fc] pb-16 pt-8 md:pb-24"
+      >
         <Container className="flex flex-col gap-12">
           <SectionHeading id="jinsi-inavyofanya-kazi" eyebrow={c.eyebrows.steps}>
             {c.stepsTitle}

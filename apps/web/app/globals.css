@@ -352,8 +352,7 @@
 .ks-mesh-dark {
   background:
     radial-gradient(50% 70% at 90% 0%, rgb(217 164 65 / 0.22), transparent 70%),
-    radial-gradient(60% 80% at 0% 100%, rgb(200 16 24 / 0.18), transparent 70%),
-    var(--ks-green-900);
+    radial-gradient(60% 80% at 0% 100%, rgb(200 16 24 / 0.18), transparent 70%), var(--ks-green-900);
 }
 /* Saffron-into-magenta band for the final CTA — opposite tonality from the hero
    so the page opens warm, cools through editorial, and closes hot. */

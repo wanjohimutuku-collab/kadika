@@ -243,7 +243,10 @@ describe('MockRepository', () => {
     const confirmed = guests.filter((g) => g.cardKind === 'invitation' && g.status === 'confirmed');
     expect(confirmedJob.total).toBe(confirmed.length);
 
-    const pickedIds = guests.filter((g) => g.cardKind === 'invitation').slice(0, 5).map((g) => g.id);
+    const pickedIds = guests
+      .filter((g) => g.cardKind === 'invitation')
+      .slice(0, 5)
+      .map((g) => g.id);
     const selectedJob = await repo.sendInvitations(ev.id, {
       audience: { kind: 'selected', guestIds: pickedIds },
       channel: 'auto',

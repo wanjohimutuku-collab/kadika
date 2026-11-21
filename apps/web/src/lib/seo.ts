@@ -149,7 +149,14 @@ export function hreflangMap(
   swOverride?: string,
 ): Record<string, string> {
   const abs = absoluteLocaleUrl;
-  const all = [path, ...(Array.isArray(counterpartPath) ? counterpartPath : counterpartPath ? [counterpartPath] : [])];
+  const all = [
+    path,
+    ...(Array.isArray(counterpartPath)
+      ? counterpartPath
+      : counterpartPath
+        ? [counterpartPath]
+        : []),
+  ];
   const tz = all.find((p) => marketOfPath(p) === 'tz');
   const ke = all.find((p) => marketOfPath(p) === 'ke');
   const ug = all.find((p) => marketOfPath(p) === 'ug');

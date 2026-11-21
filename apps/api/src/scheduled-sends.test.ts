@@ -109,6 +109,23 @@ describe('reminders the organiser asks for (ADR 030)', () => {
     expect(await reminders(d.id)).toHaveLength(0);
   });
 
+  it('sends reminders to all selected contacts regardless of invitation status, except opt-outs', async () => {
+    const { ev, t, a, b, c, d } = await invitedFive('0766300007');
+    const unsent = await add(ev.id, t, 'Mgeni Mpya', '0712300005');
+    const res = await send(ev.id, t, {
+      target: { guestIds: [a.id, b.id, c.id, d.id, unsent.id] },
+      kind: 'reminder',
+      channel: 'sms',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ total: 5, sent: 4, skipped: 1, failed: 0 });
+    expect(await reminders(a.id)).toHaveLength(1);
+    expect(await reminders(b.id)).toHaveLength(1);
+    expect(await reminders(c.id)).toHaveLength(1);
+    expect(await reminders(d.id)).toHaveLength(0);
+    expect(await reminders(unsent.id)).toHaveLength(1);
+  });
+
   it('does not text the same guest twice within the cooldown, but may after it', async () => {
     const { ev, t } = await invitedFive('0766300003');
     const ask = () => send(ev.id, t, { target: 'unanswered', kind: 'reminder', channel: 'sms' });

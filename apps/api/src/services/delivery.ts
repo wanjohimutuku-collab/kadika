@@ -721,8 +721,7 @@ export class DeliveryService {
         if (t === 'confirmed') return inv.status === 'confirmed';
         if (t === 'all') return open(inv.status) || inv.status === 'confirmed';
         if (typeof t === 'string') return false;
-        if ('guestIds' in t)
-          return t.guestIds.includes(guest.id) && (open(inv.status) || inv.status === 'confirmed');
+        if ('guestIds' in t) return t.guestIds.includes(guest.id);
         return guest.groupLabel === t.group && open(inv.status);
       });
       return { event, kind, picked };

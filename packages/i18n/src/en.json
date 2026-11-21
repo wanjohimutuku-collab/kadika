@@ -720,6 +720,7 @@
     "selectRow": "Select {name}",
     "selected": "{count, plural, one {# selected} other {# selected}}",
     "bulkSend": "Send",
+    "bulkRemind": "Send reminder",
     "bulkPrint": "Print",
     "bulkGroup": "Change group",
     "bulkDelete": "Delete",

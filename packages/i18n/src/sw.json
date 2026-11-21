@@ -724,6 +724,7 @@
     "selectRow": "Chagua {name}",
     "selected": "{count, plural, one {# amechaguliwa} other {# wamechaguliwa}}",
     "bulkSend": "Tuma",
+    "bulkRemind": "Tuma kikumbusho",
     "bulkPrint": "Chapisha",
     "bulkGroup": "Badilisha kikundi",
     "bulkDelete": "Futa",

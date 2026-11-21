@@ -276,14 +276,16 @@ function GuestsInner({ id }: { id: string }) {
     onError: () => toast({ tone: 'error', title: ts('errorTitle') }),
   });
 
-  const goSendSelected = () => {
+  const chosenGuests = all.filter((g) => selection[g.id]);
+  const onlyContributionSelected =
+    chosenGuests.length > 0 && chosenGuests.every((g) => g.cardKind === 'contribution');
+
+  const goSendSelected = (kind: 'invite' | 'reminder' = 'invite') => {
     sessionStorage.setItem(SELECTED_KEY, JSON.stringify(selectedIds));
-    const chosen = all.filter((g) => selection[g.id]);
-    const onlyContribution =
-      chosen.length > 0 && chosen.every((g) => g.cardKind === 'contribution');
-    router.push(
-      `/app/e/${id}/send?audience=selected${onlyContribution ? '&card=contribution' : ''}`,
-    );
+    const qs = new URLSearchParams({ audience: 'selected' });
+    if (onlyContributionSelected) qs.set('card', 'contribution');
+    else if (kind === 'reminder') qs.set('kind', 'reminder');
+    router.push(`/app/e/${id}/send?${qs.toString()}`);
   };
 
   const toggleSort = (by: SortBy) =>
@@ -831,10 +833,20 @@ function GuestsInner({ id }: { id: string }) {
             <Button
               size="sm"
               icon={<Send className="size-4" aria-hidden="true" />}
-              onClick={goSendSelected}
+              onClick={() => goSendSelected('invite')}
             >
               {t('bulkSend')}
             </Button>
+            {!onlyContributionSelected ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Send className="size-4" aria-hidden="true" />}
+                onClick={() => goSendSelected('reminder')}
+              >
+                {t('bulkRemind')}
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="secondary"

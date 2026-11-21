@@ -1189,7 +1189,7 @@ export class MockRepository implements Repository {
           return invited.filter((g) => g.groupLabel === a.group && open(g));
         case 'selected': {
           const ids = new Set(a.guestIds);
-          return invited.filter((g) => ids.has(g.id) && (open(g) || g.status === 'confirmed'));
+          return invited.filter((g) => ids.has(g.id));
         }
         default:
           return invited.filter((g) => open(g) || g.status === 'confirmed');

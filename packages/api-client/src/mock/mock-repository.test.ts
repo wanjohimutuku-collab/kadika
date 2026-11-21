@@ -242,6 +242,17 @@ describe('MockRepository', () => {
     });
     const confirmed = guests.filter((g) => g.cardKind === 'invitation' && g.status === 'confirmed');
     expect(confirmedJob.total).toBe(confirmed.length);
+
+    const pickedIds = guests.filter((g) => g.cardKind === 'invitation').slice(0, 5).map((g) => g.id);
+    const selectedJob = await repo.sendInvitations(ev.id, {
+      audience: { kind: 'selected', guestIds: pickedIds },
+      channel: 'auto',
+      whatsappFallbackToSms: true,
+      scheduleAt: null,
+      kind: 'reminder',
+      idempotencyKey: 'rm3',
+    });
+    expect(selectedJob.total).toBe(pickedIds.length);
   });
 
   it('records a manual payment once per idempotency key and updates the balance', async () => {

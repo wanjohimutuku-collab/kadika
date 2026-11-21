@@ -49,7 +49,8 @@ describe('Firebase-only phone sign-in for web', () => {
   });
 
   it('throws FirebasePhoneError without falling back to SMS when Firebase refuses (503, error 39)', async () => {
-    const { startPhoneSignIn, hasPendingCode, FirebasePhoneError } = await import('./firebase-phone');
+    const { startPhoneSignIn, hasPendingCode, FirebasePhoneError } =
+      await import('./firebase-phone');
     signInWithPhoneNumber.mockRejectedValue(
       Object.assign(new Error('Firebase: Error (auth/error-code:-39).'), {
         code: 'auth/error-code:-39',

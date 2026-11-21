@@ -30,6 +30,7 @@ import { defaultCustomElements, pick } from '@harusi/schemas';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { canonicalFont } from '@/lib/card-image/custom-layout';
+import { ornateStudioPreset, type OrnatePresetId } from '@/lib/card-image/ornate-presets';
 import { CardCanvasView } from './card-canvas-view';
 import {
   ACCENT_SWATCHES,
@@ -265,8 +266,18 @@ export function CardStudioModal({
       | 'modernClean'
       | 'roseRomantic'
       | 'botanicalSage'
-      | 'midnightLuxury',
+      | 'midnightLuxury'
+      | OrnatePresetId,
   ) => {
+    if (
+      presetName === 'floralCorner' ||
+      presetName === 'wildflowerArch' ||
+      presetName === 'mandalaArch' ||
+      presetName === 'marigoldGarland'
+    ) {
+      setDesign(ornateStudioPreset(presetName));
+      return;
+    }
     if (presetName === 'classicGold') {
       setDesign({
         background: { type: 'color', color: '#FAF7F2' },
@@ -1514,6 +1525,110 @@ export function CardStudioModal({
                             {locale === 'sw'
                               ? 'Gradient ya bluu ya usiku, fremu na maandishi ya dhahabu maridadi'
                               : 'Midnight navy gradient, double gold frame, champagne gold typography'}
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Floral Corner */}
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('floralCorner')}
+                        className="group flex items-start gap-3 rounded-xl border border-border bg-surface p-3.5 text-left transition-all hover:border-primary hover:shadow-sm"
+                      >
+                        <span className="mt-0.5 size-7 shrink-0 rounded-lg border border-[#A43242]/30 bg-[#FAF7F0] shadow-xs flex items-center justify-center font-serif text-xs font-bold text-[#A43242]">
+                          Aa
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-xs md:text-sm text-ink group-hover:text-primary">
+                              {locale === 'sw' ? 'Maua ya Pembeni' : 'Floral Corner'}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-[#A43242] bg-[#A43242]/10 px-1.5 py-0.5 rounded">
+                              {locale === 'sw' ? 'Mpya' : 'New'}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-muted line-clamp-2">
+                            {locale === 'sw'
+                              ? 'Karatasi ya krimu yenye mashada ya maua pembeni na mwandiko wa kifahari'
+                              : 'Warm ivory paper with autumn watercolor corner bouquets and flowing script'}
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Wildflower Arch */}
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('wildflowerArch')}
+                        className="group flex items-start gap-3 rounded-xl border border-border bg-surface p-3.5 text-left transition-all hover:border-primary hover:shadow-sm"
+                      >
+                        <span className="mt-0.5 size-7 shrink-0 rounded-lg border border-[#B29456]/40 bg-[#F9F7F2] shadow-xs flex items-center justify-center font-serif text-xs font-bold text-[#7E6D41]">
+                          Aa
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-xs md:text-sm text-ink group-hover:text-primary">
+                              {locale === 'sw' ? 'Tao la Maua' : 'Wildflower Arch'}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-[#7E6D41] bg-[#B29456]/15 px-1.5 py-0.5 rounded">
+                              {locale === 'sw' ? 'Mpya' : 'New'}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-muted line-clamp-2">
+                            {locale === 'sw'
+                              ? 'Tao la dhahabu lililopambwa na maua ya porini na majani'
+                              : 'Gold lattice arch framed by climbing wildflowers and greenery'}
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Mandala Arch */}
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('mandalaArch')}
+                        className="group flex items-start gap-3 rounded-xl border border-border bg-surface p-3.5 text-left transition-all hover:border-primary hover:shadow-sm"
+                      >
+                        <span className="mt-0.5 size-7 shrink-0 rounded-lg border border-[#A48642]/40 bg-[#FCF9EE] shadow-xs flex items-center justify-center font-serif text-xs font-bold text-[#5E4923]">
+                          Aa
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-xs md:text-sm text-ink group-hover:text-primary">
+                              {locale === 'sw' ? 'Tao la Mandala' : 'Mandala Arch'}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-[#5E4923] bg-[#A48642]/15 px-1.5 py-0.5 rounded">
+                              {locale === 'sw' ? 'Mpya' : 'New'}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-muted line-clamp-2">
+                            {locale === 'sw'
+                              ? 'Mandala ya dhahabu na manyoya juu ya tao jeupe la kifahari'
+                              : 'Gold mandala & hanging feathers above a scalloped white arch'}
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Marigold Garland */}
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('marigoldGarland')}
+                        className="group flex items-start gap-3 rounded-xl border border-border bg-surface p-3.5 text-left transition-all hover:border-primary hover:shadow-sm"
+                      >
+                        <span className="mt-0.5 size-7 shrink-0 rounded-lg border border-[#EB6D14]/40 bg-[#FBF8F0] shadow-xs flex items-center justify-center font-serif text-xs font-bold text-[#5E1A22]">
+                          Aa
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-xs md:text-sm text-ink group-hover:text-primary">
+                              {locale === 'sw' ? 'Maua ya Harusi' : 'Marigold Garland'}
+                            </span>
+                            <span className="text-[10px] uppercase font-bold text-[#5E1A22] bg-[#EB6D14]/15 px-1.5 py-0.5 rounded">
+                              {locale === 'sw' ? 'Mpya' : 'New'}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-muted line-clamp-2">
+                            {locale === 'sw'
+                              ? 'Taji za maua ya njano na meupe, tao la dhahabu na picha ya sherehe'
+                              : 'Marigold & jasmine garlands, scalloped gold arch, and ceremonial motif'}
                           </p>
                         </div>
                       </button>

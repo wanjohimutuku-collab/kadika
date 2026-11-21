@@ -18,10 +18,14 @@ import { SITE_UI } from '@/content/site-ui';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
 
-const link = (p: ContentPageDef, locale: Locale) => ({
-  href: localeUrl(pagePath(p, locale), locale),
-  label: textOf(p, locale).nav,
-});
+const link = (p: ContentPageDef, locale: Locale) => {
+  const t = textOf(p, locale);
+  return {
+    href: localeUrl(pagePath(p, locale), locale),
+    label: t.nav,
+    description: t.description,
+  };
+};
 
 /**
  * Public site shell (kit brand.md + sitemap.md): `.ks` brand scope, Figtree, header with at most five
@@ -30,9 +34,10 @@ const link = (p: ContentPageDef, locale: Locale) => ({
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const locale = (await getLocale()) as Locale;
   const h = await headers();
-  const market = h.get('x-hp-market') === 'ke' ? 'ke' : 'tz';
-  const path = h.get('x-hp-path') ?? (market === 'ke' ? '/ke' : '/');
-  const edition: SiteEdition = market === 'ke' ? 'ke' : locale;
+  const rawMarket = h.get('x-hp-market');
+  const market = rawMarket === 'ke' ? 'ke' : rawMarket === 'ug' ? 'ug' : 'tz';
+  const path = h.get('x-hp-path') ?? (market === 'tz' ? '/' : `/${market}`);
+  const edition: SiteEdition = market === 'tz' ? locale : market;
   const ui = SITE_UI[edition];
   const targets = editionTargets(path, locale);
   const tzPage = (slug: string) => getPage(slug);
@@ -41,12 +46,12 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const faq = tzPage('maswali');
 
   const groups =
-    market === 'ke'
+    market !== 'tz'
       ? [
           {
             id: 'guides',
             label: ui.guides,
-            links: pagesOf('ke')
+            links: pagesOf(market)
               .filter((p) => p.slug && p.group !== 'legal')
               .map((p) => link(p, 'en')),
           },
@@ -65,8 +70,8 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       ? [
           {
             href: localeUrl(
-              pagePath(about, market === 'ke' ? 'en' : locale),
-              market === 'ke' ? 'en' : locale,
+              pagePath(about, market !== 'tz' ? 'en' : locale),
+              market !== 'tz' ? 'en' : locale,
             ),
             label: ui.about,
           },
@@ -74,26 +79,29 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       : []),
   ];
   const cta =
-    market === 'ke'
+    market !== 'tz'
       ? { href: contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/', label: ui.cta }
       : { href: '/login', label: ui.cta };
 
-  const footerLocale: Locale = market === 'ke' ? 'en' : locale;
+  const footerLocale: Locale = market !== 'tz' ? 'en' : locale;
   const columns: FooterColumn[] =
-    market === 'ke'
+    market !== 'tz'
       ? [
           {
             title: ui.guides,
-            links: pagesOf('ke')
+            links: pagesOf(market)
               .filter((p) => p.group !== 'legal')
               .map((p) => link(p, 'en')),
           },
           { title: ui.company, links: pagesIn('company').map((p) => link(p, 'en')) },
           {
             title: ui.legal,
-            links: pagesOf('ke')
-              .filter((p) => p.group === 'legal')
-              .map((p) => link(p, 'en')),
+            links:
+              market === 'ke'
+                ? pagesOf('ke')
+                    .filter((p) => p.group === 'legal')
+                    .map((p) => link(p, 'en'))
+                : pagesIn('legal').map((p) => link(p, 'en')),
           },
         ]
       : [
@@ -112,7 +120,12 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const bottomLinks = [
     { href: '/k', label: ui.card },
     ...(faq ? [{ href: localeUrl(pagePath(faq, footerLocale), footerLocale), label: ui.faq }] : []),
-    ...(market === 'tz' ? [{ href: '/ke', label: ui.kenya }] : []),
+    ...(market === 'tz'
+      ? [
+          { href: '/ke', label: ui.kenya },
+          { href: '/ug', label: ui.uganda },
+        ]
+      : []),
   ];
 
   return (
@@ -133,7 +146,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         <SiteNav
           brand={
             <Link
-              href={market === 'ke' ? '/ke' : localeUrl('/', locale)}
+              href={market !== 'tz' ? `/${market}` : localeUrl('/', locale)}
               className="inline-flex min-h-11 items-center text-xl"
             >
               <BrandMark />

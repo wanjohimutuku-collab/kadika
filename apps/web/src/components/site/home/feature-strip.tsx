@@ -37,22 +37,22 @@ export function FeatureStrip({
           const Icon = ICONS[i] ?? IdCard;
           const href = rowHrefs?.[i];
           return (
-            <article key={row.title} className="ks-bezel ks-bento flex">
-              <div className="ks-core flex w-full flex-col gap-4 p-6">
+            <article key={row.title} className="qw-card flex">
+              <div className="flex w-full flex-col gap-4 p-6">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex size-10 items-center justify-center rounded-xl bg-ks-green-100 text-ks-green-700">
+                  <span className="inline-flex size-10 items-center justify-center rounded-xl bg-[#f6f9fc] text-[#5469d4] ring-1 ring-[#e3e8ee]">
                     <Icon className="size-5" strokeWidth={1.75} aria-hidden="true" />
                   </span>
-                  <span className="rounded-full bg-ks-paper px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ks-muted ring-1 ring-ks-line">
+                  <span className="rounded-full border border-[#e3e8ee] bg-[#f6f9fc] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5469d4]">
                     {row.eyebrow}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold leading-snug text-ks-ink">{row.title}</h3>
-                <ul className="flex flex-col gap-2 text-sm leading-relaxed text-ks-muted">
+                <h3 className="text-lg font-bold leading-snug text-[#0a2640]">{row.title}</h3>
+                <ul className="flex flex-col gap-2 text-sm leading-relaxed text-[#494d59]">
                   {row.bullets.map((b) => (
                     <li key={b} className="flex items-start gap-2">
                       <Check
-                        className="mt-1 size-3.5 shrink-0 text-ks-green-700"
+                        className="mt-1 size-3.5 shrink-0 text-[#5469d4]"
                         strokeWidth={2.2}
                         aria-hidden="true"
                       />
@@ -63,7 +63,7 @@ export function FeatureStrip({
                 {row.linkLabel && href ? (
                   <Link
                     href={href}
-                    className="group mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-semibold text-ks-green-700 underline-offset-4 hover:underline"
+                    className="group mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-semibold text-[#5469d4] underline-offset-4 hover:text-[#0a2640] hover:underline"
                   >
                     <span>{row.linkLabel}</span>
                     <ArrowUpRight
@@ -76,27 +76,24 @@ export function FeatureStrip({
             </article>
           );
         })}
-        {/* Highlight promo tile in dark emerald with gold accents */}
-        <article className="ks-bezel ks-bento flex">
-          <div className="ks-mesh-dark relative flex w-full flex-col justify-between gap-4 overflow-hidden rounded-[calc(2rem-0.375rem)] p-6 text-white">
-            <div aria-hidden="true" className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-85" />
+        {/* Highlight promo tile in Quickwork navy */}
+        <article className="qw-navy-band relative flex overflow-hidden rounded-[1.25rem] border border-[#5469d4]/30 text-white shadow-[0_18px_40px_-18px_rgb(10_38_64/0.45)]">
+          <div className="flex w-full flex-col justify-between gap-4 p-6">
             <div className="flex flex-col gap-3 pt-1">
-              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ks-gold-100 ring-1 ring-white/15">
-                <Sparkles className="size-3 text-ks-gold-500" aria-hidden="true" />
-                Pilot
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#90e0ff] ring-1 ring-white/15">
+                <Sparkles className="size-3 text-[#7dff7a]" aria-hidden="true" />
+                Free Start
               </span>
-              <p className="font-serif text-[34px] font-bold leading-none text-ks-gold-100">
-                {promoTitle}
-              </p>
-              <p className="text-sm leading-relaxed text-white/85">{promoBody}</p>
+              <p className="text-[32px] font-bold leading-none text-white">{promoTitle}</p>
+              <p className="text-sm leading-relaxed text-white/80">{promoBody}</p>
             </div>
             <Link
               href={promoHref}
-              className="group mt-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ks-green-900 transition hover:bg-ks-gold-100"
+              className="group mt-auto inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-[#0a2640] transition hover:bg-[#f6f9fc]"
             >
               <span>{promoCta ?? promoTitle}</span>
               <ArrowUpRight
-                className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-px"
+                className="size-4 text-[#5469d4] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-px"
                 aria-hidden="true"
               />
             </Link>

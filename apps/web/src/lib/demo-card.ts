@@ -9,7 +9,14 @@ import { themeIds, type ThemeId } from '@harusi/ui-tokens/themes';
  */
 
 export type DemoEventType =
-  'harusi' | 'send-off' | 'kitchen-party' | 'nikah' | 'uchumba' | 'kuzaliwa' | 'mahafali';
+  | 'harusi'
+  | 'send-off'
+  | 'kitchen-party'
+  | 'nikah'
+  | 'uchumba'
+  | 'kuzaliwa'
+  | 'mahafali'
+  | 'biashara';
 
 export interface DemoInput {
   names: string;
@@ -45,6 +52,7 @@ export const DEMO_EVENT_TYPES = [
   'uchumba',
   'kuzaliwa',
   'mahafali',
+  'biashara',
 ] as const satisfies readonly DemoEventType[];
 
 /** Not a signed token: deliberately shaped unlike real `v1.<eventId>.<guestId>.<party>.<ver>.<sig>`. */
@@ -83,6 +91,10 @@ export const DEMO_THEME_BY_EVENT: Record<
     themeId: 'navy-silver',
     coverGradient: 'linear-gradient(135deg,#1F3A5F 0%,#8A96A3 100%)',
   },
+  biashara: {
+    themeId: 'navy-silver',
+    coverGradient: 'linear-gradient(135deg,#1F3A5F 0%,#8A96A3 100%)',
+  },
 };
 
 const EVENT_KIND_BY_TYPE: Record<DemoEventType, string> = {
@@ -93,13 +105,16 @@ const EVENT_KIND_BY_TYPE: Record<DemoEventType, string> = {
   uchumba: 'Uchumba',
   kuzaliwa: 'Siku ya kuzaliwa',
   mahafali: 'Mahafali',
+  biashara: 'Corporate Event',
 };
 
 function splitNames(names: string): { a: string; b: string; joined: string } {
   const joined = (names || '').trim() || 'Asha & Juma';
   const parts = joined.split(/\s*[&+]\s*/).filter(Boolean);
-  const [a, b] = parts.length >= 2 ? [parts[0]!, parts[1]!] : ['Asha', 'Juma'];
-  return { a, b, joined };
+  if (parts.length >= 2) {
+    return { a: parts[0]!, b: parts[1]!, joined };
+  }
+  return { a: joined, b: '', joined };
 }
 
 function sanitiseDate(dateISO: string): string {

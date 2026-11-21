@@ -35,10 +35,10 @@ export interface PageText {
 
 export type PageGroup = 'product' | 'guide' | 'company' | 'legal';
 
-export type Market = 'tz' | 'ke';
+export type Market = 'tz' | 'ke' | 'ug';
 
 export interface ContentPageDef {
-  /** Market the page targets; Tanzania is the default. Kenya pages live under `/ke`. */
+  /** Market the page targets; Tanzania is the default. Kenya pages live under `/ke`; Uganda under `/ug`. */
   market?: Market;
   /** Same-topic page in the other market, for cross-market hreflang. */
   counterpart?: { market: Market; slug: string };

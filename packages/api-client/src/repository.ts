@@ -375,6 +375,9 @@ export interface Repository {
   /** `data` is the SVG source, or base64 for PNG, JPEG and WebP. Refused (`validation`) if unsafe. */
   opsSetLogo(file: { mime: string; data: string }): Promise<BrandingView>;
   opsRemoveLogo(): Promise<BrandingView>;
+  /** `data` is the SVG source, or base64 for PNG, JPEG and WebP. Refused (`validation`) if unsafe. */
+  opsSetFavicon(file: { mime: string; data: string }): Promise<BrandingView>;
+  opsRemoveFavicon(): Promise<BrandingView>;
   /** The Android APK on /programu (ADR 047): null until admin staff upload one. */
   opsAndroidRelease(): Promise<AndroidRelease | null>;
   opsUploadAndroidApp(file: Blob, version: string): Promise<AndroidRelease>;

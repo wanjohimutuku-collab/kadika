@@ -28,6 +28,26 @@ const TEMPLATE_INFO: { id: CardTemplate; labelKey: string; hintKey: string }[] =
   { id: 'modern', labelKey: 'cards.templateModern', hintKey: 'cards.templateModernHint' },
   { id: 'script', labelKey: 'cards.templateScript', hintKey: 'cards.templateScriptHint' },
   { id: 'botanical', labelKey: 'cards.templateBotanical', hintKey: 'cards.templateBotanicalHint' },
+  {
+    id: 'floral-corner',
+    labelKey: 'cards.templateFloralCorner',
+    hintKey: 'cards.templateFloralCornerHint',
+  },
+  {
+    id: 'wildflower-arch',
+    labelKey: 'cards.templateWildflowerArch',
+    hintKey: 'cards.templateWildflowerArchHint',
+  },
+  {
+    id: 'mandala-arch',
+    labelKey: 'cards.templateMandalaArch',
+    hintKey: 'cards.templateMandalaArchHint',
+  },
+  {
+    id: 'marigold-garland',
+    labelKey: 'cards.templateMarigoldGarland',
+    hintKey: 'cards.templateMarigoldGarlandHint',
+  },
   { id: 'custom', labelKey: 'cards.templateCustom', hintKey: 'cards.templateCustomHint' },
 ];
 

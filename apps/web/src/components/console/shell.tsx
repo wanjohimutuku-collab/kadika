@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { DropdownMenu } from 'radix-ui';
 import {
+  ArrowLeft,
   BarChart3,
   ChevronDown,
   CircleUserRound,
@@ -486,27 +487,52 @@ function EventsSidebar() {
         href="/app"
         aria-current={pathname === '/app' ? 'page' : undefined}
         className={cn(
-          'flex min-h-11 items-center gap-3 rounded-input px-3 font-medium',
+          'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm font-medium transition-colors',
           pathname === '/app' ? 'bg-primary/10 text-primary' : 'text-ink hover:bg-ink/5',
         )}
       >
-        <LayoutGrid className="size-6" aria-hidden="true" />
+        <LayoutGrid className="size-5 shrink-0" aria-hidden="true" />
         {t('events')}
       </Link>
+      <Link
+        href="/app/account"
+        aria-current={pathname === '/app/account' ? 'page' : undefined}
+        className={cn(
+          'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm font-medium transition-colors',
+          pathname === '/app/account' ? 'bg-primary/10 text-primary' : 'text-ink hover:bg-ink/5',
+        )}
+      >
+        <CircleUserRound className="size-5 shrink-0" aria-hidden="true" />
+        {t('account')}
+      </Link>
       {list.length ? (
-        <ul className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3">
-          {list.map((e) => (
-            <li key={e.id}>
-              <Link
-                href={`/app/e/${e.id}`}
-                className="flex min-h-11 items-center gap-3 rounded-input px-3 text-ink hover:bg-ink/5"
-              >
-                <Avatar name={e.coupleNames} size={28} />
-                <span className="truncate">{e.coupleNames}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="mb-1.5 px-3 text-[11px] font-semibold tracking-wider text-muted uppercase">
+            {t('sectionEventsList')}
+          </p>
+          <ul className="flex flex-col gap-0.5">
+            {list.map((e) => {
+              const active = pathname.startsWith(`/app/e/${e.id}`);
+              return (
+                <li key={e.id}>
+                  <Link
+                    href={`/app/e/${e.id}`}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm transition-colors',
+                      active
+                        ? 'bg-primary/10 font-medium text-primary'
+                        : 'text-ink hover:bg-ink/5',
+                    )}
+                  >
+                    <Avatar name={e.coupleNames} size={28} />
+                    <span className="truncate">{e.coupleNames}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ) : null}
     </nav>
   );
@@ -531,7 +557,6 @@ export function ConsoleShell({
     ? navItems(eventId, event?.product, event?.eventKind, event?.pledgesEnabled)
     : null;
   const visibleSecondary = nav?.secondary.filter((n) => isOwner || !n.ownerOnly) ?? [];
-  const all = nav ? [...nav.primary, ...visibleSecondary] : [];
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[248px_1fr]">
@@ -553,7 +578,17 @@ export function ConsoleShell({
             aria-label={t('mainNav')}
             className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3"
           >
-            {all.map((n, idx) => {
+            <Link
+              href="/app"
+              className="mb-2 flex min-h-10 items-center gap-2.5 rounded-input px-3 text-xs font-semibold text-muted transition-colors hover:bg-ink/5 hover:text-ink"
+            >
+              <ArrowLeft className="size-4 shrink-0" aria-hidden="true" />
+              {t('backToEvents')}
+            </Link>
+            <p className="mb-1 px-3 text-[11px] font-semibold tracking-wider text-muted uppercase">
+              {t('sectionEvent')}
+            </p>
+            {nav.primary.map((n) => {
               const active = isActive(pathname, n.href, n.key === 'overview');
               return (
                 <Link
@@ -561,27 +596,71 @@ export function ConsoleShell({
                   href={n.href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'flex min-h-11 items-center gap-3 rounded-input px-3 font-medium',
+                    'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm font-medium transition-colors',
                     active ? 'bg-primary/10 text-primary' : 'text-ink hover:bg-ink/5',
-                    idx === nav.primary.length && 'mt-3',
                   )}
                 >
                   {n.icon}
-                  {t(n.key)}
+                  <span className="truncate">{t(n.key)}</span>
                 </Link>
               );
             })}
+            {visibleSecondary.length ? (
+              <>
+                <p className="mt-4 mb-1 border-t border-border px-3 pt-3 text-[11px] font-semibold tracking-wider text-muted uppercase">
+                  {t('sectionManage')}
+                </p>
+                {visibleSecondary.map((n) => {
+                  const active = isActive(pathname, n.href, false);
+                  return (
+                    <Link
+                      key={n.key}
+                      href={n.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm font-medium transition-colors',
+                        active ? 'bg-primary/10 text-primary' : 'text-ink hover:bg-ink/5',
+                      )}
+                    >
+                      {n.icon}
+                      <span className="truncate">{t(n.key)}</span>
+                    </Link>
+                  );
+                })}
+              </>
+            ) : null}
           </nav>
         ) : (
           <EventsSidebar />
         )}
-        {/* The header already carries the language switch on md+, so the sidebar footer offers a new event instead of a second copy of it. */}
-        <div className="border-t border-border p-3">
+        {/* The header already carries the language switch on md+, so the sidebar footer offers quick actions instead. */}
+        <div className="flex flex-col gap-0.5 border-t border-border p-3">
+          {nav ? (
+            <Link
+              href="/app/account"
+              aria-current={pathname === '/app/account' ? 'page' : undefined}
+              className={cn(
+                'flex min-h-10 items-center gap-3 rounded-input px-3 text-sm font-medium transition-colors',
+                pathname === '/app/account'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted hover:bg-ink/5 hover:text-ink',
+              )}
+            >
+              <CircleUserRound className="size-5 shrink-0" aria-hidden="true" />
+              {t('account')}
+            </Link>
+          ) : null}
           <Link
             href="/app/events/new"
-            className="flex min-h-11 items-center gap-3 rounded-input px-3 font-semibold text-primary hover:bg-primary/8"
+            aria-current={pathname === '/app/events/new' ? 'page' : undefined}
+            className={cn(
+              'flex min-h-11 items-center gap-3 rounded-input px-3 text-sm font-semibold transition-colors',
+              pathname === '/app/events/new'
+                ? 'bg-primary/12 text-primary'
+                : 'text-primary hover:bg-primary/8',
+            )}
           >
-            <Plus className="size-5" aria-hidden="true" />
+            <Plus className="size-5 shrink-0" aria-hidden="true" />
             {t('newEvent')}
           </Link>
         </div>
@@ -602,7 +681,7 @@ export function ConsoleShell({
           aria-label={t('mainNav')}
           className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
         >
-          <ul className="grid grid-cols-5">
+          <ul className={cn('grid', nav.primary.length === 4 ? 'grid-cols-4' : 'grid-cols-5')}>
             {nav.primary.map((n) => {
               const active = isActive(pathname, n.href, n.key === 'overview');
               return (

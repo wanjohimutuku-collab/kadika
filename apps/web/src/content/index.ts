@@ -9,11 +9,12 @@ import { OCCASION_PAGES } from './pages/occasions';
 import { ARTICLE_PAGES } from './pages/articles';
 import { GEO_PAGES } from './pages/geo';
 import { EXPANSIONS } from './pages/expansions';
+import { UGANDA_PAGES } from './pages/uganda';
 import type { ContentPageDef, Market, PageGroup, PageText } from './types';
 
 /** Appends the worked examples and extra answers from `pages/expansions` to Tanzania pages. */
 function withExpansions(p: ContentPageDef): ContentPageDef {
-  const x = p.market === 'ke' ? undefined : EXPANSIONS[p.slug];
+  const x = p.market && p.market !== 'tz' ? undefined : EXPANSIONS[p.slug];
   if (!x) return p;
   const merge = (t: PageText, add: (typeof x)['sw']): PageText => ({
     ...t,
@@ -33,6 +34,7 @@ export const ALL_PAGES: ContentPageDef[] = [
   ...LEGAL_PAGES,
   ...KENYA_PAGES,
   ...KENYA_LEGAL_PAGES,
+  ...UGANDA_PAGES,
 ].map(withExpansions);
 
 export const marketOf = (p: ContentPageDef): Market => p.market ?? 'tz';
@@ -44,9 +46,9 @@ export function getPage(slug: string, market: Market = 'tz'): ContentPageDef | u
   return BY_KEY.get(key(market, slug));
 }
 
-/** Resolves a `related` entry: plain slug (same market) or `tz:slug` / `ke:slug`. */
+/** Resolves a `related` entry: plain slug (same market) or `tz:slug` / `ke:slug` / `ug:slug`. */
 export function resolveRelated(from: ContentPageDef, ref: string): ContentPageDef | undefined {
-  const m = /^(tz|ke):(.*)$/.exec(ref);
+  const m = /^(tz|ke|ug):(.*)$/.exec(ref);
   return m ? getPage(m[2]!, m[1] as Market) : getPage(ref, marketOf(from));
 }
 
@@ -55,9 +57,12 @@ export function resolveRelated(from: ContentPageDef, ref: string): ContentPageDe
  *   - TZ `en`: `/<slugEn>`
  *   - TZ `sw`: `/<slug>` (SW slug; `localeUrl` wraps this with `/sw`)
  *   - KE    : `/ke/<slug>` (KE slug is English; `slugEn === slug`)
+ *   - UG    : `/ug/<slug>` (UG slug is English; `slugEn === slug`)
  */
 export function pagePath(p: ContentPageDef, locale: Locale): string {
-  if (marketOf(p) === 'ke') return p.slug ? `/ke/${p.slug}` : '/ke';
+  const m = marketOf(p);
+  if (m === 'ke') return p.slug ? `/ke/${p.slug}` : '/ke';
+  if (m === 'ug') return p.slug ? `/ug/${p.slug}` : '/ug';
   const s = locale === 'en' ? p.slugEn : p.slug;
   return `/${s}`;
 }
@@ -90,7 +95,8 @@ export function pageBySlug(
  * Returns `null` when the path is already canonical, the home, a `/ke` path, or unknown.
  */
 export function routeSlugRedirect(path: string): string | null {
-  if (path === '/' || path === '/sw' || path.startsWith('/ke')) return null;
+  if (path === '/' || path === '/sw' || path.startsWith('/ke') || path.startsWith('/ug'))
+    return null;
   const sw = path.startsWith('/sw/');
   const slug = sw ? path.slice(4) : path.slice(1);
   if (!slug || slug.includes('/')) return null;

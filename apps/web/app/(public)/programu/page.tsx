@@ -158,6 +158,22 @@ export default async function AppDownloadPage() {
           <div className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80" aria-hidden="true" />
           <div className="grid gap-10 px-6 py-14 md:grid-cols-[1fr_auto] md:items-center md:px-12 md:py-20">
             <div className="flex flex-col gap-5">
+              <nav aria-label="Breadcrumb" className="text-sm text-white/75">
+                <ol className="flex flex-wrap items-center gap-1.5">
+                  <li>
+                    <Link
+                      href={localeUrl('/', locale)}
+                      className="inline-flex min-h-10 items-center underline underline-offset-4 hover:text-white"
+                    >
+                      {locale === 'sw' ? 'Nyumbani' : 'Home'}
+                    </Link>
+                  </li>
+                  <li aria-hidden="true">/</li>
+                  <li aria-current="page" className="text-white">
+                    {locale === 'sw' ? 'Programu ya Android' : 'Android app'}
+                  </li>
+                </ol>
+              </nav>
               <OrnamentDiamond className="[--hp-pattern:#D9B26A]" />
               <p className="inline-flex items-center gap-2 text-sm font-semibold tracking-wide uppercase opacity-90">
                 <Smartphone className="size-5" aria-hidden="true" />
@@ -244,23 +260,23 @@ export default async function AppDownloadPage() {
       </section>
 
       <section
-        className="mx-auto max-w-[1120px] px-4 py-20 md:px-6 md:py-28"
+        className="mx-auto max-w-[1120px] px-4 py-16 md:px-6 md:py-24"
         aria-labelledby="app-features"
       >
         <h2
           id="app-features"
-          className="max-w-2xl text-[28px] leading-[1.1] font-bold tracking-[-0.02em] md:text-[44px]"
+          className="max-w-2xl text-[28px] leading-[1.1] font-bold tracking-[-0.02em] text-ks-green-900 md:text-[44px]"
         >
           {t('featuresTitle')}
         </h2>
         <ul className="mt-10 grid gap-5 md:grid-cols-3">
           {FEATURES.map(({ key, icon: Icon }) => (
-            <li key={key} className="ks-bezel ks-reveal">
+            <li key={key} className="ks-bezel ks-bento ks-reveal">
               <div className="ks-core flex h-full flex-col gap-4 p-6 md:p-8">
                 <span className="flex size-12 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700">
                   <Icon className="size-6" strokeWidth={1.75} aria-hidden="true" />
                 </span>
-                <h3 className="text-xl font-semibold">{t(`features.${key}.title`)}</h3>
+                <h3 className="text-xl font-semibold text-ks-ink">{t(`features.${key}.title`)}</h3>
                 <p className="leading-relaxed text-ks-muted">{t(`features.${key}.body`)}</p>
               </div>
             </li>
@@ -272,12 +288,14 @@ export default async function AppDownloadPage() {
         <div className="ks-bezel">
           <div className="ks-core flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div className="flex gap-3">
-              <Ticket className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden="true" />
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-ks-green-100 text-ks-green-700">
+                <Ticket className="size-5" aria-hidden="true" />
+              </span>
               <div>
-                <h2 id="app-guest" className="text-xl font-semibold">
+                <h2 id="app-guest" className="text-xl font-semibold text-ks-ink">
                   {t('guestTitle')}
                 </h2>
-                <p className="mt-1 text-muted">{t('guestBody')}</p>
+                <p className="mt-1 text-ks-muted">{t('guestBody')}</p>
               </div>
             </div>
             <Link href="/k" className={buttonClasses('secondary', 'md', 'shrink-0')}>
@@ -285,11 +303,11 @@ export default async function AppDownloadPage() {
             </Link>
           </div>
         </div>
-        <p className="mt-6 flex items-start gap-2 text-sm text-muted">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden="true" />
+        <p className="mt-6 flex items-start gap-2 text-sm text-ks-muted">
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-ks-ok" aria-hidden="true" />
           <span>{t('trust')}</span>
         </p>
-        <p className="mt-2 flex flex-wrap items-center gap-4 text-sm">
+        <p className="mt-2 flex flex-wrap items-center gap-4 text-sm text-ks-ink">
           <Link
             href={localeUrl('/maswali', locale)}
             className="inline-flex min-h-12 items-center underline"

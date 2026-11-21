@@ -6,7 +6,7 @@ import { SITE_URL } from '@/lib/seo';
 import { SHOW_DEV_TOOLS } from '@/lib/env';
 import { DevPanelLauncher } from '@/components/dev/dev-panel-launcher';
 import { BrandProvider } from '@/components/brand/brand-provider';
-import { brandStyle } from '@/lib/branding';
+import { brandStyle, resolveLogoSrc } from '@/lib/branding';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import './globals.css';
 
@@ -15,12 +15,21 @@ export async function generateMetadata(): Promise<Metadata> {
   // The business name staff chose in /ops/settings (ADR 036); the default brand is the translated name.
   const brand = await getBrandingOnServer();
   const name = brand.updatedAt ? brand.businessName : t('appName');
+  const faviconSrc = resolveLogoSrc(brand.faviconUrl);
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: name, template: `%s · ${name}` },
     description: brand.tagline || t('tagline'),
     applicationName: name,
     formatDetection: { telephone: false },
+    ...(faviconSrc
+      ? {
+          icons: {
+            icon: [{ url: faviconSrc, type: brand.faviconMime ?? undefined }],
+            shortcut: [faviconSrc],
+          },
+        }
+      : {}),
   };
 }
 

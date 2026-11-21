@@ -887,6 +887,9 @@ export function createHttpRepository(
     async opsSetLogo(file) {
       return call<BrandingView>('PUT', '/v1/ops/branding/logo', file);
     },
+    async opsSetFavicon(file) {
+      return call<BrandingView>('PUT', '/v1/ops/branding/favicon', file);
+    },
     async opsAndroidRelease() {
       return (await call<{ release: AndroidRelease | null }>('GET', '/v1/ops/app/android')).release;
     },
@@ -902,6 +905,9 @@ export function createHttpRepository(
     },
     async opsRemoveLogo() {
       return call<BrandingView>('DELETE', '/v1/ops/branding/logo');
+    },
+    async opsRemoveFavicon() {
+      return call<BrandingView>('DELETE', '/v1/ops/branding/favicon');
     },
 
     async listEvents() {

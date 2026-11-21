@@ -2,7 +2,7 @@ import { SiteLink as Link } from '@/components/site/site-link';
 import type { Locale } from '@harusi/i18n';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { ArrowUpRight } from 'lucide-react';
-import { FaqList, PillLink } from '@/components/site/blocks';
+import { Eyebrow, FaqList, PillLink } from '@/components/site/blocks';
 import { cn } from '@/lib/cn';
 import { SeoLinks } from '@/components/public/seo-links';
 import { formatDate } from '@/lib/format';
@@ -24,7 +24,9 @@ const UI = {
     ctaBody: 'Tengeneza kadi ya kwanza bila malipo wakati wa majaribio.',
     ctaCard: 'Nina namba ya kadi',
     kenya: 'Kenya',
+    uganda: 'Uganda',
     ctaKe: 'Unataka huduma hii Kenya? Tuambie.',
+    ctaUg: 'Unataka huduma hii Uganda? Tuambie.',
     ctaKeButton: 'Wasiliana nasi',
     quickLinksTitle: 'Hatua za haraka',
     quickLinks: [
@@ -46,7 +48,9 @@ const UI = {
     ctaBody: 'Create your first card free during the pilot.',
     ctaCard: 'I have a card number',
     kenya: 'Kenya',
+    uganda: 'Uganda',
     ctaKe: 'Want this in Kenya? Tell us.',
+    ctaUg: 'Want this in Uganda? Tell us.',
     ctaKeButton: 'Contact us',
     quickLinksTitle: 'Quick links',
     quickLinks: [
@@ -178,8 +182,8 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
             description: t.answer,
             url,
             provider: org,
-            areaServed: market === 'ke' ? 'KE' : 'TZ',
-            availableLanguage: market === 'ke' ? ['en', 'sw'] : ['sw', 'en'],
+            areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
+            availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
           },
         ]
       : []),
@@ -192,19 +196,19 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
           name: UI[locale].home,
           item: absoluteLocaleUrl('/', locale),
         },
-        ...(market === 'ke' && page.slug
+        ...(market !== 'tz' && page.slug
           ? [
               {
                 '@type': 'ListItem',
                 position: 2,
-                name: UI[locale].kenya,
-                item: absoluteLocaleUrl('/ke', locale),
+                name: market === 'ke' ? UI[locale].kenya : UI[locale].uganda,
+                item: absoluteLocaleUrl(`/${market}`, locale),
               },
             ]
           : []),
         {
           '@type': 'ListItem',
-          position: market === 'ke' && page.slug ? 3 : 2,
+          position: market !== 'tz' && page.slug ? 3 : 2,
           name: t.nav,
           item: url,
         },
@@ -234,6 +238,26 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
     .filter((p): p is ContentPageDef => !!p);
   const counterpart = counterpartOf(page);
   const showToc = t.sections.length >= 3;
+  const marketLabel =
+    market === 'ke'
+      ? ui.kenya
+      : market === 'ug'
+        ? ui.uganda
+        : locale === 'sw'
+          ? page.group === 'product'
+            ? 'Huduma'
+            : page.group === 'guide'
+              ? 'Mwongozo'
+              : page.group === 'company'
+                ? 'Kampuni'
+                : 'Sheria'
+          : page.group === 'product'
+            ? 'Service'
+            : page.group === 'guide'
+              ? 'Guide'
+              : page.group === 'company'
+                ? 'Company'
+                : 'Legal';
   return (
     <main>
       <SeoLinks
@@ -250,7 +274,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
           __html: JSON.stringify(jsonLd(page, locale)).replace(/</g, '\\u003c'),
         }}
       />
-      <header className="ks-mesh -mt-20 md:-mt-24">
+      <header className="ks-mesh -mt-20 border-b border-ks-line/60 md:-mt-24">
         <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 pt-32 pb-14 md:px-6 md:pt-40 md:pb-20">
           <nav aria-label="Breadcrumb" className="ks-enter text-sm text-ks-muted">
             <ol className="flex flex-wrap items-center gap-1.5">
@@ -263,14 +287,14 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
                 </Link>
               </li>
               <li aria-hidden="true">/</li>
-              {market === 'ke' && page.slug ? (
+              {market !== 'tz' && page.slug ? (
                 <>
                   <li>
                     <Link
-                      href={localeUrl('/ke', locale)}
+                      href={localeUrl(`/${market}`, locale)}
                       className="inline-flex min-h-11 items-center underline underline-offset-4"
                     >
-                      {ui.kenya}
+                      {market === 'ke' ? ui.kenya : ui.uganda}
                     </Link>
                   </li>
                   <li aria-hidden="true">/</li>
@@ -289,6 +313,9 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
               {ui.draft}
             </p>
           ) : null}
+          <div className="ks-enter">
+            <Eyebrow>{marketLabel}</Eyebrow>
+          </div>
           <h1 className="ks-enter max-w-4xl text-[36px] leading-[1.05] font-bold tracking-[-0.03em] text-ks-green-900 md:text-[56px]">
             {t.h1}
           </h1>
@@ -320,32 +347,50 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
       >
         {showToc ? (
           <nav aria-label={ui.toc} className="lg:order-2">
-            <div className="ks-bezel lg:sticky lg:top-28">
-              <div className="ks-core p-5">
-                <p className="mb-3 text-xs font-semibold tracking-[0.16em] text-ks-muted uppercase">
-                  {ui.toc}
-                </p>
-                <ul className="grid gap-0.5 text-[15px]">
-                  {t.sections.map((s) => (
-                    <li key={s.id}>
-                      <a
-                        href={`#${s.id}`}
-                        className="flex min-h-11 items-center rounded-xl px-2 leading-snug hover:bg-ks-green-100/70"
-                      >
-                        {s.h2}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+            <div className="flex flex-col gap-4 lg:sticky lg:top-28">
+              <div className="ks-bezel">
+                <div className="ks-core relative overflow-hidden p-5">
+                  <div
+                    aria-hidden="true"
+                    className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-70"
+                  />
+                  <p className="mb-3 text-xs font-semibold tracking-[0.16em] text-ks-muted uppercase">
+                    {ui.toc}
+                  </p>
+                  <ul className="grid gap-0.5 text-[15px]">
+                    {t.sections.map((s) => (
+                      <li key={s.id}>
+                        <a
+                          href={`#${s.id}`}
+                          className="flex min-h-11 items-center rounded-xl px-2 leading-snug text-ks-ink/90 transition-colors hover:bg-ks-green-100/70 hover:text-ks-green-900"
+                        >
+                          {s.h2}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
+              {page.group !== 'legal' && market === 'tz' ? (
+                <div className="hidden rounded-[1.5rem] border border-ks-line bg-white p-4 lg:flex lg:flex-col lg:gap-3">
+                  <p className="text-sm font-semibold text-ks-green-900">{ui.ctaBody}</p>
+                  <PillLink href="/login" className="w-full text-sm">
+                    {ui.cta}
+                  </PillLink>
+                </div>
+              ) : null}
             </div>
           </nav>
         ) : null}
 
-        <article className="flex max-w-3xl min-w-0 flex-col gap-14 text-[17px] lg:order-1">
+        <article className="flex max-w-3xl min-w-0 flex-col gap-12 text-[17px] lg:order-1">
           {t.sections.map((s) => (
-            <section key={s.id} id={s.id} className="ks-reveal flex scroll-mt-28 flex-col gap-4">
-              <h2 className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] md:text-[32px]">
+            <section
+              key={s.id}
+              id={s.id}
+              className="ks-reveal flex scroll-mt-28 flex-col gap-4 border-t border-ks-line/70 pt-10 first:border-t-0 first:pt-0"
+            >
+              <h2 className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] text-ks-green-900 md:text-[32px]">
                 {s.h2}
               </h2>
               <Blocks blocks={s.blocks} />
@@ -355,13 +400,13 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
             <section
               aria-labelledby={t.h1 === ui.faq ? undefined : 'faq'}
               aria-label={t.h1 === ui.faq ? ui.faq : undefined}
-              className="flex flex-col gap-5"
+              className="flex flex-col gap-5 border-t border-ks-line/70 pt-10"
             >
               {/* The FAQ page's own H1 already says this; a second identical heading adds nothing. */}
               {t.h1 === ui.faq ? null : (
                 <h2
                   id="faq"
-                  className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] md:text-[32px]"
+                  className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] text-ks-green-900 md:text-[32px]"
                 >
                   {ui.faq}
                 </h2>
@@ -379,10 +424,10 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
               className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80"
               aria-hidden="true"
             />
-            {market === 'ke' ? (
+            {market !== 'tz' ? (
               <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <p className="max-w-xl text-[24px] leading-tight font-bold tracking-[-0.02em] md:text-[32px]">
-                  {ui.ctaKe}
+                  {market === 'ke' ? ui.ctaKe : ui.ctaUg}
                 </p>
                 <PillLink href={localeUrl('/mawasiliano', locale)} kind="onDark">
                   {ui.ctaKeButton}

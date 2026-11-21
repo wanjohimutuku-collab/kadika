@@ -25,6 +25,7 @@ export interface HomeHeroFormLabels {
     uchumba: string;
     kuzaliwa: string;
     mahafali: string;
+    biashara: string;
   };
   themeLabel: string;
   themeNames: {
@@ -72,6 +73,37 @@ export interface PricingTeaserCopy {
   cta: string;
   footnote: string;
   comparisonLink: string;
+}
+
+export interface OccasionTabCopy {
+  id: 'corporate' | 'weddings' | 'personal' | 'community';
+  tabLabel: string;
+  eyebrow: string;
+  title: string;
+  body: string;
+  bullets: [string, string, string, string];
+  note?: string;
+  ctaLabel: string;
+  demoEventType: 'biashara' | 'harusi' | 'kuzaliwa' | 'mahafali';
+  demoNames: string;
+  preview: {
+    badge: string;
+    eyebrow: string;
+    title: string;
+    date: string;
+    venue: string;
+    code: string;
+    status: string;
+    theme: 'navy-silver' | 'emerald-gold' | 'terracotta' | 'rose-sage';
+  };
+}
+
+export interface OccasionShowcaseCopy {
+  eyebrow: string;
+  title: string;
+  sub: string;
+  secondaryCta: string;
+  tabs: [OccasionTabCopy, OccasionTabCopy, OccasionTabCopy, OccasionTabCopy];
 }
 
 export interface HeroStatCardsCopy {
@@ -124,6 +156,8 @@ export interface HomeCopy {
   featurePromo: { title: string; body: string };
   /** Live pricing teaser shown on the home before the CTA band. */
   pricingTeaser: PricingTeaserCopy;
+  /** Interactive showcase of all event categories including corporate. */
+  occasionShowcase: OccasionShowcaseCopy;
   answerLabel: string;
   answer: string;
   card: {
@@ -223,19 +257,19 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
     ? `Kila tukio linaanza na kadi ${p.free} bure. Baada ya hapo ni ${p.from} kwa kadi, na bei inashuka hadi ${p.lowest} ukinunua kadi ${p.lowestMin} au zaidi. SMS za ziada zina vifurushi vyake.`
     : `Wakati wa majaribio huduma ni bure. Malipo yakianza, kadi itakuwa ${p.from}, na bei inashuka hadi ${p.lowest} ukinunua kadi ${p.lowestMin} au zaidi. Tutatangaza kabla.`;
   return {
-    title: 'Kadi za Mwaliko na Harusi za Kidigitali Tanzania | Kadi Sasa',
+    title: 'Kadi za Mwaliko kwa Kila Tukio, Harusi na Kampuni | Kadi Sasa',
     description:
-      'Tengeneza kadi za mwaliko wa harusi, send-off, birthday na matukio Tanzania. Tuma kwa WhatsApp, SMS au karatasi, fuatilia RSVP na michango, na skani QR bila mtandao.',
+      'Tengeneza kadi za mwaliko wa harusi, matukio ya kampuni, makongamano, birthday na mahafali Tanzania. Tuma kwa WhatsApp, SMS au PDF, fuatilia RSVP na skani QR bila mtandao.',
     hero: {
-      h1: 'Kadi moja kwa kila mgeni. Michango wazi. Lango lisilokwama.',
-      sub: 'Tuma kadi kwa WhatsApp, SMS au karatasi. Kamati inafuatilia majibu na michango, na mlangoni mnaskani hata bila mtandao.',
+      h1: 'Mialiko kwa kila tukio. Kuanzia harusi hadi makongamano.',
+      sub: 'Tuma kadi zenye QR kwa WhatsApp, SMS au karatasi. Fuatilia majibu ya RSVP na michango, na skani wageni mlangoni hata bila mtandao.',
       primary: 'Anza bure',
       secondary: 'Nina namba ya kadi',
     },
-    heroAccent: 'kila mgeni',
+    heroAccent: 'kila tukio',
     heroHowLink: 'Angalia jinsi inavyofanya kazi',
-    heroTrustLine: 'Kadi 5 bure · Hulipi mpaka utume',
-    kickerEvents: ['Harusi', 'Send-off', 'Kitchen party', 'Nikah', 'Mahafali', 'Biashara'],
+    heroTrustLine: 'Kadi 5 bure · Kwa harusi, sherehe na matukio ya kampuni',
+    kickerEvents: ['Kampuni', 'Harusi', 'Send-off', 'Birthday', 'Mahafali', 'Kanisa'],
     heroStatCards: {
       guestsTitle: 'Orodha ya wageni',
       guestsInvited: '320 waalikwa',
@@ -261,8 +295,8 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       sub: 'Badilisha majina, tarehe na mandhari. Kisha pakua au shiriki kadi ya majaribio.',
     },
     formLabels: {
-      names: 'Majina ya wana-ndoa',
-      namesPlaceholder: 'Mf. Asha & Juma',
+      names: 'Majina au jina la tukio',
+      namesPlaceholder: 'Mf. Asha & Juma au Mkutano wa Kampuni',
       date: 'Tarehe ya tukio',
       eventType: 'Aina ya tukio',
       eventLabels: {
@@ -273,6 +307,7 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
         uchumba: 'Uchumba',
         kuzaliwa: 'Siku ya kuzaliwa',
         mahafali: 'Mahafali',
+        biashara: 'Biashara / Kampuni',
       },
       themeLabel: 'Mandhari',
       themeNames: {
@@ -360,9 +395,122 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       footnote: 'Hulipi mpaka utume kadi',
       comparisonLink: 'Linganisha vifurushi',
     },
+    occasionShowcase: {
+      eyebrow: 'Kwa kila aina ya tukio',
+      title: 'Mwaliko unaofaa kwa harusi, sherehe au tukio la kampuni.',
+      sub: 'Chagua aina ya tukio kuona jinsi kadi, majibu ya RSVP na mapokezi ya mlangoni yanavyofanya kazi.',
+      secondaryCta: 'Anza bure',
+      tabs: [
+        {
+          id: 'corporate',
+          tabLabel: 'Kampuni & Makongamano',
+          eyebrow: 'Matukio ya Biashara',
+          title: 'Mialiko ya hadhi kwa makongamano, uzinduzi na hafla za kampuni.',
+          body: 'Tuma mialiko binafsi kwa wageni wa heshima, wabia na wafanyakazi. Mapokezi yanaskani QR haraka bila kukwama hata mtandao ukisuasua.',
+          bullets: [
+            'Kila mgeni anapata pasi yake yenye QR na namba fupi — haiwezi kusambazwa mara mbili',
+            'Orodha ya majibu (RSVP) na idadi ya wageni kwa ajili ya mapokezi na chakula',
+            'Tuma kwa WhatsApp, SMS au chapisha beji na kadi za PDF',
+            'Skani ya mlangoni bila mtandao kwa kutumia simu za walinzi au mapokezi',
+          ],
+          note: 'Kwa mialiko, majibu ya RSVP na kuingiza wageni mlangoni. Haiuzi tiketi wala kupanga viti.',
+          ctaLabel: 'Jaribu kadi ya kampuni',
+          demoEventType: 'biashara',
+          demoNames: 'Serengeti Tech Summit',
+          preview: {
+            badge: 'Mgeni wa Heshima · VIP',
+            eyebrow: 'Mwaliko wa Kampuni',
+            title: 'Serengeti Tech Summit',
+            date: '18 · Novemba · 2026',
+            venue: 'Hyatt Regency, Dar es Salaam',
+            code: 'KS-8042',
+            status: 'RSVP · Amethibitisha',
+            theme: 'navy-silver',
+          },
+        },
+        {
+          id: 'weddings',
+          tabLabel: 'Harusi & Mila',
+          eyebrow: 'Harusi, Send-off & Nikah',
+          title: 'Kadi ya heshima kwa kila mgeni na daftari la michango.',
+          body: 'Wageni wa WhatsApp, wa SMS na wazee wenye kadi za karatasi wote wanatumia mfumo mmoja. Kamati inaona ahadi, malipo na mahudhurio.',
+          bullets: [
+            'Tuma kwa WhatsApp, SMS kwa wasio na smartphone na PDF za A6/A5/A4',
+            'Daftari la michango na ahadi bila kukata asilimia yoyote',
+            'Vikumbusho vya ahadi na ripoti ya mweka hazina kwa sekunde',
+            'Lango la QR lisilokwama hata ukumbini kusiwe na mtandao',
+          ],
+          ctaLabel: 'Jaribu kadi ya harusi',
+          demoEventType: 'harusi',
+          demoNames: 'Asha & Juma',
+          preview: {
+            badge: 'Bi. Mwanaidi Salim · ×2',
+            eyebrow: '~ Sherehe ya Harusi ~',
+            title: 'Asha & Juma',
+            date: '14 · Desemba · 2026',
+            venue: 'Ukumbi wa Mwanga, Kibaha',
+            code: 'KH-4826',
+            status: 'RSVP · VIP',
+            theme: 'terracotta',
+          },
+        },
+        {
+          id: 'personal',
+          tabLabel: 'Birthday & Mahafali',
+          eyebrow: 'Sherehe Binafsi & Kitaaluma',
+          title: 'Mialiko ya haraka kwa siku ya kuzaliwa, mahafali na hafla za familia.',
+          body: 'Andika aina yoyote ya tukio, chagua rangi unazopenda, na tuma viungo vya mwaliko kwa marafiki na familia ndani ya dakika chache.',
+          bullets: [
+            'Jina la tukio unalolibuni mwenyewe (Birthday, Mahafali, Dinner)',
+            'Wageni wanathibitisha idadi yao bila kufungua akaunti',
+            'Zima kipengele cha michango kama tukio halihitaji michango',
+            'Pakua picha ya kadi au tuma kiungo moja kwa moja WhatsApp',
+          ],
+          ctaLabel: 'Jaribu kadi ya sherehe',
+          demoEventType: 'kuzaliwa',
+          demoNames: 'Miaka 30 ya Neema',
+          preview: {
+            badge: 'Grace Mushi · ×2',
+            eyebrow: 'Siku ya Kuzaliwa',
+            title: 'Miaka 30 ya Neema',
+            date: '22 · Novemba · 2026',
+            venue: 'Sea Cliff Terrace, Msasani',
+            code: 'KZ-1934',
+            status: 'RSVP · Anakuja',
+            theme: 'terracotta',
+          },
+        },
+        {
+          id: 'community',
+          tabLabel: 'Kanisa & Jamii',
+          eyebrow: 'Mikusanyiko & Taasisi',
+          title: 'Mialiko inayomfikia kila mshiriki, hata asiye na smartphone.',
+          body: 'Inafaa kwa shukrani, harambee, vikao vya jamii na matukio ya taasisi. Kila mtu anapokea SMS, WhatsApp au kadi iliyochapishwa.',
+          bullets: [
+            'SMS inayosomeka kwenye simu yoyote ya kawaida',
+            'Kadi za karatasi za A4 zenye kadi 4 kwa kila ukurasa',
+            'Ufuatiliaji wa ahadi na michango kwa uwazi kamili',
+            'Kuingia mlangoni kwa namba fupi au jina la mgeni',
+          ],
+          ctaLabel: 'Jaribu kadi ya tukio',
+          demoEventType: 'mahafali',
+          demoNames: 'Shukrani ya Mwaka',
+          preview: {
+            badge: 'Mzee Yohana · ×1',
+            eyebrow: 'Tukio la Jamii',
+            title: 'Shukrani ya Mwaka',
+            date: '06 · Desemba · 2026',
+            venue: 'Ukumbi wa Parokia, Arusha',
+            code: 'KN-5510',
+            status: 'RSVP · Imethibitishwa',
+            theme: 'rose-sage',
+          },
+        },
+      ],
+    },
     answerLabel: 'Kadi Sasa ni nini?',
     answer:
-      'Kadi Sasa ni huduma ya Kitanzania ya kadi za mwaliko za kidijitali. Kila mgeni anapata kadi yake yenye QR na namba fupi kwa WhatsApp, SMS au karatasi. Kamati inaona majibu, michango na waliofika mlangoni, na lango linafanya kazi hata mtandao ukikatika.',
+      'Kadi Sasa ni huduma ya Kitanzania ya kadi za mwaliko za kidijitali kwa kila aina ya tukio — kuanzia harusi, send-off, birthday na mahafali hadi mikutano, uzinduzi na hafla za kampuni. Kila mgeni anapata kadi yake yenye QR na namba fupi kwa WhatsApp, SMS au karatasi, huku mlango ukifanya kazi hata mtandao ukikatika.',
     card: {
       names: 'Asha & Juma',
       date: 'Jumamosi, 14 Des 2026 · Saa 10 jioni',
@@ -441,7 +589,7 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       ],
       cta: 'Fungua kadi kwa namba yake',
     },
-    eventsTitle: 'Kwa kila sherehe',
+    eventsTitle: 'Mialiko kwa kila tukio — binafsi na kampuni',
     guidesEyebrow: 'Miongozo',
     guidesTitle: 'Miongozo kwa waandaaji na kamati',
     eyebrows: {
@@ -513,8 +661,8 @@ function sw(p: PriceFacts, domain: string): HomeCopy {
       },
     ],
     ctaBand: {
-      badge: 'Tangaza sherehe',
-      text: 'Kikao kijacho, waonyeshe kamati.',
+      badge: 'Tuma mialiko leo',
+      text: 'Tuma kadi 5 za kwanza bure — kwa harusi, sherehe au tukio la kampuni.',
       primary: 'Anza bure',
       secondary: 'Nina namba ya kadi',
       whatsappField: 'Namba ya simu (si lazima)',
@@ -529,19 +677,19 @@ function en(p: PriceFacts, domain: string): HomeCopy {
     ? `Every event starts with ${p.free} free cards. After that it is ${p.from} a card, dropping to ${p.lowest} when you buy ${p.lowestMin} or more. Extra SMS reminders come in packs.`
     : `It is free during the pilot. When charging starts, a card will cost ${p.from}, dropping to ${p.lowest} when you buy ${p.lowestMin} or more. We will announce it first.`;
   return {
-    title: 'Digital Invitation & Wedding Cards in Tanzania | Kadi Sasa',
+    title: 'E-Cards & Digital Invitations in Tanzania | Kadi Sasa',
     description:
-      'Create digital invitation cards for weddings, send-offs, birthdays & corporate events in Tanzania. Share on WhatsApp or SMS, track RSVPs & michango, scan QR offline.',
+      'Create digital e-cards and invitation cards in Tanzania for weddings, send-offs, birthdays, graduations & corporate events. Send via WhatsApp, SMS or PDF, track RSVPs & scan QR offline.',
     hero: {
-      h1: 'One card for every guest. Michango in the open. A gate that keeps moving.',
-      sub: 'Send cards by WhatsApp, SMS or paper. The committee tracks replies and pledges, and the gate scans guests in even without network.',
+      h1: 'Invitations for every event. From weddings to corporate galas.',
+      sub: 'Send personalised QR cards by WhatsApp, SMS or paper. Track RSVPs, headcount and contributions, and check guests in at the door even without network.',
       primary: 'Start free',
       secondary: 'I have a card number',
     },
-    heroAccent: 'every guest',
+    heroAccent: 'every event',
     heroHowLink: 'See how it works',
-    heroTrustLine: '5 cards free · You don’t pay until you send',
-    kickerEvents: ['Wedding', 'Send-off', 'Kitchen party', 'Nikah', 'Graduation', 'Business'],
+    heroTrustLine: '5 cards free · Built for weddings, parties & corporate events',
+    kickerEvents: ['Corporate', 'Wedding', 'Send-off', 'Birthday', 'Graduation', 'Church'],
     heroStatCards: {
       guestsTitle: 'Guest list',
       guestsInvited: '320 invited',
@@ -567,8 +715,8 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       sub: 'Swap the names, date and theme. Then download or share the demo card.',
     },
     formLabels: {
-      names: 'Couple names',
-      namesPlaceholder: 'e.g. Asha & Juma',
+      names: 'Host, couple, or event name',
+      namesPlaceholder: 'e.g. Asha & Juma or Tech Summit',
       date: 'Event date',
       eventType: 'Event type',
       eventLabels: {
@@ -579,6 +727,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
         uchumba: 'Engagement',
         kuzaliwa: 'Birthday',
         mahafali: 'Graduation',
+        biashara: 'Corporate / Business',
       },
       themeLabel: 'Theme',
       themeNames: {
@@ -666,9 +815,122 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       footnote: 'You don’t pay until you send',
       comparisonLink: 'Compare packs',
     },
+    occasionShowcase: {
+      eyebrow: 'Built for every occasion',
+      title: 'One platform for weddings, celebrations, and corporate events.',
+      sub: 'Switch categories to see how your invitation pass, RSVP tracking, and door check-in adapt to each event.',
+      secondaryCta: 'Start free',
+      tabs: [
+        {
+          id: 'corporate',
+          tabLabel: 'Corporate & Business',
+          eyebrow: 'Conferences, Launches & Galas',
+          title: 'Branded digital passes for conferences, AGMs, launches, and executive dinners.',
+          body: 'Issue a unique QR pass to every delegate, VIP, or staff member. Track confirmed headcount before catering lock-in and run fast reception check-in even in basement or tent venues.',
+          bullets: [
+            'Unique QR pass and short code per guest — forwarded screenshots are flagged',
+            'Real-time RSVP and headcount tracking with CSV guest & attendance exports',
+            'Deliver via WhatsApp, SMS for feature phones, or print-ready A6/A5/A4 badges',
+            'Offline-first Android reception scanner with dedicated gate PINs for staff',
+          ],
+          note: 'Designed for invitations, RSVPs, and reception check-in. Does not sell paid tickets or assign numbered seating.',
+          ctaLabel: 'Try corporate pass',
+          demoEventType: 'biashara',
+          demoNames: 'Serengeti Tech Summit',
+          preview: {
+            badge: 'VIP Delegate · Admit 1',
+            eyebrow: 'Corporate Invitation',
+            title: 'Serengeti Tech Summit',
+            date: '18 · November · 2026',
+            venue: 'Hyatt Regency, Dar es Salaam',
+            code: 'KS-8042',
+            status: 'RSVP · Confirmed',
+            theme: 'navy-silver',
+          },
+        },
+        {
+          id: 'weddings',
+          tabLabel: 'Weddings & Traditional',
+          eyebrow: 'Harusi, Send-off & Nikah',
+          title: 'Respectful invitations for every guest and a clear michango ledger.',
+          body: 'WhatsApp guests, SMS guests, and elders with printed cards all share one system. The committee tracks replies, pledges, and gate arrivals in real time.',
+          bullets: [
+            'WhatsApp links, SMS fallback, and printable A6/A5/A4 cards for elders',
+            'Built-in Michango pledge & payment ledger with zero platform cut',
+            'Automated pledge reminders and instant treasurer reports for meetings',
+            'Offline QR gate check-in that catches duplicate or shared screenshots',
+          ],
+          ctaLabel: 'Try wedding card',
+          demoEventType: 'harusi',
+          demoNames: 'Asha & Juma',
+          preview: {
+            badge: 'Mrs Mwanaidi Salim · ×2',
+            eyebrow: '~ Celebration of ~',
+            title: 'Asha & Juma',
+            date: '14 · December · 2026',
+            venue: 'Mwanga Hall, Kibaha',
+            code: 'KH-4826',
+            status: 'RSVP · VIP',
+            theme: 'terracotta',
+          },
+        },
+        {
+          id: 'personal',
+          tabLabel: 'Birthdays & Graduations',
+          eyebrow: 'Milestone Celebrations',
+          title: 'Personalised invitations for birthdays, graduations, and private dinners.',
+          body: 'Enter any event type, pick your colour theme, and send trackable links to friends and family in minutes — with no app download required for guests.',
+          bullets: [
+            'Custom event kind wording (Birthday, Graduation, Anniversary, Dinner)',
+            'One-tap RSVP with party size — no guest account or login needed',
+            'Turn off contributions when your event is invitation-only',
+            'Download a shareable card image or send straight to WhatsApp',
+          ],
+          ctaLabel: 'Try birthday card',
+          demoEventType: 'kuzaliwa',
+          demoNames: "Neema's 30th",
+          preview: {
+            badge: 'Grace Mushi · ×2',
+            eyebrow: 'Birthday Celebration',
+            title: "Neema's 30th",
+            date: '22 · November · 2026',
+            venue: 'Sea Cliff Terrace, Msasani',
+            code: 'KZ-1934',
+            status: 'RSVP · Attending',
+            theme: 'terracotta',
+          },
+        },
+        {
+          id: 'community',
+          tabLabel: 'Church & Community',
+          eyebrow: 'Faith & Institutional Gatherings',
+          title: 'Invitations that reach every member — smartphone or feature phone.',
+          body: 'Built for thanksgiving services, community fundraisers, alumni reunions, and institutional events. Every invitee gets a link, SMS code, or printed card.',
+          bullets: [
+            'Plain SMS delivery that reads clearly on any basic feature phone',
+            '4-up A4 printable PDF sheets for easy local printing and handouts',
+            'Optional pledge tracking for harambee and community drives',
+            'Look up guests at the door by QR, short code, name, or phone digits',
+          ],
+          ctaLabel: 'Try community card',
+          demoEventType: 'mahafali',
+          demoNames: 'Annual Thanksgiving',
+          preview: {
+            badge: 'Elder Yohana · ×1',
+            eyebrow: 'Community Gathering',
+            title: 'Annual Thanksgiving',
+            date: '06 · December · 2026',
+            venue: 'Parish Hall, Arusha',
+            code: 'KN-5510',
+            status: 'RSVP · Confirmed',
+            theme: 'rose-sage',
+          },
+        },
+      ],
+    },
     answerLabel: 'What is Kadi Sasa?',
     answer:
-      'Kadi Sasa is a Tanzanian service for digital invitation cards. Each guest gets their own card with a QR code and a short number by WhatsApp, SMS or paper. The committee sees replies, contributions and who has arrived, and the gate works even when the network drops.',
+      'Kadi Sasa is a digital e-card and guest check-in platform in Tanzania for every type of event — weddings, send-offs, birthdays, graduations, community gatherings, and corporate events. Each guest gets a unique QR e-card and short code by WhatsApp, SMS or paper, while organisers track RSVPs, optional michango, and offline gate arrivals.',
     card: {
       names: 'Asha & Juma',
       date: 'Saturday, 14 Dec 2026 · 4 pm',
@@ -744,7 +1006,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
       ],
       cta: 'Open a card by its number',
     },
-    eventsTitle: 'For every celebration',
+    eventsTitle: 'Invitations for every event — personal & corporate',
     guidesEyebrow: 'Guides',
     guidesTitle: 'Guides for organisers and committees',
     eyebrows: {
@@ -817,7 +1079,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
     ],
     ctaBand: {
       badge: 'Send your invites',
-      text: 'Show it to the committee at the next meeting.',
+      text: 'Start with 5 free cards — for your next wedding, party, or corporate event.',
       primary: 'Start free',
       secondary: 'I have a card number',
       whatsappField: 'Phone number (optional)',
@@ -829,19 +1091,19 @@ function en(p: PriceFacts, domain: string): HomeCopy {
 
 function ke(p: PriceFacts, domain: string): HomeCopy {
   return {
-    title: 'Digital Wedding & Event Invitations in Kenya | Kadi Sasa',
+    title: 'Digital Invitations for All Events, Weddings & Corporate in Kenya | Kadi Sasa',
     description:
-      'Send digital wedding and event invitations in Kenya by WhatsApp, SMS or print. Track RSVPs, harambee pledges via M-Pesa & Airtel Money, and scan QR codes offline.',
+      'Send digital invitations in Kenya for corporate events, weddings, ruracio, birthdays & graduations by WhatsApp, SMS or print. Track RSVPs, harambee pledges & scan QR offline.',
     hero: {
-      h1: 'The wedding committee’s app. Invites, harambee and the gate.',
-      sub: 'Every guest gets their own card on WhatsApp or SMS. The committee sees who’s coming, who’s pledged and who’s paid, and the gate works offline.',
+      h1: 'Invitations for every event. From weddings to corporate galas.',
+      sub: 'Every guest gets their own QR card on WhatsApp, SMS or print. Track RSVPs, harambee pledges and reception check-in — even without network.',
       primary: 'Join the Kenya pilot',
       secondary: 'I have a card number',
     },
-    heroAccent: 'harambee',
+    heroAccent: 'every event',
     heroHowLink: 'See how it works',
-    heroTrustLine: 'Kenya pilot · You don’t pay until you send',
-    kickerEvents: ['Wedding', 'Ruracio', 'Send-off', 'Nikah', 'Graduation', 'Business'],
+    heroTrustLine: 'Kenya pilot · Weddings, parties & corporate events',
+    kickerEvents: ['Corporate', 'Wedding', 'Ruracio', 'Birthday', 'Graduation', 'Church'],
     heroStatCards: {
       guestsTitle: 'Guest list',
       guestsInvited: '320 invited',
@@ -867,8 +1129,8 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       sub: 'Swap the names, date and theme. Then download or share the demo card.',
     },
     formLabels: {
-      names: 'Couple names',
-      namesPlaceholder: 'e.g. Wanjiru & Otieno',
+      names: 'Host, couple, or event name',
+      namesPlaceholder: 'e.g. Wanjiru & Otieno or Nairobi Summit',
       date: 'Event date',
       eventType: 'Event type',
       eventLabels: {
@@ -879,6 +1141,7 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
         uchumba: 'Engagement',
         kuzaliwa: 'Birthday',
         mahafali: 'Graduation',
+        biashara: 'Corporate / Business',
       },
       themeLabel: 'Theme',
       themeNames: {
@@ -970,9 +1233,122 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
       footnote: 'Kenya pricing is being finalised',
       comparisonLink: 'Compare packs',
     },
+    occasionShowcase: {
+      eyebrow: 'Built for every occasion',
+      title: 'One platform for weddings, celebrations, and corporate events.',
+      sub: 'Switch categories to see how your invitation pass, RSVP tracking, and door check-in adapt to each event.',
+      secondaryCta: 'Join the Kenya pilot',
+      tabs: [
+        {
+          id: 'corporate',
+          tabLabel: 'Corporate & Business',
+          eyebrow: 'Conferences, Launches & Galas',
+          title: 'Branded digital passes for conferences, AGMs, launches, and executive dinners.',
+          body: 'Issue a unique QR pass to every delegate, VIP, or staff member. Track confirmed headcount and run fast reception check-in even offline.',
+          bullets: [
+            'Unique QR pass and short code per guest — forwarded screenshots are flagged',
+            'Real-time RSVP and headcount tracking with CSV guest & attendance exports',
+            'Deliver via WhatsApp, SMS for feature phones, or print-ready badges',
+            'Offline-first Android reception scanner with dedicated gate PINs for staff',
+          ],
+          note: 'Designed for invitations, RSVPs, and reception check-in. Does not sell paid tickets or assign numbered seating.',
+          ctaLabel: 'Try corporate pass',
+          demoEventType: 'biashara',
+          demoNames: 'Nairobi FinTech Forum',
+          preview: {
+            badge: 'VIP Delegate · Admit 1',
+            eyebrow: 'Corporate Invitation',
+            title: 'Nairobi FinTech Forum',
+            date: '18 · November · 2026',
+            venue: 'Kempinski, Westlands',
+            code: 'KS-8042',
+            status: 'RSVP · Confirmed',
+            theme: 'navy-silver',
+          },
+        },
+        {
+          id: 'weddings',
+          tabLabel: 'Weddings & Ruracio',
+          eyebrow: 'Weddings, Ruracio & Send-offs',
+          title: 'Respectful invitations for every guest and a clear harambee ledger.',
+          body: 'WhatsApp guests, SMS guests, and elders with printed cards all share one system. The committee tracks replies, pledges, and gate arrivals.',
+          bullets: [
+            'WhatsApp links, SMS fallback, and printable cards for elders',
+            'Built-in Harambee pledge & M-Pesa payment ledger with zero platform cut',
+            'Automated pledge reminders and instant treasurer reports',
+            'Offline QR gate check-in that catches duplicate screenshots',
+          ],
+          ctaLabel: 'Try wedding card',
+          demoEventType: 'harusi',
+          demoNames: 'Wanjiru & Otieno',
+          preview: {
+            badge: 'Mr & Mrs Kamau · ×2',
+            eyebrow: '~ Celebration of ~',
+            title: 'Wanjiru & Otieno',
+            date: '12 · December · 2026',
+            venue: 'Safari Park Gardens, Nairobi',
+            code: 'WK-3725',
+            status: 'RSVP · VIP',
+            theme: 'terracotta',
+          },
+        },
+        {
+          id: 'personal',
+          tabLabel: 'Birthdays & Graduations',
+          eyebrow: 'Milestone Celebrations',
+          title: 'Personalised invitations for birthdays, graduations, and family dinners.',
+          body: 'Enter any event type, pick your colour theme, and send trackable links to friends and family in minutes — no app download required.',
+          bullets: [
+            'Custom event kind wording (Birthday, Graduation, Anniversary, Dinner)',
+            'One-tap RSVP with party size — no guest account needed',
+            'Turn off harambee when your event is invitation-only',
+            'Download a shareable card image or send straight to WhatsApp',
+          ],
+          ctaLabel: 'Try birthday card',
+          demoEventType: 'kuzaliwa',
+          demoNames: "Achieng's 30th",
+          preview: {
+            badge: 'Brian Ochieng · ×2',
+            eyebrow: 'Birthday Celebration',
+            title: "Achieng's 30th",
+            date: '22 · November · 2026',
+            venue: 'Karen Blixen Gardens',
+            code: 'KZ-1934',
+            status: 'RSVP · Attending',
+            theme: 'terracotta',
+          },
+        },
+        {
+          id: 'community',
+          tabLabel: 'Church & Community',
+          eyebrow: 'Faith & Institutional Gatherings',
+          title: 'Invitations that reach every member — smartphone or feature phone.',
+          body: 'Built for thanksgiving services, community fundraisers, and institutional events. Every invitee gets a link, SMS code, or printed card.',
+          bullets: [
+            'Plain SMS delivery that reads clearly on any basic feature phone',
+            '4-up A4 printable PDF sheets for easy local printing',
+            'Optional pledge tracking for harambee and community drives',
+            'Look up guests at the door by QR, short code, name, or phone digits',
+          ],
+          ctaLabel: 'Try community card',
+          demoEventType: 'mahafali',
+          demoNames: 'Annual Thanksgiving',
+          preview: {
+            badge: 'Elder Mwangi · ×1',
+            eyebrow: 'Community Gathering',
+            title: 'Annual Thanksgiving',
+            date: '06 · December · 2026',
+            venue: 'PCEA Hall, Ngong Road',
+            code: 'KN-5510',
+            status: 'RSVP · Confirmed',
+            theme: 'rose-sage',
+          },
+        },
+      ],
+    },
     answerLabel: 'What is Kadi Sasa?',
     answer:
-      'Kadi Sasa is a digital invitation and guest check-in service for Kenyan weddings and events. Each guest gets a card with a QR code and short number on WhatsApp or SMS. Committees track RSVPs and M-Pesa harambee pledges, and the gate app checks guests in without network.',
+      'Kadi Sasa is a digital invitation and guest check-in service for every type of event in Kenya — weddings, ruracio, birthdays, graduations, community gatherings, and corporate events. Each guest gets a card with a QR code and short number on WhatsApp, SMS or paper, while organisers track RSVPs, optional harambee pledges, and offline gate arrivals.',
     card: {
       names: 'Wanjiru & Otieno',
       date: 'Saturday, 12 Dec 2026 · 10 am',
@@ -1128,7 +1504,7 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
     ],
     ctaBand: {
       badge: 'Invite your guests',
-      text: 'Show it at the next committee meeting.',
+      text: 'Start free with your next wedding, party, or corporate event.',
       primary: 'Join the Kenya pilot',
       secondary: 'I have a card number',
       whatsappField: 'Phone number (optional)',
@@ -1138,8 +1514,101 @@ function ke(p: PriceFacts, domain: string): HomeCopy {
   };
 }
 
+function ug(p: PriceFacts, domain: string): HomeCopy {
+  const base = ke(p, domain);
+  return {
+    ...base,
+    title: 'E-Cards & Digital Wedding Invitations in Uganda | Kadi Sasa',
+    description:
+      'Send digital wedding and Kwanjula e-cards in Uganda by WhatsApp, SMS or print. Track RSVPs, digital pledge cards in UGX & scan QR codes offline at the gate.',
+    hero: {
+      ...base.hero,
+      sub: 'Every guest gets their own QR e-card on WhatsApp, SMS or print. Track RSVPs, UGX pledge cards and reception check-in — even without network.',
+      primary: 'Join the Uganda pilot',
+    },
+    heroTrustLine: 'Uganda pilot · Kwanjula, Kuhingira, weddings & corporate events',
+    kickerEvents: ['Kwanjula', 'Wedding', 'Kuhingira', 'Birthday', 'Graduation', 'Corporate'],
+    heroStatCards: {
+      ...base.heroStatCards,
+      michangoTitle: 'Pledges',
+      michangoPledgedAmount: 'UGX 12M',
+      michangoReceivedAmount: 'UGX 8.4M',
+      previewVenueLine1: 'Serena Gardens,',
+      previewVenueLine2: 'Kampala',
+    },
+    formLabels: {
+      ...base.formLabels,
+      namesPlaceholder: 'e.g. Namukasa & Kato or Kampala Summit',
+    },
+    trustLine: 'Uganda planned · One fee per card · Works offline too',
+    featureRows: [
+      { ...base.featureRows[0], linkSlug: 'kwanjula-kuhingira-digital-invitation' },
+      { ...base.featureRows[1], linkSlug: 'uganda-wedding-committee-guide' },
+      {
+        eyebrow: 'Pledge cards',
+        title: 'UGX pledges and payments that watch themselves.',
+        bullets: ['MTN MoMo & Airtel Money records', 'CSV reports', 'Private: only you see the figures'],
+        linkLabel: 'Learn more',
+        linkSlug: 'uganda-wedding-pledge-cards-guide',
+      },
+    ],
+    answer:
+      'Kadi Sasa is a digital e-card and guest check-in service for Ugandan celebrations — weddings, Kwanjula, Kuhingira, birthdays, graduations, and corporate events. Each guest gets a card with a QR code and short number on WhatsApp, SMS or paper, while committees track RSVPs, UGX pledge cards, and offline gate arrivals.',
+    card: {
+      ...base.card,
+      venue: 'Serena Gardens, Kampala',
+      invites: 'Invite Namukasa Sarah',
+    },
+    michango: {
+      ...base.michango,
+      body: 'Every guest has a pledge in UGX and what they have paid. Before the meeting, the treasurer has the report.',
+      rows: [
+        { name: 'Ssenga Grace', pledged: 500_000, paid: 500_000 },
+        { name: 'Mr. Kato David', pledged: 1_000_000, paid: 300_000 },
+        { name: 'Sarah Nambi', pledged: 250_000, paid: 150_000 },
+      ],
+    },
+    eventsTitle: 'Guides for Ugandan committees',
+    guidesTitle: 'Guides for Ugandan committees',
+    status: {
+      h2: 'Where Uganda stands',
+      body: 'Kadi Sasa is live as a pilot in Tanzania. Uganda support (+256 numbers, UGX, MTN MoMo and Airtel Money pledge tracking, and Kwanjula/Kuhingira templates) is planned and not open yet. Tell us if your committee or planning team wants to join the first Uganda pilot.',
+      cta: 'Join the Uganda pilot',
+    },
+    eyebrows: { ...base.eyebrows, hero: 'Digital e-cards · Uganda' },
+    heroNote: 'Uganda is planned. Tell us about your event to join the early pilot list.',
+    app: {
+      ...base.app,
+      secondary: 'Join the Uganda pilot',
+      mock: {
+        ...base.app.mock,
+        event: 'Namukasa & Kato',
+        date: '12 Dec 2026 · Kampala',
+        michango: 'Pledges',
+        michangoValue: 'UGX 8.4M / 12M',
+      },
+    },
+    faq: [
+      {
+        q: 'Can we use Kadi Sasa in Uganda now?',
+        a: 'Not yet. Kadi Sasa is live in Tanzania, and Uganda support (+256, UGX, MTN MoMo & Airtel Money workflows) is planned. Contact us if you want early access for the Uganda pilot.',
+      },
+      {
+        q: 'Does it work for Kwanjula, Kuhingira, and church weddings?',
+        a: 'Yes. You can run separate guest lists, wording, RSVP tracking, and gate check-in for Kwanjula, Kuhingira, nikah, church weddings, and corporate events.',
+      },
+      {
+        q: 'Can we still give printed cards to elders?',
+        a: 'Yes. Export print-ready PDFs with the exact same QR code and short number for elders, while younger guests and diaspora relatives receive WhatsApp e-cards.',
+      },
+    ],
+    ctaBand: { ...base.ctaBand, primary: 'Join the Uganda pilot' },
+  };
+}
+
 export function homeCopy(edition: SiteEdition, pricing: PricingCatalog, domain: string): HomeCopy {
   if (edition === 'ke') return ke(priceFacts(pricing, 'KES'), domain);
+  if (edition === 'ug') return ug(priceFacts(pricing, 'KES'), domain);
   const facts = priceFacts(pricing, 'TZS');
   return edition === 'sw' ? sw(facts, domain) : en(facts, domain);
 }

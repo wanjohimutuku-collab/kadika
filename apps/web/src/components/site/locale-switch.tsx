@@ -7,6 +7,7 @@ const LABELS: Record<SiteEdition, { name: string; short: string; lang: string }>
   sw: { name: 'Tanzania (Kiswahili)', short: 'TZ · SW', lang: 'sw' },
   en: { name: 'Tanzania (English)', short: 'TZ · EN', lang: 'en' },
   ke: { name: 'Kenya (English)', short: 'KE · EN', lang: 'en' },
+  ug: { name: 'Uganda (English)', short: 'UG · EN', lang: 'en' },
 };
 
 /**
@@ -60,7 +61,7 @@ export function LocaleSwitch({
           <li key={e}>
             <Link
               href={targets[e]}
-              hrefLang={e === 'ke' ? 'en-KE' : `${e}-TZ`}
+              hrefLang={e === 'ke' ? 'en-KE' : e === 'ug' ? 'en-UG' : `${e}-TZ`}
               lang={LABELS[e].lang}
               aria-current={e === current ? 'true' : undefined}
               className="flex min-h-12 items-center justify-between gap-2 rounded-lg px-3 text-ks-ink hover:bg-ks-green-100"

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { PublicBranding } from '@harusi/schemas/branding';
 import {
   brandStyle,
+  DEFAULT_FAVICON_URL,
   DEFAULT_PUBLIC_BRANDING,
   resolveLogoSrc,
   sanitizePublicBranding,
@@ -57,6 +58,17 @@ export function BrandProvider({
       if (next[v]) root.setProperty(v, next[v]);
       else root.removeProperty(v);
     }
+    const href = resolveLogoSrc(brand.faviconUrl) ?? DEFAULT_FAVICON_URL;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"][data-hp-favicon]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      link.dataset.hpFavicon = '1';
+      document.head.appendChild(link);
+    }
+    link.href = href;
+    if (brand.faviconMime) link.type = brand.faviconMime;
+    else link.removeAttribute('type');
   }, [brand]);
   const value = useMemo(() => ({ brand, setBrand }), [brand]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

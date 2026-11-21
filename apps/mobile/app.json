@@ -10,13 +10,13 @@
     "splash": {
       "image": "./assets/adaptive-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FBF8F3"
+      "backgroundColor": "#0A0A07"
     },
     "android": {
       "package": "app.harusipass.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FBF8F3"
+        "backgroundColor": "#ED1C24"
       },
       "permissions": [],
       "blockedPermissions": ["android.permission.WRITE_CONTACTS"]

@@ -20,6 +20,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
  * /ops/settings, so the logo shows everywhere from the first deploy, and returns if a saved one is removed.
  */
 export const DEFAULT_LOGO_URL = '/brand/logo.svg';
+export const DEFAULT_FAVICON_URL = '/icon.svg';
 
 /**
  * Where to load a logo from. The API serves a saved logo and returns its URL relative to the API
@@ -63,6 +64,8 @@ export const DEFAULT_PUBLIC_BRANDING: PublicBranding = {
   ...DEFAULT_BRANDING,
   logoUrl: DEFAULT_LOGO_URL,
   logoMime: 'image/svg+xml',
+  faviconUrl: null,
+  faviconMime: null,
   onPrimary: null,
   updatedAt: null,
 };
@@ -72,7 +75,7 @@ const HEX = /^#[0-9A-F]{6}$/;
 /**
  * Brand values go into a `style` attribute and an `<img src>` on every page, so whatever the API (or a
  * poisoned cache) returns is reduced to known-safe shapes first: `#RRGGBB` colours, fonts from the
- * allow-lists, a logo URL that points at the API's logo route or is an inline image. Anything else falls
+ * allow-lists, a logo/favicon URL that points at the API's route or is an inline image. Anything else falls
  * back to the default for that field; with no usable logo that is the built-in one.
  */
 export function sanitizePublicBranding(raw: unknown): PublicBranding {
@@ -88,6 +91,12 @@ export function sanitizePublicBranding(raw: unknown): PublicBranding {
       /^data:image\/(png|jpe?g|webp|svg\+xml)[;,]/i.test(r.logoUrl))
       ? r.logoUrl
       : DEFAULT_LOGO_URL;
+  const faviconUrl =
+    typeof r.faviconUrl === 'string' &&
+    (/^\/v1\/branding\/favicon(\?v=\d{1,9})?$/.test(r.faviconUrl) ||
+      /^data:image\/(png|jpe?g|webp|svg\+xml)[;,]/i.test(r.faviconUrl))
+      ? r.faviconUrl
+      : null;
   return {
     businessName: text(r.businessName, BUSINESS_NAME_MAX, DEFAULT_BRANDING.businessName),
     tagline: typeof r.tagline === 'string' && r.tagline.length <= TAGLINE_MAX ? r.tagline : '',
@@ -105,6 +114,11 @@ export function sanitizePublicBranding(raw: unknown): PublicBranding {
       (LOGO_MIMES as readonly string[]).includes(r.logoMime as string)
         ? (r.logoMime as LogoMime)
         : 'image/svg+xml',
+    faviconUrl,
+    faviconMime:
+      faviconUrl && (LOGO_MIMES as readonly string[]).includes(r.faviconMime as string)
+        ? (r.faviconMime as LogoMime)
+        : null,
     onPrimary: primary ? (colour(r.onPrimary) ?? '#FFFFFF') : null,
     updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : null,
   };

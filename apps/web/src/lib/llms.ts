@@ -15,15 +15,16 @@ const u = (p: string) => `${SITE_URL}${p === '/' ? '' : p}`;
 const enUrl = (p: ContentPageDef) => u(pagePath(p, 'en'));
 
 export const SUMMARY =
-  'Kadi Sasa is a Tanzanian service for digital invitation cards, michango (wedding contributions) and offline QR gate check-in, for weddings and other events in Tanzania, with Kenya support in pilot. Every guest gets their own card with a QR code and a short card number (for example KH-4826) by WhatsApp, SMS or on paper. The committee tracks replies, party sizes and pledges, and any committee phone becomes the gate, scanning even with no network.';
+  'Kadi Sasa is an East African service for digital invitation cards (e-cards), michango/pledge tracking and offline QR gate check-in, live as a pilot in Tanzania with Kenya and Uganda support planned. Every guest gets their own card with a QR code and a short card number (for example KH-4826) by WhatsApp, SMS or on paper. The committee tracks replies, party sizes and pledges, and any committee phone becomes the gate, scanning even with no network.';
 
 export const FACTS = [
-  'Languages: Swahili first, English one tap away. Currency: TZS in Tanzania, KES in Kenya.',
+  'Languages: Swahili first, English one tap away. Currency: TZS in Tanzania, KES in Kenya (pilot/planned), UGX in Uganda (planned).',
   'Delivery: WhatsApp, SMS (works on any phone, including basic feature phones) and printable paper cards with the same QR and card number.',
+  'Category clarity: Kadi Sasa provides event and wedding e-cards (invitations, RSVPs, pledges, gate passes), not NFC digital business cards.',
   'Guests need no account and no app. Kadi Sasa never asks guests for a PIN, password or OTP.',
   'Gate: the Android app downloads the guest list and the event public key, verifies signed QR codes offline, and syncs scans when the network returns. One QR admits once; a repeat shows "Already admitted" with the time.',
   'Gate fallbacks: scan the QR, type the card number, search by name or the last four phone digits, or a logged manual override by the committee.',
-  'Contributions (michango): guests pay the hosts directly (M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, bank or cash). Kadi Sasa keeps only encrypted records, visible to the hosts and committee, and takes no percentage.',
+  'Contributions (michango & pledges): guests pay the hosts directly (M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, MTN MoMo, bank or cash). Kadi Sasa keeps only encrypted records, visible to the hosts and committee, and takes no percentage.',
   'Apps: a web console in the browser and an Android app (Android 8 and newer) for hosts, committee and gate staff. Gate staff join with a link and a PIN.',
   'Data protection: follows the Tanzania Personal Data Protection Act; guests and hosts can request export or deletion.',
 ];
@@ -40,6 +41,7 @@ export function llmsTxt(): string {
   const tz = (g: ContentPageDef['group']) =>
     ALL_PAGES.filter((p) => marketOf(p) === 'tz' && p.group === g);
   const ke = ALL_PAGES.filter((p) => marketOf(p) === 'ke' && p.group !== 'legal');
+  const ug = ALL_PAGES.filter((p) => marketOf(p) === 'ug' && p.group !== 'legal');
   return `# Kadi Sasa
 
 > ${SUMMARY}
@@ -60,6 +62,7 @@ ${section('Products and occasions', tz('product'))}
 ${section('Guides', tz('guide'))}
 ${section('Company', tz('company'))}
 ${section('Kenya (pilot)', ke)}
+${section('Uganda (planned)', ug)}
 ## Optional
 
 - [Full text of every guide](${u('/llms-full.txt')}): all pages above as plain Markdown, English edition

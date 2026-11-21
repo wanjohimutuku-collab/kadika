@@ -3,14 +3,40 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { SiteLink as Link } from '@/components/site/site-link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, ChevronDown, Ticket } from 'lucide-react';
+import {
+  ArrowUpRight,
+  BookOpen,
+  Briefcase,
+  ChevronDown,
+  Compass,
+  FileText,
+  Heart,
+  MessageSquare,
+  QrCode,
+  ShieldCheck,
+  Sparkles,
+  Ticket,
+} from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { siteButton } from '@/components/site/blocks';
 
 export interface NavLink {
   href: string;
   label: string;
+  description?: string;
 }
+
+const MEGA_ICONS = [
+  Sparkles,
+  MessageSquare,
+  QrCode,
+  Heart,
+  Briefcase,
+  FileText,
+  BookOpen,
+  Compass,
+  ShieldCheck,
+] as const;
 
 export interface NavGroup {
   id: string;
@@ -102,8 +128,8 @@ export function SiteNav({
           className={cn(
             'ks-ease relative mx-auto flex min-h-[3.75rem] max-w-[1120px] items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4 backdrop-blur-xl transition-all duration-500 md:pl-5',
             scrolled || sheet
-              ? 'bg-white/90 shadow-[0_18px_44px_-22px_rgb(10_63_53/0.45),inset_0_1px_0_rgb(255_255_255/0.9)] ring-1 ring-ks-ink/[0.08]'
-              : 'bg-ks-paper/80 shadow-[0_10px_28px_-20px_rgb(10_63_53/0.28),inset_0_1px_0_rgb(255_255_255/0.8)] ring-1 ring-ks-ink/[0.06]',
+              ? 'bg-white/90 shadow-[0_18px_44px_-22px_rgb(10_10_7/0.35),inset_0_1px_0_rgb(255_255_255/0.9)] ring-1 ring-ks-ink/[0.08]'
+              : 'bg-ks-paper/80 shadow-[0_10px_28px_-20px_rgb(10_10_7/0.22),inset_0_1px_0_rgb(255_255_255/0.8)] ring-1 ring-ks-ink/[0.06]',
           )}
         >
           {/* Brand mark */}
@@ -115,13 +141,13 @@ export function SiteNav({
               const expanded = open === g.id;
               const groupHasActive = g.links.some((l) => isActive(l.href));
               return (
-                <li key={g.id} className="relative">
+                <li key={g.id}>
                   <button
                     type="button"
                     className={cn(
                       linkBase,
                       'gap-1',
-                      (expanded || groupHasActive) && 'bg-ks-green-100/75 text-ks-green-900',
+                      (expanded || groupHasActive) && 'bg-[#f6f9fc] text-[#5469d4]',
                     )}
                     aria-expanded={expanded}
                     aria-controls={`nav-${g.id}`}
@@ -130,8 +156,8 @@ export function SiteNav({
                     {g.label}
                     <ChevronDown
                       className={cn(
-                        'ks-ease size-3.5 text-ks-muted transition-transform duration-500',
-                        expanded && 'rotate-180 text-ks-green-900',
+                        'ks-ease size-3.5 text-ks-muted transition-transform duration-300',
+                        expanded && 'rotate-180 text-[#5469d4]',
                       )}
                       strokeWidth={2}
                       aria-hidden="true"
@@ -140,39 +166,52 @@ export function SiteNav({
                   <div
                     id={`nav-${g.id}`}
                     hidden={!expanded}
-                    className="absolute top-full left-0 mt-3 w-80 rounded-[1.5rem] bg-ks-paper/90 p-1.5 shadow-[0_26px_54px_-22px_rgb(10_63_53/0.42)] ring-1 ring-ks-ink/[0.08] backdrop-blur-xl"
+                    className="absolute inset-x-0 top-full mt-3 rounded-2xl border border-[#e3e8ee] bg-white p-5 shadow-[0_24px_56px_-18px_rgb(10_38_64/0.18)] md:p-6"
                   >
-                    <div className="mb-1 flex items-center justify-between px-3 pt-1.5 pb-1">
-                      <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-ks-green-700">
-                        {g.label}
-                      </span>
-                      <span className="h-1 w-6 rounded-full bg-ks-gold-500/60" aria-hidden="true" />
-                    </div>
-                    <ul className="ks-stagger max-h-[68vh] overflow-auto rounded-[calc(1.5rem-0.375rem)] bg-white p-1.5 ring-1 ring-ks-ink/[0.04]">
-                      {g.links.map((l) => {
+                    <ul className="grid max-h-[68vh] grid-cols-1 gap-1.5 overflow-auto md:grid-cols-2 lg:grid-cols-3 lg:gap-3">
+                      {g.links.map((l, idx) => {
                         const active = isActive(l.href);
+                        const Icon = MEGA_ICONS[idx % MEGA_ICONS.length]!;
                         return (
                           <li key={l.href}>
                             <Link
                               href={l.href}
                               className={cn(
-                                'group flex min-h-10 items-center justify-between rounded-xl px-3 text-[14.5px] transition-colors',
+                                'group flex items-start gap-3.5 rounded-xl p-3 transition-colors',
                                 active
-                                  ? 'bg-ks-green-100/80 font-semibold text-ks-green-900'
-                                  : 'text-ks-ink/85 hover:bg-ks-green-100/55 hover:text-ks-green-900',
+                                  ? 'bg-[#f6f9fc] text-[#5469d4]'
+                                  : 'hover:bg-[#f6f9fc]',
                               )}
                               aria-current={active ? 'page' : undefined}
                             >
-                              <span>{l.label}</span>
-                              <ArrowUpRight
-                                className={cn(
-                                  'size-3.5 transition-all duration-300',
-                                  active
-                                    ? 'text-ks-green-700 opacity-100'
-                                    : 'text-ks-muted opacity-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100',
-                                )}
+                              <span
                                 aria-hidden="true"
-                              />
+                                className={cn(
+                                  'flex size-10 shrink-0 items-center justify-center rounded-xl border transition-colors',
+                                  active
+                                    ? 'border-[#5469d4] bg-[#5469d4] text-white'
+                                    : 'border-[#e3e8ee] bg-[#f6f9fc] text-[#5469d4] group-hover:border-[#5469d4] group-hover:bg-[#5469d4] group-hover:text-white',
+                                )}
+                              >
+                                <Icon className="size-[18px]" strokeWidth={1.9} />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <span
+                                  className={cn(
+                                    'block text-[14.5px] leading-snug font-bold transition-colors',
+                                    active
+                                      ? 'text-[#5469d4]'
+                                      : 'text-[#0a2640] group-hover:text-[#5469d4]',
+                                  )}
+                                >
+                                  {l.label}
+                                </span>
+                                {l.description ? (
+                                  <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-[#494d59]">
+                                    {l.description}
+                                  </span>
+                                ) : null}
+                              </div>
                             </Link>
                           </li>
                         );

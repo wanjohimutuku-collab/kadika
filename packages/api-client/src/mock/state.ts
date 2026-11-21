@@ -151,6 +151,9 @@ export interface MockState {
     logoMime: string | null;
     logoSrc: string | null;
     logoVersion: number;
+    faviconMime: string | null;
+    faviconSrc: string | null;
+    faviconVersion: number;
     updatedAt: string;
     updatedBy: string;
   };

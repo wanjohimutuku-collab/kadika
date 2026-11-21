@@ -37,7 +37,15 @@ describe('/api/card-image by token', () => {
     saved = undefined;
     const dflt = await png(byToken);
     expect(dflt.equals(await png(forced('classic')))).toBe(true);
-    for (const t of ['modern', 'script', 'botanical']) {
+    for (const t of [
+      'modern',
+      'script',
+      'botanical',
+      'floral-corner',
+      'wildflower-arch',
+      'mandala-arch',
+      'marigold-garland',
+    ]) {
       saved = t;
       const chosen = await png(byToken);
       expect(chosen.equals(await png(forced(t))), t).toBe(true);

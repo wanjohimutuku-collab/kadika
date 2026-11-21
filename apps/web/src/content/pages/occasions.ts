@@ -550,7 +550,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Kadi Sasa ilijengwa kwa sherehe za binafsi. Haiuzi tiketi wala haina mpangilio wa viti. Ikiwa unahitaji hivyo, wasiliana nasi kabla ya kuamua.',
+              text: 'Kadi Sasa inashughulikia mialiko ya kidijitali, majibu ya RSVP na mapokezi ya QR bila mtandao kwa makongamano, uzinduzi na hafla za kampuni. Haiuzi tiketi za kulipia wala haina mpangilio wa namba za viti.',
             },
           ],
         },
@@ -596,7 +596,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'note',
-              text: 'Kadi Sasa was built for private celebrations. It does not sell tickets or plan seating. If you need those, contact us before you decide.',
+              text: 'Kadi Sasa handles digital invitations, RSVPs and offline QR reception check-in for conferences, launches and corporate events. It does not sell paid tickets or assign numbered seating.',
             },
           ],
         },

@@ -14,7 +14,7 @@ export function SeoLinks({
 }: {
   path: string;
   locale: Locale;
-  counterpartPath?: string;
+  counterpartPath?: string | string[];
   /** TZ SW slug path (bare, no `/sw` prefix). Pass on TZ content pages where SW and EN slugs differ. */
   swPath?: string;
   /** TZ EN slug path. Pass on TZ content pages where SW and EN slugs differ. */

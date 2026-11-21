@@ -198,7 +198,7 @@ export function createApp(deps: Deps) {
   // The public logo route sets its own, stricter set (it serves an image, so it also needs `sandbox`
   // and an inline-style allowance); the global middleware would overwrite it after the handler runs.
   app.use('*', (c, next) =>
-    c.req.path === '/v1/branding/logo'
+    c.req.path === '/v1/branding/logo' || c.req.path === '/v1/branding/favicon'
       ? next()
       : guestPhoto.test(c.req.path)
         ? securePhoto(c, next)
@@ -513,6 +513,7 @@ export function createApp(deps: Deps) {
     c.req.path === '/v1/app/android' ||
     c.req.path === '/v1/app/android.apk' ||
     c.req.path === '/v1/branding/logo' ||
+    c.req.path === '/v1/branding/favicon' ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
       ? next()
       : gateOrUser(c, next),
@@ -1405,30 +1406,35 @@ export function createApp(deps: Deps) {
     c.header('cache-control', 'public, max-age=60');
     return c.json(await brandingSvc.publicView());
   });
-  app.get('/v1/branding/logo', async (c) => {
-    const logo = await brandingSvc.logo();
-    if (!logo) return c.json({ error: { code: 'not_found', message: 'No logo' } }, 404);
-    // `?v=` changes with every upload, so a versioned URL can be cached for good; a bare one revalidates.
-    const versioned = c.req.query('v') === String(logo.version);
+  const serveBrandImage = (
+    c: Context,
+    file: Awaited<ReturnType<typeof brandingSvc.logo>>,
+    missingMessage: string,
+  ) => {
+    if (!file) return c.json({ error: { code: 'not_found', message: missingMessage } }, 404);
+    const versioned = c.req.query('v') === String(file.version);
     const headers: Record<string, string> = {
-      'content-type': logo.mime,
-      etag: logo.etag,
+      'content-type': file.mime,
+      etag: file.etag,
       'cache-control': versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
       'x-content-type-options': 'nosniff',
       'content-disposition': 'inline',
-      // The logo is an image, never a page: no script, no network, no framing, even if opened directly.
       'content-security-policy':
         "default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'none'; sandbox",
       'strict-transport-security': 'max-age=63072000; includeSubDomains',
       'referrer-policy': 'no-referrer',
       'x-frame-options': 'DENY',
-      // The web app (another origin) shows it with <img>, which needs no CORS; the resource policy
-      // still allows that explicitly.
       'cross-origin-resource-policy': 'cross-origin',
     };
-    if (c.req.header('if-none-match') === logo.etag) return c.body(null, 304, headers);
-    return c.body(new Uint8Array(logo.body), 200, headers);
-  });
+    if (c.req.header('if-none-match') === file.etag) return c.body(null, 304, headers);
+    return c.body(new Uint8Array(file.body), 200, headers);
+  };
+  app.get('/v1/branding/logo', async (c) =>
+    serveBrandImage(c, await brandingSvc.logo(), 'No logo'),
+  );
+  app.get('/v1/branding/favicon', async (c) =>
+    serveBrandImage(c, await brandingSvc.favicon(), 'No favicon'),
+  );
   const brandingInput = z.object({
     businessName: z.string().max(200),
     tagline: z.string().max(400).default(''),
@@ -1441,14 +1447,17 @@ export function createApp(deps: Deps) {
   app.put('/v1/ops/branding', async (c) =>
     c.json(await brandingSvc.save(staff(c), parse(brandingInput, await body(c)))),
   );
-  app.put('/v1/ops/branding/logo', async (c) => {
-    const input = parse(
-      z.object({ mime: z.string().max(40), data: z.string().max(400_000) }),
-      await body(c),
-    );
-    return c.json(await brandingSvc.setLogo(staff(c), input));
-  });
+  const brandImageBody = z.object({ mime: z.string().max(40), data: z.string().max(400_000) });
+  app.put('/v1/ops/branding/logo', async (c) =>
+    c.json(await brandingSvc.setLogo(staff(c), parse(brandImageBody, await body(c)))),
+  );
   app.delete('/v1/ops/branding/logo', async (c) => c.json(await brandingSvc.removeLogo(staff(c))));
+  app.put('/v1/ops/branding/favicon', async (c) =>
+    c.json(await brandingSvc.setFavicon(staff(c), parse(brandImageBody, await body(c)))),
+  );
+  app.delete('/v1/ops/branding/favicon', async (c) =>
+    c.json(await brandingSvc.removeFavicon(staff(c))),
+  );
   // ---- many guests at once (undo a delete, move to a group) and one guest's history
   const guestIds = z.array(z.string().uuid()).min(1).max(2000);
   app.post('/v1/guests/restore', async (c) => {

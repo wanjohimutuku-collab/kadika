@@ -8,6 +8,7 @@ export const FOOTER_LINE = {
   sw: 'Imetengenezwa Tanzania kwa sherehe za Afrika Mashariki.',
   en: 'Made in Tanzania for East African celebrations.',
   ke: 'Built in East Africa for Kenyan committees.',
+  ug: 'Built in East Africa for Ugandan celebrations.',
 } as const;
 
 export interface FooterColumn {

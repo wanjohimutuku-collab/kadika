@@ -18,6 +18,8 @@ describe('sanitizePublicBranding', () => {
     fontDisplay: 'classical',
     logoUrl: '/v1/branding/logo?v=3',
     logoMime: 'image/svg+xml',
+    faviconUrl: '/v1/branding/favicon?v=2',
+    faviconMime: 'image/png',
     onPrimary: '#FFFFFF',
     updatedAt: '2026-10-19T10:00:00.000Z',
   };

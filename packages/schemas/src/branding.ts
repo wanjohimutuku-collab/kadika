@@ -67,11 +67,14 @@ export const DEFAULT_BRANDING: BrandingInput = {
   fontDisplay: 'elegant',
 };
 
-/** Branding as everyone sees it (public: the logo URL carries a version so a new logo busts caches). */
+/** Branding as everyone sees it (public: the logo/favicon URLs carry a version so updates bust caches). */
 export interface PublicBranding extends BrandingInput {
   /** `/v1/branding/logo?v=3` on the API host, or null when no logo is set. */
   logoUrl: string | null;
   logoMime: LogoMime | null;
+  /** `/v1/branding/favicon?v=3` on the API host, or null when no custom favicon is set. */
+  faviconUrl: string | null;
+  faviconMime: LogoMime | null;
   /** Text colour for content on `primary`: white or near-black, whichever reads better. */
   onPrimary: string | null;
   updatedAt: string | null;

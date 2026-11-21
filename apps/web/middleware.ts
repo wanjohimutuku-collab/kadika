@@ -105,7 +105,7 @@ export function middleware(req: NextRequest) {
   };
   if (!route) return csp ? send(NextResponse.next({ request: { headers } })) : NextResponse.next();
   headers.set('x-hp-lang', route.locale);
-  if (route.market === 'ke') headers.set('x-hp-market', 'ke');
+  if (route.market !== 'tz') headers.set('x-hp-market', route.market);
   // The route path (without `/en`), so the layout can link to the same page in the other languages.
   headers.set('x-hp-path', route.action === 'rewrite' ? route.path : p);
   if (route.action === 'rewrite') {

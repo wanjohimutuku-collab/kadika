@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { formatPhone } from '@harusi/schemas/phone';
 import type { Session } from '@harusi/api-client';
@@ -27,6 +29,8 @@ export default function Otp() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(30);
+  const lastClip = useRef<string | null>(null);
+  const verifyRef = useRef<(value?: string) => Promise<void>>(async () => undefined);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -77,6 +81,7 @@ export default function Otp() {
         : getRepository().verifyOtp(phone!, value),
     );
   };
+  verifyRef.current = verify;
 
   // Android may verify the number without the code being typed (Firebase only).
   useEffect(() => {
@@ -105,6 +110,29 @@ export default function Otp() {
       setBusy(false);
     }
   };
+
+  // Auto-populate OTP from clipboard when returning from Messages/SMS app.
+  useEffect(() => {
+    const checkClipboard = async () => {
+      if (signingIn.current || needName) return;
+      try {
+        const text = (await Clipboard.getStringAsync()).trim();
+        if (!text || text === lastClip.current) return;
+        const m = /^\s*(\d{6})\s*$/.exec(text) ?? /\b(\d{6})\b/.exec(text);
+        if (!m) return;
+        const otp = m[1]!;
+        lastClip.current = text;
+        setCode(otp);
+        void verifyRef.current(otp);
+      } catch {
+        // clipboard unavailable
+      }
+    };
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') void checkClipboard();
+    });
+    return () => sub.remove();
+  }, [needName]);
 
   if (needName)
     return (
@@ -140,15 +168,17 @@ export default function Otp() {
         label={t('auth.otpLabel')}
         value={code}
         onChangeText={(v) => {
-          const next = v.replace(/\D/g, '').slice(0, 6);
+          const match = /\b(\d{6})\b/.exec(v);
+          const next = (match ? match[1]! : v.replace(/\D/g, '')).slice(0, 6);
           setCode(next);
-          // Checks itself on the sixth digit, typed or filled from the SMS.
+          // Checks itself on the sixth digit, typed, pasted, or filled from the SMS.
           if (next.length === 6 && next !== code) void verify(next);
         }}
         keyboardType="number-pad"
         autoComplete="sms-otp"
         textContentType="oneTimeCode"
-        maxLength={6}
+        importantForAutofill="yes"
+        autoFocus
         error={error}
         onSubmitEditing={() => void verify()}
       />

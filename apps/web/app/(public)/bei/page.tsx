@@ -14,7 +14,7 @@ import type { Locale } from '@harusi/i18n';
 import { SeoLinks } from '@/components/public/seo-links';
 import { OrnamentDiamond } from '@/components/card/ornament';
 import { JsonLd } from '@/components/site/json-ld';
-import { CompareTable, Faq } from '@/components/site/blocks';
+import { CompareTable, Eyebrow, Faq, PillLink } from '@/components/site/blocks';
 import {
   ORG_ID,
   PUBLIC_ROBOTS,
@@ -244,14 +244,33 @@ export default async function PricingPage() {
 
       <header className="ks-mesh -mt-20 border-b border-ks-line/60 md:-mt-24">
         <div className="mx-auto flex max-w-[1120px] flex-col gap-6 px-4 pt-32 pb-14 md:px-6 md:pt-40 md:pb-20">
-          <OrnamentDiamond className="[--hp-pattern:#D9A441]" />
-          <h1 className="font-serif text-[36px] leading-[1.06] font-bold tracking-[-0.03em] text-ks-green-900 [text-wrap:balance] md:text-[54px]">
+          <nav aria-label="Breadcrumb" className="ks-enter text-sm text-ks-muted">
+            <ol className="flex flex-wrap items-center gap-1.5">
+              <li>
+                <Link
+                  href={localeUrl('/', locale)}
+                  className="inline-flex min-h-11 items-center underline underline-offset-4"
+                >
+                  {locale === 'sw' ? 'Nyumbani' : 'Home'}
+                </Link>
+              </li>
+              <li aria-hidden="true">/</li>
+              <li aria-current="page" className="text-ks-ink">
+                {locale === 'sw' ? 'Bei' : 'Pricing'}
+              </li>
+            </ol>
+          </nav>
+          <div className="flex flex-wrap items-center gap-3">
+            <Eyebrow>{locale === 'sw' ? 'Bei · Tanzania' : 'Pricing · Tanzania'}</Eyebrow>
+            <OrnamentDiamond className="[--hp-pattern:#D9A441]" />
+          </div>
+          <h1 className="ks-enter max-w-4xl text-[36px] leading-[1.05] font-bold tracking-[-0.03em] text-ks-green-900 [text-wrap:balance] md:text-[54px]">
             {t('title')}
           </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-ks-muted">{t('intro')}</p>
+          <p className="ks-enter-2 max-w-2xl text-lg leading-relaxed text-ks-muted">{t('intro')}</p>
           {c.enforced ? null : (
             <p
-              className="w-fit rounded-full border border-ks-gold-500/40 bg-ks-gold-100/90 px-4 py-2 text-sm font-semibold text-ks-green-900"
+              className="ks-enter-2 w-fit rounded-full border border-ks-gold-500/40 bg-ks-gold-100/90 px-4 py-2 text-sm font-semibold text-ks-green-900"
               data-testid="pricing-pilot"
             >
               {t('pilotFree')}
@@ -260,7 +279,7 @@ export default async function PricingPage() {
           <section
             id="jibu-fupi"
             aria-label={locale === 'sw' ? 'Jibu fupi' : 'Short answer'}
-            className="ks-bezel max-w-3xl"
+            className="ks-enter-3 ks-bezel max-w-3xl"
           >
             <div className="ks-core relative overflow-hidden p-6 md:p-8">
               <div
@@ -280,11 +299,15 @@ export default async function PricingPage() {
         className="mx-auto max-w-[1120px] px-4 py-14 md:px-6 md:py-20"
         aria-labelledby="tiers-h"
       >
-        <div className="mb-8 flex flex-col gap-2">
-          <h2 id="tiers-h" className="font-serif text-3xl font-bold text-ks-green-900 md:text-4xl">
+        <div className="mb-8 flex flex-col gap-3">
+          <Eyebrow>{locale === 'sw' ? 'Kwa kila kadi' : 'Per-card tiers'}</Eyebrow>
+          <h2
+            id="tiers-h"
+            className="text-[28px] leading-[1.1] font-bold tracking-[-0.02em] text-ks-green-900 md:text-[40px]"
+          >
             {t('tiersTitle')}
           </h2>
-          <p className="text-ks-muted">{t('tiersIntro')}</p>
+          <p className="max-w-2xl text-ks-muted">{t('tiersIntro')}</p>
         </div>
         <ul className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           {tiers.map((x, i) => {
@@ -298,36 +321,75 @@ export default async function PricingPage() {
                 data-testid="pricing-tier"
               >
                 <div
-                  className={`flex w-full flex-col gap-4 rounded-[calc(2rem-0.375rem)] p-6 md:p-8 ${
+                  className={`flex w-full flex-col justify-between gap-6 rounded-[calc(2rem-0.375rem)] p-6 md:p-8 ${
                     highlight ? 'ks-mesh-dark text-white' : 'ks-core text-ks-ink'
                   }`}
                 >
-                  <p className="flex items-center gap-2 text-lg font-semibold">
-                    <CreditCard
-                      className={`size-5 ${highlight ? 'text-ks-gold-500' : 'text-ks-green-700'}`}
-                      aria-hidden="true"
-                    />
-                    {next === undefined
-                      ? t('tierFrom', { from: formatNumber(x.minCards) })
-                      : t('tierRange', {
-                          from: formatNumber(x.minCards),
-                          to: formatNumber(next - 1),
-                        })}
-                  </p>
-                  <p className="tabular text-3xl font-bold">
-                    {formatMoney(x.price.TZS, 'TZS')}{' '}
-                    <span
-                      className={`text-base font-normal ${highlight ? 'text-white/80' : 'text-ks-muted'}`}
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="flex items-center gap-2 text-lg font-semibold">
+                        <CreditCard
+                          className={`size-5 ${highlight ? 'text-ks-gold-500' : 'text-ks-green-700'}`}
+                          aria-hidden="true"
+                        />
+                        {next === undefined
+                          ? t('tierFrom', { from: formatNumber(x.minCards) })
+                          : t('tierRange', {
+                              from: formatNumber(x.minCards),
+                              to: formatNumber(next - 1),
+                            })}
+                      </p>
+                      {highlight ? (
+                        <span className="rounded-full bg-ks-gold-500/20 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-ks-gold-100 uppercase">
+                          {locale === 'sw' ? 'Maarufu' : 'Popular'}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="tabular text-3xl font-bold tracking-tight md:text-4xl">
+                      {formatMoney(x.price.TZS, 'TZS')}{' '}
+                      <span
+                        className={`text-base font-normal ${highlight ? 'text-white/80' : 'text-ks-muted'}`}
+                      >
+                        {t('perCard')}
+                      </span>
+                    </p>
+                    <p className={`text-sm ${highlight ? 'text-white/85' : 'text-ks-muted'}`}>
+                      {t('example', {
+                        n: formatNumber(example),
+                        total: formatMoney(example * x.price.TZS, 'TZS'),
+                      })}
+                    </p>
+                    <ul
+                      className={`mt-1 space-y-2 border-t pt-4 text-sm ${
+                        highlight ? 'border-white/15 text-white/90' : 'border-ks-line text-ks-ink/85'
+                      }`}
                     >
-                      {t('perCard')}
-                    </span>
-                  </p>
-                  <p className={`text-sm ${highlight ? 'text-white/85' : 'text-ks-muted'}`}>
-                    {t('example', {
-                      n: formatNumber(example),
-                      total: formatMoney(example * x.price.TZS, 'TZS'),
-                    })}
-                  </p>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2
+                          className={`size-4 shrink-0 ${highlight ? 'text-ks-gold-100' : 'text-ks-ok'}`}
+                          aria-hidden="true"
+                        />
+                        <span>{t('includesReminders', { n: c.messagesPerCard })}</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2
+                          className={`size-4 shrink-0 ${highlight ? 'text-ks-gold-100' : 'text-ks-ok'}`}
+                          aria-hidden="true"
+                        />
+                        <span>{t('feature.qr')}</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2
+                          className={`size-4 shrink-0 ${highlight ? 'text-ks-gold-100' : 'text-ks-ok'}`}
+                          aria-hidden="true"
+                        />
+                        <span>{t('feature.gate')}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <PillLink href="/login" kind={highlight ? 'onDark' : 'secondary'} className="w-full">
+                    {t('cta')}
+                  </PillLink>
                 </div>
               </li>
             );
@@ -338,32 +400,53 @@ export default async function PricingPage() {
           <CompareTable caption={t('tiersTitle')} head={comparisonHead} rows={comparisonRows} />
         </div>
 
-        <ul className="mt-8 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <li className="flex items-center gap-2.5 rounded-2xl border border-ks-line bg-white px-4 py-3">
-            <MessageSquare className="size-4 shrink-0 text-ks-green-700" aria-hidden="true" />
-            <span>{t('includesReminders', { n: c.messagesPerCard })}</span>
-          </li>
-          {(['qr', 'rsvp', 'gate', 'print'] as const).map((k) => (
-            <li
-              key={k}
-              className="flex items-center gap-2.5 rounded-2xl border border-ks-line bg-white px-4 py-3"
-            >
-              <CheckCircle2 className="size-4 shrink-0 text-ks-ok" aria-hidden="true" />
-              <span>{t(`feature.${k}`)}</span>
+        <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_1.6fr]">
+          <div className="ks-bezel flex">
+            <div className="ks-core flex w-full flex-col justify-between gap-4 p-6">
+              <div>
+                <Eyebrow>{locale === 'sw' ? 'Anza bure' : 'Free to start'}</Eyebrow>
+                <p className="mt-3 text-lg font-semibold text-ks-green-900">
+                  {t('freeNote', {
+                    cards: formatNumber(c.free.cards),
+                    messages: formatNumber(c.free.messages),
+                  })}
+                </p>
+              </div>
+              <PillLink href="/jaribu" kind="secondary" className="w-fit">
+                {locale === 'sw' ? 'Jaribu kadi ya mfano' : 'Try a demo card'}
+              </PillLink>
+            </div>
+          </div>
+          <ul className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <li className="flex items-center gap-3 rounded-2xl border border-ks-line bg-white px-4 py-3.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ks-green-100 text-ks-green-700">
+                <MessageSquare className="size-4" aria-hidden="true" />
+              </span>
+              <span className="font-medium text-ks-ink">
+                {t('includesReminders', { n: c.messagesPerCard })}
+              </span>
             </li>
-          ))}
-        </ul>
-        <p className="mt-5 text-sm text-ks-muted">
-          {t('freeNote', {
-            cards: formatNumber(c.free.cards),
-            messages: formatNumber(c.free.messages),
-          })}
-        </p>
+            {(['qr', 'rsvp', 'gate', 'print'] as const).map((k) => (
+              <li
+                key={k}
+                className="flex items-center gap-3 rounded-2xl border border-ks-line bg-white px-4 py-3.5"
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ks-green-100 text-ks-ok">
+                  <CheckCircle2 className="size-4" aria-hidden="true" />
+                </span>
+                <span className="font-medium text-ks-ink">{t(`feature.${k}`)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {c.packs.length ? (
         <section className="mx-auto max-w-[1120px] px-4 pb-12 md:px-6" aria-labelledby="packs-h">
-          <h2 id="packs-h" className="font-serif text-2xl font-bold text-ks-green-900 md:text-3xl">
+          <h2
+            id="packs-h"
+            className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] text-ks-green-900 md:text-[32px]"
+          >
             {t('packsTitle')}
           </h2>
           <p className="mt-2 text-ks-muted">{t('packsIntro')}</p>
@@ -375,7 +458,9 @@ export default async function PricingPage() {
                   className="flex items-center gap-3 px-5 py-4"
                   data-testid="pricing-pack"
                 >
-                  <MessageCircle className="size-5 text-ks-green-700" aria-hidden="true" />
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ks-green-100 text-ks-green-700">
+                    <MessageCircle className="size-4" aria-hidden="true" />
+                  </span>
                   <span className="flex-1 font-medium text-ks-ink">
                     {t('creditPack', { n: formatNumber(p.messages) })}
                   </span>
@@ -391,7 +476,8 @@ export default async function PricingPage() {
 
       <section className="mx-auto max-w-[1120px] px-4 pb-12 md:px-6" aria-labelledby="contrib-h">
         <div className="ks-bezel">
-          <div className="ks-core flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+          <div className="ks-core relative flex flex-col gap-6 overflow-hidden p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <div aria-hidden="true" className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-75" />
             <div className="flex gap-4">
               <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-ks-gold-100 text-ks-green-900">
                 <HandCoins className="size-6" aria-hidden="true" />
@@ -412,12 +498,9 @@ export default async function PricingPage() {
                 <span>{t('cta')}</span>
                 <ArrowUpRight className="size-4" aria-hidden="true" />
               </Link>
-              <Link
-                href="/jaribu"
-                className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full border border-ks-line bg-white px-5 font-semibold text-ks-green-900 transition hover:border-ks-green-700"
-              >
+              <PillLink href="/jaribu" kind="secondary">
                 {locale === 'sw' ? 'Jaribu kadi' : 'Try demo card'}
-              </Link>
+              </PillLink>
             </div>
           </div>
         </div>
@@ -435,7 +518,7 @@ export default async function PricingPage() {
           aria-label={locale === 'sw' ? 'Soma pia' : 'Related'}
           className="mx-auto flex w-full max-w-[1120px] flex-col gap-5 px-4 pb-20 md:px-6"
         >
-          <h2 className="font-serif text-2xl font-bold text-ks-green-900">
+          <h2 className="text-[26px] font-bold tracking-[-0.02em] text-ks-green-900">
             {locale === 'sw' ? 'Miongozo muhimu' : 'Helpful guides'}
           </h2>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -447,13 +530,20 @@ export default async function PricingPage() {
                     href={localeUrl(pagePath(g, locale), locale)}
                     className="group ks-core flex w-full flex-col justify-between gap-3 p-5"
                   >
-                    <span className="font-semibold text-ks-ink group-hover:text-ks-green-700">
-                      {gt.nav}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-ks-green-700">
-                      {locale === 'sw' ? 'Soma' : 'Read'}
-                      <ArrowUpRight className="size-3.5" aria-hidden="true" />
-                    </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-ks-ink group-hover:text-ks-green-700">
+                        {gt.nav}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="ks-ease flex size-7 shrink-0 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700 transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-px"
+                      >
+                        <ArrowUpRight className="size-3.5" strokeWidth={1.75} />
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 text-xs leading-relaxed text-ks-muted">
+                      {gt.description}
+                    </p>
                   </Link>
                 </li>
               );

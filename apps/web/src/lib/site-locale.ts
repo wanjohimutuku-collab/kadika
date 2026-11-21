@@ -15,7 +15,7 @@ import { routeSlugRedirect } from '@/content';
  * (see `routeSlugRedirect`).
  */
 
-export type SiteMarket = 'tz' | 'ke';
+export type SiteMarket = 'tz' | 'ke' | 'ug';
 
 export type LocaleRoute =
   | { action: 'redirect'; location: string }
@@ -59,20 +59,20 @@ export function routeSiteLocale(pathname: string, search: string): LocaleRoute |
   const bare = swPrefixed ? stripSwPrefix(pathname) : pathname;
   if (!isSitePath(bare)) return null;
 
-  const market: SiteMarket = isUnder(bare, '/ke') ? 'ke' : 'tz';
+  const market: SiteMarket = isUnder(bare, '/ke') ? 'ke' : isUnder(bare, '/ug') ? 'ug' : 'tz';
 
   // Legacy ?lang=sw|en — redirect to the canonical URL for the chosen locale.
   const params = new URLSearchParams(search);
   const legacy = params.get('lang');
   if (legacy !== null) {
     params.delete('lang');
-    if (market === 'ke') return { action: 'redirect', location: withQuery(bare, params) };
+    if (market !== 'tz') return { action: 'redirect', location: withQuery(bare, params) };
     const wantSw = legacy === 'sw';
     const target = wantSw ? swPath(bare) : bare;
     return { action: 'redirect', location: withQuery(target, params) };
   }
 
-  if (market === 'ke') return { action: 'next', locale: 'en', market };
+  if (market !== 'tz') return { action: 'next', locale: 'en', market };
 
   // Wrong-locale slug on a TZ path: single 301 to the right-locale canonical.
   const slugRedirect = routeSlugRedirect(pathname);
@@ -82,10 +82,11 @@ export function routeSiteLocale(pathname: string, search: string): LocaleRoute |
   return { action: 'next', locale: 'en', market };
 }
 
-/** `/sw...` → `'sw'`; `/ke...` → `'ke'`; else `'en'`. */
-export function editionOfPath(href: string): 'sw' | 'en' | 'ke' {
+/** `/sw...` → `'sw'`; `/ke...` → `'ke'`; `/ug...` → `'ug'`; else `'en'`. */
+export function editionOfPath(href: string): 'sw' | 'en' | 'ke' | 'ug' {
   const path = href.replace(/[?#].*$/, '');
   if (isUnder(path, '/sw')) return 'sw';
   if (isUnder(path, '/ke')) return 'ke';
+  if (isUnder(path, '/ug')) return 'ug';
   return 'en';
 }

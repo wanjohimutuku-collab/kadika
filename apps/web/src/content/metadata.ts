@@ -14,7 +14,7 @@ import type { ContentPageDef } from './types';
 export function pageMetadata(page: ContentPageDef, locale: Locale): Metadata {
   const t = textOf(page, locale);
   const market = marketOf(page);
-  const region = market === 'ke' ? 'KE' : 'TZ';
+  const region = market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ';
   const path = pagePath(page, locale);
   const url = absoluteLocaleUrl(path, locale);
   const counterpart = counterpartOf(page);

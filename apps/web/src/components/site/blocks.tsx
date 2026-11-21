@@ -1,6 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { SiteLink as Link } from '@/components/site/site-link';
-import { ArrowUpRight, Plus } from 'lucide-react';
+import { ArrowUpRight, Plus, QrCode, Send, Users, Wallet } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { JsonLd } from './json-ld';
 
@@ -27,12 +27,12 @@ export function siteButton(kind: ButtonKind = 'primary') {
   return cn(
     btnBase,
     kind === 'primary' &&
-      'bg-ks-green-700 py-1.5 pr-1.5 pl-6 text-white shadow-[0_10px_24px_-12px_rgb(15_92_77/0.7)] hover:bg-ks-green-900',
+    'bg-ks-green-700 py-1.5 pr-1.5 pl-6 text-white shadow-[0_10px_24px_-12px_rgb(15_92_77/0.7)] hover:bg-ks-green-900',
     kind === 'secondary' &&
-      'bg-white px-6 text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.25)] hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.6)]',
+    'bg-white px-6 text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.25)] hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.6)]',
     kind === 'onDark' && 'bg-white py-1.5 pr-1.5 pl-6 text-ks-green-900 hover:bg-ks-gold-100',
     kind === 'outlineOnDark' &&
-      'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.4)] hover:bg-white/10',
+    'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.4)] hover:bg-white/10',
   );
 }
 
@@ -197,6 +197,8 @@ export function Hero({
  * side-note: soft white panel, centred gold accent bar, a `?` glyph next to the eyebrow, and a
  * wider line-height on the body copy to invite reading.
  */
+const ANSWER_ICONS = [Send, Users, QrCode, Wallet] as const;
+
 export function AnswerBlock({
   label,
   text,
@@ -207,42 +209,42 @@ export function AnswerBlock({
   badges?: readonly string[];
 }) {
   return (
-    <Container as="section" aria-label={label} className="pt-12 pb-6 md:pt-16 md:pb-10">
-      <div className="ks-bezel ks-reveal mx-auto max-w-4xl">
-        <div className="ks-core relative overflow-hidden p-6 md:p-10">
-          <div aria-hidden="true" className="ks-kanga absolute inset-x-0 top-0 h-1 opacity-75" />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Eyebrow>{label}</Eyebrow>
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 32 16"
-              className="h-3 w-8 text-ks-gold-500"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            >
-              <path d="M2 8 Q 8 2 16 8 Q 24 14 30 8" />
-              <circle cx="16" cy="8" r="1.4" fill="currentColor" stroke="none" />
-            </svg>
-          </div>
-          <p className="mt-5 font-serif text-[20px] leading-[1.52] text-ks-ink md:text-[25px] md:leading-[1.48]">
+    <Container as="section" aria-label={label} className="py-10 md:py-14">
+      <div className="ks-reveal grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-10">
+        <div className={cn('space-y-4', badges?.length ? 'lg:col-span-7' : 'lg:col-span-12')}>
+          <Eyebrow>{label}</Eyebrow>
+          <p className="font-serif text-[18px] leading-[1.62] text-ks-ink sm:text-[20px] md:text-[22px] md:leading-[1.55]">
             {text}
           </p>
-          {badges?.length ? (
-            <ul className="mt-6 flex flex-wrap gap-2 border-t border-ks-line/80 pt-4">
-              {badges.map((b) => (
+        </div>
+        {badges?.length ? (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-5">
+            {badges.map((b, i) => {
+              const Icon = ANSWER_ICONS[i % ANSWER_ICONS.length]!;
+              return (
                 <li
                   key={b}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-ks-green-100/70 px-3 py-1 text-xs font-semibold text-ks-green-900"
+                  className="group flex items-start gap-3 rounded-2xl border border-ks-line/80 bg-white/80 p-4 transition-colors duration-300 hover:border-ks-green-700/30 hover:bg-white"
                 >
-                  <span aria-hidden="true" className="size-1.5 rounded-full bg-ks-green-700" />
-                  {b}
+                  <span
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ks-green-100/80 text-ks-green-800"
+                  >
+                    <Icon className="size-[18px]" strokeWidth={1.85} />
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block font-mono text-[10px] font-semibold tracking-widest text-ks-muted">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="mt-0.5 block text-sm leading-snug font-semibold text-ks-ink">
+                      {b}
+                    </span>
+                  </div>
                 </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
+              );
+            })}
+          </ul>
+        ) : null}
       </div>
     </Container>
   );
@@ -324,26 +326,29 @@ export function CompareTable({
   );
 }
 
-/** Questions as disclosure rows inside one bezel card. */
+/** Questions as crisp accordion rows in the Quickwork navy/indigo/ice-slate palette. */
 export function FaqList({ items }: { items: { q: string; a: string }[] }) {
   return (
-    <div className="ks-bezel">
-      <div className="ks-core divide-y divide-ks-line px-2 md:px-4">
-        {items.map((f) => (
-          <details key={f.q} className="group px-3">
-            <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 py-3">
-              <h3 className="text-lg font-semibold">{f.q}</h3>
-              <span
-                aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700 transition-transform duration-500 ks-ease group-open:rotate-45"
-              >
-                <Plus className="size-4" strokeWidth={1.75} />
-              </span>
-            </summary>
-            <p className="max-w-2xl pb-5 leading-relaxed text-ks-muted">{f.a}</p>
-          </details>
-        ))}
-      </div>
+    <div className="flex flex-col gap-3">
+      {items.map((f) => (
+        <details
+          key={f.q}
+          className="group overflow-hidden rounded-2xl border border-[#e3e8ee] bg-white shadow-[0_6px_20px_-14px_rgb(10_38_64/0.14)] transition-colors open:border-[#5469d4]/45 open:bg-[#f6f9fc]/60"
+        >
+          <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-[#f6f9fc]/70 md:px-6">
+            <h3 className="text-base font-bold text-[#0a2640] md:text-[17px]">{f.q}</h3>
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[#e3e8ee] bg-[#f6f9fc] text-[#5469d4] transition-all duration-300 group-open:rotate-45 group-open:border-[#5469d4] group-open:bg-[#5469d4] group-open:text-white"
+            >
+              <Plus className="size-4" strokeWidth={2} />
+            </span>
+          </summary>
+          <p className="max-w-2xl px-5 pb-5 text-sm leading-relaxed text-[#494d59] md:px-6 md:text-[15px]">
+            {f.a}
+          </p>
+        </details>
+      ))}
     </div>
   );
 }
@@ -361,31 +366,49 @@ export function Faq({
   eyebrow?: string;
 }) {
   return (
-    <Container
-      as="section"
-      aria-labelledby={id}
-      className="grid gap-10 py-20 md:grid-cols-[0.8fr_1.2fr] md:gap-16 md:py-32"
-    >
-      <JsonLd
-        data={{
-          '@context': 'https://schema.org',
-          '@type': 'FAQPage',
-          mainEntity: items.map((f) => ({
-            '@type': 'Question',
-            name: f.q,
-            acceptedAnswer: { '@type': 'Answer', text: f.a },
-          })),
-        }}
-      />
-      <div className="md:sticky md:top-28 md:self-start">
-        <SectionHeading id={id} eyebrow={eyebrow}>
-          {title}
-        </SectionHeading>
-      </div>
-      <div className="ks-reveal">
-        <FaqList items={items} />
-      </div>
-    </Container>
+    <section aria-labelledby={id} className="bg-white py-16 md:py-24">
+      <Container className="grid gap-10 md:grid-cols-[0.78fr_1.22fr] md:gap-14">
+        <JsonLd
+          data={{
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: items.map((f) => ({
+              '@type': 'Question',
+              name: f.q,
+              acceptedAnswer: { '@type': 'Answer', text: f.a },
+            })),
+          }}
+        />
+        <div className="flex flex-col gap-5 md:sticky md:top-28 md:self-start">
+          <div className="flex flex-col gap-3">
+            {eyebrow ? (
+              <p className="inline-flex w-fit items-center gap-2 rounded-full border border-[#e3e8ee] bg-[#f6f9fc] px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5469d4]">
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-[#5469d4]" />
+                {eyebrow}
+              </p>
+            ) : null}
+            <h2
+              id={id}
+              className="text-[30px] leading-[1.12] font-bold tracking-[-0.025em] text-[#0a2640] md:text-[42px]"
+            >
+              {title}
+            </h2>
+          </div>
+          <div className="hidden rounded-2xl border border-[#e3e8ee] bg-[#f6f9fc] p-5 md:block">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5469d4]">
+              {items.length} answers
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-[#494d59]">
+              Everything you need to know about WhatsApp/SMS delivery, offline QR scanning, and
+              direct-to-host contributions.
+            </p>
+          </div>
+        </div>
+        <div className="ks-reveal">
+          <FaqList items={items} />
+        </div>
+      </Container>
+    </section>
   );
 }
 

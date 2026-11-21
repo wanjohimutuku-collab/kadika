@@ -608,6 +608,9 @@ export const brandSettings = pgTable('brand_settings', {
   logoMime: text('logo_mime'),
   logoData: text('logo_data'),
   logoVersion: integer('logo_version').notNull().default(0),
+  faviconMime: text('favicon_mime'),
+  faviconData: text('favicon_data'),
+  faviconVersion: integer('favicon_version').notNull().default(0),
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   ...timestamps,
 });

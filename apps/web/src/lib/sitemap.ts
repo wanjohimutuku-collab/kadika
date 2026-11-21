@@ -6,10 +6,10 @@ import { SITE_URL, absoluteLocaleUrl, hreflangMap } from './seo';
 import { counterpartPath, type SiteEdition } from './site-nav';
 
 /**
- * One sitemap index with a child per edition (kit sitemap.md § Technical): sw, en and ke. Private
+ * One sitemap index with a child per edition (kit sitemap.md § Technical): sw, en, ke and ug. Private
  * surfaces (/k, /c, /s, /login, /app, /ops, /dev) are never listed: only site pages are.
  */
-export const SITEMAP_EDITIONS: readonly SiteEdition[] = ['sw', 'en', 'ke'];
+export const SITEMAP_EDITIONS: readonly SiteEdition[] = ['sw', 'en', 'ke', 'ug'];
 
 export interface SitemapEntry {
   loc: string;
@@ -22,19 +22,19 @@ const weight = (p: ContentPageDef) =>
   p.slug === '' ? 1 : p.group === 'legal' ? 0.3 : p.group === 'product' ? 0.9 : 0.7;
 
 export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
-  const market = edition === 'ke' ? 'ke' : 'tz';
+  const market = edition === 'ke' ? 'ke' : edition === 'ug' ? 'ug' : 'tz';
   const locale = edition === 'sw' ? 'sw' : 'en';
   const pages: {
     path: string;
     pathEn?: string;
     pathSw?: string;
-    counterpart?: string;
+    counterpart?: string | string[];
     updated?: string;
     priority: number;
   }[] =
     market === 'tz'
       ? [
-          { path: '/', counterpart: '/ke', priority: 1 },
+          { path: '/', counterpart: ['/ke', '/ug'], priority: 1 },
           { path: PRICING_PATH, priority: 0.8 },
           { path: APP_DOWNLOAD_PATH, priority: 0.6 },
         ]
@@ -48,7 +48,10 @@ export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
       path,
       pathEn: market === 'tz' ? pagePath(p, 'en') : path,
       pathSw: market === 'tz' ? pagePath(p, 'sw') : undefined,
-      counterpart: counterpartPath(path, locale),
+      counterpart:
+        p.slug === '' && market !== 'tz'
+          ? ['/', market === 'ke' ? '/ug' : '/ke']
+          : counterpartPath(path, locale),
       updated: p.updated,
       priority: weight(p),
     });

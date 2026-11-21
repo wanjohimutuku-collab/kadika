@@ -28,6 +28,12 @@ const COPY: Record<OgEdition, { headline: string; line: string; host: string; me
     host: 'Wanjiru & Otieno',
     meta: 'Saturday · Nairobi',
   },
+  ug: {
+    headline: 'E-cards, Kwanjula and the gate',
+    line: 'Personal QR cards on WhatsApp, SMS or print. Pledges tracked, gate works offline.',
+    host: 'Namukasa & Kato',
+    meta: 'Saturday · Kampala',
+  },
 };
 
 /** 21×21 modules that look like a QR code (three finder squares, scattered data) but encode nothing. */

@@ -21,7 +21,17 @@ export const cardKindSchema = z.enum(CARD_KINDS);
  * `script` and `botanical` also show the organiser's own title / message / footer text.
  * `custom` unlocks freeform drag-and-drop element positioning, custom fonts, imported images and backgrounds.
  */
-export const CARD_TEMPLATES = ['classic', 'modern', 'script', 'botanical', 'custom'] as const;
+export const CARD_TEMPLATES = [
+  'classic',
+  'modern',
+  'script',
+  'botanical',
+  'floral-corner',
+  'wildflower-arch',
+  'mandala-arch',
+  'marigold-garland',
+  'custom',
+] as const;
 export type CardTemplate = (typeof CARD_TEMPLATES)[number];
 export const cardTemplateSchema = z.enum(CARD_TEMPLATES);
 export const cardTemplateOf = (
@@ -31,7 +41,15 @@ export const cardTemplateOf = (
     ? (c!.design!.template as CardTemplate)
     : 'classic';
 /** Templates that print the organiser's custom `design` text. */
-export const TEXT_TEMPLATES: readonly CardTemplate[] = ['script', 'botanical', 'custom'];
+export const TEXT_TEMPLATES: readonly CardTemplate[] = [
+  'script',
+  'botanical',
+  'floral-corner',
+  'wildflower-arch',
+  'mandala-arch',
+  'marigold-garland',
+  'custom',
+];
 
 const text = (max: number) => z.string().max(max);
 /** A text in each language. Both optional; an empty string means "not set". */

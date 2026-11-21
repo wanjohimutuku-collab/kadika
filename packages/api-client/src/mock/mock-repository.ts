@@ -3817,6 +3817,8 @@ export class MockRepository implements Repository {
         ...DEFAULT_BRANDING,
         logoUrl: null,
         logoMime: null,
+        faviconUrl: null,
+        faviconMime: null,
         onPrimary: null,
         updatedAt: null,
       };
@@ -3824,6 +3826,8 @@ export class MockRepository implements Repository {
       ...b.input,
       logoUrl: b.logoSrc,
       logoMime: (b.logoMime as LogoMime | null) ?? null,
+      faviconUrl: b.faviconSrc,
+      faviconMime: (b.faviconMime as LogoMime | null) ?? null,
       onPrimary: b.input.primary ? this.onPrimaryFor(b.input.primary) : null,
       updatedAt: b.updatedAt,
     };
@@ -3891,6 +3895,9 @@ export class MockRepository implements Repository {
         logoMime: prev?.logoMime ?? null,
         logoSrc: prev?.logoSrc ?? null,
         logoVersion: prev?.logoVersion ?? 0,
+        faviconMime: prev?.faviconMime ?? null,
+        faviconSrc: prev?.faviconSrc ?? null,
+        faviconVersion: prev?.faviconVersion ?? 0,
         updatedAt: iso(this.now()),
         updatedBy: u.name,
       };
@@ -3899,40 +3906,66 @@ export class MockRepository implements Repository {
     });
   }
 
+  private parseBrandImageDataUrl(file: { mime: string; data: string }, field: 'logo' | 'favicon'): string {
+    if (!(LOGO_MIMES as readonly string[]).includes(file.mime))
+      throw new RepositoryError('validation', 'The image must be SVG, PNG, JPEG or WebP', {
+        field: 'mime',
+      });
+    if (file.mime === 'image/svg+xml') {
+      const c = validateSvg(file.data);
+      if (!c.ok)
+        throw new RepositoryError('validation', SVG_REASON_TEXT[c.reason], {
+          field,
+          reason: c.reason,
+        });
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(c.svg)}`;
+    }
+    if (Math.ceil((file.data.length * 3) / 4) > MAX_LOGO_BYTES)
+      throw new RepositoryError('validation', 'The file is larger than 200 KB', {
+        field,
+        reason: 'too_large',
+      });
+    return `data:${file.mime};base64,${file.data}`;
+  }
+
   opsSetLogo(file: { mime: string; data: string }): Promise<BrandingView> {
     return this.run('write', 'ops-branding', () => {
       const u = this.requireStaff('settings');
-      if (!(LOGO_MIMES as readonly string[]).includes(file.mime))
-        throw new RepositoryError('validation', 'The logo must be SVG, PNG, JPEG or WebP', {
-          field: 'mime',
-        });
-      let src: string;
-      if (file.mime === 'image/svg+xml') {
-        const c = validateSvg(file.data);
-        if (!c.ok)
-          throw new RepositoryError('validation', SVG_REASON_TEXT[c.reason], {
-            field: 'logo',
-            reason: c.reason,
-          });
-        src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(c.svg)}`;
-      } else {
-        if (Math.ceil((file.data.length * 3) / 4) > MAX_LOGO_BYTES)
-          throw new RepositoryError('validation', 'The file is larger than 200 KB', {
-            field: 'logo',
-            reason: 'too_large',
-          });
-        src = `data:${file.mime};base64,${file.data}`;
-      }
+      const src = this.parseBrandImageDataUrl(file, 'logo');
       const prev = this.state.branding;
       this.state.branding = {
         input: prev?.input ?? { ...DEFAULT_BRANDING },
         logoMime: file.mime,
         logoSrc: src,
         logoVersion: (prev?.logoVersion ?? 0) + 1,
+        faviconMime: prev?.faviconMime ?? null,
+        faviconSrc: prev?.faviconSrc ?? null,
+        faviconVersion: prev?.faviconVersion ?? 0,
         updatedAt: iso(this.now()),
         updatedBy: u.name,
       };
       this.opsLog('branding', 'logo', file.mime);
+      return this.brandingView();
+    });
+  }
+
+  opsSetFavicon(file: { mime: string; data: string }): Promise<BrandingView> {
+    return this.run('write', 'ops-branding', () => {
+      const u = this.requireStaff('settings');
+      const src = this.parseBrandImageDataUrl(file, 'favicon');
+      const prev = this.state.branding;
+      this.state.branding = {
+        input: prev?.input ?? { ...DEFAULT_BRANDING },
+        logoMime: prev?.logoMime ?? null,
+        logoSrc: prev?.logoSrc ?? null,
+        logoVersion: prev?.logoVersion ?? 0,
+        faviconMime: file.mime,
+        faviconSrc: src,
+        faviconVersion: (prev?.faviconVersion ?? 0) + 1,
+        updatedAt: iso(this.now()),
+        updatedBy: u.name,
+      };
+      this.opsLog('branding', 'favicon', file.mime);
       return this.brandingView();
     });
   }
@@ -3987,6 +4020,25 @@ export class MockRepository implements Repository {
           updatedBy: u.name,
         };
         this.opsLog('branding', 'logo', 'removed');
+      }
+      return this.brandingView();
+    });
+  }
+
+  opsRemoveFavicon(): Promise<BrandingView> {
+    return this.run('write', 'ops-branding', () => {
+      const u = this.requireStaff('settings');
+      const prev = this.state.branding;
+      if (prev) {
+        this.state.branding = {
+          ...prev,
+          faviconMime: null,
+          faviconSrc: null,
+          faviconVersion: prev.faviconVersion + 1,
+          updatedAt: iso(this.now()),
+          updatedBy: u.name,
+        };
+        this.opsLog('branding', 'favicon', 'removed');
       }
       return this.brandingView();
     });

@@ -80,4 +80,17 @@ describe('buildDemoCardView', () => {
       expect(v.event?.coverGradient).toBe(THEME_GRADIENTS[themeId]);
     }
   });
+
+  it('supports single-title corporate and non-couple event names without falling back', () => {
+    const v = buildDemoCardView({
+      names: 'Serengeti Tech Summit',
+      dateISO: '2026-12-19',
+      eventType: 'biashara',
+    });
+    expect(v.event?.coupleNames).toBe('Serengeti Tech Summit');
+    expect(v.event?.partnerA).toBe('Serengeti Tech Summit');
+    expect(v.event?.partnerB).toBe('');
+    expect(v.event?.eventKind).toBe('Corporate Event');
+    expect(v.event?.themeId).toBe('navy-silver');
+  });
 });

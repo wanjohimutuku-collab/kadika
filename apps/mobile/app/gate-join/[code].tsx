@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View, type TextInput } from 'react-native';
+import { Image, Linking, Pressable, StyleSheet, Text, View, type TextInput } from 'react-native';
+import brandIcon from '../../assets/icon.png';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions, type BarcodeSettings } from 'expo-camera';
 import { API_URL } from '../../src/lib/repo';
@@ -184,11 +185,11 @@ export default function GateJoin() {
               gap: 6,
             }}
           >
-            <Text
-              style={{ color: c.primary, fontSize: 11.5, fontWeight: '900', letterSpacing: 0.6 }}
-            >
-              KS
-            </Text>
+            <Image
+              source={brandIcon}
+              accessibilityLabel={t('common.appName')}
+              style={{ width: 18, height: 18, borderRadius: 4 }}
+            />
             <Text style={{ color: c.ink, fontSize: 11.5, fontWeight: '700' }}>
               {`${t('common.appName')} · ${t('gateJoinPage.eyebrow')}`}
             </Text>

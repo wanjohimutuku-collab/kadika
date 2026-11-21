@@ -48,21 +48,21 @@ export function PricingTeaser({
         ]);
 
   return (
-    <section aria-labelledby="bei" className="bg-ks-paper py-16 md:py-24">
+    <section aria-labelledby="bei" className="bg-[#f6f9fc] py-16 md:py-24">
       <div className="mx-auto max-w-[1120px] px-4 md:px-6">
         <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-2">
             <h2
               id="bei"
-              className="font-serif text-[30px] leading-[1.1] tracking-[-0.02em] text-ks-green-900 md:text-[42px]"
+              className="text-[30px] font-bold leading-[1.12] tracking-[-0.025em] text-[#0a2640] md:text-[42px]"
             >
               {copy.title}
             </h2>
-            <p className="text-base text-ks-muted md:text-lg">{copy.sub}</p>
+            <p className="text-base text-[#494d59] md:text-lg">{copy.sub}</p>
           </div>
           <Link
             href={comparisonHref}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-ks-green-700 underline decoration-ks-green-700/35 underline-offset-4 hover:decoration-ks-green-700"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#5469d4] underline decoration-[#5469d4]/35 underline-offset-4 hover:text-[#0a2640] hover:decoration-[#0a2640]"
           >
             <span>{copy.comparisonLink}</span>
             <ArrowUpRight className="size-4" aria-hidden="true" />
@@ -83,31 +83,25 @@ export function PricingTeaser({
             return (
               <article
                 key={t.minCards}
-                className={cn('ks-bezel ks-bento flex', emphasised && 'ring-2 ring-ks-gold-500/50')}
+                className={cn(
+                  'flex rounded-[1.25rem] transition-transform duration-300 hover:-translate-y-1',
+                  emphasised
+                    ? 'qw-navy-band border border-[#5469d4]/50 text-white shadow-[0_24px_48px_-20px_rgb(10_38_64/0.45)]'
+                    : 'qw-card text-[#0a2640]',
+                )}
               >
-                <div
-                  className={cn(
-                    'relative flex w-full flex-col gap-5 rounded-[calc(2rem-0.375rem)] p-6 md:p-8',
-                    emphasised ? 'ks-mesh-dark text-white' : 'ks-core text-ks-ink',
-                  )}
-                >
-                  {emphasised ? (
-                    <div
-                      aria-hidden="true"
-                      className="ks-kanga absolute inset-x-0 top-0 h-1 rounded-t-[calc(2rem-0.375rem)] opacity-85"
-                    />
-                  ) : null}
+                <div className="relative flex w-full flex-col gap-5 p-6 md:p-8">
                   <div className="flex items-center justify-between gap-2">
                     <p
                       className={cn(
                         'text-xs font-semibold uppercase tracking-[0.18em]',
-                        emphasised ? 'text-ks-gold-100' : 'text-ks-muted',
+                        emphasised ? 'text-[#90e0ff]' : 'text-[#494d59]',
                       )}
                     >
                       {i === 0 ? `${fromLabel} ${rangeText}` : rangeText}
                     </p>
                     {emphasised ? (
-                      <span className="rounded-full bg-ks-gold-500 px-2.5 py-0.5 text-[11px] font-bold text-ks-ink">
+                      <span className="rounded-full bg-[#5469d4] px-2.5 py-0.5 text-[11px] font-bold text-white">
                         {popularBadge}
                       </span>
                     ) : null}
@@ -116,16 +110,14 @@ export function PricingTeaser({
                     <p className="tabular text-4xl font-bold tracking-tight">
                       {formatMoney(t.price[currency], currency)}
                     </p>
-                    <p
-                      className={cn('mt-1 text-sm', emphasised ? 'text-white/80' : 'text-ks-muted')}
-                    >
+                    <p className={cn('mt-1 text-sm', emphasised ? 'text-white/80' : 'text-[#494d59]')}>
                       {perCardLabel} · {formatNumber(exampleCount)} = {exampleTotal}
                     </p>
                   </div>
                   <ul
                     className={cn(
                       'flex flex-col gap-2 border-t pt-4 text-sm',
-                      emphasised ? 'border-white/15 text-white/90' : 'border-ks-line text-ks-muted',
+                      emphasised ? 'border-white/15 text-white/90' : 'border-[#e3e8ee] text-[#494d59]',
                     )}
                   >
                     {list.map((item) => (
@@ -133,7 +125,7 @@ export function PricingTeaser({
                         <Check
                           className={cn(
                             'mt-0.5 size-4 shrink-0',
-                            emphasised ? 'text-ks-gold-500' : 'text-ks-green-700',
+                            emphasised ? 'text-[#7dff7a]' : 'text-[#5469d4]',
                           )}
                           aria-hidden="true"
                         />
@@ -146,8 +138,8 @@ export function PricingTeaser({
                     className={cn(
                       'mt-auto inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition',
                       emphasised
-                        ? 'bg-white text-ks-green-900 hover:bg-ks-gold-100'
-                        : 'bg-ks-green-700 text-white hover:bg-ks-green-900',
+                        ? 'bg-white text-[#0a2640] hover:bg-[#f6f9fc]'
+                        : 'bg-[#5469d4] text-white hover:bg-[#0a2640]',
                     )}
                   >
                     <span>{copy.cta}</span>
@@ -158,9 +150,9 @@ export function PricingTeaser({
             );
           })}
         </div>
-        <p className="mt-6 text-sm text-ks-muted">
+        <p className="mt-6 text-sm text-[#494d59]">
           {copy.footnote} ·{' '}
-          <Link href={comparisonHref} className="font-medium underline underline-offset-4">
+          <Link href={comparisonHref} className="font-medium text-[#5469d4] underline underline-offset-4">
             {copy.comparisonLink}
           </Link>
         </p>

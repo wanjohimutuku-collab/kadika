@@ -748,4 +748,139 @@ export const GEO_PAGES: ContentPageDef[] = [
       ],
     },
   },
+  {
+    slug: 'kadi-za-kidijitali-tanzania',
+    slugEn: 'ecards-tanzania',
+    group: 'product',
+    schema: 'Article',
+    updated: '2026-11-21',
+    related: [
+      'kadi-ya-harusi-mtandaoni',
+      'kadi-za-mwaliko-tanzania',
+      'jinsi-ya-kuchagua-huduma-ya-kadi-za-kadi',
+      'michango-ya-harusi',
+    ].map((s) => (s === 'jinsi-ya-kuchagua-huduma-ya-kadi-za-kadi' ? 'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko' : s)),
+    sw: {
+      nav: 'E-cards Tanzania',
+      title: 'Kadi za Kidijitali (E-Cards) Tanzania | Kadi Sasa',
+      description:
+        'Mwongozo wa e-cards Tanzania: tofauti ya kadi za mialiko na NFC business cards, bei ya kadi kwa kila mgeni, RSVP, michango na skani ya QR bila mtandao.',
+      h1: 'Kadi za kidijitali (e-cards) kwa harusi na matukio Tanzania',
+      answer:
+        'E-card Tanzania ni kadi ya mwaliko ya kidijitali inayotumwa kwa WhatsApp au SMS ikiwa na jina la mgeni, RSVP, namba fupi na QR code ya langoni. Tofauti na NFC business cards za mawasiliano ya kibiashara, event e-cards zimeundwa kwa harusi, send-off, sherehe na hafla za kampuni.',
+      sections: [
+        {
+          id: 'tofauti',
+          h2: 'Aina mbili za e-cards zinazotafutwa Afrika Mashariki',
+          blocks: [
+            {
+              t: 'ul',
+              items: [
+                'Kadi za mialiko ya matukio (Event & Wedding E-Cards): hutumwa kwa wageni wa harusi, send-off, kitchen party, mahafali au mikutano kupitia WhatsApp, SMS au PDF yenye QR code.',
+                'Kadi za biashara za NFC (Digital Business Cards): kadi za kugusa simu kwa ajili ya kubadilishana namba za mawasiliano ya kazi.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'ulinganisho',
+          h2: 'E-card yenye QR vs picha ya WhatsApp vs kadi ya karatasi',
+          blocks: [
+            {
+              t: 'table',
+              head: ['Kigezo', 'Picha ya WhatsApp', 'Kadi ya karatasi', 'E-card ya Kadi Sasa (QR)'],
+              rows: [
+                ['Kila mgeni ana kadi yake', 'Hapana (inasambazwa)', 'Ndiyo', 'Ndiyo (WhatsApp, SMS & PDF)'],
+                ['Majibu (RSVP) ya moja kwa moja', 'Hapana', 'Hapana', 'Ndiyo, pamoja na idadi ya watu'],
+                ['Usalama langoni', 'Mtu yeyote anaweza kuforward', 'Inaweza kunakiliwa', 'QR ya mara moja + namba fupi'],
+                ['Mtandao ukikatika ukumbini', 'Haikaguliwi', 'Haina rekodi', 'Lango la Android linafanya kazi offline'],
+                ['Wazee wasio na smartphone', 'Hawapati', 'Wanapata', 'Wanapata SMS au PDF ya kuchapisha'],
+              ],
+            },
+          ],
+        },
+        {
+          id: 'afrika-mashariki',
+          h2: 'Huduma kwa Tanzania, Kenya na Uganda',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Kadi Sasa iko kwenye majaribio nchini Tanzania (Dar es Salaam, Arusha, Mwanza, Dodoma, Zanzibar) kwa TZS, huku msaada wa Kenya (KES, M-Pesa) na Uganda (UGX, Kwanjula na Kuhingira) ukipangwa.',
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Bei ya e-cards za harusi Tanzania ni kiasi gani?',
+          a: 'Wakati wa majaribio huduma ya Kadi Sasa ni bure. Mfumo wa bei ni kwa kila kadi (kuanzia takriban TZS 1,950 hadi TZS 2,400 kulingana na idadi) badala ya kulipia kifurushi kikubwa kisichotumika chote, na michango ya wageni haina makato.',
+        },
+        {
+          q: 'Je, Kadi Sasa ni kwa harusi tu?',
+          a: 'Hapana. Inafaa kwa harusi, send-off, kitchen party, nikah, mahafali, siku za kuzaliwa na hafla za biashara au taasisi.',
+        },
+      ],
+    },
+    en: {
+      nav: 'E-cards Tanzania',
+      title: 'E-Cards Tanzania: Digital Invitation Cards & Pricing | Kadi Sasa',
+      description:
+        'Complete guide to e-cards in Tanzania: event e-cards vs NFC business cards, WhatsApp and SMS QR invitations, per-card pricing in TZS, and East Africa coverage.',
+      h1: 'E-cards in Tanzania: digital invitation cards for weddings and events',
+      answer:
+        'An event e-card in Tanzania is a personalised digital invitation sent via WhatsApp or SMS with guest RSVP, a short card number and a QR code for door check-in. Unlike NFC business cards for networking, event e-cards are built for weddings, send-offs, graduations and corporate events.',
+      sections: [
+        {
+          id: 'tofauti',
+          h2: 'Event e-cards vs NFC digital business cards',
+          blocks: [
+            {
+              t: 'ul',
+              items: [
+                'Event & Wedding E-Cards: personalised invitation links or QR passes sent to guests for weddings, send-offs, kitchen parties, Kwanjula and corporate conferences.',
+                'NFC Digital Business Cards: tap-to-share contact cards used by sales teams and professionals to exchange phone numbers and LinkedIn profiles.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'ulinganisho',
+          h2: 'QR e-card platform vs plain WhatsApp image vs paper cards',
+          blocks: [
+            {
+              t: 'table',
+              head: ['Feature', 'Plain WhatsApp image', 'Paper cards only', 'Kadi Sasa QR e-card'],
+              rows: [
+                ['Unique card per guest', 'No (forwarded freely)', 'Yes', 'Yes (WhatsApp, SMS & printable PDF)'],
+                ['Live RSVP & party size', 'No', 'No', 'Yes, tracked per guest'],
+                ['Gate security', 'Anyone can screenshot/forward', 'Can be duplicated', 'One-time signed QR + short code'],
+                ['Venue network outage', 'No verification', 'Manual list only', 'Offline Android QR gate check-in'],
+                ['Elders without smartphones', 'Excluded', 'Included', 'Included via SMS & print-ready PDF'],
+              ],
+            },
+          ],
+        },
+        {
+          id: 'afrika-mashariki',
+          h2: 'Coverage across Tanzania, Kenya and Uganda',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Kadi Sasa is live in pilot across Tanzania (Dar es Salaam, Arusha, Mwanza, Dodoma and Zanzibar) in TZS. Support for Kenya (KES, Nairobi/Mombasa, harambee & ruracio) and Uganda (UGX, Kampala, Kwanjula & Kuhingira) is planned, with free committee guides live today.',
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'How much do digital wedding e-cards cost in Tanzania?',
+          a: 'Kadi Sasa is free during the Tanzania pilot. When billing opens, pricing is pay-per-card (scaling down with guest count from TZS 2,400 to TZS 1,950 per card) with 0% commission on guest michango.',
+        },
+        {
+          q: 'Can we use e-cards for corporate events and graduations, not just weddings?',
+          a: 'Yes. Organisers use Kadi Sasa for corporate galas, conferences, church events, graduations, birthdays, send-offs and nikah ceremonies.',
+        },
+      ],
+    },
+  },
 ];

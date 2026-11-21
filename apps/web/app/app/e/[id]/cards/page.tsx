@@ -34,6 +34,7 @@ import { minPrintSizeMm, printQrIssues, qrMatrix } from '@/lib/qr';
 import { downloadBlob } from '@/lib/download';
 import { cn } from '@/lib/cn';
 import type { CardImageOptions } from '@/lib/card-canvas';
+import { ornateStudioPreset, type OrnatePresetId } from '@/lib/card-image/ornate-presets';
 import { useCardImageSrc } from '@/lib/use-card-image';
 import {
   CARD_TEMPLATES,
@@ -50,6 +51,10 @@ const TEMPLATE_LABEL = {
   modern: 'templateModern',
   script: 'templateScript',
   botanical: 'templateBotanical',
+  'floral-corner': 'templateFloralCorner',
+  'wildflower-arch': 'templateWildflowerArch',
+  'mandala-arch': 'templateMandalaArch',
+  'marigold-garland': 'templateMarigoldGarland',
   custom: 'templateCustom',
 } as const satisfies Record<CardTemplate, string>;
 const COVERS = [
@@ -300,6 +305,16 @@ export default function CardsPage({ params }: { params: Promise<{ id: string }> 
                       type="button"
                       size="sm"
                       onClick={() => {
+                        const presetMap: Partial<Record<CardTemplate, OrnatePresetId>> = {
+                          'floral-corner': 'floralCorner',
+                          'wildflower-arch': 'wildflowerArch',
+                          'mandala-arch': 'mandalaArch',
+                          'marigold-garland': 'marigoldGarland',
+                        };
+                        const presetId = presetMap[template];
+                        if (presetId) {
+                          setCustomDesign(ornateStudioPreset(presetId));
+                        }
                         setTemplate('custom');
                         setStudioOpen(true);
                       }}

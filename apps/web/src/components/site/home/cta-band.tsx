@@ -32,63 +32,54 @@ export function CtaBand({ copy, primaryHref, demoHref }: CtaBandProps) {
   }
 
   return (
-    <section className="ks-mesh-hot relative overflow-hidden py-20 text-ks-green-900 md:py-24">
-      {/* Saffron kitenge chevron strip tops the band — bookends the page with the hero. */}
-      <div
-        aria-hidden="true"
-        className="ks-kitenge pointer-events-none absolute inset-x-0 top-0 h-1.5 opacity-85"
-      />
-      {/* An oversized serif ampersand loiters in the lower-left as a brush of atmosphere. */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-10 -bottom-24 select-none font-serif text-[24rem] leading-none text-ks-green-900/10"
-      >
-        &amp;
-      </span>
-      <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-7 px-6 text-center">
-        <span className="inline-flex items-center gap-2 rounded-full bg-ks-green-900/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]">
-          <span aria-hidden="true" className="size-1.5 rounded-full bg-ks-green-900" />
-          {copy.badge}
-        </span>
-        <h2 className="font-serif text-[32px] leading-[1.05] tracking-[-0.02em] text-balance md:text-[52px]">
-          {copy.text}
-        </h2>
-        <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
-          <input
-            type="tel"
-            inputMode="tel"
-            placeholder={copy.whatsappField}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="h-12 w-full max-w-sm rounded-full border border-ks-green-900/20 bg-white/85 px-5 text-ks-ink placeholder-ks-ink/50 shadow-[inset_0_1px_2px_rgb(0_0_0/0.05)] focus:outline-none focus:ring-2 focus:ring-ks-green-900/40"
-            aria-label={copy.whatsappField}
-          />
-          <a
-            href={buildWaUrl()}
-            target="_blank"
-            rel="noopener"
-            onClick={() => emit('home_cta_whatsapp', { withPhone: digitsOnly(phone).length > 0 })}
-            className="inline-flex min-h-12 items-center justify-center rounded-full bg-ks-green-900 px-6 font-semibold text-white shadow-[0_14px_30px_-14px_rgb(10_63_53/0.6)] transition hover:bg-ks-ink"
-          >
-            {copy.whatsappCta}
-          </a>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <a
-            href={primaryHref}
-            onClick={() => emit('home_cta_band_primary')}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white/90 px-6 font-semibold text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(10_63_53/0.2)] transition hover:bg-white"
-          >
-            <span>{copy.primary}</span>
-            <ArrowUpRight className="size-4" aria-hidden="true" />
-          </a>
-          <Link
-            href="/k"
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-ks-green-900/10 px-5 font-semibold text-ks-green-900 transition hover:bg-ks-green-900/15"
-          >
-            <QrCode className="size-4" aria-hidden="true" />
-            <span>{copy.secondary}</span>
-          </Link>
+    <section id="get-started-section" className="px-4 pb-16 pt-4 md:px-6 md:pb-24">
+      <div className="qw-navy-band relative mx-auto max-w-[1120px] overflow-hidden rounded-[2rem] border border-[#5469d4]/30 px-6 py-16 text-white shadow-[0_28px_60px_-24px_rgb(10_38_64/0.55)] md:px-14 md:py-20">
+        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-7 text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#90e0ff]">
+            <span aria-hidden="true" className="qw-ripple-dot" />
+            {copy.badge}
+          </span>
+          <h2 className="text-[32px] font-bold leading-[1.08] tracking-[-0.025em] text-balance md:text-[48px]">
+            {copy.text}
+          </h2>
+          <div className="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder={copy.whatsappField}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="h-12 w-full max-w-sm rounded-full border border-white/20 bg-white px-5 text-[#0a2640] placeholder-[#494d59] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#5469d4]"
+              aria-label={copy.whatsappField}
+            />
+            <a
+              href={buildWaUrl()}
+              target="_blank"
+              rel="noopener"
+              onClick={() => emit('home_cta_whatsapp', { withPhone: digitsOnly(phone).length > 0 })}
+              className="qw-btn-primary"
+            >
+              <span>{copy.whatsappCta}</span>
+              <ArrowUpRight className="size-4" strokeWidth={2.2} aria-hidden="true" />
+            </a>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={primaryHref}
+              onClick={() => emit('home_cta_band_primary')}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-white px-6 font-semibold text-[#0a2640] transition hover:bg-[#f6f9fc]"
+            >
+              <span>{copy.primary}</span>
+              <ArrowUpRight className="size-4 text-[#5469d4]" aria-hidden="true" />
+            </a>
+            <Link
+              href="/k"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/25 bg-white/10 px-5 font-semibold text-white transition hover:bg-white/20"
+            >
+              <QrCode className="size-4" aria-hidden="true" />
+              <span>{copy.secondary}</span>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

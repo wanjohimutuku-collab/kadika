@@ -36,6 +36,7 @@ import { useToast } from '@/components/ui/toast';
 import { useBrand } from '@/components/brand/brand-provider';
 import {
   brandStyle,
+  DEFAULT_FAVICON_URL,
   DEFAULT_LOGO_URL,
   fileToBase64,
   resolveLogoSrc,
@@ -90,6 +91,7 @@ function BrandingForm({ view }: { view: BrandingView }) {
   const queryClient = useQueryClient();
   const { setBrand } = useBrand();
   const fileRef = useRef<HTMLInputElement>(null);
+  const faviconFileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(view.businessName);
   const [tagline, setTagline] = useState(view.tagline);
   const [primary, setPrimary] = useState(view.primary ?? '');
@@ -98,7 +100,9 @@ function BrandingForm({ view }: { view: BrandingView }) {
   const [fontDisplay, setFontDisplay] = useState<DisplayFontKey>(view.fontDisplay);
   const [error, setError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [faviconError, setFaviconError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmRemoveFavicon, setConfirmRemoveFavicon] = useState(false);
 
   // A save returns the stored values: show them.
   useEffect(() => {
@@ -134,20 +138,22 @@ function BrandingForm({ view }: { view: BrandingView }) {
     onError: (e) => setError(explain(e, t as never) || t('errorGeneric')),
   });
 
+  const prepareImage = async (file: File): Promise<{ mime: string; data: string }> => {
+    if (!(LOGO_MIMES as readonly string[]).includes(file.type))
+      throw new RepositoryError('validation', t('logo.reasons.bad_type'));
+    if (file.size > MAX_LOGO_BYTES)
+      throw new RepositoryError('validation', t('logo.reasons.too_large'));
+    if (file.type === 'image/svg+xml') {
+      const check = validateSvg(await file.text());
+      if (!check.ok)
+        throw new RepositoryError('validation', t(`logo.reasons.${check.reason}` as never));
+      return { mime: file.type, data: check.svg };
+    }
+    return { mime: file.type, data: await fileToBase64(file) };
+  };
+
   const upload = useMutation({
-    mutationFn: async (file: File) => {
-      if (!(LOGO_MIMES as readonly string[]).includes(file.type))
-        throw new RepositoryError('validation', t('logo.reasons.bad_type'));
-      if (file.size > MAX_LOGO_BYTES)
-        throw new RepositoryError('validation', t('logo.reasons.too_large'));
-      if (file.type === 'image/svg+xml') {
-        const check = validateSvg(await file.text());
-        if (!check.ok)
-          throw new RepositoryError('validation', t(`logo.reasons.${check.reason}` as never));
-        return getRepository().opsSetLogo({ mime: file.type, data: check.svg });
-      }
-      return getRepository().opsSetLogo({ mime: file.type, data: await fileToBase64(file) });
-    },
+    mutationFn: async (file: File) => getRepository().opsSetLogo(await prepareImage(file)),
     onSuccess: (v) => {
       setLogoError(null);
       store(v);
@@ -164,6 +170,26 @@ function BrandingForm({ view }: { view: BrandingView }) {
       toast({ tone: 'success', title: t('logo.removed') });
     },
     onError: (e) => setLogoError(explain(e, t as never)),
+  });
+
+  const uploadFavicon = useMutation({
+    mutationFn: async (file: File) => getRepository().opsSetFavicon(await prepareImage(file)),
+    onSuccess: (v) => {
+      setFaviconError(null);
+      store(v);
+      toast({ tone: 'success', title: t('favicon.saved') });
+    },
+    onError: (e) => setFaviconError(explain(e, t as never)),
+  });
+
+  const removeFavicon = useMutation({
+    mutationFn: () => getRepository().opsRemoveFavicon(),
+    onSuccess: (v) => {
+      setConfirmRemoveFavicon(false);
+      store(v);
+      toast({ tone: 'success', title: t('favicon.removed') });
+    },
+    onError: (e) => setFaviconError(explain(e, t as never)),
   });
 
   // Live contrast feedback with the same bars the API enforces (event themes, ADR 006).
@@ -199,6 +225,8 @@ function BrandingForm({ view }: { view: BrandingView }) {
   // With no saved logo the built-in one is the brand (ADR 036), so the box shows it, with a note.
   const savedLogo = resolveLogoSrc(view.logoUrl);
   const logoSrc = savedLogo ?? resolveLogoSrc(DEFAULT_LOGO_URL)!;
+  const savedFavicon = resolveLogoSrc(view.faviconUrl);
+  const faviconSrc = savedFavicon ?? DEFAULT_FAVICON_URL;
 
   const preview = brandStyle({
     primary: p,
@@ -306,6 +334,69 @@ function BrandingForm({ view }: { view: BrandingView }) {
               <Banner tone="error">
                 <span role="alert" data-testid="brand-logo-error">
                   {logoError}
+                </span>
+              </Banner>
+            ) : null}
+          </div>
+        </Card>
+
+        <Card title={t('favicon.title')} titleId="brand-favicon">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <div
+                className="flex size-16 items-center justify-center rounded-input border border-dashed border-border bg-bg p-2"
+                data-testid="brand-favicon-box"
+              >
+                <img
+                  src={faviconSrc}
+                  alt={t('favicon.alt', { name: view.businessName })}
+                  className="size-10 object-contain"
+                  data-testid={savedFavicon ? 'brand-favicon' : 'brand-favicon-builtin'}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={faviconFileRef}
+                  type="file"
+                  accept=".svg,image/svg+xml,image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  data-testid="brand-favicon-input"
+                  aria-label={t('favicon.choose')}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (f) uploadFavicon.mutate(f);
+                  }}
+                />
+                <Button
+                  variant="secondary"
+                  loading={uploadFavicon.isPending}
+                  icon={<ImagePlus className="size-4" aria-hidden="true" />}
+                  onClick={() => faviconFileRef.current?.click()}
+                >
+                  {savedFavicon ? t('favicon.replace') : t('favicon.choose')}
+                </Button>
+                {savedFavicon ? (
+                  <Button
+                    variant="ghost"
+                    icon={<Trash2 className="size-4" aria-hidden="true" />}
+                    onClick={() => setConfirmRemoveFavicon(true)}
+                  >
+                    {t('favicon.remove')}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+            {savedFavicon ? null : (
+              <p className="text-sm font-medium" data-testid="brand-favicon-note">
+                {t('favicon.builtin')}
+              </p>
+            )}
+            <p className="text-sm text-muted">{t('favicon.hint')}</p>
+            {faviconError ? (
+              <Banner tone="error">
+                <span role="alert" data-testid="brand-favicon-error">
+                  {faviconError}
                 </span>
               </Banner>
             ) : null}
@@ -466,6 +557,19 @@ function BrandingForm({ view }: { view: BrandingView }) {
         closeLabel={tc('close')}
         loading={remove.isPending}
         onConfirm={() => remove.mutate()}
+      />
+
+      <ConfirmSheet
+        open={confirmRemoveFavicon}
+        onOpenChange={setConfirmRemoveFavicon}
+        tone="danger"
+        title={t('favicon.removeTitle')}
+        consequence={<p>{t('favicon.removeBody')}</p>}
+        confirmLabel={t('favicon.remove')}
+        cancelLabel={tc('cancel')}
+        closeLabel={tc('close')}
+        loading={removeFavicon.isPending}
+        onConfirm={() => removeFavicon.mutate()}
       />
     </div>
   );

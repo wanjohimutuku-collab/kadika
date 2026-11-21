@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
+import brandIcon from '../../assets/icon.png';
 import { useIsMutating } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocale, useT } from '../lib/i18n';
@@ -79,21 +80,18 @@ export function AppHeader({
             </View>
           </Pressable>
         ) : null}
-        <View
+        <Image
+          source={brandIcon}
+          accessibilityLabel={t('common.appName')}
           style={{
             width: 38,
             height: 38,
-            borderRadius: 12,
-            backgroundColor: c.deepEmerald,
-            borderWidth: 1.5,
-            borderColor: c.gold,
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: c.border,
             marginLeft: onBack ? 2 : 6,
           }}
-        >
-          <Icon name="gate" size={18} color={c.gold} />
-        </View>
+        />
         <View style={{ flex: 1, minHeight: 48, justifyContent: 'center', paddingLeft: 4 }}>
           <Text
             numberOfLines={1}

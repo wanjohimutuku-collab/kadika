@@ -29,10 +29,10 @@ const render = (country: 'TZ' | 'KE', locale: 'en' | 'sw' = 'en') =>
 
 describe('CountryMessages', () => {
   it('leaves Tanzanian text as it is', () => {
-    expect(render('TZ')).toContain('Amount (TZS)|Pledges');
+    expect(render('TZ')).toContain('Amount (TZS)|Pledges &amp; gifts');
   });
   it('shows Kenyan currency and vocabulary for a Kenyan event', () => {
     expect(render('KE')).toContain('Amount (KES)|Contributions');
-    expect(render('KE', 'sw')).toContain('Kiasi (KES)|Michango');
+    expect(render('KE', 'sw')).toContain('Kiasi (KES)|Ahadi na michango');
   });
 });

@@ -125,6 +125,8 @@ export class BrandingService {
         ...DEFAULT_BRANDING,
         logoUrl: null,
         logoMime: null,
+        faviconUrl: null,
+        faviconMime: null,
         onPrimary: null,
         updatedAt: null,
       };
@@ -138,6 +140,8 @@ export class BrandingService {
       fontDisplay: s.fontDisplay as BrandingInput['fontDisplay'],
       logoUrl: s.logoData && s.logoMime ? `/v1/branding/logo?v=${s.logoVersion}` : null,
       logoMime: s.logoData ? (s.logoMime as LogoMime | null) : null,
+      faviconUrl: s.faviconData && s.faviconMime ? `/v1/branding/favicon?v=${s.faviconVersion}` : null,
+      faviconMime: s.faviconData ? (s.faviconMime as LogoMime | null) : null,
       onPrimary: s.primary ? onPrimaryFor(s.primary) : null,
       updatedAt: s.updatedAt.toISOString(),
     };
@@ -199,42 +203,47 @@ export class BrandingService {
     return this.view(caller);
   }
 
+  private parseBrandImage(
+    input: { mime: string; data: string },
+    field: 'logo' | 'favicon',
+  ): { mime: LogoMime; stored: string } {
+    if (!(LOGO_MIMES as readonly string[]).includes(input.mime))
+      throw new ApiError('validation', 'The image must be SVG, PNG, JPEG or WebP', {
+        field: 'mime',
+      });
+    const mime = input.mime as LogoMime;
+    if (mime === 'image/svg+xml') {
+      const c = validateSvg(input.data);
+      if (!c.ok)
+        throw new ApiError('validation', SVG_REASON_TEXT[c.reason], {
+          field,
+          reason: c.reason,
+        });
+      return { mime, stored: c.svg };
+    }
+    if (!/^[A-Za-z0-9+/=\s]+$/.test(input.data))
+      throw new ApiError('validation', 'Raster images must be base64', { field });
+    const bytes = Buffer.from(input.data, 'base64');
+    if (bytes.length > MAX_LOGO_BYTES)
+      throw new ApiError('validation', 'The file is larger than 200 KB', {
+        field,
+        reason: 'too_large',
+      });
+    if (sniffRaster(bytes) !== mime)
+      throw new ApiError('validation', 'The file is not the image type it claims to be', {
+        field,
+        reason: 'type_mismatch',
+      });
+    return { mime, stored: bytes.toString('base64') };
+  }
+
   /**
    * Stores a new logo. `data` is the SVG source, or base64 for PNG/JPEG/WebP. An SVG must pass
    * `validateSvg`; a raster must match its declared type by magic bytes. Both are capped at 200 KB.
    */
   async setLogo(caller: StaffCaller, input: { mime: string; data: string }): Promise<BrandingView> {
     await requireSettingsAdmin(this.deps.db, caller);
-    if (!(LOGO_MIMES as readonly string[]).includes(input.mime))
-      throw new ApiError('validation', 'The logo must be SVG, PNG, JPEG or WebP', {
-        field: 'mime',
-      });
-    const mime = input.mime as LogoMime;
-    let stored: string;
-    if (mime === 'image/svg+xml') {
-      const c = validateSvg(input.data);
-      if (!c.ok)
-        throw new ApiError('validation', SVG_REASON_TEXT[c.reason], {
-          field: 'logo',
-          reason: c.reason,
-        });
-      stored = c.svg;
-    } else {
-      if (!/^[A-Za-z0-9+/=\s]+$/.test(input.data))
-        throw new ApiError('validation', 'Raster logos must be base64', { field: 'logo' });
-      const bytes = Buffer.from(input.data, 'base64');
-      if (bytes.length > MAX_LOGO_BYTES)
-        throw new ApiError('validation', 'The file is larger than 200 KB', {
-          field: 'logo',
-          reason: 'too_large',
-        });
-      if (sniffRaster(bytes) !== mime)
-        throw new ApiError('validation', 'The file is not the image type it claims to be', {
-          field: 'logo',
-          reason: 'type_mismatch',
-        });
-      stored = bytes.toString('base64');
-    }
+    const { mime, stored } = this.parseBrandImage(input, 'logo');
     const prev = await this.row();
     const now = this.deps.now();
     const version = (prev?.s.logoVersion ?? 0) + 1;
@@ -297,21 +306,96 @@ export class BrandingService {
     return this.view(caller);
   }
 
-  /** The logo file for the public route, or null when none is set. */
-  async logo(): Promise<LogoFile | null> {
-    const r = await this.row();
-    const s = r?.s;
-    if (!s?.logoData || !s.logoMime) return null;
-    const mime = s.logoMime as LogoMime;
-    const body =
-      mime === 'image/svg+xml'
-        ? Buffer.from(s.logoData, 'utf8')
-        : Buffer.from(s.logoData, 'base64');
+  /** Stores a new site favicon (SVG, PNG, JPEG or WebP, up to 200 KB). */
+  async setFavicon(
+    caller: StaffCaller,
+    input: { mime: string; data: string },
+  ): Promise<BrandingView> {
+    await requireSettingsAdmin(this.deps.db, caller);
+    const { mime, stored } = this.parseBrandImage(input, 'favicon');
+    const prev = await this.row();
+    const now = this.deps.now();
+    const version = (prev?.s.faviconVersion ?? 0) + 1;
+    await this.deps.db
+      .insert(brandSettings)
+      .values({
+        id: ROW_ID,
+        businessName: prev?.s.businessName ?? DEFAULT_BRANDING.businessName,
+        faviconMime: mime,
+        faviconData: stored,
+        faviconVersion: version,
+        updatedBy: caller.userId,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: brandSettings.id,
+        set: {
+          faviconMime: mime,
+          faviconData: stored,
+          faviconVersion: version,
+          updatedBy: caller.userId,
+          updatedAt: now,
+        },
+      });
+    this.cache = null;
+    await recordAudit(this.deps.db, {
+      eventId: null,
+      actorId: caller.userId,
+      action: 'ops.branding.favicon',
+      entity: 'brand_settings',
+      entityId: ROW_ID,
+      diff: { mime, bytes: Buffer.byteLength(stored), version },
+    });
+    return this.view(caller);
+  }
+
+  async removeFavicon(caller: StaffCaller): Promise<BrandingView> {
+    await requireSettingsAdmin(this.deps.db, caller);
+    const prev = await this.row();
+    if (prev) {
+      await this.deps.db
+        .update(brandSettings)
+        .set({
+          faviconMime: null,
+          faviconData: null,
+          faviconVersion: prev.s.faviconVersion + 1,
+          updatedBy: caller.userId,
+          updatedAt: this.deps.now(),
+        })
+        .where(eq(brandSettings.id, ROW_ID));
+      this.cache = null;
+      await recordAudit(this.deps.db, {
+        eventId: null,
+        actorId: caller.userId,
+        action: 'ops.branding.favicon_removed',
+        entity: 'brand_settings',
+        entityId: ROW_ID,
+      });
+    }
+    return this.view(caller);
+  }
+
+  private toLogoFile(data: string | null, mimeRaw: string | null, version: number): LogoFile | null {
+    if (!data || !mimeRaw) return null;
+    const mime = mimeRaw as LogoMime;
+    const body = mime === 'image/svg+xml' ? Buffer.from(data, 'utf8') : Buffer.from(data, 'base64');
     return {
       mime,
       body,
-      version: s.logoVersion,
+      version,
       etag: `"${createHash('sha256').update(body).digest('hex').slice(0, 24)}"`,
     };
+  }
+
+  /** The logo file for the public route, or null when none is set. */
+  async logo(): Promise<LogoFile | null> {
+    const r = await this.row();
+    return r ? this.toLogoFile(r.s.logoData, r.s.logoMime, r.s.logoVersion) : null;
+  }
+
+  /** The favicon file for the public route, or null when none is set. */
+  async favicon(): Promise<LogoFile | null> {
+    const r = await this.row();
+    return r ? this.toLogoFile(r.s.faviconData, r.s.faviconMime, r.s.faviconVersion) : null;
   }
 }

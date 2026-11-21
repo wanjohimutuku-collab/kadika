@@ -60,9 +60,14 @@ describe('routeSiteLocale — English-default scheme', () => {
     });
   });
 
-  it('serves Kenya in English only', () => {
+  it('serves Kenya and Uganda in English only', () => {
     expect(routeSiteLocale('/ke', '')).toEqual({ action: 'next', locale: 'en', market: 'ke' });
     expect(routeSiteLocale('/ke/pricing', '')).toMatchObject({ locale: 'en', market: 'ke' });
+    expect(routeSiteLocale('/ug', '')).toEqual({ action: 'next', locale: 'en', market: 'ug' });
+    expect(routeSiteLocale('/ug/kwanjula-kuhingira-digital-invitation', '')).toMatchObject({
+      locale: 'en',
+      market: 'ug',
+    });
   });
 
   it('permanently redirects the old ?lang= scheme', () => {

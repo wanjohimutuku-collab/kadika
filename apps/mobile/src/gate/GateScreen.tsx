@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import brandIcon from '../../assets/icon.png';
 import { CameraView, useCameraPermissions, type BarcodeSettings } from 'expo-camera';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -227,24 +228,17 @@ export function GateScreen(p: Props) {
         }}
       >
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View
+          <Image
+            source={brandIcon}
+            accessibilityLabel={t('common.appName')}
             style={{
-              width: 30,
-              height: 30,
+              width: 32,
+              height: 32,
               borderRadius: 9,
-              backgroundColor: c.primarySoft,
               borderWidth: 1,
-              borderColor: c.primary,
-              alignItems: 'center',
-              justifyContent: 'center',
+              borderColor: c.border,
             }}
-          >
-            <Text
-              style={{ color: c.primary, fontSize: 11.5, fontWeight: '900', letterSpacing: 0.4 }}
-            >
-              KS
-            </Text>
-          </View>
+          />
           <Text
             numberOfLines={1}
             style={{

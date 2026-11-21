@@ -52,6 +52,19 @@
           },
           "builtin": "Hakuna nembo uliyohifadhi bado, kwa hivyo nembo iliyojengwa ndani inatumika kila mahali. Pakia yako kuibadilisha."
         },
+        "favicon": {
+          "title": "Aikoni ya kivinjari (Favicon)",
+          "hint": "SVG (inapendekezwa) au PNG ya mraba (mf. 32×32 au 64×64), hadi KB 200.",
+          "choose": "Chagua aikoni",
+          "replace": "Badilisha aikoni",
+          "remove": "Ondoa aikoni",
+          "saved": "Aikoni imehifadhiwa",
+          "removed": "Aikoni imeondolewa",
+          "alt": "Aikoni ya {name}",
+          "removeTitle": "Ondoa aikoni ya kivinjari?",
+          "removeBody": "Aikoni iliyojengwa ndani itatumika badala yake.",
+          "builtin": "Aikoni iliyojengwa ndani inatumika kwenye kichupo cha kivinjari. Pakia yako kuibadilisha."
+        },
         "colours": {
           "title": "Rangi",
           "primary": "Rangi kuu",
@@ -216,6 +229,19 @@
             "unreadable": "The file could not be read."
           },
           "builtin": "No logo saved yet, so the built-in logo is used everywhere. Upload yours to replace it."
+        },
+        "favicon": {
+          "title": "Browser icon (Favicon)",
+          "hint": "SVG (recommended) or square PNG/WebP (e.g. 32×32 or 64×64), up to 200 KB.",
+          "choose": "Choose icon",
+          "replace": "Replace icon",
+          "remove": "Remove icon",
+          "saved": "Favicon saved",
+          "removed": "Favicon removed",
+          "alt": "{name} favicon",
+          "removeTitle": "Remove the custom favicon?",
+          "removeBody": "The built-in browser icon is used in its place.",
+          "builtin": "The built-in icon is shown in browser tabs. Upload yours to replace it."
         },
         "colours": {
           "title": "Colours",

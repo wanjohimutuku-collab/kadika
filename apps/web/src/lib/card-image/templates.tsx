@@ -1,6 +1,12 @@
 import type { CardTemplate, CustomCardDesign } from '@harusi/schemas';
 import type { Palette } from '@harusi/ui-tokens/palette';
 import { BotanicalCard, ScriptCard } from './templates-text';
+import {
+  FloralCornerCard,
+  MandalaArchCard,
+  MarigoldGarlandCard,
+  WildflowerArchCard,
+} from './templates-ornate';
 import { CustomCard } from './templates-custom';
 
 /**
@@ -635,6 +641,14 @@ export function CardImage({ m }: { m: CardImageModel }) {
       return <ScriptCard m={m} />;
     case 'botanical':
       return <BotanicalCard m={m} />;
+    case 'floral-corner':
+      return <FloralCornerCard m={m} />;
+    case 'wildflower-arch':
+      return <WildflowerArchCard m={m} />;
+    case 'mandala-arch':
+      return <MandalaArchCard m={m} />;
+    case 'marigold-garland':
+      return <MarigoldGarlandCard m={m} />;
     case 'custom':
       return <CustomCard m={m} />;
     default:

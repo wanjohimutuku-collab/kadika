@@ -3,8 +3,8 @@ import { ALL_PAGES, counterpartOf, marketOf, pageBySlug, pagePath } from '@/cont
 import type { ContentPageDef } from '@/content/types';
 import { localeUrl, marketOfPath } from './seo';
 
-/** The three site editions the locale switch offers (kit sitemap.md § Navigation). */
-export type SiteEdition = 'sw' | 'en' | 'ke';
+/** The four site editions the locale switch offers. */
+export type SiteEdition = 'sw' | 'en' | 'ke' | 'ug';
 
 const stripSwPrefix = (p: string) => (p === '/sw' ? '/' : p.startsWith('/sw/') ? p.slice(3) : p);
 
@@ -19,12 +19,13 @@ function tzPageByPath(path: string, _locale: Locale): ContentPageDef | null {
   return match.page;
 }
 
-/** Returns the KE page at the KE path, or null. */
-function kePageByPath(path: string): ContentPageDef | null {
-  if (path === '/ke') return null;
-  const slug = path.startsWith('/ke/') ? path.slice(4) : null;
+/** Returns the KE or UG page at its path, or null. */
+function regionalPageByPath(path: string, market: 'ke' | 'ug'): ContentPageDef | null {
+  const prefix = `/${market}`;
+  if (path === prefix) return null;
+  const slug = path.startsWith(`${prefix}/`) ? path.slice(prefix.length + 1) : null;
   if (!slug) return null;
-  return ALL_PAGES.find((p) => marketOf(p) === 'ke' && p.slug === slug) ?? null;
+  return ALL_PAGES.find((p) => marketOf(p) === market && p.slug === slug) ?? null;
 }
 
 /**
@@ -36,43 +37,48 @@ function kePageByPath(path: string): ContentPageDef | null {
 export function editionTargets(path: string, locale: Locale): Record<SiteEdition, string> {
   const bare = stripSwPrefix(path);
   const market = marketOfPath(bare);
-  if (market === 'ke') {
-    const page = kePageByPath(bare);
-    const tz = page ? counterpartOf(page) : null;
+  if (market === 'ke' || market === 'ug') {
+    const page = regionalPageByPath(bare, market);
+    const counterpart = page ? counterpartOf(page) : null;
+    const tz = counterpart && marketOf(counterpart) === 'tz' ? counterpart : null;
     return {
       en: tz ? pagePath(tz, 'en') : '/',
       sw: tz ? localeUrl(pagePath(tz, 'sw'), 'sw') : '/sw',
-      ke: bare,
+      ke: market === 'ke' ? bare : '/ke',
+      ug: market === 'ug' ? bare : '/ug',
     };
   }
   const page = tzPageByPath(bare, locale);
   if (page) {
-    const ke = counterpartOf(page);
+    const c = counterpartOf(page);
     return {
       en: pagePath(page, 'en'),
       sw: localeUrl(pagePath(page, 'sw'), 'sw'),
-      ke: ke ? pagePath(ke, 'en') : '/ke',
+      ke: c && marketOf(c) === 'ke' ? pagePath(c, 'en') : '/ke',
+      ug: c && marketOf(c) === 'ug' ? pagePath(c, 'en') : '/ug',
     };
   }
-  // Home or a non-content path (e.g. /bei): slug stays as-is in both locales.
+  // Home or a non-content path (e.g. /bei): slug stays as-is in both TZ locales.
   return {
     en: bare,
     sw: localeUrl(bare, 'sw'),
-    ke: bare === '/' ? '/ke' : '/ke',
+    ke: '/ke',
+    ug: '/ug',
   };
 }
 
-/** The same-topic page in the other market as a bare path (no `/sw` prefix). */
-export function counterpartPath(path: string, locale: Locale): string | undefined {
-  if (path === '/') return '/ke';
-  if (path === '/ke') return '/';
+/** The same-topic page in another market as a bare path (no `/sw` prefix). */
+export function counterpartPath(path: string, locale: Locale): string | string[] | undefined {
+  if (path === '/') return ['/ke', '/ug'];
+  if (path === '/ke') return ['/', '/ug'];
+  if (path === '/ug') return ['/', '/ke'];
   const market = marketOfPath(path);
-  if (market === 'ke') {
-    const page = kePageByPath(path);
-    const tz = page ? counterpartOf(page) : null;
-    return tz ? pagePath(tz, locale) : undefined;
+  if (market === 'ke' || market === 'ug') {
+    const page = regionalPageByPath(path, market);
+    const c = page ? counterpartOf(page) : null;
+    return c ? pagePath(c, marketOf(c) === 'tz' ? locale : 'en') : undefined;
   }
   const page = tzPageByPath(path, locale);
-  const ke = page ? counterpartOf(page) : null;
-  return ke ? pagePath(ke, 'en') : undefined;
+  const c = page ? counterpartOf(page) : null;
+  return c ? pagePath(c, 'en') : undefined;
 }

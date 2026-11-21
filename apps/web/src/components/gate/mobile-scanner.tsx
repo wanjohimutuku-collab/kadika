@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { GateSeatTag } from './seat-tag';
 import { matchesSearch } from '@harusi/api-client';
+import { extractShortCode } from '@harusi/schemas/short-code';
 import {
   AlertTriangle,
   Camera,
@@ -297,6 +298,19 @@ export function MobileGateScanner({
           detail: sw
             ? `${result.guest.displayName} ana kadi ya mchango tu (haina kiingilio langoni).`
             : `${result.guest.displayName} holds a contribution-only card and cannot be admitted at the gate.`,
+        });
+        return;
+      }
+
+      if (result.kind === 'revoked') {
+        if (soundOn) playFeedbackTone('alarm');
+        setConfirmCtx(null);
+        setOutcome({
+          kind: 'error',
+          title: sw ? 'Kadi imebatilishwa' : 'Card was reissued',
+          detail: sw
+            ? `Kadi ya ${result.guest.displayName} ilitolewa upya; tumia toleo jipya la kadi.`
+            : `${result.guest.displayName}'s card was reissued. Please scan their newest card.`,
         });
         return;
       }
@@ -1098,20 +1112,44 @@ export function MobileGateScanner({
             </div>
             <p className="mt-1 text-xs text-[#9AA4B2]">
               {sw
-                ? 'Andika herufi 2 na tarakimu 4 za kadi ya mgeni (mf. KH-4823).'
-                : 'Enter the 2 letters and 4 digits printed on the card (e.g. KH-4823).'}
+                ? 'Andika herufi 2 na tarakimu 4 (mf. KH-4823) au bandika ujumbe mzima wa SMS.'
+                : 'Enter the 2 letters and 4 digits (e.g. KH-4823) or paste the full SMS message.'}
             </p>
             <form onSubmit={handleCodeSubmit} className="mt-4 flex flex-col gap-3">
-              <input
-                type="text"
-                autoFocus
-                autoCapitalize="characters"
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value)}
-                placeholder="KH-4823"
-                data-testid="mobile-scanner-code-input"
-                className="h-12 w-full rounded-2xl border border-white/15 bg-[#0B0E11] px-4 text-center font-mono text-2xl font-bold tracking-widest text-white uppercase outline-none focus:border-[#1FE086]"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  autoFocus
+                  autoCapitalize="characters"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  placeholder="KH-4823"
+                  data-testid="mobile-scanner-code-input"
+                  className="h-12 min-w-0 flex-1 rounded-2xl border border-white/15 bg-[#0B0E11] px-4 text-center font-mono text-2xl font-bold tracking-widest text-white uppercase outline-none focus:border-[#1FE086]"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const clip = (await navigator.clipboard.readText()).trim();
+                      if (!clip) return;
+                      setCodeInput(extractShortCode(clip) ?? clip);
+                    } catch {
+                      // Clipboard read permission denied or unavailable.
+                    }
+                  }}
+                  className="h-12 shrink-0 rounded-2xl border border-white/15 bg-[#171C22] px-3.5 text-xs font-semibold text-[#1FE086] hover:bg-white/10"
+                >
+                  {sw ? 'Bandika SMS' : 'Paste SMS'}
+                </button>
+              </div>
+              {codeInput.trim().length > 8 && extractShortCode(codeInput) ? (
+                <p className="text-center text-xs font-semibold text-[#1FE086]">
+                  {sw
+                    ? `Msimbo uliopatikana: ${extractShortCode(codeInput)}`
+                    : `Detected code: ${extractShortCode(codeInput)}`}
+                </p>
+              ) : null}
               {sampleCandidates.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#9AA4B2]">
                   <span>{sw ? 'Mifano:' : 'Quick codes:'}</span>

@@ -3,12 +3,13 @@ import { Image, Linking, Platform, Pressable, Share, StyleSheet, Text, View } fr
 import brandIcon from '../../assets/icon.png';
 import { CameraView, useCameraPermissions, type BarcodeSettings } from 'expo-camera';
 import { useFocusEffect } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { isMockPayload } from '@harusi/api-client';
 import type { BundleGuest, GateRole, ScanOutcome } from '@harusi/gate';
-import { normalizeShortCode } from '@harusi/schemas/short-code';
+import { extractShortCode } from '@harusi/schemas/short-code';
 import { useLocale, useT } from '../lib/i18n';
 import { useColors } from '../lib/theme';
 import { Banner, Button, Field, Sheet, Txt } from '../ui/kit';
@@ -122,7 +123,7 @@ export function GateScreen(p: Props) {
       }
       const trimmed = data.trim();
       const rawLast = trimmed.split(/[/?#]/).filter(Boolean).pop() ?? trimmed;
-      const sc = normalizeShortCode(trimmed) ?? normalizeShortCode(rawLast);
+      const sc = extractShortCode(trimmed) ?? extractShortCode(rawLast);
       if (sc) {
         curShow(await curG.engine.current.scanCode(sc));
         return;
@@ -801,12 +802,30 @@ export function GateScreen(p: Props) {
       <Sheet open={sheet === 'code'} onClose={() => setSheet(null)} title={t('gateApp.typeCode')}>
         <Field
           label={t('gateApp.typeCodeLabel')}
+          hint={
+            locale === 'sw'
+              ? 'Andika namba (mf. KH-4823) au bandika ujumbe mzima wa SMS'
+              : 'Enter code (e.g. KH-4823) or paste the full SMS message'
+          }
           value={code}
-          onChangeText={setCode}
+          onChangeText={(next) => {
+            const extracted = next.length > 8 ? extractShortCode(next) : null;
+            setCode(extracted ?? next);
+          }}
           autoCapitalize="characters"
           autoCorrect={false}
           returnKeyType="go"
           onSubmitEditing={submitCode}
+        />
+        <Button
+          variant="secondary"
+          label={locale === 'sw' ? 'Bandika SMS / Namba' : 'Paste SMS / Code'}
+          onPress={async () => {
+            const clip = (await Clipboard.getStringAsync().catch(() => '')).trim();
+            if (!clip) return;
+            const extracted = extractShortCode(clip);
+            setCode(extracted ?? clip);
+          }}
         />
         <Button label={t('gateApp.go')} onPress={submitCode} />
       </Sheet>

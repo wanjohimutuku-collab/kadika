@@ -21,3 +21,31 @@ export function normalizeShortCode(input: string): string | null {
   const code = `${s.slice(0, 2)}-${s.slice(2)}`;
   return SHORT_CODE_PATTERN.test(code) ? code : null;
 }
+
+const LABELLED_CODE_RE = new RegExp(
+  `(?:kadi|card|code|msimbo|ticket|tiketi)\\s*[:#-]?\\s*([${SHORT_CODE_LETTERS}]{2}[-\\s]?[${SHORT_CODE_DIGITS}]{4})`,
+  'i',
+);
+const EMBEDDED_CODE_RE = new RegExp(
+  `\\b([${SHORT_CODE_LETTERS}]{2})[-\\s]?([${SHORT_CODE_DIGITS}]{4})\\b`,
+  'i',
+);
+
+/**
+ * Extracts a human short code (`KH-4821`) from either a bare code or a full SMS invitation/reminder
+ * message (e.g. `... (Kadi: KH-4821)` or `... (Card: KH-4821)`).
+ */
+export function extractShortCode(input: string): string | null {
+  const direct = normalizeShortCode(input);
+  if (direct) return direct;
+  const labelled = LABELLED_CODE_RE.exec(input);
+  if (labelled?.[1]) {
+    const code = normalizeShortCode(labelled[1]);
+    if (code) return code;
+  }
+  const embedded = EMBEDDED_CODE_RE.exec(input);
+  if (embedded?.[1] && embedded?.[2]) {
+    return normalizeShortCode(`${embedded[1]}${embedded[2]}`);
+  }
+  return null;
+}

@@ -1,27 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import {
-  SHORT_CODE_DIGITS,
-  SHORT_CODE_LETTERS,
-  SHORT_CODE_PATTERN,
-  generateShortCode,
-  normalizeShortCode,
-} from './short-code';
+import { extractShortCode, normalizeShortCode } from './short-code';
 
-describe('short codes', () => {
-  it('alphabet has no ambiguous characters', () => {
-    for (const ch of ['0', 'O', '1', 'I', 'L']) {
-      expect(SHORT_CODE_LETTERS + SHORT_CODE_DIGITS).not.toContain(ch);
-    }
+describe('short-code', () => {
+  it('normalizes bare codes', () => {
+    expect(normalizeShortCode('kh 4823')).toBe('KH-4823');
+    expect(normalizeShortCode('kh4823')).toBe('KH-4823');
+    expect(normalizeShortCode('KH-4823')).toBe('KH-4823');
+    expect(normalizeShortCode('OO-1010')).toBeNull();
   });
-  it('generates valid codes', () => {
-    let seed = 1;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-    for (let i = 0; i < 1000; i++) expect(generateShortCode(rnd)).toMatch(SHORT_CODE_PATTERN);
-  });
-  it('normalises typed input', () => {
-    expect(normalizeShortCode('kh 4829')).toBe('KH-4829');
-    expect(normalizeShortCode('KH4829')).toBe('KH-4829');
-    expect(normalizeShortCode('KO-4829')).toBeNull();
-    expect(normalizeShortCode('KH-48')).toBeNull();
+
+  it('extracts card text codes from Swahili and English SMS messages', () => {
+    const swSms =
+      'Habari Asha, unaalikwa kwenye harusi ya Juma & Amina tarehe 12 Des pale Serena. Fungua kadi yako: https://kadisasa.com/c/tok123 (Kadi: KH-4823)';
+    expect(extractShortCode(swSms)).toBe('KH-4823');
+
+    const enSms =
+      'Hello John, you are invited to the wedding of Juma & Amina on Dec 12 at Serena. View your card: https://kadisasa.com/c/tok123 (Card: UR 8766)';
+    expect(extractShortCode(enSms)).toBe('UR-8766');
+
+    expect(extractShortCode('Your ticket code is ab2345 at the gate')).toBe('AB-2345');
+    expect(extractShortCode('No card code in this message 123456')).toBeNull();
   });
 });

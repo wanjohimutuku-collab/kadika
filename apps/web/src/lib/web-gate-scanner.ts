@@ -1,5 +1,5 @@
 import type { CardKind, InvitationStatus } from '@harusi/schemas';
-import { normalizeShortCode } from '@harusi/schemas/short-code';
+import { extractShortCode, normalizeShortCode } from '@harusi/schemas/short-code';
 
 /** Minimal guest shape needed by the mobile web gate scanner (compatible with Guest & GuestRecord). */
 export interface ScannerGuest {
@@ -16,6 +16,7 @@ export interface ScannerGuest {
   checkedInAt: string | null;
   partyAdmitted: number;
   token?: string;
+  tokenVersion?: number;
 }
 
 export type ScanAdmissionMethod = 'qr' | 'code' | 'manual' | 'demo';
@@ -77,12 +78,16 @@ export interface ParsedGatePayload {
   shortCode: string | null;
   token: string | null;
   guestId: string | null;
+  eventShort?: string | null;
+  guestShort?: string | null;
+  version?: number | null;
 }
 
 export type GateMatchResult =
   | { kind: 'ok'; guest: ScannerGuest; payload: ParsedGatePayload }
   | { kind: 'duplicate'; guest: ScannerGuest; payload: ParsedGatePayload }
   | { kind: 'contribution_only'; guest: ScannerGuest; payload: ParsedGatePayload }
+  | { kind: 'revoked'; guest: ScannerGuest; payload: ParsedGatePayload }
   | { kind: 'not_found'; payload: ParsedGatePayload };
 
 const WEB_VAULT_PREFIX = 'ksweb:v1:';
@@ -710,6 +715,24 @@ export function parseScannedGatePayload(rawInput: string): ParsedGatePayload {
     }
   }
 
+  if (raw.startsWith('v1.')) {
+    const parts = raw.split('.');
+    if (parts.length === 6) {
+      const [, ev, gu, party, ver] = parts as [string, string, string, string, string, string];
+      if (/^[0-9a-f]{8}$/i.test(ev) && /^[0-9a-f]{8}$/i.test(gu) && /^\d{1,2}$/.test(party)) {
+        return {
+          raw,
+          shortCode: null,
+          token: raw,
+          guestId: null,
+          eventShort: ev.toLowerCase(),
+          guestShort: gu.toLowerCase(),
+          version: /^\d{1,6}$/.test(ver) ? Number(ver) : null,
+        };
+      }
+    }
+  }
+
   if (raw.startsWith('k1.')) {
     const parts = raw.split('.');
     const claims = parts[1] ? decodeBase64UrlJson(parts[1]) : null;
@@ -728,13 +751,16 @@ export function parseScannedGatePayload(rawInput: string): ParsedGatePayload {
     return { raw, shortCode: sc, token: raw, guestId: gid };
   }
 
-  const embeddedCode = raw.match(/\b([A-HJ-KM-NP-Z]{2})[-\s]?([2-9]{4})\b/i);
+  const embeddedCode = extractShortCode(raw);
   if (embeddedCode) {
-    const sc = normalizeShortCode(`${embeddedCode[1]}${embeddedCode[2]}`);
-    if (sc) return { raw, shortCode: sc, token: raw, guestId: null };
+    return { raw, shortCode: embeddedCode, token: raw, guestId: null };
   }
 
   return { raw, shortCode: null, token: raw, guestId: null };
+}
+
+function shortHexId(uuid: string): string {
+  return uuid.replace(/-/g, '').slice(-8).toLowerCase();
 }
 
 /** Matches a scanned QR string or short code against the event's guest roster. */
@@ -748,6 +774,13 @@ export function matchScannedGuest(guests: ScannerGuest[], rawInput: string): Gat
   if (!guest && payload.guestId) {
     guest = guests.find((g) => g.id === payload.guestId);
   }
+  if (!guest && payload.guestShort) {
+    guest = guests.find(
+      (g) =>
+        shortHexId(g.id) === payload.guestShort &&
+        (!payload.eventShort || shortHexId(g.eventId) === payload.eventShort),
+    );
+  }
   if (!guest && payload.shortCode) {
     guest = guests.find((g) => g.shortCode === payload.shortCode);
   }
@@ -760,6 +793,14 @@ export function matchScannedGuest(guests: ScannerGuest[], rawInput: string): Gat
   }
   if (guest.cardKind === 'contribution') {
     return { kind: 'contribution_only', guest, payload };
+  }
+  if (
+    payload.version !== undefined &&
+    payload.version !== null &&
+    guest.tokenVersion !== undefined &&
+    payload.version < guest.tokenVersion
+  ) {
+    return { kind: 'revoked', guest, payload };
   }
   if (guest.status === 'checked_in' || guest.checkedInAt) {
     return { kind: 'duplicate', guest, payload };

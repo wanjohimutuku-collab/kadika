@@ -82,6 +82,42 @@ describe('web-gate-scanner payload parsing & guest matching', () => {
     expect(fromK1.guestId).toBe('g-42');
     expect(fromK1.shortCode).toBe('UR-8766');
     expect(fromK1.token).toBe(k1);
+
+    const v1 = 'v1.0192f1a0.a1b2c3d4.2.1.MOCKSIG';
+    const fromV1 = parseScannedGatePayload(v1);
+    expect(fromV1.eventShort).toBe('0192f1a0');
+    expect(fromV1.guestShort).toBe('a1b2c3d4');
+    expect(fromV1.version).toBe(1);
+    expect(fromV1.token).toBe(v1);
+  });
+
+  it('matches v1 signed QR payloads by event/guest 8-hex suffix and rejects revoked or wrong-event cards', () => {
+    const guests: ScannerGuest[] = [
+      {
+        id: '00000000-0000-4000-8000-0000a1b2c3d4',
+        eventId: '00000000-0000-4000-8000-00000192f1a0',
+        cardKind: 'invitation',
+        displayName: 'Asha Juma',
+        phoneE164: '+255712345678',
+        groupLabel: 'Family',
+        partySizeAllowed: 2,
+        shortCode: 'KH-4823',
+        status: 'confirmed',
+        rsvpPartySize: 2,
+        checkedInAt: null,
+        partyAdmitted: 0,
+        tokenVersion: 2,
+      },
+    ];
+
+    const valid = matchScannedGuest(guests, 'v1.0192f1a0.a1b2c3d4.2.2.SIG');
+    expect(valid.kind).toBe('ok');
+
+    const revoked = matchScannedGuest(guests, 'v1.0192f1a0.a1b2c3d4.2.1.SIG');
+    expect(revoked.kind).toBe('revoked');
+
+    const wrongEvent = matchScannedGuest(guests, 'v1.deadbeef.a1b2c3d4.2.2.SIG');
+    expect(wrongEvent.kind).toBe('not_found');
   });
 
   it('matches invitees, detects duplicates, and blocks contribution-only cards', () => {

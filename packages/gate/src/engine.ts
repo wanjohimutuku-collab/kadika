@@ -1,5 +1,5 @@
 import { verifyQrToken, type QrClaims } from '@harusi/crypto';
-import { normalizeShortCode } from '@harusi/schemas/short-code';
+import { extractShortCode } from '@harusi/schemas/short-code';
 import type {
   Admission,
   Bundle,
@@ -205,7 +205,7 @@ export class GateEngine {
   /** Typed card number (fallback 2). There is no signature to check, so it is logged as manual. */
   async scanCode(code: string): Promise<ScanOutcome> {
     if (!this.bundle) throw new Error('Gate bundle not loaded');
-    const n = normalizeShortCode(code);
+    const n = extractShortCode(code);
     const guest = n ? this.byCode.get(n) : undefined;
     if (!guest) {
       await this.record(null, 'not_found', { reason: 'code' });

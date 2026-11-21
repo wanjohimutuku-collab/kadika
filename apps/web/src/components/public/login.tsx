@@ -18,35 +18,31 @@ import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
 import { useBrand } from '@/components/brand/brand-provider';
 import {
-  clearSmsFallback,
   confirmPhoneCode,
   FirebasePhoneError,
   hasPendingCode,
   loadAuthConfig,
-  smsLanguage,
   startPhoneSignIn,
-  usesSmsFallback,
   type PhoneSignInError,
 } from '@/lib/firebase-phone';
 
 const PHONE_KEY = 'harusi.login.phone';
 
 /**
- * Sends the code through whichever provider the API names (ADR 048). Says who checks it: Firebase, or
- * our API (the SMS flow, or Firebase refused to send and our own SMS code went instead).
+ * Sends the code via Firebase Phone Auth (ADR 048). Mock mode (`USE_MOCKS`) still uses the mock
+ * repository's SMS flow so E2E and Storybook work without Firebase.
  */
 async function sendCode(
   phone: string,
   recaptcha: HTMLElement | null,
   locale: string,
 ): Promise<'firebase' | 'sms'> {
-  const cfg = await loadAuthConfig();
-  if (cfg.otpProvider === 'firebase') {
-    if (!recaptcha) throw new FirebasePhoneError('failed');
-    return startPhoneSignIn(phone, recaptcha, locale);
+  if (USE_MOCKS) {
+    await getRepository().requestOtp(phone, { language: locale === 'en' ? 'en' : 'sw' });
+    return 'sms';
   }
-  await getRepository().requestOtp(phone, { language: smsLanguage(locale) });
-  return 'sms';
+  if (!recaptcha) throw new FirebasePhoneError('failed');
+  return startPhoneSignIn(phone, recaptcha, locale);
 }
 
 function useFirebaseMessage() {
@@ -87,11 +83,13 @@ export function LoginPhone() {
   const firebaseMessage = useFirebaseMessage();
 
   useEffect(() => {
-    void loadAuthConfig().then((cfg) => {
-      if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
-        setAnyCountry(true);
-      }
-    });
+    void loadAuthConfig()
+      .then((cfg) => {
+        if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
+          setAnyCountry(true);
+        }
+      })
+      .catch(() => undefined);
   }, []);
   return (
     <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
@@ -242,13 +240,10 @@ export function LoginOtp() {
     }
     setPhone(p);
     setHost(window.location.host);
-    void loadAuthConfig().then((cfg) => {
-      // Our own SMS code (Firebase refused to send) is checked by our API, as in the SMS flow.
-      if (cfg.otpProvider !== 'firebase' || usesSmsFallback(p)) return;
-      // The Firebase code lives in this tab only: after a reload the visitor asks for a new one.
-      if (!hasPendingCode(p)) router.replace('/login');
-      else setFirebase(true);
-    });
+    if (USE_MOCKS) return;
+    // The Firebase code lives in this tab only: after a reload the visitor asks for a new one.
+    if (!hasPendingCode(p)) router.replace('/login');
+    else setFirebase(true);
   }, [router]);
 
   useEffect(() => {
@@ -266,7 +261,6 @@ export function LoginOtp() {
         ? await getRepository().signInWithFirebase(await confirmPhoneCode(value))
         : await getRepository().verifyOtp(phone, value);
       sessionStorage.removeItem(PHONE_KEY);
-      clearSmsFallback();
       // The cells turn green before the next step, so the visitor sees the code was accepted.
       setBusy(false);
       setVerified(true);

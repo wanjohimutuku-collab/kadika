@@ -39,39 +39,54 @@ beforeEach(() => {
   repo.requestOtp.mockResolvedValue({ resendAfterSeconds: 30 });
 });
 
-describe('Firebase phone sign-in with SMS fallback', () => {
+describe('Firebase-only phone sign-in for web', () => {
   it('uses Firebase when it sends the code', async () => {
-    const { startPhoneSignIn, hasPendingCode, usesSmsFallback } = await import('./firebase-phone');
+    const { startPhoneSignIn, hasPendingCode } = await import('./firebase-phone');
     signInWithPhoneNumber.mockResolvedValue({ confirm: vi.fn() });
     expect(await startPhoneSignIn(PHONE, container, 'sw')).toBe('firebase');
     expect(hasPendingCode(PHONE)).toBe(true);
-    expect(usesSmsFallback(PHONE)).toBe(false);
     expect(repo.requestOtp).not.toHaveBeenCalled();
   });
 
-  it('sends our own SMS code when Firebase refuses after the reCAPTCHA (503, error 39)', async () => {
-    const { startPhoneSignIn, hasPendingCode, usesSmsFallback } = await import('./firebase-phone');
+  it('throws FirebasePhoneError without falling back to SMS when Firebase refuses (503, error 39)', async () => {
+    const { startPhoneSignIn, hasPendingCode, FirebasePhoneError } = await import('./firebase-phone');
     signInWithPhoneNumber.mockRejectedValue(
       Object.assign(new Error('Firebase: Error (auth/error-code:-39).'), {
         code: 'auth/error-code:-39',
       }),
     );
-    expect(await startPhoneSignIn(PHONE, container, 'sw')).toBe('sms');
-    expect(repo.requestOtp).toHaveBeenCalledWith(PHONE, { fallback: true, language: 'sw' });
+    const err = await startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
+    expect(err).toBeInstanceOf(FirebasePhoneError);
+    expect(err).toMatchObject({ reason: 'failed' });
+    expect(repo.requestOtp).not.toHaveBeenCalled();
     expect(hasPendingCode(PHONE)).toBe(false);
-    expect(usesSmsFallback(PHONE)).toBe(true);
-    // a resend goes straight to our SMS code, without asking Firebase again
-    signInWithPhoneNumber.mockClear();
-    expect(await startPhoneSignIn(PHONE, container, 'sw')).toBe('sms');
-    expect(signInWithPhoneNumber).not.toHaveBeenCalled();
+  });
+
+  it('maps rate-limit errors from Firebase without falling back to SMS', async () => {
+    const { startPhoneSignIn, FirebasePhoneError } = await import('./firebase-phone');
+    signInWithPhoneNumber.mockRejectedValue({ code: 'auth/too-many-requests' });
+    const err = await startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
+    expect(err).toBeInstanceOf(FirebasePhoneError);
+    expect(err).toMatchObject({ reason: 'too_many' });
+    expect(repo.requestOtp).not.toHaveBeenCalled();
   });
 
   it('still reports a wrong number instead of falling back', async () => {
     const { startPhoneSignIn, FirebasePhoneError } = await import('./firebase-phone');
     signInWithPhoneNumber.mockRejectedValue({ code: 'auth/invalid-phone-number' });
-    await expect(startPhoneSignIn(PHONE, container, 'sw')).rejects.toBeInstanceOf(
-      FirebasePhoneError,
-    );
+    const err = await startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
+    expect(err).toBeInstanceOf(FirebasePhoneError);
+    expect(err).toMatchObject({ reason: 'invalid_phone' });
+    expect(repo.requestOtp).not.toHaveBeenCalled();
+  });
+
+  it('rejects without calling requestOtp if auth config is not firebase', async () => {
+    vi.resetModules();
+    repo.getAuthConfig.mockResolvedValueOnce({ otpProvider: 'sms' });
+    const { startPhoneSignIn, FirebasePhoneError } = await import('./firebase-phone');
+    const err = await startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
+    expect(err).toBeInstanceOf(FirebasePhoneError);
+    expect(err).toMatchObject({ reason: 'failed' });
     expect(repo.requestOtp).not.toHaveBeenCalled();
   });
 });

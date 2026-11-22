@@ -375,6 +375,7 @@
     "tooManyRequests": "Too many attempts. Please wait a while and try again.",
     "smsTryCountry": "We couldn't send an SMS to this number in the country you chose. It looks like a {country} number, so we switched the country to {country}. Press the button again to get your code.",
     "smsUndeliverable": "We couldn't send an SMS to this number. Check that the country matches your number (for example Kenya for +254), then try again.",
+    "sendTimedOut": "The security check was closed before the code was sent. Press the button to try again.",
     "signInBlocked": "We couldn't confirm this sign-in automatically. Turn off any VPN or proxy, check your connection, then try again.",
     "signInBlockedTryCountry": "We couldn't send a code to this number. If it is a {country} number, choose {country} as the country and press the button again. Otherwise turn off any VPN or proxy and try again.",
     "updateApp": "Please update the app to sign in.",

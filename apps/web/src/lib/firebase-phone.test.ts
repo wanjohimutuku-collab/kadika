@@ -28,13 +28,23 @@ vi.stubGlobal('sessionStorage', {
   removeItem: (k: string) => void store.delete(k),
 });
 
-vi.stubGlobal('document', { createElement: () => ({}) });
+/** The v2 picture challenge as the watchdog sees it: an iframe whose grandparent is shown or hidden. */
+let challenge: 'none' | 'visible' | 'hidden' = 'none';
+const challengeBox = {};
+vi.stubGlobal('document', {
+  createElement: () => ({}),
+  querySelector: () =>
+    challenge === 'none' ? null : { parentElement: { parentElement: challengeBox } },
+});
+vi.stubGlobal('getComputedStyle', () => ({ visibility: challenge }));
 
 const PHONE = '+255712480001';
 const container = { replaceChildren: () => undefined } as unknown as HTMLElement;
 
 beforeEach(() => {
   store.clear();
+  challenge = 'none';
+  vi.useRealTimers();
   vi.clearAllMocks();
   repo.getAuthConfig.mockResolvedValue({ otpProvider: 'firebase', firebase: { projectId: 'p' } });
   repo.startFirebaseSignIn.mockResolvedValue({ phone: PHONE });
@@ -44,6 +54,7 @@ beforeEach(() => {
 
 describe('Firebase-only phone sign-in for web', () => {
   it('uses Firebase when it sends the code', async () => {
+    vi.resetModules();
     const { startPhoneSignIn, hasPendingCode } = await import('./firebase-phone');
     signInWithPhoneNumber.mockResolvedValue({ confirm: vi.fn() });
     expect(await startPhoneSignIn(PHONE, container, 'sw')).toBe('firebase');
@@ -112,5 +123,50 @@ describe('Firebase-only phone sign-in for web', () => {
     expect(err).toBeInstanceOf(FirebasePhoneError);
     expect(err).toMatchObject({ reason: 'failed' });
     expect(repo.requestOtp).not.toHaveBeenCalled();
+  });
+
+  it('gives up with timeout when the picture challenge is closed without being solved', async () => {
+    vi.resetModules();
+    const { startPhoneSignIn, hasPendingCode } = await import('./firebase-phone');
+    vi.useFakeTimers();
+    signInWithPhoneNumber.mockReturnValue(new Promise(() => undefined)); // Firebase never settles
+    const result = startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
+    await vi.waitFor(() => expect(signInWithPhoneNumber).toHaveBeenCalled());
+    challenge = 'visible';
+    await vi.advanceTimersByTimeAsync(10_000); // the visitor looks at the puzzle
+    challenge = 'hidden'; // …and clicks outside it
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(await result).toMatchObject({ reason: 'timeout' });
+    expect(hasPendingCode(PHONE)).toBe(false);
+  });
+
+  it('keeps waiting while the challenge is open, and gives up after the overall cap', async () => {
+    vi.resetModules();
+    const { startPhoneSignIn, SEND_TIMEOUT_MS } = await import('./firebase-phone');
+    vi.useFakeTimers();
+    signInWithPhoneNumber.mockReturnValue(new Promise(() => undefined));
+    let settled: unknown = 'pending';
+    void startPhoneSignIn(PHONE, container, 'sw').catch((e) => (settled = e));
+    await vi.waitFor(() => expect(signInWithPhoneNumber).toHaveBeenCalled());
+    challenge = 'visible';
+    await vi.advanceTimersByTimeAsync(SEND_TIMEOUT_MS - 1_000);
+    expect(settled).toBe('pending');
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(settled).toMatchObject({ reason: 'timeout' });
+  });
+
+  it('still sends when the challenge is solved and closes', async () => {
+    vi.resetModules();
+    const { startPhoneSignIn } = await import('./firebase-phone');
+    vi.useFakeTimers();
+    let finish!: (v: unknown) => void;
+    signInWithPhoneNumber.mockReturnValue(new Promise((r) => (finish = r)));
+    const result = startPhoneSignIn(PHONE, container, 'sw');
+    await vi.waitFor(() => expect(signInWithPhoneNumber).toHaveBeenCalled());
+    challenge = 'visible';
+    await vi.advanceTimersByTimeAsync(5_000);
+    challenge = 'hidden';
+    finish({ confirm: vi.fn() }); // the solved puzzle lets Firebase send at once
+    expect(await result).toBe('firebase');
   });
 });

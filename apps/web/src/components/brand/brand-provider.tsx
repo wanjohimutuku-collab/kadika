@@ -27,6 +27,9 @@ const VARS = [
   '--hp-accent',
   '--hp-font-body',
   '--hp-font-display',
+  '--brand-primary',
+  '--brand-on-primary',
+  '--brand-accent',
 ];
 
 /** Holds the brand the server rendered with, and keeps the page's CSS variables in step when it changes. */

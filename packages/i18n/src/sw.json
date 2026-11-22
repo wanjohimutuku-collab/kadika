@@ -380,6 +380,7 @@
     "smsTryCountry": "Hatukuweza kutuma SMS kwa namba hii katika nchi uliyochagua. Inaonekana ni namba ya {country}, kwa hiyo tumebadilisha nchi kuwa {country}. Bonyeza kitufe tena upate msimbo wako.",
     "smsUndeliverable": "Hatukuweza kutuma SMS kwa namba hii. Hakikisha nchi uliyochagua inalingana na namba yako (kwa mfano Kenya kwa +254), kisha ujaribu tena.",
     "signInBlocked": "Hatukuweza kuthibitisha kuingia huku. Zima VPN au proxy kama unatumia, hakikisha mtandao upo, kisha ujaribu tena.",
+    "signInBlockedTryCountry": "Hatukuweza kutuma msimbo kwa namba hii. Kama ni namba ya {country}, chagua {country} kama nchi kisha bonyeza kitufe tena. Vinginevyo zima VPN au proxy kisha ujaribu tena.",
     "updateApp": "Tafadhali sasisha programu ili uingie.",
     "locked": "Umejaribu mara nyingi mno. Kwa usalama, subiri hadi saa {time} kisha ujaribu tena.",
     "rateLimited": "Subiri sekunde {seconds} kabla ya kuomba namba mpya.",

@@ -21,6 +21,8 @@ export type PhoneSignInError =
   | 'undeliverable'
   /** reCAPTCHA Enterprise scored the attempt as automated and refused it (ADR 060). */
   | 'blocked'
+  /** The picture challenge was closed unsolved, or the send never finished: the visitor can retry. */
+  | 'timeout'
   | 'failed';
 
 /** A Firebase failure in terms the login screens show. */
@@ -109,6 +111,58 @@ function reasonOf(err: unknown): PhoneSignInError {
   return 'failed';
 }
 
+/** Longest a send may take before the button gives up; covers a slow network and a few puzzle rounds. */
+export const SEND_TIMEOUT_MS = 180_000;
+/** How long the challenge may stay closed without a token before we treat it as dismissed. */
+const DISMISS_GRACE_MS = 4_000;
+
+/** The reCAPTCHA v2 picture challenge is open in the page. */
+function challengeOpen(): boolean {
+  const frame = document.querySelector?.<HTMLIFrameElement>('iframe[src*="recaptcha/api2/bframe"]');
+  const box = frame?.parentElement?.parentElement;
+  return !!box && getComputedStyle(box).visibility === 'visible';
+}
+
+/**
+ * Firebase never settles `signInWithPhoneNumber` when the visitor closes the v2 picture challenge
+ * without solving it (a click outside it), so the button would spin for ever. Reject with `timeout`
+ * once a challenge that was open has stayed closed for a few seconds, or after `SEND_TIMEOUT_MS`.
+ */
+function withSendWatchdog<T>(send: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let seenOpen = false;
+    let closedSince: number | null = null;
+    const stop = () => {
+      clearInterval(poll);
+      clearTimeout(cap);
+    };
+    const giveUp = () => {
+      stop();
+      reject(new FirebasePhoneError('timeout'));
+    };
+    const poll = setInterval(() => {
+      if (challengeOpen()) {
+        seenOpen = true;
+        closedSince = null;
+      } else if (seenOpen) {
+        closedSince ??= Date.now();
+        if (Date.now() - closedSince >= DISMISS_GRACE_MS) giveUp();
+      }
+    }, 500);
+    const cap = setTimeout(giveUp, SEND_TIMEOUT_MS);
+    send.then(
+      (v) => {
+        stop();
+        resolve(v);
+      },
+      (e: unknown) => {
+        stop();
+        reject(e);
+      },
+    );
+  });
+}
+
 /**
  * Our API's go-ahead before Firebase texts a code: Firebase codes spend the same per-IP, per-number
  * and hourly budget as our own SMS codes (docs/ops/production-readiness-audit.md, finding 23).
@@ -159,7 +213,9 @@ export async function startPhoneSignIn(
     const host = document.createElement('div');
     container.replaceChildren(host);
     verifier = new auth.RecaptchaVerifier(instance, host, { size: 'invisible' });
-    const confirmation = await auth.signInWithPhoneNumber(instance, phone, verifier);
+    const confirmation = await withSendWatchdog(
+      auth.signInWithPhoneNumber(instance, phone, verifier),
+    );
     pending = { phone, confirmation, signOut: () => auth.signOut(instance) };
     return 'firebase';
   } catch (err) {

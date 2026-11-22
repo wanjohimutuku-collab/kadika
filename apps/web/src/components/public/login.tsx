@@ -64,7 +64,9 @@ function useFirebaseMessage() {
               ? t('smsUndeliverable')
               : reason === 'blocked'
                 ? t('signInBlocked')
-                : ts('errorBody');
+                : reason === 'timeout'
+                  ? t('sendTimedOut')
+                  : ts('errorBody');
 }
 
 function safeNext(next: string | null): string {

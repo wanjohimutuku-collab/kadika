@@ -4,6 +4,18 @@ Removes the "select all images with crosswalks" challenge from web sign-in (ADR 
 machine where `gcloud` is signed in as an owner/editor of the Firebase project. The commands are
 PowerShell.
 
+**Shortcut:** `infra/ops/recaptcha-phone-enforcement.ps1` does steps 1–4 in one go. It signs in to
+gcloud if needed, enables the API, sets the state and reads it back:
+
+```powershell
+.\infra\ops\recaptcha-phone-enforcement.ps1 -ReadOnly          # show the current setting
+.\infra\ops\recaptcha-phone-enforcement.ps1                    # AUDIT
+.\infra\ops\recaptcha-phone-enforcement.ps1 -State ENFORCE     # after the Android check
+.\infra\ops\recaptcha-phone-enforcement.ps1 -State OFF         # roll back
+```
+
+Production (`kadisasa-1adb3`) was switched to **AUDIT** on 22 Nov 2026.
+
 `$P` is the Firebase project id: the `projectId` that `GET /v1/auth/config` returns, also shown in
 Firebase console → Project settings.
 

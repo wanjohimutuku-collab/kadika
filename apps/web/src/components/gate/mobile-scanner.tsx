@@ -45,7 +45,13 @@ import {
   type WebVaultVerification,
 } from '@/lib/web-gate-scanner';
 import { playGateSound } from '@/lib/gate-audio';
-import { canvasFromFile, frameFromVideo, releaseSmsReader, scanSmsImage } from '@/lib/sms-ocr';
+import {
+  canvasFromFile,
+  frameFromVideo,
+  releaseSmsReader,
+  scanSmsImage,
+  warmUpSmsReader,
+} from '@/lib/sms-ocr';
 
 interface DetectedBarcode {
   rawValue?: string;
@@ -408,7 +414,10 @@ export function MobileGateScanner({
       return;
     }
     void startCamera();
+    // Load the Scan SMS engine while online, so it still works if the gate loses its connection.
+    const warm = window.setTimeout(warmUpSmsReader, 1500);
     return () => {
+      window.clearTimeout(warm);
       stopCamera();
     };
   }, [open, startCamera, stopCamera]);

@@ -1,4 +1,5 @@
 import { extractShortCodeFromOcr } from '@harusi/schemas/short-code';
+import tesseractPkg from 'tesseract.js/package.json';
 
 /**
  * "Scan SMS" at the gate (ADR 059): a guest without a smartphone shows the invitation SMS on their
@@ -28,31 +29,60 @@ export const nativeTextReader: TextReader = async (image) => {
   return hits.map((h) => h.rawValue ?? '').join('\n');
 };
 
+/**
+ * Where scripts/copy-ocr-assets.mjs puts the engine and model: our own origin, never a CDN, in a
+ * folder named after the tesseract.js version so the files can be cached as immutable.
+ */
+export const OCR_ASSET_BASE = `/ocr/tesseract-${tesseractPkg.version}`;
+
+/** Paths handed to `createWorker`. The worker is a same-origin script (no blob: URL). */
+export const tesseractPaths = {
+  workerPath: `${OCR_ASSET_BASE}/worker.min.js`,
+  corePath: `${OCR_ASSET_BASE}/core`,
+  langPath: `${OCR_ASSET_BASE}/lang`,
+  workerBlobURL: false,
+} as const;
+
 type TesseractWorker = {
   recognize(image: SmsImage): Promise<{ data: { text: string } }>;
   terminate(): Promise<unknown>;
 };
 let tesseract: Promise<TesseractWorker> | null = null;
 
+function loadTesseract(): Promise<TesseractWorker> {
+  tesseract ??= import('tesseract.js')
+    .then(
+      ({ createWorker, OEM }) =>
+        createWorker('eng', OEM.LSTM_ONLY, tesseractPaths) as Promise<TesseractWorker>,
+    )
+    .catch((err: unknown) => {
+      tesseract = null; // let the next tap retry, e.g. once the phone is back online
+      throw err;
+    });
+  return tesseract;
+}
+
 /**
- * Tesseract (WebAssembly), loaded only when the gate agent first taps "Scan SMS". Its engine and the
- * English model are fetched once and then served from the browser cache, so the first scan of a
- * session needs a connection.
+ * Tesseract (WebAssembly), served from this site (`OCR_ASSET_BASE`). Once loaded it keeps working
+ * with no connection: the engine stays in the running worker and the HTTP cache, the model in the
+ * worker's IndexedDB cache.
  */
 export const tesseractReader: TextReader = async (image) => {
-  tesseract ??= import('tesseract.js').then(
-    ({ createWorker }) => createWorker('eng') as Promise<TesseractWorker>,
-  );
-  let worker: TesseractWorker;
-  try {
-    worker = await tesseract;
-  } catch (err) {
-    tesseract = null; // let the next tap retry, e.g. once the phone is back online
-    throw err;
-  }
+  const worker = await loadTesseract();
   const { data } = await worker.recognize(image);
   return data.text;
 };
+
+/**
+ * Starts the engine in the background so Scan SMS keeps working if the gate later loses its
+ * connection. Skipped offline, on Data Saver, and where the browser's own text detector exists.
+ */
+export function warmUpSmsReader(): void {
+  if (typeof window === 'undefined' || !navigator.onLine) return;
+  if (typeof (globalThis as { TextDetector?: unknown }).TextDetector === 'function') return;
+  if ((navigator as { connection?: { saveData?: boolean } }).connection?.saveData) return;
+  void loadTesseract().catch(() => {});
+}
 
 /** Frees the recognition worker (call when the scanner closes). */
 export async function releaseSmsReader(): Promise<void> {

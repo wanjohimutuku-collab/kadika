@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { scanSmsImage, stretchGreyscale, type SmsImage, type TextReader } from './sms-ocr';
+import tesseractPkg from 'tesseract.js/package.json';
+import {
+  OCR_ASSET_BASE,
+  scanSmsImage,
+  stretchGreyscale,
+  tesseractPaths,
+  type SmsImage,
+  type TextReader,
+} from './sms-ocr';
 
 const image = {} as SmsImage;
 const reads =
@@ -44,5 +52,16 @@ describe('stretchGreyscale', () => {
     const px = new Uint8ClampedArray([100, 100, 100, 255, 150, 150, 150, 255]);
     stretchGreyscale(px);
     expect([...px]).toEqual([0, 0, 0, 255, 255, 255, 255, 255]);
+  });
+});
+
+describe('tesseractPaths', () => {
+  it('loads the engine and model from our own origin, in the folder copy-ocr-assets writes', () => {
+    expect(OCR_ASSET_BASE).toBe(`/ocr/tesseract-${tesseractPkg.version}`);
+    for (const p of [tesseractPaths.workerPath, tesseractPaths.corePath, tesseractPaths.langPath]) {
+      expect(p.startsWith(`${OCR_ASSET_BASE}/`)).toBe(true);
+    }
+    // A blob: worker would need blob: in the console CSP's worker-src.
+    expect(tesseractPaths.workerBlobURL).toBe(false);
   });
 });

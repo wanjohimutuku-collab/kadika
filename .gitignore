@@ -44,3 +44,6 @@ apps/mobile/google-services.json
 /*.png
 /*.jpg
 /*.jpeg
+
+# Tesseract engine + model for gate "Scan SMS", copied from node_modules at dev/build (ADR 059)
+apps/web/public/ocr/

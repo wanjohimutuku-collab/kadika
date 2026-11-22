@@ -51,6 +51,11 @@ const config: NextConfig = {
         { source: `${p}/:path*`, headers: noindex },
       ]),
       {
+        // Gate "Scan SMS" engine and model (ADR 059). The folder is versioned, so the files never change.
+        source: '/ocr/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
         source: '/sw.js',
         headers: [
           { key: 'Cache-Control', value: 'no-cache' },

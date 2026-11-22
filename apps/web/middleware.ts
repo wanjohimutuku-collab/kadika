@@ -51,8 +51,8 @@ function strictCsp(nonce: string): string {
   const dev = process.env.NODE_ENV !== 'production' ? " 'unsafe-eval'" : '';
   return [
     `script-src 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https: 'wasm-unsafe-eval'${dev}`,
-    // The Scan SMS text recognition runs in a worker started from a blob: URL (ADR 059).
-    "worker-src 'self' blob:",
+    // The Scan SMS text recognition runs in a same-origin worker under /ocr/ (ADR 059).
+    "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",

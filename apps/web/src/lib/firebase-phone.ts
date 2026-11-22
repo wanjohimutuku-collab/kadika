@@ -1,7 +1,8 @@
 'use client';
 
 import { isRepositoryError, type AuthConfig } from '@harusi/api-client';
-import type { ConfirmationResult, RecaptchaVerifier } from 'firebase/auth';
+import type { Auth, ConfirmationResult, RecaptchaVerifier } from 'firebase/auth';
+import type * as FirebaseAuthModule from 'firebase/auth';
 import { USE_MOCKS } from './env';
 import { getRepository } from './repo';
 
@@ -18,6 +19,8 @@ export type PhoneSignInError =
   | 'too_many'
   /** Firebase's SMS backend refuses the destination (503 "Error code: 39"), often a wrong country. */
   | 'undeliverable'
+  /** reCAPTCHA Enterprise scored the attempt as automated and refused it (ADR 060). */
+  | 'blocked'
   | 'failed';
 
 /** A Firebase failure in terms the login screens show. */
@@ -48,20 +51,43 @@ export function loadAuthConfig(): Promise<AuthConfig> {
   return config;
 }
 
-async function firebaseAuth(cfg: Extract<AuthConfig, { otpProvider: 'firebase' }>['firebase']) {
-  const [{ getApps, initializeApp }, auth] = await Promise.all([
-    import('firebase/app'),
-    import('firebase/auth'),
-  ]);
-  const app =
-    getApps()[0] ??
-    initializeApp({
-      projectId: cfg.projectId,
-      apiKey: cfg.apiKey ?? undefined,
-      authDomain: cfg.authDomain ?? undefined,
-      appId: cfg.appId ?? undefined,
+type FirebaseAuth = { auth: typeof FirebaseAuthModule; instance: Auth };
+let firebase: Promise<FirebaseAuth> | null = null;
+
+function firebaseAuth(
+  cfg: Extract<AuthConfig, { otpProvider: 'firebase' }>['firebase'],
+): Promise<FirebaseAuth> {
+  firebase ??= Promise.all([import('firebase/app'), import('firebase/auth')])
+    .then(([{ getApps, initializeApp }, auth]) => {
+      const app =
+        getApps()[0] ??
+        initializeApp({
+          projectId: cfg.projectId,
+          apiKey: cfg.apiKey ?? undefined,
+          authDomain: cfg.authDomain ?? undefined,
+          appId: cfg.appId ?? undefined,
+        });
+      const instance = auth.getAuth(app);
+      // reCAPTCHA Enterprise (ADR 060): loading the project's reCAPTCHA config up front lets the
+      // score-based check run without an image challenge and gives it the page's signals. It fails
+      // harmlessly when Enterprise is not enabled for the project; the SDK then uses invisible v2.
+      void auth.initializeRecaptchaConfig?.(instance).catch(() => undefined);
+      return { auth, instance };
+    })
+    .catch((err: unknown) => {
+      firebase = null;
+      throw err;
     });
-  return { auth, instance: auth.getAuth(app) };
+  return firebase;
+}
+
+/**
+ * Loads Firebase and its reCAPTCHA config while the visitor types the number, so "Send code" is
+ * quick and reCAPTCHA Enterprise has seen the page before it scores the attempt.
+ */
+export async function prepareFirebaseSignIn(): Promise<void> {
+  const cfg = await loadAuthConfig();
+  if (cfg.otpProvider === 'firebase') await firebaseAuth(cfg.firebase);
 }
 
 function reasonOf(err: unknown): PhoneSignInError {
@@ -73,6 +99,13 @@ function reasonOf(err: unknown): PhoneSignInError {
   if (code === 'auth/code-expired' || code === 'auth/session-expired') return 'expired';
   if (code === 'auth/too-many-requests' || code === 'auth/quota-exceeded') return 'too_many';
   if (code === 'auth/error-code:-39') return 'undeliverable';
+  if (
+    code === 'auth/invalid-app-credential' ||
+    code === 'auth/missing-recaptcha-token' ||
+    code === 'auth/invalid-recaptcha-token' ||
+    code === 'auth/captcha-check-failed'
+  )
+    return 'blocked';
   return 'failed';
 }
 
@@ -96,8 +129,10 @@ async function allowCode(phone: string): Promise<void> {
 }
 
 /**
- * Asks Firebase to text a code to `phone` (E.164). `container` hosts the invisible reCAPTCHA; it must
- * stay in the page until the code is sent. Firebase writes the SMS in `locale`.
+ * Asks Firebase to text a code to `phone` (E.164). With reCAPTCHA Enterprise enforced for phone
+ * sign-in (ADR 060) the check is score-based and never shows an image challenge. `container` hosts
+ * the invisible v2 widget that Firebase falls back to only when Enterprise is off or in AUDIT mode; it
+ * must stay in the page until the code is sent. Firebase writes the SMS in `locale`.
  *
  * Firebase is the only OTP sender for the real web app: if it refuses or is not configured, this
  * throws `FirebasePhoneError` rather than falling back to our own SMS endpoint.

@@ -8,6 +8,7 @@ export type TemplateNames = {
   pledge?: string;
   contribution?: string;
   memories?: string;
+  otp?: string;
 };
 
 export interface WhatsAppCloudOptions {
@@ -72,7 +73,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
         to,
       );
     }
-    const tpl = (header: boolean) => ({
+    const tpl = (header: boolean, otpButton = false) => ({
       type: 'template',
       template: {
         name,
@@ -81,7 +82,23 @@ export class WhatsAppCloudProvider implements MessagingProvider {
           ...(header && media
             ? [{ type: 'header', parameters: [{ type: 'image', image: { link: media } }] }]
             : []),
-          { type: 'body', parameters: template.params.map((text) => ({ type: 'text', text })) },
+          {
+            type: 'body',
+            parameters: template.params.map((text) => ({
+              type: 'text',
+              text: text.trim() || '—',
+            })),
+          },
+          ...(otpButton && template.params[0]
+            ? [
+                {
+                  type: 'button',
+                  sub_type: 'url',
+                  index: '0',
+                  parameters: [{ type: 'text', text: template.params[0].trim() || '—' }],
+                },
+              ]
+            : []),
         ],
       },
     });
@@ -89,10 +106,14 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     try {
       return await this.post(tpl(header), to);
     } catch (e) {
-      // The setting is on but this template was approved without an IMAGE header (or its image could
-      // not be fetched): send it without one rather than losing the invitation.
-      if (header && e instanceof CloudError && e.code !== undefined && HEADER_ERRORS.has(e.code))
-        return this.post(tpl(false), to);
+      if (e instanceof CloudError && e.code !== undefined) {
+        // The setting is on but this template was approved without an IMAGE header (or its image could
+        // not be fetched): send it without one rather than losing the invitation.
+        if (header && HEADER_ERRORS.has(e.code)) return this.post(tpl(false), to);
+        // Meta Authentication templates include a copy-code URL button component in addition to body {{1}}.
+        if (template.kind === 'otp' && OTP_BUTTON_ERRORS.has(e.code))
+          return this.post(tpl(false, true), to);
+      }
       throw e;
     }
   }
@@ -123,6 +144,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
 const CAPTION_MAX = 1024;
 /** Meta codes for a template/parameter mismatch or unusable header media. */
 const HEADER_ERRORS = new Set([132000, 132012, 131053, 131052]);
+const OTP_BUTTON_ERRORS = new Set([132000, 132012, 132015, 131008, 131009]);
 
 class CloudError extends Error {
   constructor(
@@ -162,13 +184,23 @@ export function metaVerifyChallenge(
 /** Status callbacks (`entry[].changes[].value.statuses[]`) mapped to our delivery states. */
 export function parseCloudStatuses(
   payload: unknown,
-): { providerMsgId: string; state: DeliveryState }[] {
-  const out: { providerMsgId: string; state: DeliveryState }[] = [];
+): { providerMsgId: string; state: DeliveryState; failureReason?: string }[] {
+  const out: { providerMsgId: string; state: DeliveryState; failureReason?: string }[] = [];
   const entries = (payload as { entry?: unknown[] } | null)?.entry ?? [];
   for (const e of entries) {
     for (const ch of (e as { changes?: unknown[] }).changes ?? []) {
       const statuses =
-        (ch as { value?: { statuses?: { id?: string; status?: string }[] } }).value?.statuses ?? [];
+        (
+          ch as {
+            value?: {
+              statuses?: {
+                id?: string;
+                status?: string;
+                errors?: { code?: number; title?: string }[];
+              }[];
+            };
+          }
+        ).value?.statuses ?? [];
       for (const s of statuses) {
         if (!s.id) continue;
         const state: DeliveryState =
@@ -179,7 +211,18 @@ export function parseCloudStatuses(
               : s.status === 'failed'
                 ? 'failed'
                 : 'pending'; // `sent` = accepted by WhatsApp, not yet on the phone
-        out.push({ providerMsgId: s.id, state });
+        const err = state === 'failed' ? s.errors?.[0] : undefined;
+        const failureReason =
+          err?.code !== undefined && err.title
+            ? `code ${err.code}: ${err.title}`
+            : err?.code !== undefined
+              ? `code ${err.code}`
+              : err?.title || undefined;
+        out.push({
+          providerMsgId: s.id,
+          state,
+          ...(failureReason ? { failureReason } : {}),
+        });
       }
     }
   }

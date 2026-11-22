@@ -73,11 +73,13 @@ export function envSettings(config: Config): MessagingSettings {
               templatePledge: wc?.templates.pledge,
               templateContribution: wc?.templates.contribution,
               templateMemories: wc?.templates.memories,
+              templateOtp: wc?.templates.otp,
               templateInviteKe: ke?.invite,
               templateReminderKe: ke?.reminder,
               templatePledgeKe: ke?.pledge,
               templateContributionKe: ke?.contribution,
               templateMemoriesKe: ke?.memories,
+              templateOtpKe: ke?.otp,
             }),
     },
   };
@@ -102,6 +104,7 @@ const templates = (f: Record<string, string>, suffix = '') => {
     pledge: f[`templatePledge${suffix}`],
     contribution: f[`templateContribution${suffix}`],
     memories: f[`templateMemories${suffix}`],
+    otp: f[`templateOtp${suffix}`],
   });
   return Object.keys(t).length ? t : undefined;
 };
@@ -489,13 +492,34 @@ export class MessagingSettingsService {
         field: 'to',
       });
     const brand = await new BrandingService(this.deps).businessName();
+    const country = countryOfE164(to) ?? home;
+    const locale = route === 'sms_ke' || country === 'KE' ? 'en' : 'sw';
+    const wc = this.deps.config.whatsappCloud;
+    const tpls = country === 'KE' ? wc?.templatesByCountry.KE : wc?.templates;
+    const testTemplate =
+      route !== 'whatsapp'
+        ? undefined
+        : tpls?.otp
+          ? { kind: 'otp' as const, locale: locale as 'sw' | 'en', country, params: ['123456'] }
+          : tpls?.invite
+            ? {
+                kind: 'invite' as const,
+                locale: locale as 'sw' | 'en',
+                country,
+                params:
+                  country === 'KE'
+                    ? [brand, '1 Jan 2027', this.deps.config.shortBaseUrl, 'TEST-01']
+                    : [brand, 'Test', '1 Jan 2027', this.deps.config.shortBaseUrl, 'TEST-01'],
+              }
+            : undefined;
     let error: string | null = null;
     try {
       await provider.send(
         to,
-        route === 'sms_ke'
+        locale === 'en'
           ? `${brand}: test message. Your settings work.`
           : `${brand}: ujumbe wa majaribio. Mipangilio yako inafanya kazi.`,
+        testTemplate,
       );
     } catch (e) {
       error = (e as Error).message || 'failed';

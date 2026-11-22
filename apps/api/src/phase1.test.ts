@@ -39,11 +39,54 @@ describe('auth', () => {
     expect(locked.status).toBe(423);
     // Once verified, the same code cannot be replayed.
     await loginAs(ctx, '0754333444');
-    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255754333444')!)![1]!;
+    const code = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255754333444') ?? ctx.sms.lastTo('+255754333444')!,
+    )![1]!;
     const replay = await api(ctx, 'POST', '/v1/auth/otp/verify', {
       body: { phone: '0754333444', code },
     });
     expect(replay.status).toBe(400);
+  });
+
+  it('sends OTP on WhatsApp first and falls back to SMS on failure, undelivered webhook, timeout, or resend', async () => {
+    ctx.whatsapp.sent.length = 0;
+    ctx.sms.sent.length = 0;
+    // 1. WhatsApp succeeds first
+    const r1 = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone: '0754900001' } });
+    expect(r1.status).toBe(200);
+    expect(r1.body?.channel).toBe('whatsapp');
+    expect(ctx.whatsapp.sent).toHaveLength(1);
+    expect(ctx.whatsapp.sent[0]!.template).toMatchObject({ kind: 'otp', locale: 'sw' });
+    expect(ctx.sms.sent).toHaveLength(0);
+
+    // 2. Undelivered timeout falls back to SMS with the same code
+    ctx.clock.now += 31_000;
+    const res1 = await ctx.app.request('/v1/webhooks/whatsapp', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-webhook-secret': 'hook-secret-for-tests',
+      },
+      body: JSON.stringify({ data: { keyId: 'fake-1', status: 'ERROR' } }),
+    });
+    expect(res1.status).toBe(200);
+
+    // 3. Resend while previous WhatsApp OTP was never delivered goes directly via SMS
+    const r2 = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone: '0754900001' } });
+    expect(r2.status).toBe(200);
+    expect(r2.body?.channel).toBe('sms');
+    expect(ctx.sms.lastTo('+255754900001')).toMatch(/Namba yako ya uthibitisho/);
+
+    // 4. Synchronous WhatsApp outage falls back immediately to SMS
+    ctx.fail.wa = (to) => to === '+255754900002';
+    try {
+      const r3 = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone: '0754900002' } });
+      expect(r3.status).toBe(200);
+      expect(r3.body?.channel).toBe('sms');
+      expect(ctx.sms.lastTo('+255754900002')).toMatch(/Namba yako ya uthibitisho/);
+    } finally {
+      ctx.fail.wa = () => false;
+    }
   });
 
   it('rate-limits OTP requests (30 s) and rejects invalid phones', async () => {
@@ -96,7 +139,9 @@ describe('auth', () => {
       });
     const guess = (ip: string, code = '000000') => from(ip, '/v1/auth/otp/verify', { phone, code });
     expect((await from('10.0.0.9', '/v1/auth/otp/request', { phone })).status).toBe(200);
-    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255754555666')!)![1]!;
+    const code = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255754555666') ?? ctx.sms.lastTo('+255754555666')!,
+    )![1]!;
     // someone else burns their five tries: they are locked out, and may not ask for codes either
     for (let i = 0; i < 4; i++) expect((await guess('10.0.0.1')).status).toBe(400);
     expect((await guess('10.0.0.1')).status).toBe(423);
@@ -108,7 +153,9 @@ describe('auth', () => {
 
     // guesses spread over many addresses: the code is void after 15 in total
     expect((await from('10.0.0.9', '/v1/auth/otp/request', { phone })).status).toBe(200);
-    const second = /(\d{6})/.exec(ctx.sms.lastTo('+255754555666')!)![1]!;
+    const second = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255754555666') ?? ctx.sms.lastTo('+255754555666')!,
+    )![1]!;
     for (let i = 0; i < 15; i++) await guess(`10.0.1.${i}`);
     const late = await guess('10.0.0.9', second);
     expect(late.status).toBe(400);

@@ -61,11 +61,13 @@
           "templatePledge": "Ahadi",
           "templateContribution": "Kadi ya mchango",
           "templateMemories": "Kumbukumbu",
+          "templateOtp": "Namba ya kuingia (OTP)",
           "templateInviteKe": "Mwaliko (Kenya)",
           "templateReminderKe": "Kikumbusho (Kenya)",
           "templatePledgeKe": "Ahadi (Kenya)",
           "templateContributionKe": "Kadi ya mchango (Kenya)",
-          "templateMemoriesKe": "Kumbukumbu (Kenya)"
+          "templateMemoriesKe": "Kumbukumbu (Kenya)",
+          "templateOtpKe": "Namba ya kuingia (Kenya)"
         },
         "missing": "Jaza sehemu hizi kwanza: {fields}"
       },
@@ -138,11 +140,13 @@
           "templatePledge": "Pledge",
           "templateContribution": "Contribution card",
           "templateMemories": "Memories",
+          "templateOtp": "Login code (OTP)",
           "templateInviteKe": "Invitation (Kenya)",
           "templateReminderKe": "Reminder (Kenya)",
           "templatePledgeKe": "Pledge (Kenya)",
           "templateContributionKe": "Contribution card (Kenya)",
-          "templateMemoriesKe": "Memories (Kenya)"
+          "templateMemoriesKe": "Memories (Kenya)",
+          "templateOtpKe": "Login code (Kenya)"
         },
         "missing": "Fill in these fields first: {fields}"
       },

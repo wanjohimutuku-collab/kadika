@@ -133,6 +133,44 @@ describe('delivery webhooks and fallback', () => {
     const res = await post(raw, sig);
     expect(await res.json()).toMatchObject({ ok: true, updates: 1 });
     expect((await stats(ev.id, t)).byStatus).toMatchObject({ delivered: 1 });
+
+    // An OTP sent over WhatsApp that gets a Meta 'failed' status callback immediately falls back to SMS
+    ctx.whatsapp.sent.length = 0;
+    ctx.sms.sent.length = 0;
+    const otpReq = await api(ctx, 'POST', '/v1/auth/otp/request', {
+      body: { phone: '0713999888' },
+    });
+    expect(otpReq.body?.channel).toBe('whatsapp');
+    expect(ctx.sms.sent).toHaveLength(0);
+    const otpMsgId = `fake-${ctx.whatsapp.sent.length}`;
+    // Find the actual providerMsgId of the last WhatsApp send
+    void otpMsgId;
+    const failRaw = JSON.stringify({
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                statuses: [
+                  {
+                    id: log!.providerMsgId!.replace(/\d+$/, (n) => String(Number(n) + 1)),
+                    status: 'failed',
+                    errors: [{ code: 131026, title: 'Message undeliverable' }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const failSig =
+      'sha256=' + createHmac('sha256', 'meta-app-secret').update(failRaw).digest('hex');
+    const failRes = await post(failRaw, failSig);
+    expect(failRes.status).toBe(200);
+    expect(ctx.sms.sent).toHaveLength(1);
+    expect(ctx.sms.sent[0]!.to).toBe('+255713999888');
+    expect(ctx.sms.sent[0]!.body).toBe(ctx.whatsapp.sent[0]!.body);
   });
 
   it('sends one SMS when a WhatsApp invitation is still undelivered after N hours', async () => {

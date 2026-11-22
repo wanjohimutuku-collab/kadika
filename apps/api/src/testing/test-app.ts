@@ -154,7 +154,11 @@ export async function loginAs(ctx: TestContext, phone: string) {
   if (req.status !== 200) throw new Error(`otp request failed: ${JSON.stringify(req.body)}`);
   const e164 = req.body!.phone as string;
   const route = e164.startsWith('+254') ? ctx.smsKe : ctx.sms;
-  const code = /(\d{6})/.exec(route.lastTo(e164) ?? '')?.[1];
+  const body =
+    req.body?.channel === 'whatsapp'
+      ? (ctx.whatsapp.lastTo(e164) ?? route.lastTo(e164))
+      : (route.lastTo(e164) ?? ctx.whatsapp.lastTo(e164));
+  const code = /(\d{6})/.exec(body ?? '')?.[1];
   if (!code) throw new Error('no code sent');
   const verified = await api(ctx, 'POST', '/v1/auth/otp/verify', { body: { phone, code } });
   if (verified.status !== 200) throw new Error(`verify failed: ${JSON.stringify(verified.body)}`);

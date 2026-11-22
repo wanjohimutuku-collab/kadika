@@ -1716,11 +1716,13 @@
         "templatePledge": "Pledge",
         "templateContribution": "Contribution card",
         "templateMemories": "Memories",
+        "templateOtp": "Login code (OTP)",
         "templateInviteKe": "Invitation (Kenya)",
         "templateReminderKe": "Reminder (Kenya)",
         "templatePledgeKe": "Pledge (Kenya)",
         "templateContributionKe": "Contribution card (Kenya)",
-        "templateMemoriesKe": "Memories (Kenya)"
+        "templateMemoriesKe": "Memories (Kenya)",
+        "templateOtpKe": "Login code (Kenya)"
       },
       "missing": "Fill in these fields first: {fields}",
       "importEnv": {

@@ -18,11 +18,13 @@ const TEMPLATE_FIELDS: ProviderField[] = [
   'templatePledge',
   'templateContribution',
   'templateMemories',
+  'templateOtp',
   'templateInviteKe',
   'templateReminderKe',
   'templatePledgeKe',
   'templateContributionKe',
   'templateMemoriesKe',
+  'templateOtpKe',
 ].map((key) => ({ key }));
 
 /** Providers per route and the fields each one needs. `fake` sends nothing (dev and tests). */

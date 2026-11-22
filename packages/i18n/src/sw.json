@@ -1720,11 +1720,13 @@
         "templatePledge": "Ahadi",
         "templateContribution": "Kadi ya mchango",
         "templateMemories": "Kumbukumbu",
+        "templateOtp": "Namba ya kuingia (OTP)",
         "templateInviteKe": "Mwaliko (Kenya)",
         "templateReminderKe": "Kikumbusho (Kenya)",
         "templatePledgeKe": "Ahadi (Kenya)",
         "templateContributionKe": "Kadi ya mchango (Kenya)",
-        "templateMemoriesKe": "Kumbukumbu (Kenya)"
+        "templateMemoriesKe": "Kumbukumbu (Kenya)",
+        "templateOtpKe": "Namba ya kuingia (Kenya)"
       },
       "missing": "Jaza sehemu hizi kwanza: {fields}",
       "importEnv": {

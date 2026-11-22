@@ -81,6 +81,7 @@ export interface Config {
       pledge?: string;
       contribution?: string;
       memories?: string;
+      otp?: string;
     };
     /** Templates approved per country; Kenya's use a one-host-field parameter layout (ADR 026). */
     templatesByCountry: Partial<
@@ -92,6 +93,7 @@ export interface Config {
           pledge?: string;
           contribution?: string;
           memories?: string;
+          otp?: string;
         }
       >
     >;
@@ -273,13 +275,15 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
               pledge: env.WHATSAPP_TEMPLATE_PLEDGE,
               contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION,
               memories: env.WHATSAPP_TEMPLATE_MEMORIES,
+              otp: env.WHATSAPP_TEMPLATE_OTP,
             },
             templatesByCountry:
               env.WHATSAPP_TEMPLATE_INVITE_KE ||
               env.WHATSAPP_TEMPLATE_REMINDER_KE ||
               env.WHATSAPP_TEMPLATE_PLEDGE_KE ||
               env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE ||
-              env.WHATSAPP_TEMPLATE_MEMORIES_KE
+              env.WHATSAPP_TEMPLATE_MEMORIES_KE ||
+              env.WHATSAPP_TEMPLATE_OTP_KE
                 ? {
                     KE: {
                       invite: env.WHATSAPP_TEMPLATE_INVITE_KE,
@@ -287,6 +291,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
                       pledge: env.WHATSAPP_TEMPLATE_PLEDGE_KE,
                       contribution: env.WHATSAPP_TEMPLATE_CONTRIBUTION_KE,
                       memories: env.WHATSAPP_TEMPLATE_MEMORIES_KE,
+                      otp: env.WHATSAPP_TEMPLATE_OTP_KE,
                     },
                   }
                 : {},

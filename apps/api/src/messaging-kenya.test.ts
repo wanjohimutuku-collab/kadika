@@ -43,10 +43,15 @@ const reset = () => {
 };
 
 describe('SMS routing by the number’s country (ADR 026)', () => {
-  it('sends the sign-in code through the route of the number’s own country', async () => {
+  it('sends the sign-in code through the route of the number’s own country when WhatsApp falls back to SMS', async () => {
     reset();
-    await loginAs(ctx, '+254733000222');
-    await loginAs(ctx, '0711500001');
+    ctx.fail.wa = () => true;
+    try {
+      await loginAs(ctx, '+254733000222');
+      await loginAs(ctx, '0711500001');
+    } finally {
+      ctx.fail.wa = () => false;
+    }
     expect(ctx.smsKe.sent.map((m) => m.to)).toEqual(['+254733000222']);
     expect(ctx.smsKe.sent[0]!.body).toMatch(/Your Kadi Sasa verification code is \d{6}/);
     expect(ctx.sms.sent.map((m) => m.to)).toEqual(['+255711500001']);

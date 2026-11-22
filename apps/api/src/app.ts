@@ -603,7 +603,10 @@ export function createApp(deps: Deps) {
   app.post('/v1/webhooks/whatsapp', async (c) => {
     webhookAuth(c);
     const updates = parseEvolutionUpdate(await body(c));
-    for (const u of updates) await deliverySvc.recordDelivery(u.providerMsgId, u.state);
+    for (const u of updates) {
+      await deliverySvc.recordDelivery(u.providerMsgId, u.state);
+      await auth.otp.recordDelivery(u.providerMsgId, u.state);
+    }
     return c.json({ ok: true, updates: updates.length });
   });
   // Official WhatsApp Cloud API: Meta's subscribe handshake, then HMAC-signed status callbacks.
@@ -631,7 +634,14 @@ export function createApp(deps: Deps) {
       throw new ApiError('validation', 'Body must be JSON');
     }
     const updates = parseCloudStatuses(payload);
-    for (const u of updates) await deliverySvc.recordDelivery(u.providerMsgId, u.state);
+    for (const u of updates) {
+      await deliverySvc.recordDelivery(
+        u.providerMsgId,
+        u.state,
+        u.failureReason ? { failureReason: u.failureReason } : undefined,
+      );
+      await auth.otp.recordDelivery(u.providerMsgId, u.state);
+    }
     return c.json({ ok: true, updates: updates.length });
   });
   app.post('/v1/webhooks/sms', async (c) => {

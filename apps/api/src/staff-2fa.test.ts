@@ -272,7 +272,9 @@ describe('staff second factor (ADR 040)', () => {
         ctx.app.request(url.replace('http://api.test', ''), init)) as typeof fetch,
     });
     await repo.requestOtp('+255711950004');
-    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255711950004') ?? '')![1]!;
+    const code = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255711950004') ?? ctx.sms.lastTo('+255711950004') ?? '',
+    )![1]!;
     const first = await repo.verifyOtp('+255711950004', code);
     expect(first.needsSecondFactor).toBe(true);
     expect(first.secondFactorEnrolled).toBe(false);

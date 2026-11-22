@@ -280,6 +280,11 @@ describe('WhatsAppCloudProvider', () => {
                     { id: 'a', status: 'delivered' },
                     { id: 'b', status: 'read' },
                     { id: 'c', status: 'failed' },
+                    {
+                      id: 'e',
+                      status: 'failed',
+                      errors: [{ code: 131026, title: 'Message undeliverable' }],
+                    },
                     { id: 'd', status: 'sent' },
                     { status: 'read' },
                   ],
@@ -293,9 +298,51 @@ describe('WhatsAppCloudProvider', () => {
       { providerMsgId: 'a', state: 'delivered' },
       { providerMsgId: 'b', state: 'read' },
       { providerMsgId: 'c', state: 'failed' },
+      { providerMsgId: 'e', state: 'failed', failureReason: 'code 131026: Message undeliverable' },
       { providerMsgId: 'd', state: 'pending' },
     ]);
     expect(parseCloudStatuses(null)).toEqual([]);
+  });
+  it('replaces blank template parameters with an em-dash and retries OTP with a copy-code button', async () => {
+    const singleHost = fakeFetch(200, { messages: [{ id: 'w-single' }] });
+    await new WhatsAppCloudProvider({ ...base, fetchImpl: singleHost.impl }).send(
+      '+255712345678',
+      'x',
+      { ...template, params: ['Neema', '', '1 Juni 2027', 'https://s.test/s/abc', 'KH-4821'] },
+    );
+    expect(
+      JSON.parse(singleHost.calls[0]!.init.body as string).template.components[0].parameters[1],
+    ).toEqual({ type: 'text', text: '—' });
+
+    const bodies: { template: { components: unknown[] } }[] = [];
+    const otpFetch = (async (_u: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return bodies.length === 1
+        ? new Response(JSON.stringify({ error: { code: 132000 } }), { status: 400 })
+        : new Response(JSON.stringify({ messages: [{ id: 'wamid.otp' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const otpRes = await new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: 'p',
+      templates: { otp: 'harusi_otp' },
+      fetchImpl: otpFetch,
+    }).send('+255712345678', 'code 123456', {
+      kind: 'otp',
+      locale: 'sw',
+      country: 'TZ',
+      params: ['123456'],
+    });
+    expect(otpRes.providerMsgId).toBe('wamid.otp');
+    expect(bodies[0]!.template.components).toHaveLength(1);
+    expect(bodies[1]!.template.components).toEqual([
+      { type: 'body', parameters: [{ type: 'text', text: '123456' }] },
+      {
+        type: 'button',
+        sub_type: 'url',
+        index: '0',
+        parameters: [{ type: 'text', text: '123456' }],
+      },
+    ]);
   });
 });
 

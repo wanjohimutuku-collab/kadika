@@ -40,7 +40,7 @@ function browser(origin: string) {
 
 async function signIn(b: ReturnType<typeof browser>, phone: string, e164: string) {
   await b.post('/v1/auth/otp/request', { phone }, false);
-  const code = /(\d{6})/.exec(ctx.sms.lastTo(e164)!)![1]!;
+  const code = /(\d{6})/.exec(ctx.whatsapp.lastTo(e164) ?? ctx.sms.lastTo(e164)!)![1]!;
   return b.post('/v1/auth/otp/verify', { phone, code });
 }
 
@@ -107,7 +107,9 @@ describe('cookie sessions for the web app (security review M-05)', () => {
   it('refuses a cookie session from an origin that is not ours, and leaves body tokens as they were', async () => {
     const evil = browser('https://evil.example');
     await evil.post('/v1/auth/otp/request', { phone: '0713100005' }, false);
-    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255713100005')!)![1]!;
+    const code = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255713100005') ?? ctx.sms.lastTo('+255713100005')!,
+    )![1]!;
     const refused = await evil.post('/v1/auth/otp/verify', { phone: '0713100005', code });
     expect(refused.status).toBe(403);
     expect(refused.set).toHaveLength(0);
@@ -115,7 +117,9 @@ describe('cookie sessions for the web app (security review M-05)', () => {
     // the Android app and older web bundles: no header, tokens in the body, no cookie
     const app = browser(CONSOLE);
     await app.post('/v1/auth/otp/request', { phone: '0713100006' }, false);
-    const code2 = /(\d{6})/.exec(ctx.sms.lastTo('+255713100006')!)![1]!;
+    const code2 = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255713100006') ?? ctx.sms.lastTo('+255713100006')!,
+    )![1]!;
     const plain = await app.post(
       '/v1/auth/otp/verify',
       { phone: '0713100006', code: code2 },

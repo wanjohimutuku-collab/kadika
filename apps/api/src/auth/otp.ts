@@ -1,6 +1,7 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { toHex } from '@harusi/crypto';
-import { countryOfE164 } from '@harusi/schemas/country';
+import type { DeliveryState, MessageChannel } from '@harusi/messaging';
+import { countryOfE164, type Country } from '@harusi/schemas/country';
 import { ApiError } from '../errors';
 import { smsFor } from '../sms-routing';
 import { BrandingService } from '../services/branding';
@@ -9,6 +10,8 @@ import type { Deps } from '../context';
 const RESEND_MS = 30_000;
 const MAX_PER_HOUR = 5;
 const CODE_TTL_MS = 5 * 60_000;
+/** How long a WhatsApp OTP may stay unacknowledged before an automatic SMS fallback is sent. */
+export const OTP_FALLBACK_MS = 30_000;
 /** Wrong codes one client may send for a number before that client is locked out of it. */
 const MAX_ATTEMPTS = 5;
 /** Wrong codes from all clients together before the code itself is void (a new one must be requested). */
@@ -22,6 +25,15 @@ interface ClientState {
   lockedUntil: number | null;
 }
 
+interface PendingOtpDelivery {
+  providerMsgId: string;
+  sentAt: number;
+  delivered: boolean;
+  smsSent: boolean;
+  body: string;
+  country: Country;
+}
+
 interface OtpState {
   codeHash: string | null;
   expiresAt: number;
@@ -30,6 +42,8 @@ interface OtpState {
   /** Wrong guesses per client (IP). The lock is the client's, never the phone's (review L-05). */
   clients: Map<string, ClientState>;
   requests: number[];
+  /** Pending WhatsApp OTP delivery state; falls back to SMS if undelivered or failed. */
+  pendingDelivery?: PendingOtpDelivery;
 }
 
 /**
@@ -89,12 +103,14 @@ export class OtpService {
   /**
    * `language`: the visitor's site or app language; without it, the number's country decides.
    * `client`: who is asking (the IP); a client locked out of this number cannot ask for more codes.
+   * Tries WhatsApp first when available; if WhatsApp fails, is not delivered before a resend/timeout,
+   * or reports a failed delivery webhook, sends the code by SMS through the number's country route.
    */
   async request(
     phone: string,
     language?: 'sw' | 'en',
     client = 'local',
-  ): Promise<{ resendAfterSeconds: number }> {
+  ): Promise<{ resendAfterSeconds: number; channel: MessageChannel }> {
     const now = this.deps.now().getTime();
     const r = this.rec(phone);
     this.refuseLocked(r.clients.get(client), now);
@@ -126,13 +142,89 @@ export class OtpService {
     r.requests.push(now);
     const brand = await this.branding.businessName();
     const lang = language ?? (country === 'KE' ? 'en' : 'sw');
-    await route.send(
-      phone,
+    const body =
       lang === 'en'
         ? `Your ${brand} verification code is ${code}. Do not share it with anyone.`
-        : `Namba yako ya uthibitisho ya ${brand} ni ${code}. Usimpe mtu yeyote.`,
-    );
-    return { resendAfterSeconds: RESEND_MS / 1000 };
+        : `Namba yako ya uthibitisho ya ${brand} ni ${code}. Usimpe mtu yeyote.`;
+    // If a previous WhatsApp OTP for this number was never confirmed delivered, send the resend via SMS.
+    const previousUndelivered = !!(r.pendingDelivery && !r.pendingDelivery.delivered);
+    const wa = !previousUndelivered ? this.deps.whatsapp : undefined;
+    if (wa) {
+      try {
+        const res = await wa.send(phone, body, {
+          kind: 'otp',
+          locale: lang,
+          country,
+          params: [code],
+        });
+        r.pendingDelivery = {
+          providerMsgId: res.providerMsgId,
+          sentAt: now,
+          delivered: false,
+          smsSent: false,
+          body,
+          country,
+        };
+        if (!this.deps.sleep) {
+          setTimeout(() => void this.fallbackUndelivered().catch(() => undefined), OTP_FALLBACK_MS).unref?.();
+        }
+        return { resendAfterSeconds: RESEND_MS / 1000, channel: 'whatsapp' };
+      } catch {
+        // WhatsApp failed synchronously: fall through and send via SMS right away.
+      }
+    }
+    r.pendingDelivery = undefined;
+    await route.send(phone, body);
+    return { resendAfterSeconds: RESEND_MS / 1000, channel: 'sms' };
+  }
+
+  /**
+   * Handles a WhatsApp delivery webhook for an OTP message. Marks it delivered on `delivered`/`read`,
+   * or sends an immediate SMS fallback when WhatsApp reports `failed` while the code is still live.
+   */
+  async recordDelivery(providerMsgId: string, state: DeliveryState): Promise<boolean> {
+    const now = this.deps.now().getTime();
+    for (const [phone, r] of this.state) {
+      const d = r.pendingDelivery;
+      if (!d || d.providerMsgId !== providerMsgId) continue;
+      if (state === 'delivered' || state === 'read') {
+        d.delivered = true;
+        return true;
+      }
+      if (state === 'failed' && !d.smsSent && r.codeHash !== null && r.expiresAt > now) {
+        d.smsSent = true;
+        const route = smsFor(this.deps, d.country);
+        if (route) await route.send(phone, d.body);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Sends one SMS fallback for any live WhatsApp OTP still not confirmed delivered after `maxAgeMs`.
+   */
+  async fallbackUndelivered(maxAgeMs = OTP_FALLBACK_MS): Promise<number> {
+    const now = this.deps.now().getTime();
+    let sent = 0;
+    for (const [phone, r] of this.state) {
+      const d = r.pendingDelivery;
+      if (
+        !d ||
+        d.delivered ||
+        d.smsSent ||
+        r.codeHash === null ||
+        r.expiresAt <= now ||
+        now - d.sentAt < maxAgeMs
+      )
+        continue;
+      const route = smsFor(this.deps, d.country);
+      if (!route) continue;
+      d.smsSent = true;
+      await route.send(phone, d.body);
+      sent++;
+    }
+    return sent;
   }
 
   verify(phone: string, code: string, client = 'local'): void {
@@ -161,6 +253,7 @@ export class OtpService {
       });
     }
     r.codeHash = null; // single use
+    r.pendingDelivery = undefined;
     r.clients.delete(client);
   }
 }

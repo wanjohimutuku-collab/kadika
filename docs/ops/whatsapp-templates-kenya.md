@@ -43,6 +43,26 @@ speakers review the wording before submission.
 - en: `Hello {{1}}, your pledge for the celebration of {{2}} is {{3}}, balance {{4}}. You can pay from your card: {{5}}`
 - sw: `Habari {{1}}, ahadi yako kwa sherehe ya {{2}} ni {{3}}, salio {{4}}. Unaweza kulipa kwenye kadi yako: {{5}}`
 
+## contribution (`harusi_contribution_ke`), 3 parameters
+
+| #     | Meaning                                          |
+| ----- | ------------------------------------------------ |
+| {{1}} | Hosts                                            |
+| {{2}} | Sender / committee name                          |
+| {{3}} | Card link                                        |
+
+- en: `{{2}} invites you to contribute to the celebration of {{1}}. Open your card here: {{3}}`
+- sw: `{{2}} anakukaribisha kushiriki mchango wa sherehe ya {{1}}. Fungua kadi hapa: {{3}}`
+
+## otp (`harusi_otp_ke`), 1 parameter
+
+| #     | Meaning                        |
+| ----- | ------------------------------ |
+| {{1}} | 6-digit login verification code |
+
+- en: `Your verification code is {{1}}. Do not share it with anyone.`
+- sw: `Namba yako ya uthibitisho ni {{1}}. Usimpe mtu yeyote.`
+
 Notes: parameters cannot be empty, which is why Kenya uses one `hosts` field instead of two names. Do not
 put a PIN, password or payment request in any template. Until these are approved, Kenyan invitations fall
 back to SMS.

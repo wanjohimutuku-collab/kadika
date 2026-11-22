@@ -12,7 +12,7 @@ export interface SendResult {
  * business-initiated messages). Providers that send free text ignore it.
  */
 export interface MessageTemplate {
-  kind: 'invite' | 'reminder' | 'pledge' | 'contribution' | 'memories';
+  kind: 'invite' | 'reminder' | 'pledge' | 'contribution' | 'memories' | 'otp';
   locale: 'sw' | 'en';
   /** Event country (`TZ`, `KE`): picks the approved template and its parameter layout (ADR 026). */
   country?: string;

@@ -205,12 +205,16 @@ describe('Firebase phone sign-in (ADR 048)', () => {
       body: { phone: '0712480011', fallback: true, language: 'en' },
     });
     expect(en.status).toBe(200);
-    expect(ctx.sms.sent.at(-1)!.body).toMatch(/verification code is \d{6}/);
+    expect((ctx.whatsapp.sent.at(-1) ?? ctx.sms.sent.at(-1))!.body).toMatch(
+      /verification code is \d{6}/,
+    );
     const sw = await api(ctx, 'POST', '/v1/auth/otp/request', {
       body: { phone: '0712480012', fallback: true, language: 'sw' },
     });
     expect(sw.status).toBe(200);
-    expect(ctx.sms.sent.at(-1)!.body).toMatch(/Namba yako ya uthibitisho/);
+    expect((ctx.whatsapp.sent.at(-1) ?? ctx.sms.sent.at(-1))!.body).toMatch(
+      /Namba yako ya uthibitisho/,
+    );
   });
 
   it('sends no login code through our SMS routes and tells clients to use Firebase', async () => {
@@ -235,7 +239,9 @@ describe('Firebase phone sign-in (ADR 048)', () => {
       body: { phone: '0712480001', fallback: true },
     });
     expect(r.status).toBe(200);
-    const code = /(\d{6})/.exec(ctx.sms.lastTo('+255712480001') ?? '')![1]!;
+    const code = /(\d{6})/.exec(
+      ctx.whatsapp.lastTo('+255712480001') ?? ctx.sms.lastTo('+255712480001') ?? '',
+    )![1]!;
     const v = await api(ctx, 'POST', '/v1/auth/otp/verify', {
       body: { phone: '0712480001', code },
     });

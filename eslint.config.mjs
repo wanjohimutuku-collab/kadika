@@ -18,6 +18,7 @@ export default tseslint.config(
       '**/.next-prod/**',
       '**/.next-live/**',
       '**/test-results/**',
+      'apps/web/public/ocr/**',
       '**/playwright-report/**',
       'docs/ui/lighthouse/**',
     ],

@@ -44,12 +44,15 @@ const STRICT_CSP_PATHS = /^\/(app|ops|login)(\/|$)/;
  * execute and reach the session. Next.js reads the nonce from the request header and puts it on its
  * own scripts. 'unsafe-inline' and https: are fallbacks that browsers honouring the nonce ignore.
  * It names no hosts on purpose: the API, Firebase sign-in and reCAPTCHA keep working without a list
- * to maintain. The remaining directives repeat the baseline from next.config.ts, which this replaces.
+ * to maintain. 'wasm-unsafe-eval' lets the gate's "Scan SMS" text recognition compile WebAssembly
+ * (ADR 059); it allows no JavaScript eval. The remaining directives repeat the baseline from next.config.ts, which this replaces.
  */
 function strictCsp(nonce: string): string {
   const dev = process.env.NODE_ENV !== 'production' ? " 'unsafe-eval'" : '';
   return [
-    `script-src 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https:${dev}`,
+    `script-src 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https: 'wasm-unsafe-eval'${dev}`,
+    // The Scan SMS text recognition runs in a same-origin worker under /ocr/ (ADR 059).
+    "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",

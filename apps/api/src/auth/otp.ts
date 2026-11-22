@@ -166,7 +166,10 @@ export class OtpService {
           country,
         };
         if (!this.deps.sleep) {
-          setTimeout(() => void this.fallbackUndelivered().catch(() => undefined), OTP_FALLBACK_MS).unref?.();
+          setTimeout(
+            () => void this.fallbackUndelivered().catch(() => undefined),
+            OTP_FALLBACK_MS,
+          ).unref?.();
         }
         return { resendAfterSeconds: RESEND_MS / 1000, channel: 'whatsapp' };
       } catch {

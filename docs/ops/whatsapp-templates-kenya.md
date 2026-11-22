@@ -45,19 +45,19 @@ speakers review the wording before submission.
 
 ## contribution (`harusi_contribution_ke`), 3 parameters
 
-| #     | Meaning                                          |
-| ----- | ------------------------------------------------ |
-| {{1}} | Hosts                                            |
-| {{2}} | Sender / committee name                          |
-| {{3}} | Card link                                        |
+| #     | Meaning                 |
+| ----- | ----------------------- |
+| {{1}} | Hosts                   |
+| {{2}} | Sender / committee name |
+| {{3}} | Card link               |
 
 - en: `{{2}} invites you to contribute to the celebration of {{1}}. Open your card here: {{3}}`
 - sw: `{{2}} anakukaribisha kushiriki mchango wa sherehe ya {{1}}. Fungua kadi hapa: {{3}}`
 
 ## otp (`harusi_otp_ke`), 1 parameter
 
-| #     | Meaning                        |
-| ----- | ------------------------------ |
+| #     | Meaning                         |
+| ----- | ------------------------------- |
 | {{1}} | 6-digit login verification code |
 
 - en: `Your verification code is {{1}}. Do not share it with anyone.`

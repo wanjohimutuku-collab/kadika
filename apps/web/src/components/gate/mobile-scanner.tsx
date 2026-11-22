@@ -11,7 +11,9 @@ import {
   Download,
   Flashlight,
   Keyboard,
+  Loader2,
   Lock,
+  MessageSquareText,
   Minus,
   Plus,
   QrCode,
@@ -43,6 +45,7 @@ import {
   type WebVaultVerification,
 } from '@/lib/web-gate-scanner';
 import { playGateSound } from '@/lib/gate-audio';
+import { canvasFromFile, frameFromVideo, releaseSmsReader, scanSmsImage } from '@/lib/sms-ocr';
 
 interface DetectedBarcode {
   rawValue?: string;
@@ -142,6 +145,7 @@ export function MobileGateScanner({
 
   const [codeSheetOpen, setCodeSheetOpen] = useState(false);
   const [codeInput, setCodeInput] = useState('');
+  const [smsReading, setSmsReading] = useState(false);
   const [searchSheetOpen, setSearchSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [vaultSheetOpen, setVaultSheetOpen] = useState(false);
@@ -400,6 +404,7 @@ export function MobileGateScanner({
   useEffect(() => {
     if (!open) {
       stopCamera();
+      void releaseSmsReader();
       return;
     }
     void startCamera();
@@ -521,6 +526,66 @@ export function MobileGateScanner({
       }
     },
     [evaluateRawScan, sw],
+  );
+
+  /**
+   * "Scan SMS" (ADR 059): read the card number off the invitation SMS on the guest's phone screen,
+   * from the live camera frame or from a photo, then check it like a typed number.
+   */
+  const handleScanSms = useCallback(
+    async (file?: File) => {
+      if (smsReading) return;
+      setSmsReading(true);
+      try {
+        const image = file
+          ? await canvasFromFile(file)
+          : videoRef.current
+            ? frameFromVideo(videoRef.current)
+            : null;
+        if (!image) {
+          setOutcome({
+            kind: 'error',
+            title: sw ? 'Hakuna picha' : 'No picture',
+            detail: sw
+              ? 'Kamera haijawa tayari. Jaribu tena au tumia Weka Namba.'
+              : 'The camera is not ready yet. Try again or use Type number.',
+          });
+          return;
+        }
+        const r = await scanSmsImage(image);
+        if (r.kind === 'code') {
+          evaluateRawScan(r.code, 'code');
+          return;
+        }
+        if (soundOn) playFeedbackTone('warn');
+        setOutcome(
+          r.kind === 'no_code'
+            ? {
+                kind: 'error',
+                title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
+                detail: sw
+                  ? 'Shikilia simu ya mgeni karibu na kamera ili mstari wa "Namba:" uonekane wazi, kisha jaribu tena. Au andika namba.'
+                  : 'Hold the guest’s phone close so the "Code:" line is sharp and fills the frame, then try again. Or type the number.',
+              }
+            : {
+                kind: 'error',
+                title: sw ? 'Kusoma SMS hakupatikani' : 'SMS reading unavailable',
+                detail: sw
+                  ? 'Mara ya kwanza kusoma SMS kunahitaji intaneti. Kwa sasa andika namba iliyo kwenye SMS.'
+                  : 'The first SMS scan needs an internet connection. For now, type the number shown in the SMS.',
+              },
+        );
+      } catch {
+        setOutcome({
+          kind: 'error',
+          title: sw ? 'Imeshindwa kusoma SMS' : 'Could not read the SMS',
+          detail: sw ? 'Jaribu tena au tumia Weka Namba.' : 'Please try again or use Type number.',
+        });
+      } finally {
+        setSmsReading(false);
+      }
+    },
+    [evaluateRawScan, smsReading, soundOn, sw],
   );
 
   const handleCommitCheckIn = useCallback(async () => {
@@ -752,6 +817,21 @@ export function MobileGateScanner({
                         }}
                       />
                     </label>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15">
+                      <MessageSquareText className="size-3.5 text-[#1FE086]" aria-hidden="true" />
+                      <span>{sw ? 'Piga picha SMS' : 'Photo SMS'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="sr-only"
+                        data-testid="mobile-scanner-photo-sms"
+                        onChange={(e) => {
+                          void handleScanSms(e.target.files?.[0]);
+                          e.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={() => void startCamera()}
@@ -766,7 +846,7 @@ export function MobileGateScanner({
             ) : null}
           </div>
 
-          {/* Action strip beneath viewfinder (Torch + Flip + Demo Scan) */}
+          {/* Action strip beneath viewfinder (Torch + Flip + Scan SMS + Demo Scan) */}
           <div className="mt-2.5 flex items-center justify-center gap-3">
             <button
               type="button"
@@ -790,6 +870,32 @@ export function MobileGateScanner({
             >
               <SwitchCamera className="size-4" aria-hidden="true" />
             </button>
+
+            {cameraState === 'live' ? (
+              <button
+                type="button"
+                data-testid="mobile-scanner-scan-sms"
+                onClick={() => void handleScanSms()}
+                disabled={smsReading}
+                aria-busy={smsReading}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/15 bg-[#171C22] px-3.5 text-xs font-semibold text-[#D7DFE8] hover:bg-white/10 disabled:opacity-70"
+              >
+                {smsReading ? (
+                  <Loader2 className="size-3.5 animate-spin text-[#1FE086]" aria-hidden="true" />
+                ) : (
+                  <MessageSquareText className="size-3.5 text-[#1FE086]" aria-hidden="true" />
+                )}
+                <span>
+                  {smsReading
+                    ? sw
+                      ? 'Inasoma SMS…'
+                      : 'Reading SMS…'
+                    : sw
+                      ? 'Skani SMS'
+                      : 'Scan SMS'}
+                </span>
+              </button>
+            ) : null}
 
             {sampleCandidates.length > 0 ? (
               <button

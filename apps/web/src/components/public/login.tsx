@@ -17,6 +17,7 @@ import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
 import { useBrand } from '@/components/brand/brand-provider';
+import { AuthCard, AuthShell } from '@/components/public/auth-shell';
 import { countryHintFor } from '@/lib/signin-country';
 import {
   confirmPhoneCode,
@@ -124,125 +125,129 @@ export function LoginPhone() {
       .catch(() => undefined);
   }, []);
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
-      <h1 className="text-3xl font-semibold">{t('title', { brand })}</h1>
-      <p className="text-muted">{t('subtitle')}</p>
-      {USE_MOCKS ? (
-        <Banner tone="info">
-          {t('mockPhoneHint')} {t('staffHint', { brand })}
-        </Banner>
-      ) : null}
-      <form
-        noValidate
-        className="flex flex-col gap-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const r = anyCountry
-            ? parsePhone(phone, country === 'OTHER' ? 'TZ' : country, SIGN_IN_COUNTRIES, true)
-            : parsePhone(phone, country as Country, SIGN_IN_COUNTRIES);
-          if (!r.ok) {
-            setError(tv(`phone.${r.error}`));
-            return;
-          }
-          setBusy(true);
-          setError(null);
-          try {
-            await sendCode(r.e164, recaptcha.current, locale);
-          } catch (err) {
-            if (err instanceof FirebasePhoneError) {
-              // A local number read under the wrong country (0797… is Kenyan, not Tanzanian) fails
-              // delivery, and under reCAPTCHA ENFORCE is refused as likely SMS fraud (ADR 060).
-              const hint = countryHintFor(err.reason, phone, country);
-              if (hint?.kind === 'switch') {
-                setCountry(hint.country);
-                setError(t('smsTryCountry', { country: tcm(`countries.${hint.country}`) }));
-              } else if (hint?.kind === 'suggest') {
-                setError(
-                  t('signInBlockedTryCountry', { country: tcm(`countries.${hint.country}`) }),
-                );
-              } else {
-                setError(firebaseMessage(err.reason));
-              }
-              setBusy(false);
-              return;
-            } else if (isRepositoryError(err) && err.code === 'rate_limited') {
-              // A code was already sent recently: continue to the code screen.
-            } else if (isRepositoryError(err) && err.code === 'locked') {
-              setError(
-                t('locked', {
-                  time: formatClock(String(err.details?.until ?? new Date().toISOString())),
-                }),
-              );
-              setBusy(false);
-              return;
-            } else {
-              setError(
-                isRepositoryError(err) && err.code === 'offline'
-                  ? ts('offlineBanner')
-                  : ts('errorBody'),
-              );
-              setBusy(false);
+    <AuthShell>
+      <AuthCard>
+        <h1 className="font-display text-[30px] leading-tight font-semibold tracking-[-0.01em] sm:text-[34px]">
+          {t('title', { brand })}
+        </h1>
+        <p className="mt-2 text-muted">{t('subtitle')}</p>
+        {USE_MOCKS ? (
+          <Banner tone="info" className="mt-4">
+            {t('mockPhoneHint')} {t('staffHint', { brand })}
+          </Banner>
+        ) : null}
+        <form
+          noValidate
+          className="mt-6 flex flex-col gap-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const r = anyCountry
+              ? parsePhone(phone, country === 'OTHER' ? 'TZ' : country, SIGN_IN_COUNTRIES, true)
+              : parsePhone(phone, country as Country, SIGN_IN_COUNTRIES);
+            if (!r.ok) {
+              setError(tv(`phone.${r.error}`));
               return;
             }
-          }
-          sessionStorage.setItem(PHONE_KEY, r.e164);
-          // Keep `next` only when the visitor came from a protected page; staff without one land on /ops.
-          const next = params.get('next');
-          router.push(
-            next ? `/login/otp?next=${encodeURIComponent(safeNext(next))}` : '/login/otp',
-          );
-        }}
-      >
-        {/* Kenyan numbers sign in even while the Kenya product is off. */}
-        <Select
-          label={tcm('country')}
-          value={country}
-          onChange={(e) => setCountry(e.target.value as Country | 'OTHER')}
-          options={[
-            ...SIGN_IN_COUNTRIES.map((c) => ({
-              value: c,
-              label: tcm(`countries.${c}`),
-            })),
-            ...(anyCountry ? [{ value: 'OTHER', label: tcm('otherCountry') }] : []),
-          ]}
-        />
-        {country === 'OTHER' ? (
-          <TextField
-            label={t('phone')}
-            hint={t('phoneHint')}
-            prefix="+"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={phone.startsWith('+') ? phone.slice(1) : phone}
-            onChange={(e) => setPhone(`+${e.target.value.replace(/[^\d]/g, '')}`)}
-            error={error ?? undefined}
-            name="phone"
-            autoFocus
+            setBusy(true);
+            setError(null);
+            try {
+              await sendCode(r.e164, recaptcha.current, locale);
+            } catch (err) {
+              if (err instanceof FirebasePhoneError) {
+                // A local number read under the wrong country (0797… is Kenyan, not Tanzanian) fails
+                // delivery, and under reCAPTCHA ENFORCE is refused as likely SMS fraud (ADR 060).
+                const hint = countryHintFor(err.reason, phone, country);
+                if (hint?.kind === 'switch') {
+                  setCountry(hint.country);
+                  setError(t('smsTryCountry', { country: tcm(`countries.${hint.country}`) }));
+                } else if (hint?.kind === 'suggest') {
+                  setError(
+                    t('signInBlockedTryCountry', { country: tcm(`countries.${hint.country}`) }),
+                  );
+                } else {
+                  setError(firebaseMessage(err.reason));
+                }
+                setBusy(false);
+                return;
+              } else if (isRepositoryError(err) && err.code === 'rate_limited') {
+                // A code was already sent recently: continue to the code screen.
+              } else if (isRepositoryError(err) && err.code === 'locked') {
+                setError(
+                  t('locked', {
+                    time: formatClock(String(err.details?.until ?? new Date().toISOString())),
+                  }),
+                );
+                setBusy(false);
+                return;
+              } else {
+                setError(
+                  isRepositoryError(err) && err.code === 'offline'
+                    ? ts('offlineBanner')
+                    : ts('errorBody'),
+                );
+                setBusy(false);
+                return;
+              }
+            }
+            sessionStorage.setItem(PHONE_KEY, r.e164);
+            // Keep `next` only when the visitor came from a protected page; staff without one land on /ops.
+            const next = params.get('next');
+            router.push(
+              next ? `/login/otp?next=${encodeURIComponent(safeNext(next))}` : '/login/otp',
+            );
+          }}
+        >
+          {/* Kenyan numbers sign in even while the Kenya product is off. */}
+          <Select
+            label={tcm('country')}
+            value={country}
+            onChange={(e) => setCountry(e.target.value as Country | 'OTHER')}
+            options={[
+              ...SIGN_IN_COUNTRIES.map((c) => ({
+                value: c,
+                label: tcm(`countries.${c}`),
+              })),
+              ...(anyCountry ? [{ value: 'OTHER', label: tcm('otherCountry') }] : []),
+            ]}
           />
-        ) : (
-          <PhoneField
-            country={country}
-            label={t('phone')}
-            hint={t('phoneHint')}
-            value={phone}
-            onChange={setPhone}
-            error={error ?? undefined}
-            name="phone"
-            autoFocus
-          />
-        )}
-        <Button type="submit" size="lg" block loading={busy} data-testid="send-code">
-          {t('sendCode')}
-        </Button>
-        {/* Invisible reCAPTCHA for Firebase Phone Auth (ADR 048); empty otherwise. */}
-        <div ref={recaptcha} />
-      </form>
-      <p className="flex items-start gap-2 text-sm text-muted">
+          {country === 'OTHER' ? (
+            <TextField
+              label={t('phone')}
+              hint={t('phoneHint')}
+              prefix="+"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone.startsWith('+') ? phone.slice(1) : phone}
+              onChange={(e) => setPhone(`+${e.target.value.replace(/[^\d]/g, '')}`)}
+              error={error ?? undefined}
+              name="phone"
+              autoFocus
+            />
+          ) : (
+            <PhoneField
+              country={country}
+              label={t('phone')}
+              hint={t('phoneHint')}
+              value={phone}
+              onChange={setPhone}
+              error={error ?? undefined}
+              name="phone"
+              autoFocus
+            />
+          )}
+          <Button type="submit" size="lg" block loading={busy} data-testid="send-code">
+            {t('sendCode')}
+          </Button>
+          {/* Invisible reCAPTCHA for Firebase Phone Auth (ADR 048); empty otherwise. */}
+          <div ref={recaptcha} />
+        </form>
+      </AuthCard>
+      <p className="flex items-start gap-2 px-1 text-sm text-muted">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
         {t('trust')}
       </p>
-    </main>
+    </AuthShell>
   );
 }
 
@@ -393,90 +398,94 @@ export function LoginOtp() {
 
   if (secondFactor) {
     return (
-      <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10" data-testid="second-factor">
-        {enrolment.status === 'none' ? (
-          <>
-            <h1 className="text-3xl font-semibold">{t('secondFactorTitle')}</h1>
-            <p>{t('secondFactorBody')}</p>
-          </>
-        ) : (
-          <>
-            <h1 className="text-3xl font-semibold">{t('enrolTitle')}</h1>
-            <p>{t('enrolBody')}</p>
-            {enrolment.status === 'loading' ? (
-              <p className="text-muted" role="status">
-                {t('enrolLoading')}
-              </p>
-            ) : (
-              <div className="flex flex-col items-center gap-3" data-testid="totp-enrol">
-                <QrBlock payload={enrolment.url} alt={t('enrolQrAlt')} size={220} />
-                <p className="text-sm text-muted">{t('enrolSecretLabel')}</p>
-                <code className="break-all rounded-input border border-border bg-surface px-3 py-2 text-center font-mono text-base tracking-wider">
-                  {enrolment.secret.replace(/(.{4})/g, '$1 ').trim()}
-                </code>
-              </div>
-            )}
-          </>
-        )}
-        {USE_MOCKS ? <Banner tone="info">{t('secondFactorMock')}</Banner> : null}
-        <form
-          noValidate
-          className="flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void verifyStaff(code);
-          }}
-        >
-          <OtpField
-            value={code}
-            onChange={setCode}
-            onComplete={(v) => void verifyStaff(v)}
-            label={t('secondFactorLabel')}
-            cellLabel={(i) => t('otpCell', { n: i + 1 })}
-            error={error ?? undefined}
-            status={busy ? 'busy' : error ? 'error' : 'idle'}
-            disabled={busy || locked || enrolment.status === 'loading'}
-          />
-          <Button
-            type="submit"
-            size="lg"
-            block
-            loading={busy}
-            disabled={code.length !== 6 || locked}
+      <AuthShell testId="second-factor">
+        <AuthCard className="flex flex-col gap-5">
+          {enrolment.status === 'none' ? (
+            <>
+              <h1 className="font-display text-3xl font-semibold">{t('secondFactorTitle')}</h1>
+              <p>{t('secondFactorBody')}</p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl font-semibold">{t('enrolTitle')}</h1>
+              <p>{t('enrolBody')}</p>
+              {enrolment.status === 'loading' ? (
+                <p className="text-muted" role="status">
+                  {t('enrolLoading')}
+                </p>
+              ) : (
+                <div className="flex flex-col items-center gap-3" data-testid="totp-enrol">
+                  <QrBlock payload={enrolment.url} alt={t('enrolQrAlt')} size={220} />
+                  <p className="text-sm text-muted">{t('enrolSecretLabel')}</p>
+                  <code className="break-all rounded-input border border-border bg-surface px-3 py-2 text-center font-mono text-base tracking-wider">
+                    {enrolment.secret.replace(/(.{4})/g, '$1 ').trim()}
+                  </code>
+                </div>
+              )}
+            </>
+          )}
+          {USE_MOCKS ? <Banner tone="info">{t('secondFactorMock')}</Banner> : null}
+          <form
+            noValidate
+            className="flex flex-col gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void verifyStaff(code);
+            }}
           >
-            {t('verify')}
-          </Button>
-        </form>
-      </main>
+            <OtpField
+              value={code}
+              onChange={setCode}
+              onComplete={(v) => void verifyStaff(v)}
+              label={t('secondFactorLabel')}
+              cellLabel={(i) => t('otpCell', { n: i + 1 })}
+              error={error ?? undefined}
+              status={busy ? 'busy' : error ? 'error' : 'idle'}
+              disabled={busy || locked || enrolment.status === 'loading'}
+            />
+            <Button
+              type="submit"
+              size="lg"
+              block
+              loading={busy}
+              disabled={code.length !== 6 || locked}
+            >
+              {t('verify')}
+            </Button>
+          </form>
+        </AuthCard>
+      </AuthShell>
     );
   }
 
   if (needsName) {
     return (
-      <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10">
-        <h1 className="text-3xl font-semibold">{t('nameTitle')}</h1>
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (name.trim().length < 2) return;
-            setBusy(true);
-            await getRepository().updateProfile({ name });
-            router.replace(safeNext(params.get('next')));
-          }}
-        >
-          <TextField
-            label={t('nameLabel')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="name"
-            autoFocus
-          />
-          <Button type="submit" size="lg" block loading={busy} disabled={name.trim().length < 2}>
-            {t('continue')}
-          </Button>
-        </form>
-      </main>
+      <AuthShell>
+        <AuthCard className="flex flex-col gap-5">
+          <h1 className="font-display text-3xl font-semibold">{t('nameTitle')}</h1>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (name.trim().length < 2) return;
+              setBusy(true);
+              await getRepository().updateProfile({ name });
+              router.replace(safeNext(params.get('next')));
+            }}
+          >
+            <TextField
+              label={t('nameLabel')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              autoFocus
+            />
+            <Button type="submit" size="lg" block loading={busy} disabled={name.trim().length < 2}>
+              {t('continue')}
+            </Button>
+          </form>
+        </AuthCard>
+      </AuthShell>
     );
   }
 
@@ -484,8 +493,8 @@ export function LoginOtp() {
   const timer = `${Math.floor(resendIn / 60)}:${String(resendIn % 60).padStart(2, '0')}`;
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-5 px-4 py-10 sm:py-16">
-      <section className="rounded-card border border-border bg-surface p-6 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_16px_40px_-20px_rgb(15_92_77/0.25)] sm:p-8">
+    <AuthShell>
+      <AuthCard>
         <div
           key={verified ? 'ok' : 'wait'}
           className={cn(
@@ -500,7 +509,9 @@ export function LoginOtp() {
             <MessageSquare className="size-6" />
           )}
         </div>
-        <h1 className="text-2xl font-semibold sm:text-3xl">{t('otpHeading')}</h1>
+        <h1 className="font-display text-[28px] leading-tight font-semibold sm:text-[32px]">
+          {t('otpHeading')}
+        </h1>
         {phone ? (
           <p className="mt-1.5 text-muted">
             {t.rich('otpSentTo', {
@@ -601,7 +612,7 @@ export function LoginOtp() {
           ) : null}
           <div ref={recaptcha} />
         </div>
-      </section>
+      </AuthCard>
       <div className="flex flex-col gap-2 px-1 text-sm text-muted" lang={locale}>
         <p className="flex items-start gap-2">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
@@ -614,6 +625,6 @@ export function LoginOtp() {
           </p>
         ) : null}
       </div>
-    </main>
+    </AuthShell>
   );
 }

@@ -46,8 +46,15 @@ export function brandStyle(
   if (b.primary) {
     style['--hp-primary'] = b.primary;
     style['--hp-on-primary'] = b.onPrimary ?? '#FFFFFF';
+    // Also under names no scope re-declares, so pages inside the public site palette (`.ks`), such as
+    // sign-in, can still opt into the business's own colours.
+    style['--brand-primary'] = b.primary;
+    style['--brand-on-primary'] = b.onPrimary ?? '#FFFFFF';
   }
-  if (b.accent) style['--hp-accent'] = b.accent;
+  if (b.accent) {
+    style['--hp-accent'] = b.accent;
+    style['--brand-accent'] = b.accent;
+  }
   return style as CSSProperties;
 }
 

@@ -745,3 +745,56 @@
     stroke-dashoffset: 0;
   }
 }
+
+/*
+ * Sign-in (auth-shell.tsx): brand panel with a ticket-stub perforation, and the form card. Colours come
+ * from the /ops brand (--brand-*, set on <html>), falling back to the site palette.
+ */
+.auth-panel {
+  background-image: radial-gradient(
+    120% 90% at 100% 0%,
+    color-mix(in srgb, var(--hp-on-primary) 16%, transparent),
+    transparent 62%
+  );
+}
+.auth-perforation {
+  position: relative;
+  margin: 0 18px;
+  border-top: 2px dashed color-mix(in srgb, var(--hp-on-primary) 38%, transparent);
+}
+.auth-perforation::before,
+.auth-perforation::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--hp-bg);
+}
+.auth-perforation::before {
+  left: -29px;
+}
+.auth-perforation::after {
+  right: -29px;
+}
+.auth-card {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 28px 56px -32px color-mix(in srgb, var(--hp-primary) 55%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .auth-panel,
+  .auth-card {
+    animation: auth-rise 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .auth-card {
+    animation-delay: 80ms;
+  }
+}
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}

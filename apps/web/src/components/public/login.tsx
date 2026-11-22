@@ -22,6 +22,7 @@ import {
   FirebasePhoneError,
   hasPendingCode,
   loadAuthConfig,
+  prepareFirebaseSignIn,
   startPhoneSignIn,
   type PhoneSignInError,
 } from '@/lib/firebase-phone';
@@ -60,7 +61,9 @@ function useFirebaseMessage() {
             ? t('tooManyRequests')
             : reason === 'undeliverable'
               ? t('smsUndeliverable')
-              : ts('errorBody');
+              : reason === 'blocked'
+                ? t('signInBlocked')
+                : ts('errorBody');
 }
 
 function safeNext(next: string | null): string {
@@ -90,6 +93,7 @@ export function LoginPhone() {
         if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
           setAnyCountry(true);
         }
+        if (cfg.otpProvider === 'firebase') void prepareFirebaseSignIn().catch(() => undefined);
       })
       .catch(() => undefined);
   }, []);

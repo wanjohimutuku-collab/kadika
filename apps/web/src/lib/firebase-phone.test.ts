@@ -6,6 +6,7 @@ const repo = {
   requestOtp: vi.fn(),
 };
 const signInWithPhoneNumber = vi.fn();
+const initializeRecaptchaConfig = vi.fn();
 
 vi.mock('./env', () => ({ USE_MOCKS: false }));
 vi.mock('./repo', () => ({ getRepository: () => repo }));
@@ -16,6 +17,7 @@ vi.mock('firebase/auth', () => ({
     clear() {}
   },
   signInWithPhoneNumber: (...a: unknown[]) => signInWithPhoneNumber(...a),
+  initializeRecaptchaConfig: (...a: unknown[]) => initializeRecaptchaConfig(...a),
   signOut: vi.fn(),
 }));
 
@@ -37,6 +39,7 @@ beforeEach(() => {
   repo.getAuthConfig.mockResolvedValue({ otpProvider: 'firebase', firebase: { projectId: 'p' } });
   repo.startFirebaseSignIn.mockResolvedValue({ phone: PHONE });
   repo.requestOtp.mockResolvedValue({ resendAfterSeconds: 30 });
+  initializeRecaptchaConfig.mockResolvedValue(undefined);
 });
 
 describe('Firebase-only phone sign-in for web', () => {
@@ -79,6 +82,26 @@ describe('Firebase-only phone sign-in for web', () => {
     expect(err).toBeInstanceOf(FirebasePhoneError);
     expect(err).toMatchObject({ reason: 'invalid_phone' });
     expect(repo.requestOtp).not.toHaveBeenCalled();
+  });
+
+  it('reports a reCAPTCHA Enterprise refusal as blocked, not as a generic failure', async () => {
+    const { startPhoneSignIn, FirebasePhoneError } = await import('./firebase-phone');
+    for (const code of ['auth/invalid-app-credential', 'auth/missing-recaptcha-token']) {
+      signInWithPhoneNumber.mockRejectedValueOnce({ code });
+      const err = await startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
+      expect(err).toBeInstanceOf(FirebasePhoneError);
+      expect(err).toMatchObject({ reason: 'blocked' });
+    }
+  });
+
+  it('loads the reCAPTCHA Enterprise config once, and still signs in when the project has none', async () => {
+    vi.resetModules();
+    initializeRecaptchaConfig.mockRejectedValue(new Error('recaptchaKey undefined'));
+    signInWithPhoneNumber.mockResolvedValue({ confirm: vi.fn() });
+    const { prepareFirebaseSignIn, startPhoneSignIn } = await import('./firebase-phone');
+    await prepareFirebaseSignIn();
+    expect(await startPhoneSignIn(PHONE, container, 'sw')).toBe('firebase');
+    expect(initializeRecaptchaConfig).toHaveBeenCalledTimes(1);
   });
 
   it('rejects without calling requestOtp if auth config is not firebase', async () => {

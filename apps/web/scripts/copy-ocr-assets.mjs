@@ -19,7 +19,11 @@ const require = createRequire(path.join(webRoot, 'package.json'));
 
 const pkgDir = (name) => path.dirname(require.resolve(`${name}/package.json`));
 const tesseractDir = pkgDir('tesseract.js');
-const coreDir = pkgDir('tesseract.js-core');
+// tesseract.js-core is tesseract.js's own dependency: with pnpm's isolated layout (the Docker build)
+// apps/web cannot resolve it directly, so resolve it from tesseract.js.
+const coreDir = path.dirname(
+  createRequire(path.join(tesseractDir, 'package.json')).resolve('tesseract.js-core/package.json'),
+);
 const langDir = path.join(pkgDir('@tesseract.js-data/eng'), '4.0.0_best_int');
 const version = require('tesseract.js/package.json').version;
 

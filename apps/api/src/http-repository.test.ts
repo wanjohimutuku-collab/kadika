@@ -24,9 +24,9 @@ function repo(tokens = memoryTokenStore()): Repository {
 
 async function login(r: Repository, phone: string) {
   await r.requestOtp(phone);
-  const code = /(\d{6})/.exec(
-    ctx.sms.lastTo(`+255${phone.replace(/^0/, '').replace(/\s/g, '')}`) ?? '',
-  )![1]!;
+  // OTP goes on WhatsApp first, SMS as the fallback: read whichever outbox got it.
+  const e164 = `+255${phone.replace(/^0/, '').replace(/\s/g, '')}`;
+  const code = /(\d{6})/.exec(ctx.whatsapp.lastTo(e164) ?? ctx.sms.lastTo(e164) ?? '')![1]!;
   return r.verifyOtp(phone, code);
 }
 

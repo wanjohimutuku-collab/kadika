@@ -148,7 +148,10 @@ export class OtpService {
         : `Namba yako ya uthibitisho ya ${brand} ni ${code}. Usimpe mtu yeyote.`;
     // If a previous WhatsApp OTP for this number was never confirmed delivered, send the resend via SMS.
     const previousUndelivered = !!(r.pendingDelivery && !r.pendingDelivery.delivered);
-    const wa = !previousUndelivered ? this.deps.whatsapp : undefined;
+    // Countries that sign in by SMS (`AUTH_SMS_COUNTRIES`, Tanzania by default) get the code on their
+    // SMS route directly (NextSMS for Tanzania), not on WhatsApp first.
+    const smsOnly = (this.deps.config.authSmsCountries ?? []).includes(country);
+    const wa = !previousUndelivered && !smsOnly ? this.deps.whatsapp : undefined;
     if (wa) {
       try {
         const res = await wa.send(phone, body, {

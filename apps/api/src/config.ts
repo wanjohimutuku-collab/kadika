@@ -1,4 +1,4 @@
-import type { Country } from '@harusi/schemas/country';
+import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 
 export interface Config {
   databaseUrl: string;
@@ -145,6 +145,21 @@ export interface Config {
   } | null;
   /** Whether Firebase Phone Auth accepts phone numbers from any country worldwide. */
   firebaseAnyCountry: boolean;
+  /**
+   * Countries whose numbers sign in with our own SMS code (their SMS route, NextSMS for Tanzania) even
+   * while Firebase is the provider (`AUTH_SMS_COUNTRIES`, comma-separated, default `TZ`; `none` for
+   * Firebase everywhere). Firebase refuses or throttles many Tanzanian numbers (error 39).
+   */
+  authSmsCountries?: Country[];
+}
+
+/** `AUTH_SMS_COUNTRIES`: unset means Tanzania; `none` (or empty) means Firebase for every country. */
+function smsCountriesOf(raw: string | undefined): Country[] {
+  if (raw === undefined) return ['TZ'];
+  return raw
+    .split(',')
+    .map((c) => c.trim().toUpperCase())
+    .filter((c): c is Country => (SIGN_IN_COUNTRIES as readonly string[]).includes(c));
 }
 
 function required(env: Record<string, string | undefined>, key: string): string {
@@ -323,6 +338,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
       .split(',')
       .map((p) => p.trim())
       .filter(Boolean),
+    authSmsCountries: smsCountriesOf(env.AUTH_SMS_COUNTRIES),
     firebaseAnyCountry:
       env.FIREBASE_ANY_COUNTRY === '1' ||
       env.FIREBASE_ANY_COUNTRY === 'true' ||

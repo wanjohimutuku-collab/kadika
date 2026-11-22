@@ -118,10 +118,13 @@ describe('sign-in settings in /ops (ADR 049)', () => {
     expect((await api(ctx, 'GET', '/v1/auth/config')).body).toEqual({
       otpProvider: 'firebase',
       firebase: { ...FIREBASE, authDomain: `${FIREBASE.projectId}.firebaseapp.com` },
+      smsCountries: ['TZ'],
     });
-    // no login codes through our SMS route any more
+    // no login codes through our SMS route any more, except for Tanzania (AUTH_SMS_COUNTRIES)
     const sent = ctx.sms.sent.length;
-    const otp = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone: '0712480009' } });
+    const otp = await api(ctx, 'POST', '/v1/auth/otp/request', {
+      body: { phone: '+254712480009' },
+    });
     expect(otp.status).toBe(409);
     expect(ctx.sms.sent).toHaveLength(sent);
     // and tokens are checked against the saved project
@@ -194,6 +197,7 @@ describe('sign-in settings in /ops (ADR 049)', () => {
       otpProvider: 'firebase',
       firebase: { ...FIREBASE, authDomain: `${FIREBASE.projectId}.firebaseapp.com` },
       anyCountry: true,
+      smsCountries: ['TZ'],
     });
   });
 

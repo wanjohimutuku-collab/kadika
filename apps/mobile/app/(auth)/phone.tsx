@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { isRepositoryError } from '@harusi/api-client';
-import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
+import { countryOfE164, SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { getRepository } from '../../src/lib/repo';
 import { parsePhone } from '../../src/lib/country';
 import {
@@ -44,7 +44,11 @@ export default function Phone() {
       // Firebase may refuse to send; our own SMS code then goes instead and our API checks it.
       let firebase = false;
       const cfg = await loadAuthConfig();
-      if (cfg.otpProvider === 'firebase') {
+      const country = countryOfE164(p.e164);
+      // Tanzanian numbers (the API's `smsCountries`) get our own SMS code through NextSMS.
+      const ownSms =
+        cfg.otpProvider === 'firebase' && !!country && (cfg.smsCountries ?? []).includes(country);
+      if (cfg.otpProvider === 'firebase' && !ownSms) {
         firebase = (await startPhoneSignIn(p.e164, locale)) === 'firebase';
       } else {
         try {

@@ -8,6 +8,7 @@ import {
   type SignInSettingsView,
   type SignInTestResult,
 } from '@harusi/schemas/signin-settings';
+import { countryOfE164 } from '@harusi/schemas/country';
 import type { Config } from '../config';
 import type { Deps } from '../context';
 import { decryptSecret, encryptSecret } from '../crypto-at-rest';
@@ -52,6 +53,12 @@ export function envSignIn(
 export function signInOf(deps: Pick<Deps, 'config' | 'signIn'>): SignInState {
   const s = deps.signIn ?? envSignIn(deps.config);
   return deps.config.authForceSms ? { ...s, provider: 'sms' } : s;
+}
+
+/** True when `e164` belongs to a country that signs in with our own SMS code (`AUTH_SMS_COUNTRIES`). */
+export function smsSignInCountry(deps: Pick<Deps, 'config'>, e164: string): boolean {
+  const country = countryOfE164(e164);
+  return !!country && (deps.config.authSmsCountries ?? []).includes(country);
 }
 
 const fieldsOf = (fb: FirebaseWebConfig | null, anyCountry?: boolean): Record<string, string> => {

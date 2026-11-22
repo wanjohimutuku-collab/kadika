@@ -6,7 +6,12 @@ import { loadConfig } from './config';
 import { api, createTestContext, totpNow, type TestContext } from './testing/test-app';
 
 const PROJECT = 'kadi-sasa-test';
-const FIREBASE_ENV = { AUTH_OTP_PROVIDER: 'firebase', FIREBASE_PROJECT_ID: PROJECT };
+// Firebase for every country here; the Tanzania-by-SMS default has its own test below.
+const FIREBASE_ENV = {
+  AUTH_OTP_PROVIDER: 'firebase',
+  FIREBASE_PROJECT_ID: PROJECT,
+  AUTH_SMS_COUNTRIES: 'none',
+};
 
 type Keys = Awaited<ReturnType<typeof generateKeyPair>>;
 let google: Keys; // stands in for Google's securetoken signing key
@@ -227,11 +232,44 @@ describe('Firebase phone sign-in (ADR 048)', () => {
         authDomain: `${PROJECT}.firebaseapp.com`,
         appId: null,
       },
+      smsCountries: [],
     });
     const r = await api(ctx, 'POST', '/v1/auth/otp/request', { body: { phone: '0712480001' } });
     expect(r.status).toBe(409);
     expect(r.body!.error.details.reason).toBe('use_firebase');
     expect(ctx.sms.sent).toHaveLength(0);
+  });
+
+  it('keeps Tanzanian numbers on our own SMS code (NextSMS route) by default, Kenya on Firebase', async () => {
+    const tz = await createTestContext({
+      env: { AUTH_OTP_PROVIDER: 'firebase', FIREBASE_PROJECT_ID: PROJECT },
+      firebaseKeys: jwks,
+    });
+    try {
+      expect((await api(tz, 'GET', '/v1/auth/config')).body).toMatchObject({
+        otpProvider: 'firebase',
+        smsCountries: ['TZ'],
+      });
+      tz.whatsapp.sent.length = 0;
+      const r = await api(tz, 'POST', '/v1/auth/otp/request', { body: { phone: '0712480002' } });
+      expect(r.status).toBe(200);
+      expect(r.body!.channel).toBe('sms'); // straight to SMS, not WhatsApp first
+      expect(tz.whatsapp.sent).toHaveLength(0);
+      const code = /(\d{6})/.exec(tz.sms.lastTo('+255712480002') ?? '')![1]!;
+      const v = await api(tz, 'POST', '/v1/auth/otp/verify', {
+        body: { phone: '0712480002', code },
+      });
+      expect(v.status).toBe(200);
+      expect(v.body!.user.phoneE164).toBe('+255712480002');
+      // Kenya still signs in with Firebase
+      const ke = await api(tz, 'POST', '/v1/auth/otp/request', {
+        body: { phone: '+254712480002' },
+      });
+      expect(ke.status).toBe(409);
+      expect(ke.body!.error.details.reason).toBe('use_firebase');
+    } finally {
+      await tz.close();
+    }
   });
 
   it('sends our own SMS code when the client says Firebase would not send, and it signs in', async () => {

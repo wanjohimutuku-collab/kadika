@@ -5,7 +5,8 @@ import { api, createTestContext, loginAs, type TestContext } from './testing/tes
 
 let ctx: TestContext;
 beforeAll(async () => {
-  ctx = await createTestContext();
+  // WhatsApp-first OTP is tested on Tanzanian numbers: keep Tanzania off the SMS-only list here.
+  ctx = await createTestContext({ env: { AUTH_SMS_COUNTRIES: 'none' } });
 });
 afterAll(() => ctx.close());
 

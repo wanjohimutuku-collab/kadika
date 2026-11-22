@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { Check, Lock, MessageSquare, ShieldCheck } from 'lucide-react';
 import { isRepositoryError } from '@harusi/api-client';
-import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
+import { countryOfE164, SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
 import { Button, Spinner } from '@/components/ui/button';
@@ -29,22 +29,45 @@ import {
 } from '@/lib/firebase-phone';
 
 const PHONE_KEY = 'harusi.login.phone';
+/** How the pending code was sent (`sms` or `firebase`), so the code page checks it the same way. */
+const CHANNEL_KEY = 'harusi.login.channel';
+
+/** True when `phone` gets our own SMS code: SMS sign-in, or a country the API keeps on SMS (Tanzania). */
+async function usesOwnSms(phone: string): Promise<boolean> {
+  if (USE_MOCKS) return true;
+  const cfg = await loadAuthConfig().catch(() => null);
+  if (!cfg) return false;
+  if (cfg.otpProvider === 'sms') return true;
+  const country = countryOfE164(phone);
+  return !!country && (cfg.smsCountries ?? []).includes(country);
+}
 
 /**
- * Sends the code via Firebase Phone Auth (ADR 048). Mock mode (`USE_MOCKS`) still uses the mock
- * repository's SMS flow so E2E and Storybook work without Firebase.
+ * Sends the sign-in code. Tanzanian numbers (the API's `smsCountries`) get our own SMS code through
+ * NextSMS; other numbers go through Firebase Phone Auth (ADR 048). Mock mode always uses the mock SMS
+ * flow so E2E and Storybook work without Firebase.
  */
 async function sendCode(
   phone: string,
   recaptcha: HTMLElement | null,
   locale: string,
 ): Promise<'firebase' | 'sms'> {
-  if (USE_MOCKS) {
-    await getRepository().requestOtp(phone, { language: locale === 'en' ? 'en' : 'sw' });
+  if (await usesOwnSms(phone)) {
+    try {
+      await getRepository().requestOtp(phone, { language: locale === 'en' ? 'en' : 'sw' });
+    } catch (err) {
+      // A code already on its way still counts as sent: the code page takes it from here.
+      if (isRepositoryError(err) && err.code === 'rate_limited')
+        sessionStorage.setItem(CHANNEL_KEY, 'sms');
+      throw err;
+    }
+    sessionStorage.setItem(CHANNEL_KEY, 'sms');
     return 'sms';
   }
   if (!recaptcha) throw new FirebasePhoneError('failed');
-  return startPhoneSignIn(phone, recaptcha, locale);
+  const via = await startPhoneSignIn(phone, recaptcha, locale);
+  sessionStorage.setItem(CHANNEL_KEY, via);
+  return via;
 }
 
 function useFirebaseMessage() {
@@ -261,7 +284,7 @@ export function LoginOtp() {
     }
     setPhone(p);
     setHost(window.location.host);
-    if (USE_MOCKS) return;
+    if (USE_MOCKS || sessionStorage.getItem(CHANNEL_KEY) === 'sms') return;
     // The Firebase code lives in this tab only: after a reload the visitor asks for a new one.
     if (!hasPendingCode(p)) router.replace('/login');
     else setFirebase(true);
@@ -282,6 +305,7 @@ export function LoginOtp() {
         ? await getRepository().signInWithFirebase(await confirmPhoneCode(value))
         : await getRepository().verifyOtp(phone, value);
       sessionStorage.removeItem(PHONE_KEY);
+      sessionStorage.removeItem(CHANNEL_KEY);
       // The cells turn green before the next step, so the visitor sees the code was accepted.
       setBusy(false);
       setVerified(true);

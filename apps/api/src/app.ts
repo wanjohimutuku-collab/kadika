@@ -440,6 +440,8 @@ export function createApp(deps: Deps) {
               appId: fb.appId,
             },
             ...(anyCountry ? { anyCountry: true } : {}),
+            // These countries sign in with our own SMS code instead (NextSMS for Tanzania).
+            smsCountries: deps.config.authSmsCountries ?? [],
           }
         : { otpProvider: 'sms' as const },
     );

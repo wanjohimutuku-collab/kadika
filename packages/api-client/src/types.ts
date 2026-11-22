@@ -69,6 +69,8 @@ export type AuthConfig =
         appId: string | null;
       };
       anyCountry?: boolean;
+      /** Numbers from these countries get our own SMS code (`requestOtp`), not Firebase's. */
+      smsCountries?: string[];
     };
 
 export interface Session {

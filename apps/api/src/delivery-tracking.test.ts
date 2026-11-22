@@ -11,7 +11,8 @@ let ctx: TestContext;
 let delivery: DeliveryService;
 // A fresh database per test: the scheduled jobs look at every event, so tests must not share one.
 beforeEach(async () => {
-  ctx = await createTestContext();
+  // WhatsApp-first OTP is tested on a Tanzanian number: keep Tanzania off the SMS-only list here.
+  ctx = await createTestContext({ env: { AUTH_SMS_COUNTRIES: 'none' } });
   delivery = new DeliveryService(ctx.deps, new EventService(ctx.deps));
 });
 afterEach(() => ctx.close());

@@ -5,7 +5,7 @@ import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { normalizeAnyPhone, normalizePhone } from '@harusi/schemas/phone';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
-import { signInOf } from '../services/signin-settings';
+import { signInOf, smsSignInCountry } from '../services/signin-settings';
 import { verifyFirebaseIdToken } from './firebase';
 import { OtpService } from './otp';
 import { StaffTotpService } from './staff-totp';
@@ -69,8 +69,13 @@ export class AuthService {
    */
   async requestOtp(phoneInput: string, fallback = false, language?: 'sw' | 'en', client?: string) {
     const phone = parsePhone(phoneInput, 'TZ', SIGN_IN_COUNTRIES);
-    // With Firebase Phone Auth the code comes from Firebase; our SMS routes carry no login codes.
-    if (signInOf(this.deps).provider === 'firebase' && !fallback)
+    // With Firebase Phone Auth the code comes from Firebase; our SMS routes carry login codes only for
+    // the countries that sign in by SMS (`AUTH_SMS_COUNTRIES`, Tanzania by default).
+    if (
+      signInOf(this.deps).provider === 'firebase' &&
+      !fallback &&
+      !smsSignInCountry(this.deps, phone)
+    )
       throw new ApiError('conflict', 'Sign-in codes are sent by Firebase', {
         reason: 'use_firebase',
       });

@@ -11,7 +11,14 @@ import { getRepository } from './repo';
  * needs no rebuild. The SDK loads only on the login pages, only when Firebase is on.
  */
 
-export type PhoneSignInError = 'invalid_phone' | 'wrong_code' | 'expired' | 'too_many' | 'failed';
+export type PhoneSignInError =
+  | 'invalid_phone'
+  | 'wrong_code'
+  | 'expired'
+  | 'too_many'
+  /** Firebase's SMS backend refuses the destination (503 "Error code: 39"), often a wrong country. */
+  | 'undeliverable'
+  | 'failed';
 
 /** A Firebase failure in terms the login screens show. */
 export class FirebasePhoneError extends Error {
@@ -65,6 +72,7 @@ function reasonOf(err: unknown): PhoneSignInError {
     return 'wrong_code';
   if (code === 'auth/code-expired' || code === 'auth/session-expired') return 'expired';
   if (code === 'auth/too-many-requests' || code === 'auth/quota-exceeded') return 'too_many';
+  if (code === 'auth/error-code:-39') return 'undeliverable';
   return 'failed';
 }
 

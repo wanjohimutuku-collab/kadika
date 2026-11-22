@@ -58,7 +58,7 @@ describe('Firebase-only phone sign-in for web', () => {
     );
     const err = await startPhoneSignIn(PHONE, container, 'sw').catch((e) => e);
     expect(err).toBeInstanceOf(FirebasePhoneError);
-    expect(err).toMatchObject({ reason: 'failed' });
+    expect(err).toMatchObject({ reason: 'undeliverable' });
     expect(repo.requestOtp).not.toHaveBeenCalled();
     expect(hasPendingCode(PHONE)).toBe(false);
   });

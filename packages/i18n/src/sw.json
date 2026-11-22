@@ -377,6 +377,8 @@
     "wrongCodeRetry": "Namba si sahihi. Tafadhali jaribu tena.",
     "codeExpired": "Namba imeisha muda wake. Omba namba mpya.",
     "tooManyRequests": "Majaribio ni mengi. Tafadhali subiri kidogo kisha ujaribu tena.",
+    "smsTryCountry": "Hatukuweza kutuma SMS kwa namba hii katika nchi uliyochagua. Inaonekana ni namba ya {country}, kwa hiyo tumebadilisha nchi kuwa {country}. Bonyeza kitufe tena upate msimbo wako.",
+    "smsUndeliverable": "Hatukuweza kutuma SMS kwa namba hii. Hakikisha nchi uliyochagua inalingana na namba yako (kwa mfano Kenya kwa +254), kisha ujaribu tena.",
     "updateApp": "Tafadhali sasisha programu ili uingie.",
     "locked": "Umejaribu mara nyingi mno. Kwa usalama, subiri hadi saa {time} kisha ujaribu tena.",
     "rateLimited": "Subiri sekunde {seconds} kabla ya kuomba namba mpya.",

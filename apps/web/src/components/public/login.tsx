@@ -58,7 +58,9 @@ function useFirebaseMessage() {
           ? t('codeExpired')
           : reason === 'too_many'
             ? t('tooManyRequests')
-            : ts('errorBody');
+            : reason === 'undeliverable'
+              ? t('smsUndeliverable')
+              : ts('errorBody');
 }
 
 function safeNext(next: string | null): string {
@@ -118,7 +120,22 @@ export function LoginPhone() {
             await sendCode(r.e164, recaptcha.current, locale);
           } catch (err) {
             if (err instanceof FirebasePhoneError) {
-              setError(firebaseMessage(err.reason));
+              // A local number read under the wrong country (0797… is Kenyan, not Tanzanian) is the
+              // usual cause of an undeliverable SMS: offer the other sign-in country it fits.
+              const other =
+                err.reason === 'undeliverable' &&
+                country !== 'OTHER' &&
+                !phone.trim().startsWith('+')
+                  ? SIGN_IN_COUNTRIES.find(
+                      (c) => c !== country && parsePhone(phone, c, SIGN_IN_COUNTRIES).ok,
+                    )
+                  : undefined;
+              if (other) {
+                setCountry(other);
+                setError(t('smsTryCountry', { country: tcm(`countries.${other}`) }));
+              } else {
+                setError(firebaseMessage(err.reason));
+              }
               setBusy(false);
               return;
             } else if (isRepositoryError(err) && err.code === 'rate_limited') {

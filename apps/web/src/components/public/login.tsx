@@ -17,6 +17,7 @@ import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
 import { USE_MOCKS } from '@/lib/env';
 import { useBrand } from '@/components/brand/brand-provider';
+import { countryHintFor } from '@/lib/signin-country';
 import {
   confirmPhoneCode,
   FirebasePhoneError,
@@ -124,19 +125,16 @@ export function LoginPhone() {
             await sendCode(r.e164, recaptcha.current, locale);
           } catch (err) {
             if (err instanceof FirebasePhoneError) {
-              // A local number read under the wrong country (0797… is Kenyan, not Tanzanian) is the
-              // usual cause of an undeliverable SMS: offer the other sign-in country it fits.
-              const other =
-                err.reason === 'undeliverable' &&
-                country !== 'OTHER' &&
-                !phone.trim().startsWith('+')
-                  ? SIGN_IN_COUNTRIES.find(
-                      (c) => c !== country && parsePhone(phone, c, SIGN_IN_COUNTRIES).ok,
-                    )
-                  : undefined;
-              if (other) {
-                setCountry(other);
-                setError(t('smsTryCountry', { country: tcm(`countries.${other}`) }));
+              // A local number read under the wrong country (0797… is Kenyan, not Tanzanian) fails
+              // delivery, and under reCAPTCHA ENFORCE is refused as likely SMS fraud (ADR 060).
+              const hint = countryHintFor(err.reason, phone, country);
+              if (hint?.kind === 'switch') {
+                setCountry(hint.country);
+                setError(t('smsTryCountry', { country: tcm(`countries.${hint.country}`) }));
+              } else if (hint?.kind === 'suggest') {
+                setError(
+                  t('signInBlockedTryCountry', { country: tcm(`countries.${hint.country}`) }),
+                );
               } else {
                 setError(firebaseMessage(err.reason));
               }

@@ -318,8 +318,8 @@ export function createApp(deps: Deps) {
   );
   // Firebase already limits code requests; this only stops token-guessing floods on our side.
   const firebaseSignIns = new RateLimiter(deps.now, 30, 600_000, 'firebase-signin', deps.rateStore);
-  // Firebase codes per phone number per hour, like the SMS route's own cap (auth/otp.ts).
-  const firebaseCodes = new RateLimiter(deps.now, 5, 3_600_000, 'firebase-code', deps.rateStore);
+  // Firebase codes per phone number per hour: generous enough for retries, still caps pumping.
+  const firebaseCodes = new RateLimiter(deps.now, 10, 3_600_000, 'firebase-code', deps.rateStore);
   // Code guesses and token swaps per IP: the per-number lock stops guessing one number, this stops one
   // client walking many numbers (or hammering refresh/logout with made-up tokens).
   const authAttempts = new RateLimiter(deps.now, 60, 600_000, 'auth-attempt', deps.rateStore);

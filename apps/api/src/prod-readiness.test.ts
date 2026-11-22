@@ -246,9 +246,9 @@ describe('Firebase code go-ahead (finding 23)', () => {
   });
 
   it('caps codes per number', async () => {
-    for (let i = 0; i < 5; i++)
+    for (let i = 0; i < 10; i++)
       expect((await start(ctx, '0712345602', `41.2.1.${i}`)).status).toBe(200);
-    expect((await start(ctx, '0712345602', '41.2.1.9')).status).toBe(429);
+    expect((await start(ctx, '0712345602', '41.2.1.10')).status).toBe(429);
   });
 
   it('shares the per-IP and hourly budget with SMS codes', async () => {

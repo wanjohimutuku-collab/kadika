@@ -2140,7 +2140,12 @@
     "codeOrLink": "Link code or the whole link",
     "linkQrHelp": "The gate agent scans this QR with their phone camera, or opens the link. Give them the PIN separately.",
     "linkQrAlt": "Gate link QR code; code {code}",
-    "share": "Send link"
+    "share": "Send link",
+    "scanSms": "Scan SMS",
+    "readingSms": "Reading SMS…",
+    "photoSms": "Photo SMS",
+    "smsHint": "Point the camera at the guest's SMS (even part of the message works).",
+    "smsNotFound": "Could not read the code from the SMS. Scroll the message or pick the guest below."
   },
   "content": {
     "title": "Card text and messages",

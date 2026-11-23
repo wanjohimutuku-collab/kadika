@@ -71,6 +71,7 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncError, setSyncError] = useState(false);
   const [deviceId, setDeviceId] = useState('');
+  const [guests, setGuests] = useState<BundleGuest[]>([]);
   const [vaultReport, setVaultReport] = useState<LocalVerifyReport | null>(null);
   const [vaultBusy, setVaultBusy] = useState(false);
   const engine = useRef<GateEngine | null>(null);
@@ -162,6 +163,7 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
       const saved = store.current ? await store.current.loadBundle() : null;
       if (saved) {
         guestsByShort.current = new Map(saved.bundle.guests.map((g) => [g.guestShort, g]));
+        setGuests(saved.bundle.guests);
       }
       const totalPeople = saved
         ? saved.bundle.guests.reduce((sum, g) => sum + g.partySizeAllowed, 0)
@@ -385,6 +387,7 @@ export function useGate({ eventId, eventName, role, token, refresh }: Opts) {
   return {
     state,
     event,
+    guests,
     engine,
     stats,
     refreshStats,

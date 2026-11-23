@@ -1,4 +1,8 @@
-import { extractShortCodeFromOcr } from '@harusi/schemas/short-code';
+import {
+  combineSmsFragments,
+  extractShortCodeFromOcr,
+  type PartialSmsGuest,
+} from '@harusi/schemas/short-code';
 import tesseractPkg from 'tesseract.js/package.json';
 
 /**
@@ -93,11 +97,14 @@ export async function releaseSmsReader(): Promise<void> {
 
 /**
  * Reads the card number out of a photo of an SMS. Readers are tried in order; the first one that
- * finds a code wins. `unavailable` means no reader could run at all (then the agent types the code).
+ * finds a code wins. When `roster` is supplied, partial SMS views from feature or disposable phones
+ * that cannot display the whole message at once are also matched against the event's guest list.
+ * `unavailable` means no reader could run at all (then the agent types the code).
  */
 export async function scanSmsImage(
   image: SmsImage,
   readers: TextReader[] = [nativeTextReader, tesseractReader],
+  roster?: readonly PartialSmsGuest[],
 ): Promise<SmsScanResult> {
   let ran = false;
   for (const read of readers) {
@@ -108,8 +115,42 @@ export async function scanSmsImage(
       continue;
     }
     ran = true;
-    const code = extractShortCodeFromOcr(text);
+    const code = extractShortCodeFromOcr(text, roster);
     if (code) return { kind: 'code', code };
+  }
+  return ran ? { kind: 'no_code' } : { kind: 'unavailable' };
+}
+
+/**
+ * Scans multiple frames captured as a guest scrolls an SMS on a small feature or disposable phone
+ * screen, checking each frame and the stitched multi-frame text against the event's guest roster.
+ */
+export async function scanSmsFrames(
+  images: readonly SmsImage[],
+  readers: TextReader[] = [nativeTextReader, tesseractReader],
+  roster?: readonly PartialSmsGuest[],
+): Promise<SmsScanResult> {
+  let ran = false;
+  const fragments: string[] = [];
+  for (const image of images) {
+    for (const read of readers) {
+      let text: string;
+      try {
+        text = await read(image);
+      } catch {
+        continue;
+      }
+      ran = true;
+      if (text.trim()) {
+        fragments.push(text);
+        const direct = extractShortCodeFromOcr(text, roster);
+        if (direct) return { kind: 'code', code: direct };
+        if (fragments.length > 1) {
+          const combined = extractShortCodeFromOcr(combineSmsFragments(fragments), roster);
+          if (combined) return { kind: 'code', code: combined };
+        }
+      }
+    }
   }
   return ran ? { kind: 'no_code' } : { kind: 'unavailable' };
 }

@@ -5,7 +5,12 @@
       "codeOrLink": "Namba ya kiungo au kiungo chote",
       "linkQrHelp": "Mlinda lango askani QR hii kwa kamera ya simu yake, au afungue kiungo. Mpe PIN kwa njia nyingine.",
       "linkQrAlt": "Msimbo wa QR wa kiungo cha lango; namba {code}",
-      "share": "Tuma kiungo"
+      "share": "Tuma kiungo",
+      "scanSms": "Skani SMS",
+      "readingSms": "Inasoma SMS…",
+      "photoSms": "Piga picha SMS",
+      "smsHint": "Elekeza kamera kwenye SMS ya mgeni (hata sehemu ya ujumbe inatosha).",
+      "smsNotFound": "Namba haikusomeka kwenye SMS. Sogeza ujumbe au chagua mgeni hapa chini."
     },
     "gateJoinPage": {
       "metaTitle": "Kiungo cha lango · {brand}",
@@ -28,7 +33,12 @@
       "codeOrLink": "Link code or the whole link",
       "linkQrHelp": "The gate agent scans this QR with their phone camera, or opens the link. Give them the PIN separately.",
       "linkQrAlt": "Gate link QR code; code {code}",
-      "share": "Send link"
+      "share": "Send link",
+      "scanSms": "Scan SMS",
+      "readingSms": "Reading SMS…",
+      "photoSms": "Photo SMS",
+      "smsHint": "Point the camera at the guest's SMS (even part of the message works).",
+      "smsNotFound": "Could not read the code from the SMS. Scroll the message or pick the guest below."
     },
     "gateJoinPage": {
       "metaTitle": "Gate link · {brand}",

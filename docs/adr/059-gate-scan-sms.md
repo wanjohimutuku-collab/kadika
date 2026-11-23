@@ -26,10 +26,23 @@ scanner already let the agent paste an SMS, but the SMS is on the guest's phone,
   open: the engine lives in the worker and the HTTP cache, the model in tesseract's IndexedDB cache.
   A gate that opens the scanner already offline, with nothing cached, sees "SMS reading unavailable
   — type the number".
-- `extractShortCodeFromOcr` (`@harusi/schemas/short-code`) takes the code from the text. Links are
-  removed first, so a code-like run inside the card token is never taken. Look-alike characters
-  (`5`↔`S`, `8`↔`B`, …) are repaired **only** directly after a label (`Namba`, `Code`, `Kadi`,
-  `Card`, …), so a status bar such as `4G 85%` cannot turn into a code.
+- `extractShortCodeFromOcr` and `extractShortCodeFromPartialSms` (`@harusi/schemas/short-code`) take
+  the code from the text. Links are checked against the event's guest roster when present, and
+  look-alike characters (`5`↔`S`, `8`↔`B`, …) are repaired after a label (`Namba`, `Code`, `Kadi`,
+  `Card`, …) or across an explicit hyphen (`K5-4B23` → `KS-4823`) so a status bar such as `4G 85%`
+  cannot turn into a code.
+- **Feature & disposable phones (partial SMS views).** Basic feature phones ("simu ya tochi") have
+  small 2–3 line screens that cannot display the whole SMS at once. `extractShortCodeFromPartialSms`
+  and `scanSmsFrames` support partial views:
+  1. Multi-frame stitching (`combineSmsFragments`) as the guest scrolls through the message.
+  2. Unlabelled hyphenated or screen-clipped codes (`Namba: KH-48`, `...mba: -4823`) matched against
+     the event's downloaded guest roster.
+  3. Visible `/s/<token>` or `/c/<token>` short links in the middle of the message.
+  4. Opening greeting + guest display name (`Habari Mwanaidi Salim, unaalikwa...`) when only the top
+     lines of the SMS fit on screen.
+- **Mobile gate app (`apps/mobile`).** `GateScreen` includes **Scan SMS** (`src/gate/sms-ocr.ts`),
+  capturing multi-frame snapshots from the camera (or a photo fallback) and matching partial SMS
+  text offline against the downloaded gate bundle, with an uncluttered single-header scanner UI.
 - A code read from an SMS is checked exactly like a typed code (method `code`): no signature, logged
   as manual, with the usual duplicate and revocation checks. It is no stronger than a typed number.
 - The strict console CSP adds `'wasm-unsafe-eval'` so WebAssembly can compile (it does not allow

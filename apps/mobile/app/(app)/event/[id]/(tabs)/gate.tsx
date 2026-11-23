@@ -56,6 +56,7 @@ export default function Gate() {
       eventName={q.data?.coupleNames}
       role={role}
       token={getAccessToken}
+      embedded
       refresh={async () => {
         await getRepository().getSession(); // refreshes the access token when it has expired
       }}

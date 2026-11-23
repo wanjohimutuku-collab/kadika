@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { GateSeatTag } from './seat-tag';
 import { matchesSearch } from '@harusi/api-client';
-import { extractShortCode } from '@harusi/schemas/short-code';
+import { extractShortCode, extractShortCodeFromPartialSms } from '@harusi/schemas/short-code';
 import {
   AlertTriangle,
   Camera,
@@ -49,8 +49,10 @@ import {
   canvasFromFile,
   frameFromVideo,
   releaseSmsReader,
+  scanSmsFrames,
   scanSmsImage,
   warmUpSmsReader,
+  type SmsImage,
 } from '@/lib/sms-ocr';
 
 interface DetectedBarcode {
@@ -539,19 +541,69 @@ export function MobileGateScanner({
 
   /**
    * "Scan SMS" (ADR 059): read the card number off the invitation SMS on the guest's phone screen,
-   * from the live camera frame or from a photo, then check it like a typed number.
+   * including partial or scrolled views on feature/disposable phones that cannot display the whole
+   * message at once, then check it like a typed number.
    */
   const handleScanSms = useCallback(
     async (file?: File) => {
       if (smsReading) return;
       setSmsReading(true);
       try {
-        const image = file
-          ? await canvasFromFile(file)
-          : videoRef.current
-            ? frameFromVideo(videoRef.current)
-            : null;
-        if (!image) {
+        if (file) {
+          const image = await canvasFromFile(file);
+          if (!image) {
+            setOutcome({
+              kind: 'error',
+              title: sw ? 'Hakuna picha' : 'No picture',
+              detail: sw
+                ? 'Kamera haijawa tayari. Jaribu tena au tumia Weka Namba.'
+                : 'The camera is not ready yet. Try again or use Type number.',
+            });
+            return;
+          }
+          const r = await scanSmsImage(image, undefined, mergedGuests);
+          if (r.kind === 'code') {
+            evaluateRawScan(r.code, 'code');
+            return;
+          }
+          if (soundOn) playFeedbackTone('warn');
+          setOutcome(
+            r.kind === 'no_code'
+              ? {
+                  kind: 'error',
+                  title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
+                  detail: sw
+                    ? 'Shikilia simu ya mgeni karibu na kamera (hata sehemu ya SMS inatosha), au weka namba.'
+                    : 'Hold the guest’s phone close to the camera (even part of the SMS works), or type the number.',
+                }
+              : {
+                  kind: 'error',
+                  title: sw ? 'Kusoma SMS hakupatikani' : 'SMS reading unavailable',
+                  detail: sw
+                    ? 'Mara ya kwanza kusoma SMS kunahitaji intaneti. Kwa sasa andika namba iliyo kwenye SMS.'
+                    : 'The first SMS scan needs an internet connection. For now, type the number shown in the SMS.',
+                },
+          );
+          return;
+        }
+
+        const frames: SmsImage[] = [];
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const frame = videoRef.current ? frameFromVideo(videoRef.current) : null;
+          if (frame) {
+            frames.push(frame);
+            const r = await scanSmsFrames(frames, undefined, mergedGuests);
+            if (r.kind === 'code') {
+              evaluateRawScan(r.code, 'code');
+              return;
+            }
+          }
+          if (attempt === 0 && videoRef.current) {
+            await new Promise<void>((res) => window.setTimeout(res, 380));
+          }
+        }
+
+        if (frames.length === 0) {
           setOutcome({
             kind: 'error',
             title: sw ? 'Hakuna picha' : 'No picture',
@@ -561,7 +613,8 @@ export function MobileGateScanner({
           });
           return;
         }
-        const r = await scanSmsImage(image);
+
+        const r = await scanSmsFrames(frames, undefined, mergedGuests);
         if (r.kind === 'code') {
           evaluateRawScan(r.code, 'code');
           return;
@@ -573,8 +626,8 @@ export function MobileGateScanner({
                 kind: 'error',
                 title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
                 detail: sw
-                  ? 'Shikilia simu ya mgeni karibu na kamera ili mstari wa "Namba:" uonekane wazi, kisha jaribu tena. Au andika namba.'
-                  : 'Hold the guest’s phone close so the "Code:" line is sharp and fills the frame, then try again. Or type the number.',
+                  ? 'Shikilia simu ya mgeni karibu na kamera (hata sehemu ya SMS inatosha), au weka namba.'
+                  : 'Hold the guest’s phone close to the camera (even part of the SMS works), or type the number.',
               }
             : {
                 kind: 'error',
@@ -594,7 +647,7 @@ export function MobileGateScanner({
         setSmsReading(false);
       }
     },
-    [evaluateRawScan, smsReading, soundOn, sw],
+    [evaluateRawScan, mergedGuests, smsReading, soundOn, sw],
   );
 
   const handleCommitCheckIn = useCallback(async () => {
@@ -923,74 +976,53 @@ export function MobileGateScanner({
           </div>
         </div>
 
-        {/* Ticket counts + Encrypted Vault status card */}
+        {/* Compact Ticket counts + Encrypted Vault status bar */}
         <section
           aria-label={sw ? 'Idadi ya tiketi na hifadhi' : 'Ticket counts and vault'}
-          className="rounded-2xl border border-white/10 bg-[#171C22] p-3"
+          className="rounded-2xl border border-white/10 bg-[#171C22] px-3.5 py-2.5"
         >
-          <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="font-semibold text-[#C2CBD6]">
-              {sw ? 'Hesabu ya Tiketi' : 'Ticket Counts'}
-            </span>
-            <span
-              className="tabular font-semibold text-[#1FE086]"
-              data-testid="mobile-scanner-counts"
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span
+                className="tabular font-bold text-[#1FE086]"
+                data-testid="mobile-scanner-counts"
+              >
+                {counts.checkedIn} / {counts.totalGuests} {sw ? 'wameingia' : 'admitted'}
+              </span>
+              <span className="text-white/30">·</span>
+              <span className="tabular text-[#C2CBD6]">
+                {counts.peopleAdmitted} {sw ? 'watu' : 'people'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setVaultSheetOpen(true)}
+              data-testid="mobile-scanner-vault-trigger"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#10151B] px-2.5 py-1 text-[11px] font-semibold text-[#D7DFE8] hover:border-[#1FE086]/40"
             >
-              {counts.checkedIn} / {counts.totalGuests} {sw ? 'wameingia' : 'admitted'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-[#0F1318] px-2 py-1.5">
-              <p className="tabular text-base font-bold text-[#1FE086]">{counts.checkedIn}</p>
-              <p className="text-[10px] text-[#8E98A6]">{sw ? 'Wameingia' : 'Checked in'}</p>
-            </div>
-            <div className="rounded-xl bg-[#0F1318] px-2 py-1.5">
-              <p className="tabular text-base font-bold text-white">{counts.remaining}</p>
-              <p className="text-[10px] text-[#8E98A6]">{sw ? 'Waliobaki' : 'Remaining'}</p>
-            </div>
-            <div className="rounded-xl bg-[#0F1318] px-2 py-1.5">
-              <p className="tabular text-base font-bold text-[#D7DFE8]">{counts.peopleAdmitted}</p>
-              <p className="text-[10px] text-[#8E98A6]">{sw ? 'Watu wote' : 'Headcount'}</p>
-            </div>
-          </div>
-
-          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-[#1FE086] transition-all"
-              style={{ width: `${counts.progressPct}%` }}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setVaultSheetOpen(true)}
-            data-testid="mobile-scanner-vault-trigger"
-            className="mt-2.5 flex w-full items-center justify-between rounded-xl border border-white/8 bg-[#10151B] px-2.5 py-1.5 text-left text-[11px] hover:border-[#1FE086]/40"
-          >
-            <span className="inline-flex items-center gap-1.5 font-medium text-[#D7DFE8]">
               <ShieldCheck
                 className={`size-3.5 ${
                   vaultVerification?.valid ? 'text-[#1FE086]' : 'text-[#8E98A6]'
                 }`}
                 aria-hidden="true"
               />
-              {sw ? 'Hifadhi Iliyosimbwa · Thibitisha Hapa' : 'Encrypted Vault · Local Verify'}
-            </span>
-            <span
-              className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ${
-                vaultVerification?.valid
-                  ? 'bg-[#1FE086]/15 text-[#1FE086]'
-                  : 'bg-white/8 text-[#9AA4B2]'
-              }`}
-            >
-              {vaultVerification?.valid
-                ? `#${vaultVerification.chainDigest.slice(0, 6)}`
-                : sw
-                  ? 'TAYARI'
-                  : 'READY'}
-            </span>
-          </button>
+              <span className="font-mono text-[10px]">
+                {vaultVerification?.valid
+                  ? `#${vaultVerification.chainDigest.slice(0, 6)}`
+                  : sw
+                    ? 'TAYARI'
+                    : 'READY'}
+              </span>
+            </button>
+          </div>
+
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-[#1FE086] transition-all"
+              style={{ width: `${counts.progressPct}%` }}
+            />
+          </div>
         </section>
 
         {/* Bottom 3-slot dock matching dark obsidian + mint card aesthetic */}
@@ -1258,11 +1290,13 @@ export function MobileGateScanner({
                   {sw ? 'Bandika SMS' : 'Paste SMS'}
                 </button>
               </div>
-              {codeInput.trim().length > 8 && extractShortCode(codeInput) ? (
+              {codeInput.trim().length > 4 &&
+              (extractShortCode(codeInput) ??
+                extractShortCodeFromPartialSms(codeInput, mergedGuests)) ? (
                 <p className="text-center text-xs font-semibold text-[#1FE086]">
                   {sw
-                    ? `Msimbo uliopatikana: ${extractShortCode(codeInput)}`
-                    : `Detected code: ${extractShortCode(codeInput)}`}
+                    ? `Msimbo uliopatikana: ${extractShortCode(codeInput) ?? extractShortCodeFromPartialSms(codeInput, mergedGuests)}`
+                    : `Detected code: ${extractShortCode(codeInput) ?? extractShortCodeFromPartialSms(codeInput, mergedGuests)}`}
                 </p>
               ) : null}
               {sampleCandidates.length > 0 ? (

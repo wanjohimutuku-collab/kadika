@@ -1,5 +1,9 @@
 import type { CardKind, InvitationStatus } from '@harusi/schemas';
-import { extractShortCode, normalizeShortCode } from '@harusi/schemas/short-code';
+import {
+  extractShortCode,
+  extractShortCodeFromPartialSms,
+  normalizeShortCode,
+} from '@harusi/schemas/short-code';
 
 /** Minimal guest shape needed by the mobile web gate scanner (compatible with Guest & GuestRecord). */
 export interface ScannerGuest {
@@ -786,6 +790,12 @@ export function matchScannedGuest(guests: ScannerGuest[], rawInput: string): Gat
   }
   if (!guest && payload.raw) {
     guest = guests.find((g) => g.token === payload.raw || g.id === payload.raw);
+  }
+  if (!guest && payload.raw) {
+    const partialCode = extractShortCodeFromPartialSms(payload.raw, guests);
+    if (partialCode) {
+      guest = guests.find((g) => g.shortCode === partialCode);
+    }
   }
 
   if (!guest) {

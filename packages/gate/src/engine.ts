@@ -1,5 +1,5 @@
 import { verifyQrToken, type QrClaims } from '@harusi/crypto';
-import { extractShortCode } from '@harusi/schemas/short-code';
+import { extractShortCode, extractShortCodeFromPartialSms } from '@harusi/schemas/short-code';
 import type {
   Admission,
   Bundle,
@@ -202,10 +202,10 @@ export class GateEngine {
     return { kind: 'deny', reason };
   }
 
-  /** Typed card number (fallback 2). There is no signature to check, so it is logged as manual. */
+  /** Typed or OCR-scanned card number / partial SMS (fallback 2). Logged as manual. */
   async scanCode(code: string): Promise<ScanOutcome> {
     if (!this.bundle) throw new Error('Gate bundle not loaded');
-    const n = extractShortCode(code);
+    const n = extractShortCode(code) ?? extractShortCodeFromPartialSms(code, this.bundle.guests);
     const guest = n ? this.byCode.get(n) : undefined;
     if (!guest) {
       await this.record(null, 'not_found', { reason: 'code' });

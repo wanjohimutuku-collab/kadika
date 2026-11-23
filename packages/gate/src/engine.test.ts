@@ -160,4 +160,21 @@ describe('GateEngine offline scanning', () => {
     const ov = await ownerEngine.override(guest2Id, 'VIP guest');
     expect(ov.kind).toBe('admit');
   });
+
+  it('admits a guest from a partial SMS screen on a feature or disposable phone', async () => {
+    const { guest1Id, guest2Id, bundle } = makeFixture();
+    const store = new MemoryGateStore();
+    const gateEngine = new GateEngine(store, { deviceId: 'dev-1', role: 'gate' });
+    await gateEngine.installBundle(bundle, 'etag-1');
+
+    // Only the opening greeting + name fits on the feature phone screen (code at the bottom is off-screen)
+    const topOnly = await gateEngine.scanCode(
+      'Habari Juma Bakari, unaalikwa kwenye harusi ya Asha & Juma tarehe 20 Nov...',
+    );
+    expect(topOnly).toMatchObject({ kind: 'admit', guest: { id: guest1Id } });
+
+    // Only the bottom clipped digits fit on the screen after scrolling
+    const bottomClipped = await gateEngine.scanCode('...k.sasa.tz/s/x mba: -4826');
+    expect(bottomClipped).toMatchObject({ kind: 'admit', guest: { id: guest2Id } });
+  });
 });

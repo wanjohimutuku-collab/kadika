@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import tesseractPkg from 'tesseract.js/package.json';
 import {
   OCR_ASSET_BASE,
+  scanSmsFrames,
   scanSmsImage,
   stretchGreyscale,
   tesseractPaths,
@@ -44,6 +45,33 @@ describe('scanSmsImage', () => {
 
   it('says unavailable when no reader could run in this browser', async () => {
     expect(await scanSmsImage(image, [fails, fails])).toEqual({ kind: 'unavailable' });
+  });
+
+  it('matches partial SMS text on feature or disposable phones that cannot show the whole message', async () => {
+    const roster = [
+      { shortCode: 'KH-4821', displayName: 'Juma Bakari', token: 'tok_juma_123' },
+      { shortCode: 'KH-4826', displayName: 'Mwanaidi Salim', token: 'aB3dE_fGhIjK' },
+    ];
+    // Top of SMS only (guest name visible, code at bottom cut off)
+    expect(
+      await scanSmsImage(
+        image,
+        [reads('Habari Mwanaidi Salim, unaalikwa kwenye harusi ya Asha & Juma...')],
+        roster,
+      ),
+    ).toEqual({ kind: 'code', code: 'KH-4826' });
+
+    // Multi-frame scroll across two small screens
+    const f1 = { id: 1 } as unknown as SmsImage;
+    const f2 = { id: 2 } as unknown as SmsImage;
+    const frameReader: TextReader = async (img) =>
+      (img as unknown as { id: number }).id === 1
+        ? 'Karibu kwenye harusi ya Asha & Juma.\nNamba:'
+        : 'KH-4B21';
+    expect(await scanSmsFrames([f1, f2], [frameReader], roster)).toEqual({
+      kind: 'code',
+      code: 'KH-4821',
+    });
   });
 });
 

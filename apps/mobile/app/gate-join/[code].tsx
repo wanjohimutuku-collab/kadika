@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View, type TextInput } from 'react-native';
-import brandIcon from '../../assets/icon.png';
+import { Linking, Pressable, StyleSheet, Text, View, type TextInput } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { CameraView, type BarcodeSettings } from 'expo-camera';
 import { useLiveCameraPermission } from '../../src/lib/camera-permission';
@@ -15,7 +14,7 @@ import { useSession } from '../../src/lib/session';
 import { spacing, useColors } from '../../src/lib/theme';
 import { AppHeader } from '../../src/ui/header';
 import { Icon } from '../../src/ui/icons';
-import { Banner, BezelCard, Button, Field, Pill, Screen, Txt } from '../../src/ui/kit';
+import { BezelCard, Button, Field, Pill, Screen, Txt } from '../../src/ui/kit';
 
 const CORNERS = [
   { top: -2, left: -2, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 16 },
@@ -173,61 +172,24 @@ export default function GateJoin() {
           />
         }
       >
-        {/* Centered dark + mint-green check-in join header */}
-        <View style={{ alignItems: 'center', gap: spacing.xs, paddingTop: spacing.xs }}>
-          <View
-            style={{
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: c.primary,
-              backgroundColor: c.primarySoft,
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <Image
-              source={brandIcon}
-              accessibilityLabel={t('common.appName')}
-              style={{ width: 18, height: 18, borderRadius: 4 }}
-            />
-            <Text style={{ color: c.ink, fontSize: 11.5, fontWeight: '700' }}>
-              {`${t('common.appName')} · ${t('gateJoinPage.eyebrow')}`}
-            </Text>
-          </View>
-          <Text
-            style={{
-              color: c.ink,
-              fontSize: 22,
-              fontWeight: '800',
-              textAlign: 'center',
-              letterSpacing: -0.3,
-              marginTop: spacing.xs,
-            }}
-          >
-            {t('gateJoinPage.title')}
-          </Text>
-          <Text
-            style={{
-              color: c.muted,
-              fontSize: 14,
-              textAlign: 'center',
-              lineHeight: 20,
-            }}
-          >
-            {t('gateApp.joinBody')}
-          </Text>
-        </View>
+        <Text
+          style={{
+            color: c.muted,
+            fontSize: 14,
+            textAlign: 'center',
+            lineHeight: 20,
+          }}
+        >
+          {t('gateApp.joinBody')}
+        </Text>
 
         {/* Live QR scanner viewfinder for the host's gate-link QR, with camera-permission fallback */}
         {perm?.granted ? (
           scanning && focused ? (
             <View
               style={{
-                width: 228,
-                height: 228,
+                width: 204,
+                height: 204,
                 alignSelf: 'center',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -236,8 +198,8 @@ export default function GateJoin() {
             >
               <View
                 style={{
-                  width: 216,
-                  height: 216,
+                  width: 192,
+                  height: 192,
                   borderRadius: 20,
                   overflow: 'hidden',
                   backgroundColor: '#12161B',
@@ -325,18 +287,18 @@ export default function GateJoin() {
         ) : (
           <View
             style={{
-              height: 200,
+              height: 164,
               borderRadius: 20,
               backgroundColor: c.surface,
               padding: spacing.lg,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: spacing.md,
+              gap: spacing.sm,
               borderWidth: 1,
               borderColor: c.border,
             }}
           >
-            <Icon name="qr" size={32} color={c.primary} />
+            <Icon name="qr" size={28} color={c.primary} />
             <Txt bold color={c.ink}>
               {t('gateApp.cameraNeeded')}
             </Txt>
@@ -347,7 +309,7 @@ export default function GateJoin() {
           </View>
         )}
 
-        <BezelCard coreStyle={{ gap: spacing.md }}>
+        <BezelCard coreStyle={{ gap: spacing.sm }}>
           <Field
             label={t('gateApp.codeOrLink')}
             value={code}
@@ -396,8 +358,6 @@ export default function GateJoin() {
             />
           </View>
         </View>
-
-        <Banner text={t('gateJoinPage.trust')} />
       </Screen>
     </View>
   );

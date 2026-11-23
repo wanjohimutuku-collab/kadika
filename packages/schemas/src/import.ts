@@ -62,9 +62,24 @@ export function parsePastedList(text: string): string[][] {
     });
 }
 
-export type ImportField = 'name' | 'phone' | 'group' | 'party' | 'smartphone' | 'ignore';
+export type ImportField =
+  | 'name'
+  | 'firstName'
+  | 'secondName'
+  | 'phone'
+  | 'group'
+  | 'party'
+  | 'type'
+  | 'smartphone'
+  | 'ignore';
 
+// order matters: the name parts and "type" are tried before the generic `name` hint,
+// so "Jina la kwanza" or "Guest type" are not read as a full name
 const HEADER_HINTS: Record<Exclude<ImportField, 'ignore'>, RegExp> = {
+  firstName: /^(first ?name|given ?name|jina la kwanza|jina la 1)$/i,
+  secondName:
+    /^(second ?name|last ?name|surname|family ?name|jina la pili|jina la ukoo|jina la 2)$/i,
+  type: /^((guest ?)?type|aina( ya mgeni)?)$/i,
   name: /^(jina|majina|name|full ?name|mgeni|guest)/i,
   phone: /(simu|phone|namba|mobile|tel|msisdn)/i,
   group: /(kikundi|group|kundi|category|upande)/i,
@@ -91,9 +106,27 @@ export function guessMapping(
   return { mapping: header.map((_, i) => positional[i] ?? 'ignore'), hasHeader: false };
 }
 
+/** Guest type column: `D`/Double = may bring one partner (2 people), `S`/Single = 1. */
+export const GUEST_TYPE_PARTY: Readonly<Record<string, number>> = {
+  d: 2,
+  double: 2,
+  wawili: 2,
+  s: 1,
+  single: 1,
+  mmoja: 1,
+};
+
+/** Party size for a Type cell: `null` when blank (keep the default), `'invalid'` when unrecognised. */
+export function parseGuestType(raw: string): number | null | 'invalid' {
+  const v = raw.trim().toLowerCase();
+  if (!v) return null;
+  return GUEST_TYPE_PARTY[v] ?? 'invalid';
+}
+
 export type RowIssue =
   | { kind: 'phone'; error: PhoneError }
   | { kind: 'name' }
+  | { kind: 'type'; value: string }
   | { kind: 'duplicate'; of: 'file' | 'existing'; otherRow?: number };
 
 export interface PreviewRow {
@@ -139,8 +172,13 @@ export function buildPreview(
   const seenPhones = new Map<string, number>();
   const body = opts.hasHeader ? rows.slice(1) : rows;
   return body.map((r, idx) => {
-    const displayName = col(r, 'name');
+    // one full-name column, or First Name + Second Name joined into the display name
+    const displayName =
+      col(r, 'name') || [col(r, 'firstName'), col(r, 'secondName')].filter(Boolean).join(' ');
     const phoneRaw = col(r, 'phone');
+    const party = parseInt(col(r, 'party'), 10);
+    const typeRaw = col(r, 'type');
+    const typed = parseGuestType(typeRaw);
     const smart = col(r, 'smartphone').toLowerCase();
     return validateRow(
       {
@@ -148,9 +186,17 @@ export function buildPreview(
         displayName,
         phoneRaw,
         groupLabel: col(r, 'group') || opts.defaultGroup || '',
+        // a recognised Type wins over a party-size column; blank keeps the old default
+        partySizeAllowed:
+          typeof typed === 'number'
+            ? typed
+            : Number.isFinite(party) && party > 0
+              ? Math.min(party, 10)
+              : 1,
         // "S"/"D" (Single/Double card) or a number of seats.
         partySizeAllowed: parseSeatType(col(r, 'party')) ?? 1,
         hasSmartphone: !['no', 'hapana', 'false', '0', 'hana'].includes(smart),
+        typeRaw: typed === 'invalid' ? typeRaw : undefined,
       },
       existingPhones,
       existingNames,
@@ -165,7 +211,10 @@ export function validateRow(
   r: Pick<
     PreviewRow,
     'index' | 'displayName' | 'phoneRaw' | 'groupLabel' | 'partySizeAllowed' | 'hasSmartphone'
-  >,
+  > & {
+    /** Set only when the Type cell holds an unrecognised value; it makes the row invalid. */
+    typeRaw?: string;
+  },
   existingPhones: Set<string>,
   existingNames: Set<string>,
   seenPhones: Map<string, number>,
@@ -173,6 +222,7 @@ export function validateRow(
 ): PreviewRow {
   const issues: RowIssue[] = [];
   if (r.displayName.trim().length < 2) issues.push({ kind: 'name' });
+  if (r.typeRaw !== undefined) issues.push({ kind: 'type', value: r.typeRaw });
   let phoneE164: string | null = null;
   if (r.phoneRaw.trim()) {
     const p = normalizePhone(r.phoneRaw, phone.country, phone.allowed);
@@ -188,8 +238,9 @@ export function validateRow(
   }
   const invalid = issues.some((i) => i.kind !== 'duplicate');
   const duplicate = issues.some((i) => i.kind === 'duplicate');
+  const { typeRaw: _typeRaw, ...rest } = r;
   return {
-    ...r,
+    ...rest,
     displayName: r.displayName.trim(),
     phoneE164,
     inviteChannelPref: !phoneE164 ? 'print' : r.hasSmartphone ? 'whatsapp' : 'sms',
@@ -216,8 +267,12 @@ export function summarizePreview(rows: PreviewRow[]): PreviewSummary {
   };
 }
 
+/**
+ * Downloadable sample. Also accepted: one `Name` column or `First Name` + `Second Name`; a `Type`
+ * column (`D`/Double = 2 people, `S`/Single = 1); English or Swahili headers.
+ */
 export const CSV_TEMPLATE =
-  'Jina,Simu,Kikundi,Idadi\nAsha Mwinyi,0712 345 678,Familia ya Bibi Harusi,2\nBaraka Joseph,+255 754 123 456,Marafiki,1\nMama Neema,,Wazee,1\n';
+  'Jina,Simu,Aina,Kikundi\nAsha Mwinyi,0712 345 678,D,Familia ya Bibi Harusi\nBaraka Joseph,+255 754 123 456,S,Marafiki\nMama Neema,,S,Wazee\n';
 
 /** Escapes and joins rows for CSV export. */
 export function toCsv(rows: (string | number | null | undefined)[][]): string {

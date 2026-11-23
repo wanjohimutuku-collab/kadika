@@ -52,7 +52,17 @@ import { useQuotaToast } from '@/components/console/quota';
 
 type Source = 'paste' | 'csv' | 'contacts';
 type Step = 'source' | 'preview' | 'confirm' | 'done';
-const FIELDS: ImportField[] = ['name', 'phone', 'group', 'party', 'smartphone', 'ignore'];
+const FIELDS: ImportField[] = [
+  'name',
+  'firstName',
+  'secondName',
+  'phone',
+  'type',
+  'group',
+  'party',
+  'smartphone',
+  'ignore',
+];
 
 function ImportInner({ id }: { id: string }) {
   const t = useTranslations('import');
@@ -91,6 +101,7 @@ function ImportInner({ id }: { id: string }) {
   const [fixing, setFixing] = useState<PreviewRow | null>(null);
   const [fixName, setFixName] = useState('');
   const [fixPhone, setFixPhone] = useState('');
+  const [fixType, setFixType] = useState<'S' | 'D'>('S');
   const [contactsOpen, setContactsOpen] = useState(false);
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
   const idem = useRef(newIdempotencyKey());
@@ -169,18 +180,29 @@ function ImportInner({ id }: { id: string }) {
     setFixing(r);
     setFixName(r.displayName);
     setFixPhone(r.phoneRaw);
+    setFixType(r.partySizeAllowed > 1 ? 'D' : 'S');
   };
+  const fixingType = !!fixing?.issues.some((i) => i.kind === 'type');
   const applyFix = () => {
     if (!fixing) return;
     const nameCol = mapping.indexOf('name');
+    const firstCol = mapping.indexOf('firstName');
+    const secondCol = mapping.indexOf('secondName');
     const phoneCol = mapping.indexOf('phone');
+    const typeCol = mapping.indexOf('type');
     const rowIdx = fixing.index + (hasHeader ? 1 : 0);
     setRawRows((rows) =>
       rows.map((row, i) => {
         if (i !== rowIdx) return row;
         const next = [...row];
         if (nameCol >= 0) next[nameCol] = fixName;
+        // split-name files: the fixed full name goes in First Name, Second Name is cleared
+        else if (firstCol >= 0) {
+          next[firstCol] = fixName;
+          if (secondCol >= 0) next[secondCol] = '';
+        } else if (secondCol >= 0) next[secondCol] = fixName;
         if (phoneCol >= 0) next[phoneCol] = fixPhone;
+        if (typeCol >= 0 && fixingType) next[typeCol] = fixType;
         return next;
       }),
     );
@@ -199,9 +221,11 @@ function ImportInner({ id }: { id: string }) {
           ? tv(`phone.${i.error}`)
           : i.kind === 'name'
             ? t('issue.name')
-            : i.of === 'file'
-              ? t('issue.duplicateFile', { row: (i.otherRow ?? 0) + 1 })
-              : t('issue.duplicateExisting'),
+            : i.kind === 'type'
+              ? t('issue.type', { value: i.value })
+              : i.of === 'file'
+                ? t('issue.duplicateFile', { row: (i.otherRow ?? 0) + 1 })
+                : t('issue.duplicateExisting'),
       )
       .join(' · ');
 
@@ -612,6 +636,17 @@ function ImportInner({ id }: { id: string }) {
             onChange={setFixPhone}
             optionalLabel={tc('optional')}
           />
+          {fixingType ? (
+            <SegmentedControl<'S' | 'D'>
+              label={t('fixType')}
+              value={fixType}
+              onChange={setFixType}
+              options={[
+                { value: 'S', label: t('typeSingle') },
+                { value: 'D', label: t('typeDouble') },
+              ]}
+            />
+          ) : null}
         </div>
       </BottomSheet>
       <ContactsSheet

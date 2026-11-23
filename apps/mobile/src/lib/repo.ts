@@ -5,10 +5,11 @@ import { secureGet, secureSet } from './storage';
 
 const TOKEN_KEY = 'harusi.tokens.v1';
 
-export const API_URL: string =
+export const API_URL: string = (
   process.env.EXPO_PUBLIC_API_URL ??
   (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ??
-  'http://localhost:3001';
+  (typeof __DEV__ !== 'undefined' && __DEV__ ? 'http://localhost:3001' : 'https://api.kadisasa.com')
+).replace(/\/$/, '');
 
 /** The web app, which draws card images (`/api/card-image`, ADR 058). */
 export const WEB_URL: string = (

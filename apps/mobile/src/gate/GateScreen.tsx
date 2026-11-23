@@ -44,8 +44,7 @@ import {
 const nativeSmsOcr = (NativeModules as { HarusiSmsOcr?: HarusiSmsOcrNative } | undefined)
   ?.HarusiSmsOcr;
 if (nativeSmsOcr) {
-  (globalThis as { __harusiNativeSmsOcr?: HarusiSmsOcrNative }).__harusiNativeSmsOcr =
-    nativeSmsOcr;
+  (globalThis as { __harusiNativeSmsOcr?: HarusiSmsOcrNative }).__harusiNativeSmsOcr = nativeSmsOcr;
 }
 
 const OVERLAY_MS = 2500;

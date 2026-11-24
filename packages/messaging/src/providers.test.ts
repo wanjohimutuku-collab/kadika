@@ -344,6 +344,46 @@ describe('WhatsAppCloudProvider', () => {
       },
     ]);
   });
+
+  it('verifies Cloud API connection against the Graph API phone number endpoint', async () => {
+    const ok = fakeFetch(200, {
+      verified_name: 'Kadi Sasa',
+      display_phone_number: '+255 712 345 678',
+      quality_rating: 'GREEN',
+      status: 'CONNECTED',
+    });
+    const res = await new WhatsAppCloudProvider({ ...base, fetchImpl: ok.impl }).verifyConnection();
+    expect(ok.calls[0]!.url).toBe(
+      'https://graph.facebook.com/v21.0/1234567890?fields=verified_name,display_phone_number,quality_rating,status',
+    );
+    expect((ok.calls[0]!.init.headers as Record<string, string>).authorization).toBe('Bearer tok');
+    expect(res).toEqual({
+      ok: true,
+      verifiedName: 'Kadi Sasa',
+      displayPhoneNumber: '+255 712 345 678',
+      qualityRating: 'GREEN',
+      status: 'CONNECTED',
+      apiVersion: 'v21.0',
+      error: null,
+    });
+
+    const bad = fakeFetch(401, {
+      error: { code: 190, message: 'Invalid OAuth access token' },
+    });
+    const errRes = await new WhatsAppCloudProvider({
+      ...base,
+      fetchImpl: bad.impl,
+    }).verifyConnection();
+    expect(errRes).toEqual({
+      ok: false,
+      verifiedName: null,
+      displayPhoneNumber: null,
+      qualityRating: null,
+      status: null,
+      apiVersion: 'v21.0',
+      error: 'Graph API 401 (code 190): Invalid OAuth access token',
+    });
+  });
 });
 
 describe('AfricasTalkingProvider', () => {

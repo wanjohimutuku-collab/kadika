@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DatabaseZap, RotateCcw, Save, Send } from 'lucide-react';
-import { RepositoryError } from '@harusi/api-client';
+import { DatabaseZap, PlugZap, RotateCcw, Save, Send } from 'lucide-react';
+import { RepositoryError, type WhatsAppCloudConnectionResult } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import {
   MESSAGING_PROVIDERS,
@@ -115,6 +115,7 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
   const [error, setError] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [testTo, setTestTo] = useState('');
+  const [connResult, setConnResult] = useState<WhatsAppCloudConnectionResult | null>(null);
   // A save or reset of this route remounts the card (see its key), so the form shows the saved values
   // and never keeps a typed secret.
 
@@ -159,6 +160,35 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
         tone: 'error',
         title: t('testFailed', { error: e instanceof RepositoryError ? e.message : String(e) }),
       }),
+  });
+  const testConnection = useMutation({
+    mutationFn: () =>
+      getRepository().opsTestWhatsAppCloudConnection({
+        token: values.token ?? '',
+        phoneNumberId: values.phoneNumberId ?? '',
+        apiVersion: values.apiVersion ?? '',
+      }),
+    onSuccess: (r) => {
+      setConnResult(r);
+      toast(
+        r.ok
+          ? { tone: 'success', title: t('testConnectionOk', { apiVersion: r.apiVersion }) }
+          : { tone: 'error', title: t('testConnectionFailed', { error: r.error ?? '' }) },
+      );
+    },
+    onError: (e) => {
+      const msg = explain(e);
+      setConnResult({
+        ok: false,
+        verifiedName: null,
+        displayPhoneNumber: null,
+        qualityRating: null,
+        status: null,
+        apiVersion: values.apiVersion || 'v21.0',
+        error: msg,
+      });
+      toast({ tone: 'error', title: t('testConnectionFailed', { error: msg }) });
+    },
   });
 
   const defs = providerFields(view.route, provider);
@@ -239,6 +269,29 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
             <span role="alert">{error}</span>
           </Banner>
         ) : null}
+        {view.route === 'whatsapp' && provider === 'cloud' && connResult ? (
+          <Banner tone={connResult.ok ? 'success' : 'error'}>
+            {connResult.ok ? (
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold">
+                  {t('testConnectionOk', { apiVersion: connResult.apiVersion })}
+                </span>
+                <span className="text-sm">
+                  {t('connectionDetails', {
+                    name: connResult.verifiedName ?? '—',
+                    phone: connResult.displayPhoneNumber ?? '—',
+                    quality: connResult.qualityRating ?? '—',
+                    status: connResult.status ?? '—',
+                  })}
+                </span>
+              </div>
+            ) : (
+              <span role="alert">
+                {t('testConnectionFailed', { error: connResult.error ?? '' })}
+              </span>
+            )}
+          </Banner>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button
             type="submit"
@@ -247,6 +300,18 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
           >
             {t('save')}
           </Button>
+          {view.route === 'whatsapp' && provider === 'cloud' ? (
+            <Button
+              type="button"
+              variant="secondary"
+              loading={testConnection.isPending}
+              icon={<PlugZap className="size-4" aria-hidden="true" />}
+              onClick={() => testConnection.mutate()}
+              data-testid="whatsapp-cloud-test-connection"
+            >
+              {t('testConnection')}
+            </Button>
+          ) : null}
           {view.source === 'database' ? (
             <Button
               variant="ghost"

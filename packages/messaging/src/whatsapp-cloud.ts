@@ -11,6 +11,16 @@ export type TemplateNames = {
   otp?: string;
 };
 
+export interface WhatsAppCloudConnectionResult {
+  ok: boolean;
+  verifiedName: string | null;
+  displayPhoneNumber: string | null;
+  qualityRating: string | null;
+  status: string | null;
+  apiVersion: string;
+  error: string | null;
+}
+
 export interface WhatsAppCloudOptions {
   /** Permanent system-user access token. Never log it. */
   token: string;
@@ -138,6 +148,63 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     const id = json?.messages?.[0]?.id;
     if (!id) throw new Error('whatsapp-cloud: no message id in response');
     return { providerMsgId: id };
+  }
+
+  /**
+   * Verifies that the Meta Graph API access token and Phone Number ID can authenticate and
+   * read the WhatsApp Business number profile without sending a message.
+   */
+  async verifyConnection(): Promise<WhatsAppCloudConnectionResult> {
+    const f = this.o.fetchImpl ?? fetch;
+    const apiVersion = this.o.apiVersion || 'v21.0';
+    const base = (this.o.baseUrl ?? 'https://graph.facebook.com').replace(/\/$/, '');
+    const url = `${base}/${encodeURIComponent(apiVersion)}/${encodeURIComponent(this.o.phoneNumberId)}?fields=verified_name,display_phone_number,quality_rating,status`;
+    try {
+      const res = await f(url, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${this.o.token}` },
+        signal: AbortSignal.timeout(15_000),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        verified_name?: string;
+        display_phone_number?: string;
+        quality_rating?: string;
+        status?: string;
+        error?: { code?: number; message?: string };
+      } | null;
+      if (!res.ok) {
+        const code = json?.error?.code ? ` (code ${json.error.code})` : '';
+        const msg = json?.error?.message ? `: ${json.error.message}` : '';
+        return {
+          ok: false,
+          verifiedName: null,
+          displayPhoneNumber: null,
+          qualityRating: null,
+          status: null,
+          apiVersion,
+          error: `Graph API ${res.status}${code}${msg}`,
+        };
+      }
+      return {
+        ok: true,
+        verifiedName: json?.verified_name ?? null,
+        displayPhoneNumber: json?.display_phone_number ?? null,
+        qualityRating: json?.quality_rating ?? null,
+        status: json?.status ?? null,
+        apiVersion,
+        error: null,
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        verifiedName: null,
+        displayPhoneNumber: null,
+        qualityRating: null,
+        status: null,
+        apiVersion,
+        error: (e as Error).message || 'Connection failed',
+      };
+    }
   }
 }
 

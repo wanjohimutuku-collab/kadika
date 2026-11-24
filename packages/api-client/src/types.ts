@@ -718,6 +718,16 @@ export interface OpsAuditEntry {
   details: string;
 }
 
+export interface WhatsAppCloudConnectionResult {
+  ok: boolean;
+  verifiedName: string | null;
+  displayPhoneNumber: string | null;
+  qualityRating: string | null;
+  status: string | null;
+  apiVersion: string;
+  error: string | null;
+}
+
 export type {
   Allowance,
   BillingOrderInput,

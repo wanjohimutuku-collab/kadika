@@ -83,6 +83,7 @@ import type {
   MemoryUpload,
   MemoryPhotoSize,
   PositiveReaction,
+  WhatsAppCloudConnectionResult,
 } from './types';
 
 /**
@@ -348,6 +349,10 @@ export interface Repository {
     route: MessagingRoute,
     to: string,
   ): Promise<{ ok: boolean; provider: string; error: string | null }>;
+  /** Admin staff: verifies the WhatsApp Cloud API token and Phone Number ID without sending a message. */
+  opsTestWhatsAppCloudConnection(
+    fields?: Record<string, string>,
+  ): Promise<WhatsAppCloudConnectionResult>;
   /**
    * Moves SMS and WhatsApp credentials from the server's environment into saved settings (ADR 036).
    * Routes that already have saved settings are left alone; `imported` names the ones copied.

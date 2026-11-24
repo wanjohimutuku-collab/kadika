@@ -177,4 +177,19 @@ describe('messaging settings in /ops (ADR 031)', () => {
     });
     expect(wrong.status).toBe(400);
   });
+
+  it('tests WhatsApp Cloud API connection and requires admin + credentials', async () => {
+    const denied = await api(ctx, 'POST', '/v1/ops/messaging/whatsapp/test-connection', {
+      token: support,
+      body: { fields: { token: 't', phoneNumberId: '1' } },
+    });
+    expect(denied.status).toBe(403);
+
+    const missing = await api(ctx, 'POST', '/v1/ops/messaging/whatsapp/test-connection', {
+      token: admin,
+      body: { fields: {} },
+    });
+    expect(missing.status).toBe(400);
+    expect(missing.body!.error.details.missing).toEqual(['token', 'phoneNumberId']);
+  });
 });

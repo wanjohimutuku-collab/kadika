@@ -7,6 +7,7 @@ import {
   NextSmsProvider,
   WhatsAppCloudProvider,
   type MessagingProvider,
+  type WhatsAppCloudConnectionResult,
 } from '@harusi/messaging';
 import {
   MESSAGING_PROVIDERS,
@@ -534,5 +535,44 @@ export class MessagingSettingsService {
       diff: { to: `…${to.slice(-3)}`, provider: provider.name, ok: !error },
     });
     return { ok: !error, provider: provider.name, error };
+  }
+
+  /**
+   * Verifies WhatsApp Cloud API credentials against the Meta Graph API without sending a message.
+   * Unsaved fields passed in from the form override saved settings; an empty token falls back to
+   * the currently saved token (only when provider is already `cloud`).
+   */
+  async testWhatsAppCloudConnection(
+    caller: StaffCaller,
+    input?: { fields?: Record<string, string> },
+  ): Promise<WhatsAppCloudConnectionResult> {
+    await this.requireAdmin(caller);
+    const { s } = await this.effective();
+    const saved = s.whatsapp.provider === 'cloud' ? s.whatsapp.fields : {};
+    const fields = input?.fields ?? {};
+    const token = (fields.token ?? '').trim() || saved.token || '';
+    const phoneNumberId = (fields.phoneNumberId ?? '').trim() || saved.phoneNumberId || '';
+    const apiVersion = (fields.apiVersion ?? '').trim() || saved.apiVersion || 'v21.0';
+    const missing = [...(!token ? ['token'] : []), ...(!phoneNumberId ? ['phoneNumberId'] : [])];
+    if (missing.length) {
+      throw new ApiError('validation', `WhatsApp Cloud API needs ${missing.join(', ')}`, {
+        field: 'fields',
+        missing,
+      });
+    }
+    const res = await new WhatsAppCloudProvider({
+      token,
+      phoneNumberId,
+      apiVersion,
+    }).verifyConnection();
+    await recordAudit(this.deps.db, {
+      eventId: null,
+      actorId: caller.userId,
+      action: 'ops.messaging.test_connection',
+      entity: 'messaging_settings',
+      entityId: 'whatsapp',
+      diff: { provider: 'cloud', ok: res.ok, apiVersion: res.apiVersion },
+    });
+    return res;
   }
 }

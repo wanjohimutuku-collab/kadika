@@ -1346,6 +1346,14 @@ export function createApp(deps: Deps) {
   app.delete('/v1/ops/messaging/:route', async (c) =>
     c.json(await messagingSvc.reset(staff(c), routeParam(c))),
   );
+  app.post('/v1/ops/messaging/whatsapp/test-connection', async (c) => {
+    const raw = await body(c).catch(() => ({}));
+    const input = parse(
+      z.object({ fields: z.record(z.string().max(2000)).optional() }).optional(),
+      raw,
+    );
+    return c.json(await messagingSvc.testWhatsAppCloudConnection(staff(c), input));
+  });
   app.post('/v1/ops/messaging/:route/test', async (c) => {
     const { to } = parse(z.object({ to: phone }), await body(c));
     return c.json(await messagingSvc.test(staff(c), routeParam(c), to));

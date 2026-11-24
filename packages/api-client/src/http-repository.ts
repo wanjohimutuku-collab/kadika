@@ -62,6 +62,7 @@ import type {
   Memory,
   MemoryMessage,
   PositiveReaction,
+  WhatsAppCloudConnectionResult,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
 
@@ -837,6 +838,13 @@ export function createHttpRepository(
         'POST',
         `/v1/ops/messaging/${route}/test`,
         { to },
+      );
+    },
+    async opsTestWhatsAppCloudConnection(fields) {
+      return call<WhatsAppCloudConnectionResult>(
+        'POST',
+        '/v1/ops/messaging/whatsapp/test-connection',
+        fields ? { fields } : {},
       );
     },
 

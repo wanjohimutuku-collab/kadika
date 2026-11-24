@@ -112,6 +112,7 @@ import type {
   MemoryUpload,
   MemoryPhotoSize,
   PositiveReaction,
+  WhatsAppCloudConnectionResult,
 } from '../types';
 import { POSITIVE_REACTIONS, STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
@@ -3648,6 +3649,42 @@ export class MockRepository implements Repository {
       const provider = this.state.messaging?.[route]?.provider ?? 'fake';
       this.opsLog('messaging', route, `Majaribio …${to.replace(/\D/g, '').slice(-3)}`);
       return { ok: true, provider, error: null };
+    });
+  }
+
+  opsTestWhatsAppCloudConnection(
+    fields?: Record<string, string>,
+  ): Promise<WhatsAppCloudConnectionResult> {
+    return this.run('write', 'ops-messaging', () => {
+      this.requireStaff('settings');
+      const saved =
+        this.state.messaging?.whatsapp?.provider === 'cloud'
+          ? this.state.messaging.whatsapp.fields
+          : {};
+      const token = (fields?.token ?? '').trim() || saved.token || '';
+      const phoneNumberId = (fields?.phoneNumberId ?? '').trim() || saved.phoneNumberId || '';
+      const apiVersion = (fields?.apiVersion ?? '').trim() || saved.apiVersion || 'v21.0';
+      if (!token || !phoneNumberId) {
+        return {
+          ok: false,
+          verifiedName: null,
+          displayPhoneNumber: null,
+          qualityRating: null,
+          status: null,
+          apiVersion,
+          error: 'Missing access token or phone number ID',
+        };
+      }
+      this.opsLog('messaging', 'whatsapp', 'Cloud API connection check');
+      return {
+        ok: true,
+        verifiedName: 'Kadi Sasa',
+        displayPhoneNumber: '+255 712 000 000',
+        qualityRating: 'GREEN',
+        status: 'CONNECTED',
+        apiVersion,
+        error: null,
+      };
     });
   }
 

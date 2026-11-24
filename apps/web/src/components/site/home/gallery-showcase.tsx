@@ -374,7 +374,7 @@ export function GalleryShowcase({
                         </p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-[#f6f9fc] px-2 py-0.5 text-[10px] font-semibold text-[#5469d4] ring-1 ring-[#e3e8ee]">
+                    <span className="shrink-0 rounded-full bg-[#f6f9fc] px-2 py-0.5 text-[10px] font-semibold text-[#2c3ea8] ring-1 ring-[#e3e8ee]">
                       {sw ? 'Picha 4' : '4 photos'}
                     </span>
                   </div>
@@ -432,7 +432,6 @@ export function GalleryShowcase({
                               key={item.key}
                               type="button"
                               aria-pressed={pressed}
-                              aria-label={sw ? item.labelSw : item.labelEn}
                               onClick={() => toggleReaction(heroPhoto.id, item.key)}
                               className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold transition ${
                                 pressed
@@ -440,7 +439,8 @@ export function GalleryShowcase({
                                   : 'border-[#e3e8ee] bg-[#f6f9fc] text-[#494d59] hover:border-[#5469d4]/40'
                               }`}
                             >
-                              <span>{item.emoji}</span>
+                              <span aria-hidden="true">{item.emoji}</span>
+                              <span className="sr-only">{sw ? item.labelSw : item.labelEn} </span>
                               <span>{cnt}</span>
                             </button>
                           );
@@ -449,7 +449,7 @@ export function GalleryShowcase({
                       <button
                         type="button"
                         onClick={() => setActiveIndex(0)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#eef2ff] px-2 py-0.5 text-[10px] font-semibold text-[#5469d4] hover:bg-[#dfe6ff]"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#eef2ff] px-2 py-0.5 text-[10px] font-semibold text-[#2c3ea8] hover:bg-[#dfe6ff]"
                       >
                         <MessageCircle className="size-2.5" aria-hidden="true" />
                         {sw ? 'Andika' : 'Wish'}

@@ -48,6 +48,7 @@ const CSS = `
 .mem-form{display:flex;gap:6px}
 .mem-form input{flex:1;min-width:0;min-height:34px;padding:4px 9px;border-radius:8px;border:1px solid var(--border);background:#fff;color:inherit;font:400 13px/1.2 inherit}
 .mem-form button{min-height:34px;padding:0 11px;border-radius:8px;border:0;background:var(--hp-primary);color:#fff;font:600 12.5px/1 inherit;cursor:pointer}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .back{display:inline-flex;align-items:center;min-height:48px;color:var(--hp-primary);font-weight:600;text-decoration:none}
 dialog.viewer{padding:0;border:0;width:100vw;max-width:100vw;max-height:100dvh;background:rgba(10,14,18,.96);color:#fff;margin:auto}
 dialog.viewer::backdrop{background:rgba(0,0,0,.88)}
@@ -113,7 +114,7 @@ export function renderMemories(view: GuestMemoriesView, o: MemoriesOptions): str
         const cnt = x.reactions?.[key] ?? 0;
         const pressed = x.myReactions?.includes(key) ? 'true' : 'false';
         const info = REACTION_META[key];
-        return `<button type="button" class="mem-r" data-react="${key}" data-mid="${esc(x.id)}" aria-pressed="${pressed}" aria-label="${esc(info.label)}"><span>${info.emoji}</span><span data-count>${cnt > 0 ? cnt : ''}</span></button>`;
+        return `<button type="button" class="mem-r" data-react="${key}" data-mid="${esc(x.id)}" aria-pressed="${pressed}"><span aria-hidden="true">${info.emoji}</span><span class="sr-only">${esc(info.label)} </span><span data-count>${cnt > 0 ? cnt : ''}</span></button>`;
       }).join('');
       const msgs = (x.messages ?? [])
         .map((m) => `<li><strong>${esc(m.authorName)}:</strong> ${esc(m.body)}</li>`)

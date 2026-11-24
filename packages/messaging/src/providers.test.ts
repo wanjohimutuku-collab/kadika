@@ -350,11 +350,15 @@ describe('WhatsAppCloudProvider', () => {
       verified_name: 'Kadi Sasa',
       display_phone_number: '+255 712 345 678',
       quality_rating: 'GREEN',
-      status: 'CONNECTED',
+      code_verification_status: 'VERIFIED',
     });
-    const res = await new WhatsAppCloudProvider({ ...base, fetchImpl: ok.impl }).verifyConnection();
+    const res = await new WhatsAppCloudProvider({
+      ...base,
+      token: 'Bearer tok',
+      fetchImpl: ok.impl,
+    }).verifyConnection();
     expect(ok.calls[0]!.url).toBe(
-      'https://graph.facebook.com/v21.0/1234567890?fields=verified_name,display_phone_number,quality_rating,status',
+      'https://graph.facebook.com/v21.0/1234567890?fields=verified_name,display_phone_number,quality_rating,code_verification_status',
     );
     expect((ok.calls[0]!.init.headers as Record<string, string>).authorization).toBe('Bearer tok');
     expect(res).toEqual({
@@ -362,13 +366,43 @@ describe('WhatsAppCloudProvider', () => {
       verifiedName: 'Kadi Sasa',
       displayPhoneNumber: '+255 712 345 678',
       qualityRating: 'GREEN',
-      status: 'CONNECTED',
+      status: 'VERIFIED',
       apiVersion: 'v21.0',
       error: null,
     });
 
+    // Falls back to bare /{phoneNumberId} when Meta returns 400 code 100 on fields=
+    const urls: string[] = [];
+    const fallbackFetch = (async (u: string) => {
+      urls.push(u);
+      return urls.length === 1
+        ? new Response(JSON.stringify({ error: { code: 100, message: 'Authorization Error' } }), {
+            status: 400,
+          })
+        : new Response(
+            JSON.stringify({
+              verified_name: 'Kadi Sasa',
+              display_phone_number: '+255 712 345 678',
+            }),
+            { status: 200 },
+          );
+    }) as unknown as typeof fetch;
+    const fbRes = await new WhatsAppCloudProvider({
+      ...base,
+      fetchImpl: fallbackFetch,
+    }).verifyConnection();
+    expect(urls).toEqual([
+      'https://graph.facebook.com/v21.0/1234567890?fields=verified_name,display_phone_number,quality_rating,code_verification_status',
+      'https://graph.facebook.com/v21.0/1234567890',
+    ]);
+    expect(fbRes).toMatchObject({
+      ok: true,
+      verifiedName: 'Kadi Sasa',
+      displayPhoneNumber: '+255 712 345 678',
+    });
+
     const bad = fakeFetch(401, {
-      error: { code: 190, message: 'Invalid OAuth access token' },
+      error: { code: 190, error_subcode: 463, message: 'Invalid OAuth access token' },
     });
     const errRes = await new WhatsAppCloudProvider({
       ...base,
@@ -381,7 +415,7 @@ describe('WhatsAppCloudProvider', () => {
       qualityRating: null,
       status: null,
       apiVersion: 'v21.0',
-      error: 'Graph API 401 (code 190): Invalid OAuth access token',
+      error: 'Graph API 401 (code 190, subcode 463): Invalid OAuth access token',
     });
   });
 });

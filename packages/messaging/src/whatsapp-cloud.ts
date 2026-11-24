@@ -128,13 +128,20 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     }
   }
 
+  private get bearerToken(): string {
+    return this.o.token.replace(/^Bearer\s+/i, '').trim();
+  }
+
   private async post(message: Record<string, unknown>, to: string): Promise<SendResult> {
     const f = this.o.fetchImpl ?? fetch;
     const res = await f(
       `${this.o.baseUrl ?? 'https://graph.facebook.com'}/${this.o.apiVersion ?? 'v21.0'}/${this.o.phoneNumberId}/messages`,
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${this.o.token}` },
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${this.bearerToken}`,
+        },
         body: JSON.stringify({ messaging_product: 'whatsapp', to: toCloudNumber(to), ...message }),
         signal: AbortSignal.timeout(15_000),
       },
@@ -158,23 +165,51 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     const f = this.o.fetchImpl ?? fetch;
     const apiVersion = this.o.apiVersion || 'v21.0';
     const base = (this.o.baseUrl ?? 'https://graph.facebook.com').replace(/\/$/, '');
-    const url = `${base}/${encodeURIComponent(apiVersion)}/${encodeURIComponent(this.o.phoneNumberId)}?fields=verified_name,display_phone_number,quality_rating,status`;
-    try {
+    const nodeUrl = `${base}/${encodeURIComponent(apiVersion)}/${encodeURIComponent(this.o.phoneNumberId.trim())}`;
+    const headers = { authorization: `Bearer ${this.bearerToken}` };
+
+    type GraphNumberResponse = {
+      verified_name?: string;
+      display_phone_number?: string;
+      quality_rating?: string;
+      code_verification_status?: string;
+      status?: string;
+      error?: {
+        code?: number;
+        error_subcode?: number;
+        message?: string;
+        error_user_msg?: string;
+        error_data?: { details?: string };
+      };
+    };
+
+    const query = async (url: string) => {
       const res = await f(url, {
         method: 'GET',
-        headers: { authorization: `Bearer ${this.o.token}` },
+        headers,
         signal: AbortSignal.timeout(15_000),
       });
-      const json = (await res.json().catch(() => null)) as {
-        verified_name?: string;
-        display_phone_number?: string;
-        quality_rating?: string;
-        status?: string;
-        error?: { code?: number; message?: string };
-      } | null;
+      const json = (await res.json().catch(() => null)) as GraphNumberResponse | null;
+      return { res, json };
+    };
+
+    try {
+      // Request standard Phone Number fields (avoiding restricted `status` on messaging-only tokens).
+      let { res, json } = await query(
+        `${nodeUrl}?fields=verified_name,display_phone_number,quality_rating,code_verification_status`,
+      );
+      // If Meta rejects a requested field with 400 code 100, retry the bare node URL for default fields.
+      if (res.status === 400 && json?.error?.code === 100) {
+        ({ res, json } = await query(nodeUrl));
+      }
       if (!res.ok) {
-        const code = json?.error?.code ? ` (code ${json.error.code})` : '';
-        const msg = json?.error?.message ? `: ${json.error.message}` : '';
+        const err = json?.error;
+        const codeParts = [
+          err?.code ? `code ${err.code}` : '',
+          err?.error_subcode ? `subcode ${err.error_subcode}` : '',
+        ].filter(Boolean);
+        const codeText = codeParts.length ? ` (${codeParts.join(', ')})` : '';
+        const detail = err?.error_user_msg || err?.error_data?.details || err?.message || '';
         return {
           ok: false,
           verifiedName: null,
@@ -182,7 +217,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
           qualityRating: null,
           status: null,
           apiVersion,
-          error: `Graph API ${res.status}${code}${msg}`,
+          error: `Graph API ${res.status}${codeText}${detail ? `: ${detail}` : ''}`,
         };
       }
       return {
@@ -190,7 +225,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
         verifiedName: json?.verified_name ?? null,
         displayPhoneNumber: json?.display_phone_number ?? null,
         qualityRating: json?.quality_rating ?? null,
-        status: json?.status ?? null,
+        status: json?.status ?? json?.code_verification_status ?? null,
         apiVersion,
         error: null,
       };

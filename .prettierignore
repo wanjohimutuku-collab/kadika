@@ -19,6 +19,7 @@ packages/ui-tokens/tokens.css
 apps/mobile/android
 apps/mobile/ios
 .claude
+.agents
 kadisasa-site-kit
 kadisasa_seo_ai_seo_strategy.md
 apps/web/public/ocr

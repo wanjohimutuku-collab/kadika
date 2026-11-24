@@ -60,6 +60,16 @@ const view: GuestMemoriesView = {
       sortOrder: 0,
       width: 1280,
       height: 853,
+      reactions: { heart: 3, clap: 1, cheers: 0, sparkle: 0 },
+      myReactions: ['heart'],
+      messages: [
+        {
+          id: 'msg1',
+          authorName: 'Shangazi <Amina>',
+          body: 'Hongera sana!',
+          createdAt: '2026-11-23T12:00:00Z',
+        },
+      ],
     },
     { id: 'm2', caption: null, takenOn: null, sortOrder: 1, width: 853, height: 1280 },
   ],
@@ -83,6 +93,19 @@ describe('Kumbukumbu guest page (ADR 050)', () => {
     expect(html).toContain('data-testid="memories-list"');
     expect(html).toContain('2 Machi 2019');
     expect(html).toContain('Picha ya kumbukumbu'); // alt text for the photo without a caption
+    expect(html).toContain('Picha 2');
+    // Positive-only reaction buttons & escaped guest messages
+    expect(html).toContain('data-react="heart" data-mid="m1" aria-pressed="true"');
+    expect(html).toContain('data-react="sparkle" data-mid="m1" aria-pressed="false"');
+    expect(html).toContain('Shangazi &lt;Amina&gt;:');
+    expect(html).toContain('data-msg-form="m1"');
+    // E2E relies on `#hp-viewer button` matching only the single close button.
+    const viewerHtml = html.slice(html.indexOf('<dialog id="hp-viewer"'));
+    expect(viewerHtml.match(/<button\b/g)?.length).toBe(1);
+    expect(viewerHtml).toContain('data-prev');
+    expect(viewerHtml).toContain('data-next');
+    expect(viewerHtml).toContain('data-cap');
+    expect(viewerHtml).toContain('data-idx');
   });
 
   it('carries the trust strip and the hosts in the title', () => {

@@ -585,6 +585,26 @@ export function createApp(deps: Deps) {
     if (!bytes) throw new ApiError('not_found', 'Photo not found');
     return c.body(bytes, 200, PHOTO_HEADERS);
   });
+  app.post('/v1/c/:token/memories/:mid/reactions', async (c) => {
+    await cardWrites.check(`ip:${client(c)}`);
+    const { reaction } = parse(z.object({ reaction: z.string().min(1).max(20) }), await body(c));
+    return c.json(
+      await memoriesSvc.toggleReaction(
+        c.req.param('token'),
+        c.req.param('mid'),
+        reaction,
+        cardsSvc,
+      ),
+    );
+  });
+  app.post('/v1/c/:token/memories/:mid/messages', async (c) => {
+    await cardWrites.check(`ip:${client(c)}`);
+    const { body: msgBody } = parse(z.object({ body: z.string().max(500) }), await body(c));
+    return c.json(
+      await memoriesSvc.addMessage(c.req.param('token'), c.req.param('mid'), msgBody, cardsSvc),
+      201,
+    );
+  });
   app.post('/v1/c/:token/reminders/opt-out', async (c) => {
     await cardWrites.check(`ip:${client(c)}`);
     const ok = await deliverySvc.optOutReminders(hashGuestToken(c.req.param('token')));

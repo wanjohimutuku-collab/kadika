@@ -283,7 +283,7 @@ export const GEO_PAGES: ContentPageDef[] = [
       nav: 'Digital invitations in Tanzania',
       title: 'Digital Invitation Cards in Tanzania | Kadi Sasa',
       description:
-        'Digital invitation cards for Tanzanian celebrations: weddings, send-offs, kitchen parties and graduations. WhatsApp, SMS or paper, prices in TZS and an offline gate.',
+        'Digital invitation cards in Tanzania for weddings, send-offs, kitchen parties & graduations. Send via WhatsApp, SMS or PDF with offline QR check-in.',
       h1: 'Digital invitation cards in Tanzania',
       answer:
         'Kadi Sasa is a digital invitation service built in Tanzania. It sends every guest their own card by WhatsApp, SMS or on paper, shows prices in Tanzanian shillings, and its QR gate works even when the venue has no network, from Dar es Salaam to Kigoma.',

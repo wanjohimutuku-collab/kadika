@@ -17,7 +17,6 @@ import { sortedTiers, type PricingCatalog } from '@harusi/schemas/billing';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { ALL_PAGES, getPage, marketOf, pagePath, textOf } from '@/content';
 import { homeCopy } from '@/content/home';
-import { SeoLinks } from '@/components/public/seo-links';
 import { ORG_ID, SITE_URL, absoluteLocaleUrl, localeUrl, organizationNode } from '@/lib/seo';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
@@ -29,6 +28,7 @@ import { Hero } from './home/hero';
 import { HeroLive } from './home/hero-live';
 import { OccasionShowcase } from './home/occasion-showcase';
 import { FeatureStrip } from './home/feature-strip';
+import { GalleryShowcase } from './home/gallery-showcase';
 import { PricingTeaser } from './home/pricing-teaser';
 import { CtaBand } from './home/cta-band';
 import {
@@ -144,12 +144,8 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
           ? ['WhatsApp + SMS + PDF', 'Majibu (RSVP)', 'Lango bila mtandao', 'Daftari la Michango']
           : ['WhatsApp + SMS + PDF', 'Guest RSVP', 'Offline QR Gate', 'Michango Ledger'];
 
-  const homeCounterparts =
-    market === 'tz' ? ['/ke', '/ug'] : market === 'ke' ? ['/', '/ug'] : ['/', '/ke'];
-
   return (
     <main>
-      <SeoLinks path={path} locale={locale} counterpartPath={homeCounterparts} />
       <JsonLd
         data={{
           '@context': 'https://schema.org',
@@ -216,6 +212,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
                 'Printable A6, A5 and A4 QR cards',
                 'RSVP and headcount tracking',
                 'Optional michango and pledge tracking',
+                'Private guest photo gallery (Kumbukumbu)',
                 'Offline Android QR gate and reception check-in',
               ],
               offers:
@@ -444,6 +441,8 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
           />
         </Container>
       </section>
+
+      <GalleryShowcase locale={locale} primaryHref={primaryHref} />
 
       <QuickworkDarkReliability locale={locale}>
         <section aria-labelledby="programu" className="pt-2">

@@ -359,26 +359,30 @@ export function Faq({
   title,
   items,
   eyebrow,
+  emitSchema = true,
 }: {
   id?: string;
   title: string;
   items: { q: string; a: string }[];
   eyebrow?: string;
+  emitSchema?: boolean;
 }) {
   return (
     <section aria-labelledby={id} className="bg-white py-16 md:py-24">
       <Container className="grid gap-10 md:grid-cols-[0.78fr_1.22fr] md:gap-14">
-        <JsonLd
-          data={{
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: items.map((f) => ({
-              '@type': 'Question',
-              name: f.q,
-              acceptedAnswer: { '@type': 'Answer', text: f.a },
-            })),
-          }}
-        />
+        {emitSchema ? (
+          <JsonLd
+            data={{
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: items.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            }}
+          />
+        ) : null}
         <div className="flex flex-col gap-5 md:sticky md:top-28 md:self-start">
           <div className="flex flex-col gap-3">
             {eyebrow ? (

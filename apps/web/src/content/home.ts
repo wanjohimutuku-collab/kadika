@@ -679,7 +679,7 @@ function en(p: PriceFacts, domain: string): HomeCopy {
   return {
     title: 'E-Cards & Digital Invitations in Tanzania | Kadi Sasa',
     description:
-      'Create digital e-cards and invitation cards in Tanzania for weddings, send-offs, birthdays, graduations & corporate events. Send via WhatsApp, SMS or PDF, track RSVPs & scan QR offline.',
+      'Create digital e-cards and wedding invitations in Tanzania. Send via WhatsApp, SMS or PDF, track RSVPs & michango, and scan QR codes offline.',
     hero: {
       h1: 'Invitations for every event. From weddings to corporate galas.',
       sub: 'Send personalised QR cards by WhatsApp, SMS or paper. Track RSVPs, headcount and contributions, and check guests in at the door even without network.',

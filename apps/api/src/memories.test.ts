@@ -410,3 +410,66 @@ describe('sending the memories link', () => {
     expect(decodeURIComponent(r.body!.waUrl.split('text=')[1])).toContain(r.body!.url);
   });
 });
+
+describe('guest positive reactions and short messages', () => {
+  it('toggles positive reactions and rejects non-positive ones', async () => {
+    const { t, evId, g } = await setup();
+    await pay(evId);
+    const up = await upload(t, evId, await photo(), { caption: 'Posa' });
+    const m = (await up.json()) as { id: string };
+
+    const bad = await api(ctx, 'POST', `/v1/c/${g.cardToken}/memories/${m.id}/reactions`, {
+      body: { reaction: 'angry' },
+    });
+    expect(bad.status).toBe(400);
+
+    const r1 = await api(ctx, 'POST', `/v1/c/${g.cardToken}/memories/${m.id}/reactions`, {
+      body: { reaction: 'heart' },
+    });
+    expect(r1.status).toBe(200);
+    expect(r1.body).toEqual({
+      reactions: { heart: 1, clap: 0, cheers: 0, sparkle: 0 },
+      myReactions: ['heart'],
+    });
+
+    // Second toggle removes it
+    const r2 = await api(ctx, 'POST', `/v1/c/${g.cardToken}/memories/${m.id}/reactions`, {
+      body: { reaction: 'heart' },
+    });
+    expect(r2.status).toBe(200);
+    expect(r2.body).toEqual({
+      reactions: { heart: 0, clap: 0, cheers: 0, sparkle: 0 },
+      myReactions: [],
+    });
+  });
+
+  it('adds short guest messages, enforces limits, and surfaces them to guest & host', async () => {
+    const { t, evId, g } = await setup();
+    await pay(evId);
+    const up = await upload(t, evId, await photo(), { caption: 'Zanzibar' });
+    const m = (await up.json()) as { id: string };
+
+    const tooLong = await api(ctx, 'POST', `/v1/c/${g.cardToken}/memories/${m.id}/messages`, {
+      body: { body: 'x'.repeat(141) },
+    });
+    expect(tooLong.status).toBe(400);
+
+    const created = await api(ctx, 'POST', `/v1/c/${g.cardToken}/memories/${m.id}/messages`, {
+      body: { body: '  Hongera sana\nAsha na Juma!  ' },
+    });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({
+      authorName: 'Bibi Pendo',
+      body: 'Hongera sana Asha na Juma!',
+    });
+
+    const guestView = await api(ctx, 'GET', `/v1/c/${g.cardToken}/memories`);
+    expect(guestView.status).toBe(200);
+    expect(guestView.body!.memories[0]!.messages).toHaveLength(1);
+    expect(guestView.body!.memories[0]!.messages[0]!.authorName).toBe('Bibi Pendo');
+
+    const hostView = await api(ctx, 'GET', `/v1/events/${evId}/memories`, { token: t });
+    expect(hostView.status).toBe(200);
+    expect(hostView.body!.memories[0]!.messages).toHaveLength(1);
+  });
+});

@@ -66,12 +66,18 @@ export function ogImages(locale: Locale, market: Market = 'tz') {
 /** The organisation node every page's structured data shares, by `@id` (one entity, not one per page). */
 export const ORG_ID = `${SITE_URL}/#org`;
 export function organizationNode(description?: string) {
+  const sameAs = (process.env.NEXT_PUBLIC_SOCIAL_URLS ?? '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter((u) => u.startsWith('https://'));
+  const supportPhone = (process.env.NEXT_PUBLIC_SUPPORT_PHONE ?? '').trim();
   return {
     '@type': 'Organization',
     '@id': ORG_ID,
     name: DEFAULT_BRANDING.businessName,
     url: SITE_URL,
     logo: { '@type': 'ImageObject', url: `${SITE_URL}/icons/512.png`, width: 512, height: 512 },
+    ...(sameAs.length ? { sameAs } : {}),
     ...(description ? { description } : {}),
     address: {
       '@type': 'PostalAddress',
@@ -92,12 +98,15 @@ export function organizationNode(description?: string) {
       'WhatsApp and SMS event invitations',
       'Wedding RSVP management',
       'Michango, harambee, and pledge card contribution tracking',
+      'Kumbukumbu private guest photo galleries',
       'Offline QR code gate check-in',
     ],
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
+      url: `${SITE_URL}/contact`,
       email: 'faragha@kadisasa.com',
+      ...(supportPhone ? { telephone: supportPhone } : {}),
       availableLanguage: ['sw', 'en'],
     },
   };

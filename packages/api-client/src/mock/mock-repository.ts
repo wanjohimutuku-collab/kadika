@@ -108,10 +108,12 @@ import type {
   GuestMemoriesView,
   MemoriesAdminView,
   Memory,
+  MemoryMessage,
   MemoryUpload,
   MemoryPhotoSize,
+  PositiveReaction,
 } from '../types';
-import { STAFF_PERMISSIONS } from '../types';
+import { POSITIVE_REACTIONS, STAFF_PERMISSIONS } from '../types';
 import { advanceStatus, funnelCounts, STATUS_RANK } from '../domain/funnel';
 import { applyGuestQuery } from '../domain/guest-filter';
 import { pledgeTotals, summarizePledge } from '../domain/pledge';
@@ -2496,6 +2498,64 @@ export class MockRepository implements Repository {
       card: { ...card, pledge: null, qrPayload: '' },
       memories: this.memoriesOf(card.event.id),
     };
+  }
+
+  toggleMemoryReaction(
+    token: string,
+    memoryId: string,
+    reaction: PositiveReaction,
+  ): Promise<{ reactions: Record<PositiveReaction, number>; myReactions: PositiveReaction[] }> {
+    return this.run('write', 'reaction', () => {
+      if (!POSITIVE_REACTIONS.includes(reaction))
+        throw new RepositoryError('validation', 'Only positive reactions are allowed');
+      const card = this.cardView(token);
+      if (card.state !== 'ok' || !card.event || !this.memoriesAvailable(card.event.id))
+        throw new RepositoryError('not_found', 'Memories are not available');
+      const list = (this.state.memories ??= {})[card.event.id] ?? [];
+      const m = list.find((x) => x.id === memoryId);
+      if (!m) throw new RepositoryError('not_found', 'Memory not found');
+      const reactions: Record<PositiveReaction, number> = {
+        heart: m.reactions?.heart ?? 0,
+        clap: m.reactions?.clap ?? 0,
+        cheers: m.reactions?.cheers ?? 0,
+        sparkle: m.reactions?.sparkle ?? 0,
+      };
+      const mine = new Set<PositiveReaction>(m.myReactions ?? []);
+      if (mine.has(reaction)) {
+        mine.delete(reaction);
+        reactions[reaction] = Math.max(0, reactions[reaction] - 1);
+      } else {
+        mine.add(reaction);
+        reactions[reaction] = reactions[reaction] + 1;
+      }
+      m.reactions = reactions;
+      m.myReactions = [...mine];
+      this.persist();
+      return { reactions, myReactions: m.myReactions };
+    });
+  }
+
+  addMemoryMessage(token: string, memoryId: string, body: string): Promise<MemoryMessage> {
+    return this.run('write', 'message', () => {
+      const card = this.cardView(token);
+      if (card.state !== 'ok' || !card.event || !this.memoriesAvailable(card.event.id))
+        throw new RepositoryError('not_found', 'Memories are not available');
+      const list = (this.state.memories ??= {})[card.event.id] ?? [];
+      const m = list.find((x) => x.id === memoryId);
+      if (!m) throw new RepositoryError('not_found', 'Memory not found');
+      const clean = body.replace(/[\r\n\t]+/g, ' ').trim();
+      if (!clean || clean.length > 140)
+        throw new RepositoryError('validation', 'Message must be 1 to 140 characters');
+      const msg: MemoryMessage = {
+        id: this.rng.uuid(),
+        authorName: card.guest?.displayName ?? 'Mgeni',
+        body: clean,
+        createdAt: iso(this.now()),
+      };
+      m.messages = [...(m.messages ?? []), msg];
+      this.persist();
+      return msg;
+    });
   }
 
   opsSetMemoriesLimit(eventId: string, limit: number, note: string): Promise<{ limit: number }> {

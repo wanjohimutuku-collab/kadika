@@ -729,6 +729,47 @@ export const memories = pgTable(
   (t) => [index('memories_event_idx').on(t.eventId, t.sortOrder)],
 );
 
+/**
+ * Positive-only reactions (heart, clap, cheers, sparkle) on Kumbukumbu photos by invited guests.
+ */
+export const memoryReactions = pgTable(
+  'memory_reactions',
+  {
+    id: id(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    reaction: text('reaction').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('memory_reactions_unique_idx').on(t.memoryId, t.guestId, t.reaction),
+    index('memory_reactions_memory_idx').on(t.memoryId),
+  ],
+);
+
+/**
+ * Short congratulatory messages left by invited guests on Kumbukumbu photos (≤ 140 chars).
+ */
+export const memoryMessages = pgTable(
+  'memory_messages',
+  {
+    id: id(),
+    memoryId: uuid('memory_id')
+      .notNull()
+      .references(() => memories.id, { onDelete: 'cascade' }),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('memory_messages_memory_idx').on(t.memoryId, t.createdAt)],
+);
+
 export const smsCampaignStatusEnum = pgEnum('sms_campaign_status', [
   'scheduled',
   'running',

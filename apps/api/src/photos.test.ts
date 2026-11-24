@@ -81,6 +81,33 @@ describe('processPhoto', () => {
       details: { reason: 'too_large' },
     });
   });
+
+  it('produces compact WebP tiers for detailed photos', async () => {
+    const w = 1600;
+    const h = 1200;
+    const raw = Buffer.alloc(w * h * 3);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const idx = (y * w + x) * 3;
+        raw[idx] = Math.round(128 + 90 * Math.sin(x / 95) * Math.cos(y / 70));
+        raw[idx + 1] = Math.round(115 + 85 * Math.cos((x + y) / 110));
+        raw[idx + 2] = Math.round(135 + 80 * Math.sin(y / 85));
+      }
+    }
+    const png = new Uint8Array(
+      await sharp(raw, { raw: { width: w, height: h, channels: 3 } })
+        .png()
+        .toBuffer(),
+    );
+    const out = await processPhoto(png);
+    const fullMeta = await sharp(out.full).metadata();
+    expect(fullMeta.format).toBe('webp');
+    expect(fullMeta.exif).toBeUndefined();
+    expect(out.thumb.length).toBeLessThan(out.medium.length);
+    expect(out.medium.length).toBeLessThan(out.full.length);
+    expect(out.full.length).toBeLessThan(png.length);
+    expect(out.full.length).toBeLessThan(150 * 1024);
+  });
 });
 
 describe('MemoryPhotoStore', () => {

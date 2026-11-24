@@ -79,8 +79,10 @@ import type {
   GuestMemoriesView,
   MemoriesAdminView,
   Memory,
+  MemoryMessage,
   MemoryUpload,
   MemoryPhotoSize,
+  PositiveReaction,
 } from './types';
 
 /**
@@ -284,6 +286,14 @@ export interface Repository {
   getMemoriesLink(guestId: string): Promise<{ url: string; waUrl: string | null }>;
   /** Public: the guest's page by card token. */
   getGuestMemories(token: string): Promise<GuestMemoriesView>;
+  /** Public: toggle a positive reaction on a memory photo using a guest's card token. */
+  toggleMemoryReaction(
+    token: string,
+    memoryId: string,
+    reaction: PositiveReaction,
+  ): Promise<{ reactions: Record<PositiveReaction, number>; myReactions: PositiveReaction[] }>;
+  /** Public: post a short congratulatory message on a memory photo (≤ 140 chars). */
+  addMemoryMessage(token: string, memoryId: string, body: string): Promise<MemoryMessage>;
   /** Staff with the `plan` permission: how many photos the event may hold. */
   opsSetMemoriesLimit(eventId: string, limit: number, note: string): Promise<{ limit: number }>;
 

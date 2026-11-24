@@ -11,7 +11,6 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { SeoLinks } from '@/components/public/seo-links';
 import { OrnamentDiamond } from '@/components/card/ornament';
 import { JsonLd } from '@/components/site/json-ld';
 import { CompareTable, Eyebrow, Faq, PillLink } from '@/components/site/blocks';
@@ -161,7 +160,6 @@ export default async function PricingPage() {
 
   return (
     <main data-testid="pricing" className="bg-ks-paper">
-      <SeoLinks path={PRICING_PATH} locale={locale} />
       {/* Prices come from the same live catalogue as the tiers below; offers only once charging is on. */}
       <JsonLd
         data={{
@@ -517,6 +515,7 @@ export default async function PricingPage() {
         title={locale === 'sw' ? 'Maswali kuhusu bei' : 'Pricing questions'}
         eyebrow={locale === 'sw' ? 'Maswali' : 'FAQ'}
         items={pricingFaqs}
+        emitSchema={false}
       />
 
       {guideLinks.length ? (

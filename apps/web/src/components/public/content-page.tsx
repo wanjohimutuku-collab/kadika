@@ -4,10 +4,16 @@ import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { ArrowUpRight } from 'lucide-react';
 import { Eyebrow, FaqList, PillLink } from '@/components/site/blocks';
 import { cn } from '@/lib/cn';
-import { SeoLinks } from '@/components/public/seo-links';
 import { formatDate } from '@/lib/format';
-import { ORG_ID, SITE_URL, absoluteLocaleUrl, localeUrl, organizationNode } from '@/lib/seo';
-import { ALL_PAGES, counterpartOf, marketOf, pagePath, resolveRelated, textOf } from '@/content';
+import {
+  ORG_ID,
+  SITE_URL,
+  absoluteLocaleUrl,
+  localeUrl,
+  ogImages,
+  organizationNode,
+} from '@/lib/seo';
+import { ALL_PAGES, marketOf, pagePath, resolveRelated, textOf } from '@/content';
 import type { Block, ContentPageDef } from '@/content/types';
 
 const UI = {
@@ -156,6 +162,15 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
   const url = absoluteLocaleUrl(path, locale);
   const name = DEFAULT_BRANDING.businessName;
   const org = { '@id': ORG_ID };
+  const authorNode =
+    page.schema === 'Article'
+      ? {
+          '@type': 'Person',
+          name: 'Kadi Sasa Editorial Team',
+          url: `${SITE_URL}/about`,
+          worksFor: org,
+        }
+      : org;
   const graph: Record<string, unknown>[] = [
     organizationNode(),
     {
@@ -163,13 +178,15 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       '@id': `${url}#page`,
       url,
       name: t.title,
-      ...(page.schema === 'Article' ? { headline: t.h1 } : {}),
+      ...(page.schema === 'Article'
+        ? { headline: t.h1, image: ogImages(locale, market)[0]?.url }
+        : {}),
       description: t.description,
       inLanguage: `${locale}-${market.toUpperCase()}`,
       dateModified: page.updated,
       datePublished: page.updated,
       isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#site`, name, url: SITE_URL },
-      author: org,
+      author: authorNode,
       publisher: org,
       speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu-fupi'] },
     },
@@ -215,6 +232,24 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       ],
     },
   ];
+  if (page.group === 'guide') {
+    const firstOl = t.sections
+      .flatMap((s) => s.blocks)
+      .find((b): b is Extract<Block, { t: 'ol' }> => b.t === 'ol');
+    if (firstOl?.items.length) {
+      graph.push({
+        '@type': 'HowTo',
+        name: t.h1,
+        description: t.answer,
+        step: firstOl.items.map((text, idx) => ({
+          '@type': 'HowToStep',
+          position: idx + 1,
+          name: text.split(':')[0]?.trim() || `Step ${idx + 1}`,
+          text,
+        })),
+      });
+    }
+  }
   if (t.faq?.length)
     graph.push({
       '@type': 'FAQPage',
@@ -232,11 +267,9 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
   const t = textOf(page, locale);
   const ui = UI[locale];
   const market = marketOf(page);
-  const path = pagePath(page, locale);
   const related = page.related
     .map((s) => resolveRelated(page, s))
     .filter((p): p is ContentPageDef => !!p);
-  const counterpart = counterpartOf(page);
   const showToc = t.sections.length >= 3;
   const marketLabel =
     market === 'ke'
@@ -260,13 +293,6 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
                 : 'Legal';
   return (
     <main>
-      <SeoLinks
-        path={path}
-        locale={locale}
-        counterpartPath={counterpart ? pagePath(counterpart, locale) : undefined}
-        enPath={market === 'tz' ? pagePath(page, 'en') : undefined}
-        swPath={market === 'tz' ? pagePath(page, 'sw') : undefined}
-      />
       <script
         type="application/ld+json"
         // Static, server-built object; `<` is escaped so the JSON cannot close the tag.

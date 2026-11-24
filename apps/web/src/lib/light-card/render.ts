@@ -83,6 +83,8 @@ const ICONS = {
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.1-17.1 1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   whatsapp:
     '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+  images:
+    '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
   x: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6m0-6 6 6"/>',
 };
 export const icon = (name: keyof typeof ICONS, cls = ''): string =>
@@ -447,8 +449,10 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
   const hasPhone = !!phoneRaw;
   const fromCommittee = senderKind === 'committee';
   const trust = trustStrip(view, locale, o.domain);
+  const memoriesSubtitle =
+    locale === 'sw' ? 'Tazama picha za kumbukumbu za harusi' : 'Open the private photo gallery';
   const memoriesLink = view.memoriesAvailable
-    ? `<section class="no-print"><a class="btn block" href="/c/${encodeURIComponent(view.token)}/kumbukumbu" data-testid="card-memories">${esc(m.memories.openCardMemories)}</a></section>`
+    ? `<section class="no-print"><a class="btn accent block" style="justify-content:space-between;padding:12px 16px;min-height:60px;text-align:left" href="/c/${encodeURIComponent(view.token)}/kumbukumbu" data-testid="card-memories"><span style="display:flex;align-items:center;gap:12px">${icon('images')}<span><span style="display:block;font-weight:700">${esc(m.memories.openCardMemories)}</span><span style="display:block;font-size:13px;font-weight:400;color:var(--muted)">${esc(memoriesSubtitle)}</span></span></span><span aria-hidden="true">→</span></a></section>`
     : '';
 
   const confirmed = view.rsvp.status === 'confirmed';

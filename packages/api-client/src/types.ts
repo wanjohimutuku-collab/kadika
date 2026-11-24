@@ -391,6 +391,16 @@ export interface CardView {
   isMock: boolean;
 }
 
+export const POSITIVE_REACTIONS = ['heart', 'clap', 'cheers', 'sparkle'] as const;
+export type PositiveReaction = (typeof POSITIVE_REACTIONS)[number];
+
+export interface MemoryMessage {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: ISODate;
+}
+
 /** One Kumbukumbu photo (ADR 050). `takenOn` is `YYYY-MM-DD`. */
 export interface Memory {
   id: string;
@@ -399,6 +409,9 @@ export interface Memory {
   sortOrder: number;
   width: number;
   height: number;
+  reactions?: Record<PositiveReaction, number>;
+  myReactions?: PositiveReaction[];
+  messages?: MemoryMessage[];
 }
 
 export interface MemoriesAdminView {

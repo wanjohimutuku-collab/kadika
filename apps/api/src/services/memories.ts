@@ -1,5 +1,13 @@
-import { and, asc, count, eq, sql } from 'drizzle-orm';
-import { eventPurchases, events, memories, newId } from '@harusi/db';
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
+import {
+  eventPurchases,
+  events,
+  guests,
+  memories,
+  memoryMessages,
+  memoryReactions,
+  newId,
+} from '@harusi/db';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
 import { processPhoto } from '../photos/process';
@@ -9,6 +17,16 @@ import type { CardService } from './cards';
 import type { EventService } from './events';
 import { requireStaff, type StaffCaller } from './staff-guard';
 
+export const POSITIVE_REACTIONS = ['heart', 'clap', 'cheers', 'sparkle'] as const;
+export type PositiveReaction = (typeof POSITIVE_REACTIONS)[number];
+
+export interface MemoryMessageView {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
 export interface MemoryView {
   id: string;
   caption: string | null;
@@ -16,6 +34,9 @@ export interface MemoryView {
   sortOrder: number;
   width: number;
   height: number;
+  reactions: Record<PositiveReaction, number>;
+  myReactions?: PositiveReaction[];
+  messages: MemoryMessageView[];
 }
 
 export interface MemoriesAdminView {
@@ -27,15 +48,41 @@ export interface MemoriesAdminView {
 }
 
 const DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const MAX_MESSAGES_PER_GUEST_PER_PHOTO = 5;
+const MAX_MESSAGES_PER_PHOTO = 30;
 
-const view = (m: typeof memories.$inferSelect): MemoryView => ({
+const emptyReactions = (): Record<PositiveReaction, number> => ({
+  heart: 0,
+  clap: 0,
+  cheers: 0,
+  sparkle: 0,
+});
+
+const view = (
+  m: typeof memories.$inferSelect,
+  reactions = emptyReactions(),
+  messages: MemoryMessageView[] = [],
+  myReactions?: PositiveReaction[],
+): MemoryView => ({
   id: m.id,
   caption: m.caption,
   takenOn: m.takenOn,
   sortOrder: m.sortOrder,
   width: m.width,
   height: m.height,
+  reactions,
+  ...(myReactions ? { myReactions } : {}),
+  messages,
 });
+
+/** Trimmed, single-line congratulatory wish, 1 to 140 characters. */
+export function cleanMemoryMessage(v: string): string {
+  const s = v.replace(/[\r\n\t]+/g, ' ').trim();
+  if (!s) throw new ApiError('validation', 'Message cannot be empty', { field: 'body' });
+  if (s.length > 140)
+    throw new ApiError('validation', 'Message is at most 140 characters', { field: 'body' });
+  return s;
+}
 
 /** Trimmed, at most 140 characters; empty means none. `undefined` leaves it unchanged. */
 export function cleanCaption(v: string | null | undefined): string | null | undefined {
@@ -130,6 +177,74 @@ export class MemoriesService {
     return event;
   }
 
+  private async hydrate(
+    rows: (typeof memories.$inferSelect)[],
+    viewerGuestId?: string,
+  ): Promise<MemoryView[]> {
+    if (rows.length === 0) return [];
+    const ids = rows.map((r) => r.id);
+    const [reactRows, msgRows] = await Promise.all([
+      this.deps.db
+        .select({
+          memoryId: memoryReactions.memoryId,
+          guestId: memoryReactions.guestId,
+          reaction: memoryReactions.reaction,
+        })
+        .from(memoryReactions)
+        .where(inArray(memoryReactions.memoryId, ids)),
+      this.deps.db
+        .select({
+          id: memoryMessages.id,
+          memoryId: memoryMessages.memoryId,
+          body: memoryMessages.body,
+          createdAt: memoryMessages.createdAt,
+          authorName: guests.displayName,
+        })
+        .from(memoryMessages)
+        .innerJoin(guests, eq(guests.id, memoryMessages.guestId))
+        .where(inArray(memoryMessages.memoryId, ids))
+        .orderBy(asc(memoryMessages.createdAt)),
+    ]);
+
+    const reactionMap = new Map<string, Record<PositiveReaction, number>>();
+    const myMap = new Map<string, Set<PositiveReaction>>();
+    for (const r of reactRows) {
+      if (!POSITIVE_REACTIONS.includes(r.reaction as PositiveReaction)) continue;
+      const key = r.reaction as PositiveReaction;
+      const counts = reactionMap.get(r.memoryId) ?? emptyReactions();
+      counts[key] += 1;
+      reactionMap.set(r.memoryId, counts);
+      if (viewerGuestId && r.guestId === viewerGuestId) {
+        const mine = myMap.get(r.memoryId) ?? new Set<PositiveReaction>();
+        mine.add(key);
+        myMap.set(r.memoryId, mine);
+      }
+    }
+
+    const msgMap = new Map<string, MemoryMessageView[]>();
+    for (const msg of msgRows) {
+      const list = msgMap.get(msg.memoryId) ?? [];
+      if (list.length < MAX_MESSAGES_PER_PHOTO) {
+        list.push({
+          id: msg.id,
+          authorName: msg.authorName,
+          body: msg.body,
+          createdAt: msg.createdAt.toISOString(),
+        });
+        msgMap.set(msg.memoryId, list);
+      }
+    }
+
+    return rows.map((m) =>
+      view(
+        m,
+        reactionMap.get(m.id) ?? emptyReactions(),
+        msgMap.get(m.id) ?? [],
+        viewerGuestId ? [...(myMap.get(m.id) ?? [])] : undefined,
+      ),
+    );
+  }
+
   async list(eventId: string, userId: string): Promise<MemoriesAdminView> {
     await this.assertStaff(eventId, userId);
     const event = await this.event(eventId);
@@ -139,7 +254,7 @@ export class MemoriesService {
       enabled: event.memoriesEnabled,
       limit: event.memoriesLimit,
       count: rows.length,
-      memories: rows.map(view),
+      memories: await this.hydrate(rows),
     };
   }
 
@@ -299,8 +414,11 @@ export class MemoriesService {
     return n > 0;
   }
 
-  /** The event a guest's token opens. Never says why it is unavailable: guests hear nothing of payments. */
-  async guestEvent(token: string, cards: CardService): Promise<string> {
+  /** The event and guest a card token opens. Never says why it is unavailable: guests hear nothing of payments. */
+  async guestAccess(
+    token: string,
+    cards: CardService,
+  ): Promise<{ eventId: string; guestId: string }> {
     const r = await cards.resolveToken(token);
     if (r.state !== 'ok')
       throw r.state === 'reissued'
@@ -310,16 +428,119 @@ export class MemoriesService {
       throw new ApiError('not_found', 'Memories are not available', {
         reason: 'memories_unavailable',
       });
-    return r.eventId;
+    return { eventId: r.eventId, guestId: r.guestId };
+  }
+
+  /** The event a guest's token opens. */
+  async guestEvent(token: string, cards: CardService): Promise<string> {
+    return (await this.guestAccess(token, cards)).eventId;
   }
 
   /** The guest's page: the card's names, theme and trust details, and the photos (no storage keys). */
   async forGuest(token: string, cards: CardService) {
-    const eventId = await this.guestEvent(token, cards);
+    const { eventId, guestId } = await this.guestAccess(token, cards);
     const card = await cards.preview(token);
     return {
       card: { ...card, pledge: null, qrPayload: '' },
-      memories: (await this.rows(eventId)).map(view),
+      memories: await this.hydrate(await this.rows(eventId), guestId),
+    };
+  }
+
+  /** Toggle one positive reaction for the guest identified by their card token. */
+  async toggleReaction(
+    token: string,
+    memoryId: string,
+    reaction: string,
+    cards: CardService,
+  ): Promise<{ reactions: Record<PositiveReaction, number>; myReactions: PositiveReaction[] }> {
+    if (!POSITIVE_REACTIONS.includes(reaction as PositiveReaction)) {
+      throw new ApiError('validation', 'Only positive reactions are allowed', {
+        field: 'reaction',
+      });
+    }
+    const { eventId, guestId } = await this.guestAccess(token, cards);
+    const [mem] = await this.deps.db
+      .select({ id: memories.id })
+      .from(memories)
+      .where(and(eq(memories.id, memoryId), eq(memories.eventId, eventId)));
+    if (!mem) throw new ApiError('not_found', 'Memory not found');
+
+    const [existing] = await this.deps.db
+      .select({ id: memoryReactions.id })
+      .from(memoryReactions)
+      .where(
+        and(
+          eq(memoryReactions.memoryId, memoryId),
+          eq(memoryReactions.guestId, guestId),
+          eq(memoryReactions.reaction, reaction),
+        ),
+      );
+    if (existing) {
+      await this.deps.db.delete(memoryReactions).where(eq(memoryReactions.id, existing.id));
+    } else {
+      await this.deps.db.insert(memoryReactions).values({
+        id: newId(),
+        memoryId,
+        guestId,
+        reaction,
+      });
+    }
+
+    const all = await this.deps.db
+      .select({ guestId: memoryReactions.guestId, reaction: memoryReactions.reaction })
+      .from(memoryReactions)
+      .where(eq(memoryReactions.memoryId, memoryId));
+    const reactions = emptyReactions();
+    const mine = new Set<PositiveReaction>();
+    for (const r of all) {
+      if (!POSITIVE_REACTIONS.includes(r.reaction as PositiveReaction)) continue;
+      const k = r.reaction as PositiveReaction;
+      reactions[k] += 1;
+      if (r.guestId === guestId) mine.add(k);
+    }
+    return { reactions, myReactions: [...mine] };
+  }
+
+  /** Append a short guest message (1–140 chars) onto a memory photo. */
+  async addMessage(
+    token: string,
+    memoryId: string,
+    rawBody: string,
+    cards: CardService,
+  ): Promise<MemoryMessageView> {
+    const body = cleanMemoryMessage(rawBody);
+    const { eventId, guestId } = await this.guestAccess(token, cards);
+    const [mem] = await this.deps.db
+      .select({ id: memories.id })
+      .from(memories)
+      .where(and(eq(memories.id, memoryId), eq(memories.eventId, eventId)));
+    if (!mem) throw new ApiError('not_found', 'Memory not found');
+
+    const [{ n } = { n: 0 }] = await this.deps.db
+      .select({ n: count() })
+      .from(memoryMessages)
+      .where(and(eq(memoryMessages.memoryId, memoryId), eq(memoryMessages.guestId, guestId)));
+    if (n >= MAX_MESSAGES_PER_GUEST_PER_PHOTO) {
+      throw new ApiError('validation', 'Message limit reached for this photo', {
+        reason: 'message_limit',
+      });
+    }
+
+    const id = newId();
+    const [inserted] = await this.deps.db
+      .insert(memoryMessages)
+      .values({ id, memoryId, guestId, body })
+      .returning({ createdAt: memoryMessages.createdAt });
+    const [guest] = await this.deps.db
+      .select({ displayName: guests.displayName })
+      .from(guests)
+      .where(eq(guests.id, guestId));
+
+    return {
+      id,
+      authorName: guest?.displayName ?? 'Mgeni',
+      body,
+      createdAt: (inserted?.createdAt ?? this.deps.now()).toISOString(),
     };
   }
 }

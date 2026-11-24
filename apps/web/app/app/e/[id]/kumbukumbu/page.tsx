@@ -4,7 +4,19 @@ import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Images, ImagePlus, Lock, Pencil, Send, Trash2, X } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  Images,
+  ImagePlus,
+  Lock,
+  Pencil,
+  Send,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { isRepositoryError, type Memory } from '@harusi/api-client';
 import type { Locale } from '@harusi/i18n';
 import { PageHeader } from '@/components/console/page-header';
@@ -49,6 +61,8 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
   const refresh = () => qc.invalidateQueries({ queryKey: qk.memories(id) });
   const file = useRef<HTMLInputElement>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const [editing, setEditing] = useState<Memory | null>(null);
   const [deleting, setDeleting] = useState<Memory | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
@@ -203,29 +217,49 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                   <p className="text-muted" data-testid="memories-count">
                     {t('count', { count: v.count, limit: v.limit })}
                   </p>
-                  <p className="text-sm text-muted">{t('chooseMany')}</p>
-                  <input
-                    ref={file}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    className="sr-only"
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    data-testid="memory-file"
-                    onChange={(e) => {
-                      choose([...(e.target.files ?? [])], v.limit - v.count);
-                      e.target.value = '';
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (v.count + drafts.length < v.limit && !add.isPending) setDragging(true);
                     }}
-                  />
-                  <Button
-                    variant={drafts.length ? 'secondary' : 'primary'}
-                    icon={<ImagePlus className="size-5" aria-hidden="true" />}
-                    onClick={() => file.current?.click()}
-                    disabled={v.count + drafts.length >= v.limit || add.isPending}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragging(false);
+                      if (v.count + drafts.length >= v.limit || add.isPending) return;
+                      const dropped = [...e.dataTransfer.files].filter((f) =>
+                        ['image/jpeg', 'image/png', 'image/webp'].includes(f.type),
+                      );
+                      if (dropped.length) choose(dropped, v.limit - v.count);
+                    }}
+                    className={`flex flex-col items-start gap-3 rounded-card border-2 border-dashed p-4 transition ${
+                      dragging ? 'border-primary bg-primary/8' : 'border-border bg-bg/50'
+                    }`}
                   >
-                    {t('add')}
-                  </Button>
+                    <p className="text-sm text-muted">{t('chooseMany')}</p>
+                    <input
+                      ref={file}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      className="sr-only"
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      data-testid="memory-file"
+                      onChange={(e) => {
+                        choose([...(e.target.files ?? [])], v.limit - v.count);
+                        e.target.value = '';
+                      }}
+                    />
+                    <Button
+                      variant={drafts.length ? 'secondary' : 'primary'}
+                      icon={<ImagePlus className="size-5" aria-hidden="true" />}
+                      onClick={() => file.current?.click()}
+                      disabled={v.count + drafts.length >= v.limit || add.isPending}
+                    >
+                      {t('add')}
+                    </Button>
+                  </div>
                   {v.count >= v.limit ? (
                     <Banner tone="warning">{t('full', { limit: v.limit })}</Banner>
                   ) : null}
@@ -321,17 +355,49 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
                     <li key={m.id}>
                       <Card as="article">
                         <div className="flex flex-col gap-2">
-                          <MemoryPhoto
-                            eventId={id}
-                            memoryId={m.id}
-                            alt={m.caption ?? t('photoAltNoCaption')}
-                            width={m.width}
-                            height={m.height}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => setPreviewIdx(i)}
+                            className="group relative block overflow-hidden rounded-card text-left focus-visible:outline-3 focus-visible:outline-primary"
+                            aria-label={m.caption ?? t('photoAltNoCaption')}
+                          >
+                            <MemoryPhoto
+                              eventId={id}
+                              memoryId={m.id}
+                              alt={m.caption ?? t('photoAltNoCaption')}
+                              width={m.width}
+                              height={m.height}
+                              className="h-auto w-full rounded-card transition-transform duration-300 group-hover:scale-[1.02]"
+                            />
+                          </button>
                           {m.takenOn ? (
                             <p className="text-sm text-muted">{formatDate(m.takenOn, locale)}</p>
                           ) : null}
                           {m.caption ? <p>{m.caption}</p> : null}
+                          {m.reactions || (m.messages && m.messages.length > 0) ? (
+                            <div className="flex flex-col gap-1.5 rounded-card border border-border bg-bg/60 p-2.5 text-xs">
+                              {m.reactions &&
+                              (m.reactions.heart ||
+                                m.reactions.clap ||
+                                m.reactions.cheers ||
+                                m.reactions.sparkle) ? (
+                                <div className="flex flex-wrap gap-2 font-semibold text-ink">
+                                  {m.reactions.heart ? <span>❤️ {m.reactions.heart}</span> : null}
+                                  {m.reactions.clap ? <span>👏 {m.reactions.clap}</span> : null}
+                                  {m.reactions.cheers ? <span>🥂 {m.reactions.cheers}</span> : null}
+                                  {m.reactions.sparkle ? (
+                                    <span>✨ {m.reactions.sparkle}</span>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                              {m.messages?.slice(-3).map((msg) => (
+                                <p key={msg.id} className="text-muted">
+                                  <span className="font-semibold text-ink">{msg.authorName}:</span>{' '}
+                                  {msg.body}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
                           {editing?.id === m.id ? (
                             <div className="flex flex-col gap-3">
                               <TextField
@@ -435,6 +501,81 @@ export default function MemoriesPage({ params }: { params: Promise<{ id: string 
           if (deleting) remove.mutate(deleting);
         }}
       />
+      {previewIdx !== null && q.data?.memories[previewIdx] ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={q.data.memories[previewIdx]!.caption ?? t('photoAltNoCaption')}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/88 p-4"
+          onClick={() => setPreviewIdx(null)}
+        >
+          <div
+            className="relative flex max-h-[90dvh] w-full max-w-3xl flex-col items-center gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex w-full items-center justify-between text-sm text-white/85">
+              <span className="tabular font-medium">
+                {previewIdx + 1} / {q.data.memories.length}
+              </span>
+              <button
+                type="button"
+                aria-label={tc('close')}
+                onClick={() => setPreviewIdx(null)}
+                className="inline-flex size-10 items-center justify-center rounded-full bg-white text-black"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="relative flex w-full items-center justify-center">
+              {q.data.memories.length > 1 ? (
+                <button
+                  type="button"
+                  aria-label={locale === 'sw' ? 'Iliyotangulia' : 'Previous'}
+                  onClick={() =>
+                    setPreviewIdx(
+                      (previewIdx - 1 + q.data.memories.length) % q.data.memories.length,
+                    )
+                  }
+                  className="absolute left-2 z-10 inline-flex size-10 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/30"
+                >
+                  <ChevronLeft className="size-6" aria-hidden="true" />
+                </button>
+              ) : null}
+              <MemoryPhoto
+                eventId={id}
+                memoryId={q.data.memories[previewIdx]!.id}
+                alt={q.data.memories[previewIdx]!.caption ?? t('photoAltNoCaption')}
+                width={q.data.memories[previewIdx]!.width}
+                height={q.data.memories[previewIdx]!.height}
+                size="full"
+                className="max-h-[75dvh] w-auto max-w-full rounded-card object-contain"
+              />
+              {q.data.memories.length > 1 ? (
+                <button
+                  type="button"
+                  aria-label={locale === 'sw' ? 'Inayofuata' : 'Next'}
+                  onClick={() => setPreviewIdx((previewIdx + 1) % q.data.memories.length)}
+                  className="absolute right-2 z-10 inline-flex size-10 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/30"
+                >
+                  <ChevronRight className="size-6" aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+            {q.data.memories[previewIdx]!.caption || q.data.memories[previewIdx]!.takenOn ? (
+              <p className="text-center text-sm text-white/90">
+                {[
+                  q.data.memories[previewIdx]!.takenOn
+                    ? formatDate(q.data.memories[previewIdx]!.takenOn!, locale)
+                    : '',
+                  q.data.memories[previewIdx]!.caption ?? '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

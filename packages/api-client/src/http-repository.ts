@@ -60,6 +60,8 @@ import type {
   StaffRole,
   WeddingEvent,
   Memory,
+  MemoryMessage,
+  PositiveReaction,
 } from './types';
 import { toCsv } from '@harusi/schemas/import';
 
@@ -1487,6 +1489,31 @@ export function createHttpRepository(
     }
     const j = r.json as unknown as { card: ApiCard; memories: Memory[] };
     return { card: mapCard(token, j.card), memories: j.memories };
+  };
+  impl.toggleMemoryReaction = async (token, memoryId, reaction) => {
+    const r = await raw(
+      'POST',
+      `/v1/c/${encodeURIComponent(token)}/memories/${encodeURIComponent(memoryId)}/reactions`,
+      { reaction },
+      {},
+      false,
+    );
+    if (r.status >= 400) return fail(r.status, r.json as never);
+    return r.json as unknown as {
+      reactions: Record<PositiveReaction, number>;
+      myReactions: PositiveReaction[];
+    };
+  };
+  impl.addMemoryMessage = async (token, memoryId, body) => {
+    const r = await raw(
+      'POST',
+      `/v1/c/${encodeURIComponent(token)}/memories/${encodeURIComponent(memoryId)}/messages`,
+      { body },
+      {},
+      false,
+    );
+    if (r.status >= 400) return fail(r.status, r.json as never);
+    return r.json as unknown as MemoryMessage;
   };
   impl.opsSetMemoriesLimit = (eventId, limit, note) =>
     call('PATCH', `/v1/ops/events/${encodeURIComponent(eventId)}/memories-limit`, {

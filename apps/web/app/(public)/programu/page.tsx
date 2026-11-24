@@ -14,7 +14,6 @@ import {
   Ticket,
 } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { SeoLinks } from '@/components/public/seo-links';
 import { buttonClasses } from '@/components/ui/button';
 import { OrnamentDiamond } from '@/components/card/ornament';
 import { JsonLd } from '@/components/site/json-ld';
@@ -103,7 +102,6 @@ export default async function AppDownloadPage() {
 
   return (
     <main data-testid="app-download" data-state={available ? 'available' : 'soon'}>
-      <SeoLinks path={APP_DOWNLOAD_PATH} locale={locale} />
       <JsonLd
         data={{
           '@context': 'https://schema.org',

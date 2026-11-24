@@ -15,6 +15,7 @@ import {
   DoorOpen,
   Eye,
   HandCoins,
+  Images,
   MapPin,
   MessageSquareWarning,
   Send,
@@ -59,10 +60,16 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const t = useTranslations('overview');
   const ts = useTranslations('status');
+  const tm = useTranslations('memories');
   const locale = useLocale() as Locale;
   const event = useEvent(id);
   const cur = useEventCurrency(id);
   const session = useSession();
+  const memories = useQuery({
+    queryKey: qk.memories(id),
+    queryFn: () => getRepository().listMemories(id),
+    enabled: session.data?.role !== 'gate',
+  });
   const activity = useQuery({
     queryKey: qk.activity(id),
     queryFn: () => getRepository().listActivity(id, 12),
@@ -226,6 +233,30 @@ function CardsOverviewPage({ params }: { params: Promise<{ id: string }> }) {
                 </span>
               </span>
             </Link>
+
+            {session.data?.role !== 'gate' ? (
+              <Link
+                href={`/app/e/${id}/kumbukumbu`}
+                className="flex items-center gap-4 rounded-card border border-border bg-surface p-4 transition hover:border-primary/50 hover:bg-primary/4"
+                data-testid="overview-memories-link"
+              >
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                  aria-hidden="true"
+                >
+                  <Images className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{tm('title')}</span>
+                  <span className="block text-sm text-muted">
+                    {memories.data?.unlocked
+                      ? tm('count', { count: memories.data.count, limit: memories.data.limit })
+                      : tm('intro')}
+                  </span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-muted" aria-hidden="true" />
+              </Link>
+            ) : null}
 
             {alerts.length ? (
               <section aria-labelledby="alerts-h" className="flex flex-col gap-2">

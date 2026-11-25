@@ -8,9 +8,18 @@ const { editionTargets } = await import('./site-nav');
 const PRIVATE = /\/(k|c|s|login|app|ops|dev)(\/|$)/;
 
 describe('sitemaps', () => {
-  it('indexes one child sitemap per edition', () => {
+  it('indexes one child sitemap per edition with lastmod dates', () => {
     const xml = renderIndex();
     for (const e of ['sw', 'en', 'ke', 'ug']) expect(xml).toContain(`/sitemaps/${e}.xml</loc>`);
+    expect(xml).toContain('<lastmod>2026-11-25</lastmod>');
+  });
+
+  it('gives core pages explicit lastmod dates', () => {
+    const en = sitemapEntries('en');
+    for (const path of ['/', '/bei', '/programu']) {
+      const hit = en.find((e) => new URL(e.loc).pathname === path);
+      expect(hit?.lastmod, path).toBe('2026-11-25');
+    }
   });
 
   it('lists each edition in its own language and leaves private surfaces out', () => {

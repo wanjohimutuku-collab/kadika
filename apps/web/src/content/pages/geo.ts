@@ -1,6 +1,6 @@
 import type { ContentPageDef } from '../types';
 
-const UPDATED = '2026-11-05';
+const UPDATED = '2026-11-25';
 
 /**
  * Pages added for search and AI answers (2026-11): the occasion and market pages the SEO strategy lists

@@ -17,11 +17,7 @@ The delivery service always hands the provider both the plain text and a structu
 ## Cloud API setup
 
 1. Create a Meta app with the WhatsApp product, a business phone number, and a system-user token (`WHATSAPP_TOKEN`) and the phone number id (`WHATSAPP_PHONE_ID`).
-2. Create **utility** (and **authentication** for OTP) templates in Swahili and English (same names, one per language `sw` and `en`) and set `WHATSAPP_TEMPLATE_INVITE` / `WHATSAPP_TEMPLATE_REMINDER` / `WHATSAPP_TEMPLATE_PLEDGE` / `WHATSAPP_TEMPLATE_CONTRIBUTION` / `WHATSAPP_TEMPLATE_MEMORIES` / `WHATSAPP_TEMPLATE_OTP`. Suggested bodies (variables must be numbered, and cannot start or end the text):
-   - invite: `Karibu kwenye harusi ya {{1}} & {{2}}, {{3}}. Kadi yako: {{4}} Namba: {{5}}. Asante.`
-   - reminder: `Kumbukumbu: harusi ya {{1}} & {{2}} ni baada ya siku {{3}}. Kadi yako: {{4}} Namba: {{5}}. Asante.`
-   - contribution: `{{2}} anakukaribisha kushiriki mchango wa sherehe ya {{1}}. Fungua kadi: {{3}}.`
-   - otp: `Namba yako ya uthibitisho ni {{1}}. Usimpe mtu yeyote.`
+2. Create **utility** (and **authentication** for OTP) templates in Swahili and English (same names, one per language `sw` and `en`) and set `WHATSAPP_TEMPLATE_INVITE` / `WHATSAPP_TEMPLATE_REMINDER` / `WHATSAPP_TEMPLATE_PLEDGE` / `WHATSAPP_TEMPLATE_CONTRIBUTION` / `WHATSAPP_TEMPLATE_MEMORIES` / `WHATSAPP_TEMPLATE_OTP`. The wording lives in `infra/whatsapp/templates.json` and is submitted by `infra/ops/whatsapp-templates.ps1`; see `docs/ops/whatsapp-templates.md`.
 3. Webhook: callback URL `https://<api>/v1/webhooks/whatsapp-cloud`, verify token = `WHATSAPP_VERIFY_TOKEN`, app secret = `WHATSAPP_APP_SECRET`, subscribe to `messages`. `GET` answers Meta's handshake; `POST` requires a valid `X-Hub-Signature-256` and maps `sent/delivered/read/failed` to our statuses.
 4. Without a template name the provider sends plain text, which only works inside the 24-hour customer window; first contact then fails and the SMS fallback takes over.
 

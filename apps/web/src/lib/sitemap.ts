@@ -18,6 +18,8 @@ export interface SitemapEntry {
   alternates: Record<string, string>;
 }
 
+const CORE_UPDATED = '2026-11-25';
+
 const weight = (p: ContentPageDef) =>
   p.slug === '' ? 1 : p.group === 'legal' ? 0.3 : p.group === 'product' ? 0.9 : 0.7;
 
@@ -34,9 +36,9 @@ export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
   }[] =
     market === 'tz'
       ? [
-          { path: '/', counterpart: ['/ke', '/ug'], priority: 1 },
-          { path: PRICING_PATH, priority: 0.8 },
-          { path: APP_DOWNLOAD_PATH, priority: 0.6 },
+          { path: '/', counterpart: ['/ke', '/ug'], updated: CORE_UPDATED, priority: 1 },
+          { path: PRICING_PATH, updated: CORE_UPDATED, priority: 0.8 },
+          { path: APP_DOWNLOAD_PATH, updated: CORE_UPDATED, priority: 0.6 },
         ]
       : [];
   for (const p of ALL_PAGES) {
@@ -87,8 +89,13 @@ export function renderUrlset(entries: SitemapEntry[]): string {
 export const childSitemapUrl = (e: SiteEdition) => `${SITE_URL}/sitemaps/${e}.xml`;
 
 export function renderIndex(): string {
-  const items = SITEMAP_EDITIONS.map(
-    (e) => `<sitemap><loc>${childSitemapUrl(e)}</loc></sitemap>`,
-  ).join('\n');
+  const items = SITEMAP_EDITIONS.map((e) => {
+    const latest = sitemapEntries(e)
+      .map((entry) => entry.lastmod)
+      .filter((d): d is string => Boolean(d))
+      .sort()
+      .at(-1);
+    return `<sitemap><loc>${childSitemapUrl(e)}</loc>${latest ? `<lastmod>${latest}</lastmod>` : ''}</sitemap>`;
+  }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${items}\n</sitemapindex>\n`;
 }

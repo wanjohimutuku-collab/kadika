@@ -1,0 +1,124 @@
+{
+  "$comment": "kadisasa_invite and kadisasa_invite_ke were rejected (INCORRECT_CATEGORY) and deleted on 2026-11-25; Meta blocks those names until 2026-12-25, so invites use kadisasa_card / kadisasa_card_ke. WhatsApp Cloud API message templates (ADR 020, 026, 050, 058). Source of truth for infra/ops/whatsapp-templates.ps1 and docs/ops/whatsapp-templates.md. Parameter order must match apps/api/src/services/delivery.ts and auth/otp.ts. Rules: variables appear in order {{1}}, {{2}}, ...; none at the start or end of a body; no two side by side; every variable needs an example.",
+  "templates": [
+    {
+      "kind": "invite",
+      "country": "TZ",
+      "env": "WHATSAPP_TEMPLATE_INVITE",
+      "name": "kadisasa_card",
+      "category": "UTILITY",
+      "imageHeader": true,
+      "params": ["Host A", "Host B", "Date", "Card link", "Card number"],
+      "example": ["Neema", "Baraka", "14 Des 2026", "https://kadisasa.com/s/abc123", "KH-4821"],
+      "body": {
+        "sw": "Kadi yako ya mwaliko wa sherehe ya {{1}} na {{2}} tarehe {{3}} iko tayari. Ifungue hapa: {{4}} Namba ya kadi yako ni {{5}}. Ionyeshe getini siku ya sherehe.",
+        "en": "Your invitation card for the celebration of {{1}} and {{2}} on {{3}} is ready. Open it here: {{4}} Your card number is {{5}}. Show it at the entrance on the day."
+      }
+    },
+    {
+      "kind": "reminder",
+      "country": "TZ",
+      "env": "WHATSAPP_TEMPLATE_REMINDER",
+      "name": "kadisasa_reminder",
+      "category": "UTILITY",
+      "imageHeader": true,
+      "params": ["Host A", "Host B", "Days left", "Card link", "Card number"],
+      "example": ["Neema", "Baraka", "7", "https://kadisasa.com/s/abc123", "KH-4821"],
+      "body": {
+        "sw": "Ukumbusho: sherehe ya {{1}} na {{2}} imebaki siku {{3}}. Kadi yako ya mwaliko: {{4}} Namba ya kadi: {{5}}. Tunakusubiri.",
+        "en": "Reminder: the celebration of {{1}} and {{2}} is in {{3}} days. Your invitation card: {{4}} Card number: {{5}}. We look forward to seeing you."
+      }
+    },
+    {
+      "kind": "invite",
+      "country": "KE",
+      "env": "WHATSAPP_TEMPLATE_INVITE_KE",
+      "name": "kadisasa_card_ke",
+      "category": "UTILITY",
+      "imageHeader": true,
+      "params": ["Hosts", "Date", "Card link", "Card number"],
+      "example": ["Wanjiru & Otieno", "16 Jan 2027", "https://kadisasa.co.ke/s/abc123", "KH-4821"],
+      "body": {
+        "sw": "Kadi yako ya mwaliko kutoka kwa {{1}} kwa sherehe ya tarehe {{2}} iko tayari. Ifungue hapa: {{3}} Namba ya kadi yako ni {{4}}. Ionyeshe getini siku ya sherehe.",
+        "en": "Your invitation card from {{1}} for the celebration on {{2}} is ready. Open it here: {{3}} Your card number is {{4}}. Show it at the entrance on the day."
+      }
+    },
+    {
+      "kind": "reminder",
+      "country": "KE",
+      "env": "WHATSAPP_TEMPLATE_REMINDER_KE",
+      "name": "kadisasa_reminder_ke",
+      "category": "UTILITY",
+      "imageHeader": true,
+      "params": ["Hosts", "Days left", "Card link", "Card number"],
+      "example": ["Wanjiru & Otieno", "7", "https://kadisasa.co.ke/s/abc123", "KH-4821"],
+      "body": {
+        "sw": "Ukumbusho: sherehe ya {{1}} ni baada ya siku {{2}}. Kadi yako ya mwaliko: {{3}} Namba ya kadi: {{4}}. Tunakusubiri.",
+        "en": "Reminder: the celebration hosted by {{1}} is in {{2}} days. Your invitation card: {{3}} Card number: {{4}}. We look forward to seeing you."
+      }
+    },
+    {
+      "kind": "pledge",
+      "country": "TZ,KE",
+      "env": "WHATSAPP_TEMPLATE_PLEDGE, WHATSAPP_TEMPLATE_PLEDGE_KE",
+      "name": "kadisasa_pledge",
+      "category": "UTILITY",
+      "imageHeader": false,
+      "params": ["Guest name", "Hosts", "Pledged amount", "Balance", "Card link"],
+      "example": [
+        "Asha Mwinyi",
+        "Neema & Baraka",
+        "TZS 100,000",
+        "TZS 40,000",
+        "https://kadisasa.com/s/abc123"
+      ],
+      "body": {
+        "sw": "Habari {{1}}, huu ni ukumbusho wa ahadi yako ya mchango kwa sherehe ya {{2}}. Ahadi: {{3}}. Salio: {{4}}. Angalia kadi yako hapa: {{5}} Asante kwa mchango wako.",
+        "en": "Hello {{1}}, this is a reminder of your pledge to the celebration of {{2}}. Pledged: {{3}}. Balance: {{4}}. View your card here: {{5}} Thank you for your support."
+      }
+    },
+    {
+      "kind": "contribution",
+      "country": "TZ,KE",
+      "env": "WHATSAPP_TEMPLATE_CONTRIBUTION, WHATSAPP_TEMPLATE_CONTRIBUTION_KE",
+      "name": "kadisasa_contribution",
+      "category": "UTILITY",
+      "imageHeader": true,
+      "params": ["Hosts", "Sender or committee", "Card link"],
+      "example": ["Neema & Baraka", "Kamati ya Harusi", "https://kadisasa.com/s/abc123"],
+      "body": {
+        "sw": "Habari! Unakaribishwa kuchangia sherehe ya {{1}}. Mwaliko huu umetumwa na {{2}}. Fungua kadi yako ya mchango hapa: {{3}} Asante.",
+        "en": "Hello! You are invited to contribute to the celebration of {{1}}. This invitation is sent by {{2}}. Open your contribution card here: {{3}} Thank you."
+      }
+    },
+    {
+      "kind": "memories",
+      "country": "TZ,KE",
+      "env": "WHATSAPP_TEMPLATE_MEMORIES, WHATSAPP_TEMPLATE_MEMORIES_KE",
+      "name": "kadisasa_memories",
+      "category": "UTILITY",
+      "imageHeader": false,
+      "params": ["Hosts", "Memories link"],
+      "example": ["Neema & Baraka", "https://kadisasa.com/s/abc123"],
+      "body": {
+        "sw": "Habari! {{1}} wameshiriki nawe kumbukumbu za sherehe yao. Ziangalie hapa: {{2}} Asante kwa kuwa sehemu ya siku yao.",
+        "en": "Hello! {{1}} have shared memories of their celebration with you. See them here: {{2}} Thank you for being part of their day."
+      }
+    },
+    {
+      "kind": "otp",
+      "country": "TZ,KE",
+      "env": "WHATSAPP_TEMPLATE_OTP, WHATSAPP_TEMPLATE_OTP_KE",
+      "name": "kadisasa_otp",
+      "category": "AUTHENTICATION",
+      "imageHeader": false,
+      "params": ["6-digit code"],
+      "example": ["123456"],
+      "codeExpirationMinutes": 5,
+      "body": {
+        "sw": "(Meta's fixed wording: \"{{1}} ni namba yako ya uthibitisho.\" plus a security note)",
+        "en": "(Meta's fixed wording: \"{{1}} is your verification code.\" plus a security note)"
+      }
+    }
+  ]
+}

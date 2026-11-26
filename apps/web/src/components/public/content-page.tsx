@@ -120,14 +120,13 @@ function Blocks({ blocks }: { blocks: Block[] }) {
             );
           case 'table':
             return (
-              <div
-                key={i}
-                className="qw-card overflow-hidden"
-                role="region"
-                aria-label={b.head.join(', ')}
-                tabIndex={0}
-              >
-                <div className="overflow-x-auto">
+              <div key={i} className="qw-card overflow-hidden">
+                <div
+                  className="overflow-x-auto"
+                  role="region"
+                  aria-label={b.head.join(', ')}
+                  tabIndex={0}
+                >
                   <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
                     <thead>
                       <tr className="border-b border-[#e3e8ee] bg-[#f6f9fc]">

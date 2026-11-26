@@ -302,7 +302,7 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
       : occasion === 'sendoff'
         ? t.occSendoffBody
         : // Events made before kinds existed (no kind) keep their cards as they were.
-        occasion === 'wedding' && event.eventKind?.trim()
+          occasion === 'wedding' && event.eventKind?.trim()
           ? t.occWeddingBody
           : undefined;
   const occContrib =
@@ -425,15 +425,16 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
   // Guests pay the hosts directly (ADR 043): the card lists where to send it, unless paying through
   // us was switched back on.
   const payTo = (con.payTo ?? []).filter((a) => a.account.trim());
-  const payDirect = `<div class="panel mt" data-testid="pay-to"><p><b>${esc(t.payToTitle)}</b></p>${payTo.length
-    ? `<ul class="stack" style="list-style:none;padding:0;margin:8px 0 0">${payTo
-      .map(
-        (a) =>
-          `<li><b>${esc(a.label)}</b>: <span style="font-variant-numeric:tabular-nums">${esc(a.account)}</span>${a.name ? ` <span class="muted">(${esc(a.name)})</span>` : ''}</li>`,
-      )
-      .join('')}</ul>`
-    : `<p class="muted mt">${esc(t.payToNone)}</p>`
-    }<p class="muted mt" style="font-size:14px">${esc(t.payToDirect)}</p></div>`;
+  const payDirect = `<div class="panel mt" data-testid="pay-to"><p><b>${esc(t.payToTitle)}</b></p>${
+    payTo.length
+      ? `<ul class="stack" style="list-style:none;padding:0;margin:8px 0 0">${payTo
+          .map(
+            (a) =>
+              `<li><b>${esc(a.label)}</b>: <span style="font-variant-numeric:tabular-nums">${esc(a.account)}</span>${a.name ? ` <span class="muted">(${esc(a.name)})</span>` : ''}</li>`,
+          )
+          .join('')}</ul>`
+      : `<p class="muted mt">${esc(t.payToNone)}</p>`
+  }<p class="muted mt" style="font-size:14px">${esc(t.payToDirect)}</p></div>`;
   const payButton = paidInFull
     ? `<p class="mt"><b>✔ ${esc(t.pledgePaidInFull)}</b></p>`
     : event.onlinePay
@@ -447,16 +448,19 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
   const collected = view.contributionCollected ?? null;
   const suggested = (con.suggestedAmounts ?? []).filter((n) => n > 0);
   const contributionSection = isContribution
-    ? `<section class="no-print" data-testid="contribution-section"><h2>${esc(L(con.title) ? say(L(con.title)!) : t.pledgeTitle)}</h2>${event.pledgesEnabled
-      ? `${shown(con.show, 'target') && target > 0 ? `<p class="mt" data-testid="contribution-target"><b>${esc(fmt(t.contribTarget!, { target: formatMoney(target, cur) }))}</b></p>` : ''}${shown(con.show, 'progress', false) && target > 0 && collected !== null
-        ? `<div class="bar mt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((collected / target) * 100))}" aria-label="${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}"><span style="width:${Math.min(100, Math.round((collected / target) * 100))}%"></span></div><p class="muted" style="font-size:14px">${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}</p>`
-        : ''
-      }${con.deadline ? `<p class="muted mt" style="font-size:14px">${esc(fmt(t.contribDeadline!, { date: formatDateShort(`${con.deadline}T12:00:00Z`, locale) }))}</p>` : ''}${pledgeSummary.replace('<p ', '<p class="mt" ')}${suggested.length && !paidInFull
-        ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => (event.onlinePay ? `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>` : `<span class="btn" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</span>`)).join('')}</div>`
-        : ''
-      }${payButton}${L(con.payNote) ? paras(L(con.payNote)!, ' class="muted mt"') : ''}`
-      : `<div class="banner warning mt">${esc(t.contribClosed)}</div>`
-    }</section>`
+    ? `<section class="no-print" data-testid="contribution-section"><h2>${esc(L(con.title) ? say(L(con.title)!) : t.pledgeTitle)}</h2>${
+        event.pledgesEnabled
+          ? `${shown(con.show, 'target') && target > 0 ? `<p class="mt" data-testid="contribution-target"><b>${esc(fmt(t.contribTarget!, { target: formatMoney(target, cur) }))}</b></p>` : ''}${
+              shown(con.show, 'progress', false) && target > 0 && collected !== null
+                ? `<div class="bar mt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((collected / target) * 100))}" aria-label="${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}"><span style="width:${Math.min(100, Math.round((collected / target) * 100))}%"></span></div><p class="muted" style="font-size:14px">${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}</p>`
+                : ''
+            }${con.deadline ? `<p class="muted mt" style="font-size:14px">${esc(fmt(t.contribDeadline!, { date: formatDateShort(`${con.deadline}T12:00:00Z`, locale) }))}</p>` : ''}${pledgeSummary.replace('<p ', '<p class="mt" ')}${
+              suggested.length && !paidInFull
+                ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => (event.onlinePay ? `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>` : `<span class="btn" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</span>`)).join('')}</div>`
+                : ''
+            }${payButton}${L(con.payNote) ? paras(L(con.payNote)!, ' class="muted mt"') : ''}`
+          : `<div class="banner warning mt">${esc(t.contribClosed)}</div>`
+      }</section>`
     : '';
 
   const hasPhone = !!phoneRaw;
@@ -511,9 +515,9 @@ ${L(inv.dressNote) ? paras(L(inv.dressNote)!, ' class="muted mt"') : ''}
 ${venueNote ? paras(venueNote, ' class="muted mt"') : ''}</section>`;
   const closing = isContribution
     ? [L(con.thanks), L(con.closing)]
-      .filter(Boolean)
-      .map((x) => paras(x!))
-      .join('')
+        .filter(Boolean)
+        .map((x) => paras(x!))
+        .join('')
     : L(inv.closing)
       ? paras(L(inv.closing)!)
       : '';
@@ -588,17 +592,17 @@ ${closingSection}
 
   const title = isContribution
     ? fmt(t.contribMeta!, {
-      couple: event.coupleNames,
-      kind: kindLower,
-      kindOf: kindOfName.toLowerCase(),
-    })
+        couple: event.coupleNames,
+        kind: kindLower,
+        kindOf: kindOfName.toLowerCase(),
+      })
     : fmt(t.metaTitle!, { couple: event.coupleNames, kind: kindName, kindOf: kindOfName });
   const description = isContribution
     ? fmt(t.contribMetaDescription!, { sender })
     : fmt(t.metaDescription!, {
-      date: formatDate(event.dateStart, locale),
-      venue: event.venueName,
-    });
+        date: formatDate(event.dateStart, locale),
+        venue: event.venueName,
+      });
   // The link preview is the guest's real card in the organiser's chosen template (ADR 058), the
   // same PNG WhatsApp media sends, not a generic design.
   const ogImage = `${o.origin ?? `https://${o.domain}`}${cardImgPath}`;

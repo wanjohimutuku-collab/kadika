@@ -321,7 +321,10 @@ export interface Repository {
   /** Launch-gate numbers for one country (or all), for the pilot dashboard (Phase 5). */
   opsPilotMetrics(opts?: { country?: Country | 'all'; days?: number }): Promise<PilotMetrics>;
   /** Weekly growth funnel & attribution report by country (Prompt 9). */
-  opsGrowthReport(opts?: { country?: Country | 'UG' | 'all'; weeks?: number }): Promise<GrowthReport>;
+  opsGrowthReport(opts?: {
+    country?: Country | 'UG' | 'all';
+    weeks?: number;
+  }): Promise<GrowthReport>;
   opsLookup(query: string): Promise<OpsLookupResult>;
   opsRevealPhone(
     target: { kind: 'guest' | 'organizer'; id: string },

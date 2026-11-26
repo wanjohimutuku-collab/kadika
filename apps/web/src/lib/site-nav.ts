@@ -1,5 +1,12 @@
 import type { Locale } from '@harusi/i18n';
-import { ALL_PAGES, counterpartOf, counterpartsOf, marketOf, pageBySlug, pagePath } from '@/content';
+import {
+  ALL_PAGES,
+  counterpartOf,
+  counterpartsOf,
+  marketOf,
+  pageBySlug,
+  pagePath,
+} from '@/content';
 import type { ContentPageDef } from '@/content/types';
 import { localeUrl, marketOfPath } from './seo';
 

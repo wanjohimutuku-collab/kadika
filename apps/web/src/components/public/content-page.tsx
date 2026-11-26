@@ -182,11 +182,11 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
   const authorNode =
     page.schema === 'Article'
       ? {
-        '@type': 'Person',
-        name: 'Kadi Sasa Editorial Team',
-        url: `${SITE_URL}/about`,
-        worksFor: org,
-      }
+          '@type': 'Person',
+          name: 'Kadi Sasa Editorial Team',
+          url: `${SITE_URL}/about`,
+          worksFor: org,
+        }
       : org;
   const graph: Record<string, unknown>[] = [
     organizationNode(),
@@ -209,17 +209,17 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
     },
     ...(page.group === 'product'
       ? [
-        {
-          '@type': 'Service',
-          '@id': `${url}#service`,
-          name: t.h1,
-          description: t.answer,
-          url,
-          provider: org,
-          areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
-          availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
-        },
-      ]
+          {
+            '@type': 'Service',
+            '@id': `${url}#service`,
+            name: t.h1,
+            description: t.answer,
+            url,
+            provider: org,
+            areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
+            availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
+          },
+        ]
       : []),
     {
       '@type': 'BreadcrumbList',
@@ -232,13 +232,13 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
         },
         ...(market !== 'tz' && page.slug
           ? [
-            {
-              '@type': 'ListItem',
-              position: 2,
-              name: market === 'ke' ? UI[locale].kenya : UI[locale].uganda,
-              item: absoluteLocaleUrl(`/${market}`, locale),
-            },
-          ]
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: market === 'ke' ? UI[locale].kenya : UI[locale].uganda,
+                item: absoluteLocaleUrl(`/${market}`, locale),
+              },
+            ]
           : []),
         {
           '@type': 'ListItem',
@@ -515,9 +515,7 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
           aria-label={ui.related}
           className="mx-auto flex w-full max-w-[1120px] flex-col gap-6 px-4 pb-20 md:px-6"
         >
-          <h2 className="text-[26px] font-bold tracking-[-0.02em] text-[#0a2640]">
-            {ui.related}
-          </h2>
+          <h2 className="text-[26px] font-bold tracking-[-0.02em] text-[#0a2640]">{ui.related}</h2>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((r) => {
               const rt = textOf(r, locale);

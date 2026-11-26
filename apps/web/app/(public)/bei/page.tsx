@@ -405,10 +405,7 @@ export default async function PricingPage() {
                 </span>
               </li>
               {(['qr', 'rsvp', 'gate', 'print'] as const).map((k) => (
-                <li
-                  key={k}
-                  className="qw-card flex items-center gap-3 bg-white px-4 py-3.5"
-                >
+                <li key={k} className="qw-card flex items-center gap-3 bg-white px-4 py-3.5">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#f6f9fc] text-[#5469d4]">
                     <CheckCircle2 className="size-4" aria-hidden="true" />
                   </span>
@@ -421,7 +418,10 @@ export default async function PricingPage() {
       </section>
 
       {c.packs.length ? (
-        <section className="mx-auto max-w-[1120px] px-4 pt-14 pb-12 md:px-6" aria-labelledby="packs-h">
+        <section
+          className="mx-auto max-w-[1120px] px-4 pt-14 pb-12 md:px-6"
+          aria-labelledby="packs-h"
+        >
           <h2
             id="packs-h"
             className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] text-[#0a2640] md:text-[32px]"

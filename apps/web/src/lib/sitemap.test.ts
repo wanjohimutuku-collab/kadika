@@ -12,7 +12,9 @@ describe('sitemaps', () => {
   it('indexes one child sitemap per edition with latest 2026-11-26 lastmod dates', () => {
     const xml = renderIndex();
     for (const e of ['sw', 'en', 'ke', 'ug']) {
-      expect(xml).toContain(`<loc>https://kadisasa.com/sitemaps/${e}.xml</loc><lastmod>2026-11-26</lastmod>`);
+      expect(xml).toContain(
+        `<loc>https://kadisasa.com/sitemaps/${e}.xml</loc><lastmod>2026-11-26</lastmod>`,
+      );
     }
   });
 

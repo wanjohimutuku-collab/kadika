@@ -25,11 +25,13 @@ Use this sign-off ledger before deploying or launching paid/organic campaigns fr
 All 6 headline options documented in [apps/web/src/content/home.ts](file:///c:/Users/yusuf/Documents/github/kadika/apps/web/src/content/home.ts):
 
 ### Kiswahili Options (`sw()`)
+
 1. **(Active)** `"Mialiko kamati inayoiamini. Kila mgeni anaingia bila shida."`
 2. `"Kadi za mwaliko kwa kila mgeni, michango bila makato."`
 3. `"Mialiko ya kuaminika kwa familia, kamati na kila mgeni."`
 
 ### English Options (`en()`)
+
 1. **(Active)** `"Digital invitations committees trust. Every guest gets in."`
 2. `"Invitations every guest receives, with 0% cut on michango."`
 3. `"Trusted event invitations for families, committees, and every guest."`
@@ -44,65 +46,66 @@ All 6 headline options documented in [apps/web/src/content/home.ts](file:///c:/U
 ## Prompt 3: Multilingual SEO & EN ↔ SW URL Parity Table
 
 Code updates:
+
 - Direct `/sw/<sw-slug>` hreflangs without 301 hops across `hreflangMap` and cross-market `counterpartsOf()` links.
 - Fixed shared-slug `/sw/...` 404 bug (e.g., `/sw/cookies`, `/sw/privacy`, `/sw/terms`).
 - Fixed `/programu` FAQ/contact links, `pricing-teaser.tsx` login link, and added `/bei` + security guide to `ContentPage` quick links.
 
-| Market | Kiswahili Path | English Path | Cross-Market Counterpart |
-|---|---|---|---|
-| `tz` | `/kadi-ya-harusi-mtandaoni` | `/online-wedding-invitation` | `ke:digital-wedding-invitations-kenya` (from KE side) |
-| `tz` | `/michango-ya-harusi` | `/wedding-contributions` | `ke:wedding-contributions-guide` (from KE side) |
-| `tz` | `/kadi-ya-send-off` | `/send-off-invitation` | — |
-| `tz` | `/kadi-ya-uchumba` | `/engagement-invitation` | — |
-| `tz` | `/kadi-za-mwaliko-mtandaoni` | `/online-invitations` | — |
-| `tz` | `/kadi-ya-kuzaliwa` | `/birthday-invitation` | — |
-| `tz` | `/kadi-ya-kitchen-party` | `/kitchen-party-invitation` | — |
-| `tz` | `/kadi-ya-mahafali` | `/graduation-invitation` | — |
-| `tz` | `/kadi-za-mwaliko-biashara` | `/business-event-invitations` | — |
-| `tz` | `/kadi-za-kanisa` | `/church-event-invitations` | — |
-| `tz` | `/kadi-ya-nikah-na-walima` | `/nikah-and-walima-invitation` | — |
-| `tz` | `/kadi-za-mwaliko-tanzania` | `/wedding-invitations-tanzania` | — |
-| `tz` | `/jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko` | `/choosing-a-wedding-invitation-service` | — |
-| `tz` | `/kamusi-ya-harusi` | `/wedding-glossary` | — |
-| `tz` | `/kadi-za-kidijitali-tanzania` | `/ecards-tanzania` | — |
-| `tz` | `/kadi-ya-harusi-bila-smartphone` | `/wedding-invitation-without-a-smartphone` | — |
-| `tz` | `/usalama-wa-kadi-za-mtandaoni` | `/security-of-online-invitations` | `ke:is-a-digital-wedding-invitation-safe` (from KE side) |
-| `tz` | `/lango-la-harusi-qr` | `/wedding-gate-qr-check-in` | — |
-| `tz` | `/maneno-ya-kadi-ya-harusi` | `/wedding-invitation-wording` | `ke:wedding-invitation-wording` (from KE side) |
-| `tz` | `/kadi-za-harusi-online` | `/online-wedding-cards-whatsapp-sms` | — |
-| `tz` | `/kadi-ya-send-off-kitchen-party` | `/send-off-and-kitchen-party-invitations` | — |
-| `tz` | `/mwaliko-bila-smartphone` | `/invitations-for-elders-without-smartphones` | — |
-| `tz` | `/kadi-sasa-vs-karatasi-na-zana-za-kubuni` | `/kadi-sasa-vs-paper-vs-design-tools` | — |
-| `tz` | `/gharama-halisi-za-huduma-ya-mialiko` | `/what-an-invitation-service-really-costs` | — |
-| `tz` | `/jinsi-ya-kuunda-kadi-ya-harusi-tanzania` | `/how-to-create-a-wedding-invitation-in-tanzania` | — |
-| `tz` | `/kadi-ya-mtandaoni-vs-karatasi` | `/online-vs-paper-wedding-invitations` | — |
-| `tz` | `/kutuma-kadi-za-mwaliko-whatsapp` | `/send-wedding-invitations-whatsapp` | — |
-| `tz` | `/kusimamia-majibu-ya-rsvp` | `/managing-rsvp-responses` | — |
-| `tz` | `/maswali` | `/faq` | — |
-| `tz` | `/kuhusu` | `/about` | — |
-| `tz` | `/mawasiliano` | `/contact` | — |
-| `tz` | `/privacy` (served under `/sw/privacy`) | `/privacy` | `ke:privacy` |
-| `tz` | `/terms` (served under `/sw/terms`) | `/terms` | `ke:terms` |
-| `tz` | `/cookies` (served under `/sw/cookies`) | `/cookies` | — |
-| `tz` | `/ombi-la-data` | `/data-request` | `ke:data-requests` |
-| `tz` | `/matumizi-yanayokubalika` | `/acceptable-use` | — |
-| `ke` | `/ke` (EN canonical) | `/ke` | `/` & `/ug` |
-| `ke` | — | `/ke/wedding-committee-guide` | — |
-| `ke` | — | `/ke/wedding-contributions-guide` | `tz:michango-ya-harusi` |
-| `ke` | — | `/ke/wedding-invitation-wording` | `tz:maneno-ya-kadi-ya-harusi` |
-| `ke` | — | `/ke/is-a-digital-wedding-invitation-safe` | `tz:usalama-wa-kadi-za-mtandaoni` |
-| `ke` | — | `/ke/digital-wedding-invitations-kenya` | `tz:kadi-ya-harusi-mtandaoni` |
-| `ke` | — | `/ke/ruracio-harambee-invitations-contributions` | — |
-| `ke` | — | `/ke/privacy` | `tz:privacy` |
-| `ke` | — | `/ke/terms` | `tz:terms` |
-| `ke` | — | `/ke/data-requests` | `tz:ombi-la-data` |
-| `ug` | — | `/ug` | `/` & `/ke` |
-| `ug` | — | `/ug/kwanjula-kuhingira-digital-invitation` | — |
-| `ug` | — | `/ug/uganda-wedding-pledge-cards-guide` | — |
-| `ug` | — | `/ug/uganda-wedding-committee-guide` | — |
-| `ug` | — | `/ug/ecard-uganda-vs-paper` | — |
+| Market | Kiswahili Path                                 | English Path                                      | Cross-Market Counterpart                                 |
+| ------ | ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
+| `tz`   | `/kadi-ya-harusi-mtandaoni`                    | `/online-wedding-invitation`                      | `ke:digital-wedding-invitations-kenya` (from KE side)    |
+| `tz`   | `/michango-ya-harusi`                          | `/wedding-contributions`                          | `ke:wedding-contributions-guide` (from KE side)          |
+| `tz`   | `/kadi-ya-send-off`                            | `/send-off-invitation`                            | —                                                        |
+| `tz`   | `/kadi-ya-uchumba`                             | `/engagement-invitation`                          | —                                                        |
+| `tz`   | `/kadi-za-mwaliko-mtandaoni`                   | `/online-invitations`                             | —                                                        |
+| `tz`   | `/kadi-ya-kuzaliwa`                            | `/birthday-invitation`                            | —                                                        |
+| `tz`   | `/kadi-ya-kitchen-party`                       | `/kitchen-party-invitation`                       | —                                                        |
+| `tz`   | `/kadi-ya-mahafali`                            | `/graduation-invitation`                          | —                                                        |
+| `tz`   | `/kadi-za-mwaliko-biashara`                    | `/business-event-invitations`                     | —                                                        |
+| `tz`   | `/kadi-za-kanisa`                              | `/church-event-invitations`                       | —                                                        |
+| `tz`   | `/kadi-ya-nikah-na-walima`                     | `/nikah-and-walima-invitation`                    | —                                                        |
+| `tz`   | `/kadi-za-mwaliko-tanzania`                    | `/wedding-invitations-tanzania`                   | —                                                        |
+| `tz`   | `/jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko` | `/choosing-a-wedding-invitation-service`          | —                                                        |
+| `tz`   | `/kamusi-ya-harusi`                            | `/wedding-glossary`                               | —                                                        |
+| `tz`   | `/kadi-za-kidijitali-tanzania`                 | `/ecards-tanzania`                                | —                                                        |
+| `tz`   | `/kadi-ya-harusi-bila-smartphone`              | `/wedding-invitation-without-a-smartphone`        | —                                                        |
+| `tz`   | `/usalama-wa-kadi-za-mtandaoni`                | `/security-of-online-invitations`                 | `ke:is-a-digital-wedding-invitation-safe` (from KE side) |
+| `tz`   | `/lango-la-harusi-qr`                          | `/wedding-gate-qr-check-in`                       | —                                                        |
+| `tz`   | `/maneno-ya-kadi-ya-harusi`                    | `/wedding-invitation-wording`                     | `ke:wedding-invitation-wording` (from KE side)           |
+| `tz`   | `/kadi-za-harusi-online`                       | `/online-wedding-cards-whatsapp-sms`              | —                                                        |
+| `tz`   | `/kadi-ya-send-off-kitchen-party`              | `/send-off-and-kitchen-party-invitations`         | —                                                        |
+| `tz`   | `/mwaliko-bila-smartphone`                     | `/invitations-for-elders-without-smartphones`     | —                                                        |
+| `tz`   | `/kadi-sasa-vs-karatasi-na-zana-za-kubuni`     | `/kadi-sasa-vs-paper-vs-design-tools`             | —                                                        |
+| `tz`   | `/gharama-halisi-za-huduma-ya-mialiko`         | `/what-an-invitation-service-really-costs`        | —                                                        |
+| `tz`   | `/jinsi-ya-kuunda-kadi-ya-harusi-tanzania`     | `/how-to-create-a-wedding-invitation-in-tanzania` | —                                                        |
+| `tz`   | `/kadi-ya-mtandaoni-vs-karatasi`               | `/online-vs-paper-wedding-invitations`            | —                                                        |
+| `tz`   | `/kutuma-kadi-za-mwaliko-whatsapp`             | `/send-wedding-invitations-whatsapp`              | —                                                        |
+| `tz`   | `/kusimamia-majibu-ya-rsvp`                    | `/managing-rsvp-responses`                        | —                                                        |
+| `tz`   | `/maswali`                                     | `/faq`                                            | —                                                        |
+| `tz`   | `/kuhusu`                                      | `/about`                                          | —                                                        |
+| `tz`   | `/mawasiliano`                                 | `/contact`                                        | —                                                        |
+| `tz`   | `/privacy` (served under `/sw/privacy`)        | `/privacy`                                        | `ke:privacy`                                             |
+| `tz`   | `/terms` (served under `/sw/terms`)            | `/terms`                                          | `ke:terms`                                               |
+| `tz`   | `/cookies` (served under `/sw/cookies`)        | `/cookies`                                        | —                                                        |
+| `tz`   | `/ombi-la-data`                                | `/data-request`                                   | `ke:data-requests`                                       |
+| `tz`   | `/matumizi-yanayokubalika`                     | `/acceptable-use`                                 | —                                                        |
+| `ke`   | `/ke` (EN canonical)                           | `/ke`                                             | `/` & `/ug`                                              |
+| `ke`   | —                                              | `/ke/wedding-committee-guide`                     | —                                                        |
+| `ke`   | —                                              | `/ke/wedding-contributions-guide`                 | `tz:michango-ya-harusi`                                  |
+| `ke`   | —                                              | `/ke/wedding-invitation-wording`                  | `tz:maneno-ya-kadi-ya-harusi`                            |
+| `ke`   | —                                              | `/ke/is-a-digital-wedding-invitation-safe`        | `tz:usalama-wa-kadi-za-mtandaoni`                        |
+| `ke`   | —                                              | `/ke/digital-wedding-invitations-kenya`           | `tz:kadi-ya-harusi-mtandaoni`                            |
+| `ke`   | —                                              | `/ke/ruracio-harambee-invitations-contributions`  | —                                                        |
+| `ke`   | —                                              | `/ke/privacy`                                     | `tz:privacy`                                             |
+| `ke`   | —                                              | `/ke/terms`                                       | `tz:terms`                                               |
+| `ke`   | —                                              | `/ke/data-requests`                               | `tz:ombi-la-data`                                        |
+| `ug`   | —                                              | `/ug`                                             | `/` & `/ke`                                              |
+| `ug`   | —                                              | `/ug/kwanjula-kuhingira-digital-invitation`       | —                                                        |
+| `ug`   | —                                              | `/ug/uganda-wedding-pledge-cards-guide`           | —                                                        |
+| `ug`   | —                                              | `/ug/uganda-wedding-committee-guide`              | —                                                        |
+| `ug`   | —                                              | `/ug/ecard-uganda-vs-paper`                       | —                                                        |
 
-*(Note: Core marketing routes `/`, `/sw`, `/bei`, `/sw/bei`, `/programu`, `/sw/programu`, `/ke`, `/ug` are also included in `sitemapEntries`.)*
+_(Note: Core marketing routes `/`, `/sw`, `/bei`, `/sw/bei`, `/programu`, `/sw/programu`, `/ke`, `/ug` are also included in `sitemapEntries`.)_
 
 ---
 
@@ -119,6 +122,7 @@ Code updates:
 ## Prompt 5: Swahili Answer-First Pages (Native Kiswahili Review)
 
 Pages created/expanded in natural Tanzanian Kiswahili (`647–853` Swahili words each):
+
 1. `kadi-za-harusi-online` ([swahili-answers.ts](file:///c:/Users/yusuf/Documents/github/kadika/apps/web/src/content/pages/swahili-answers.ts))
 2. `michango-ya-harusi` ([products.ts](file:///c:/Users/yusuf/Documents/github/kadika/apps/web/src/content/pages/products.ts))
 3. `kadi-ya-send-off-kitchen-party` ([swahili-answers.ts](file:///c:/Users/yusuf/Documents/github/kadika/apps/web/src/content/pages/swahili-answers.ts))
@@ -133,6 +137,7 @@ Pages created/expanded in natural Tanzanian Kiswahili (`647–853` Swahili words
 All non-provable category claims in [apps/web/src/content/pages/comparisons.ts](file:///c:/Users/yusuf/Documents/github/kadika/apps/web/src/content/pages/comparisons.ts) are explicitly tagged `[VERIFY]` and **must be confirmed or removed** before publishing (zero named competitors are criticized):
 
 ### Page 1: `kadi-sasa-vs-karatasi-na-zana-za-kubuni` / `kadi-sasa-vs-paper-vs-design-tools`
+
 - Lines 44–45 / 147–148: Printing & envelope per-card cost vs design subscription lack of SMS/gate.
 - Lines 50–51 / 153–154: Reprinting costs & re-exporting static images when event times/venues change.
 - Lines 56–57 / 159–160: Paper distribution speed for distant relatives; static images not reaching feature phones.
@@ -141,6 +146,7 @@ All non-provable category claims in [apps/web/src/content/pages/comparisons.ts](
 - Lines 81, 95, 119 (SW) & 184, 198, 222 (EN): Prose restatements of reprint/re-export costs, static PDF limitations, and third-party fundraising percentage fees.
 
 ### Page 2: `gharama-halisi-za-huduma-ya-mialiko` / `what-an-invitation-service-really-costs`
+
 - Lines 264, 269, 274, 279, 284 (SW) & 362, 367, 372, 377, 382 (EN): Comparison table claims that print shops charge from card #1, competitor advertised starting prices (explicitly re-verify TZS 1,300 market example if kept), SMS add-on billing, third-party contribution percentage cuts, and online-only gate failure catering waste.
 - Lines 310, 314 (SW) & 408, 412 (EN): Prose risk examples (`TZS 15 million` michango budget illustration & gate catering impact).
 

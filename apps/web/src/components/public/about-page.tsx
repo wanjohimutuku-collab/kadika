@@ -15,13 +15,7 @@ import {
   Users,
   WifiOff,
 } from 'lucide-react';
-import {
-  CtaBand,
-  Container,
-  Faq,
-  PillLink,
-  SectionHeading,
-} from '@/components/site/blocks';
+import { CtaBand, Container, Faq, PillLink, SectionHeading } from '@/components/site/blocks';
 import { JsonLd } from '@/components/site/json-ld';
 import { pagePath, textOf } from '@/content';
 import type { ContentPageDef } from '@/content/types';
@@ -423,10 +417,7 @@ export function AboutPage({
       {principleItems.length ? (
         <section className="bg-white py-16 md:py-24" aria-labelledby="about-principles">
           <Container>
-            <SectionHeading
-              id="about-principles"
-              eyebrow={sw ? 'Maadili yetu' : 'How we build'}
-            >
+            <SectionHeading id="about-principles" eyebrow={sw ? 'Maadili yetu' : 'How we build'}>
               {sw ? 'Misingi mitano inayoongoza kila kadi' : 'Five principles behind every card'}
             </SectionHeading>
             <ul className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">

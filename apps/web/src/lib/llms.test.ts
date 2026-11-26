@@ -20,7 +20,8 @@ describe('llms.txt and llms-full.txt (AIEO / GEO)', () => {
 
   it('keeps disallowed /k out of Main pages and surfaces Swahili, Kenya, and Uganda links', () => {
     const summary = llmsTxt();
-    const mainSection = summary.split('## Main pages')[1]?.split('## Products and occasions')[0] ?? '';
+    const mainSection =
+      summary.split('## Main pages')[1]?.split('## Products and occasions')[0] ?? '';
     expect(mainSection).not.toContain(`${SITE_URL}/k)`);
     expect(summary).toContain('## Swahili edition (Kiswahili)');
     expect(summary).toContain(`${SITE_URL}/sw/bei`);

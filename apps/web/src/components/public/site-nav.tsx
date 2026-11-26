@@ -226,10 +226,7 @@ export function SiteNav({
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className={cn(
-                      linkBase,
-                      active && 'bg-[#f6f9fc] font-semibold text-[#5469d4]',
-                    )}
+                    className={cn(linkBase, active && 'bg-[#f6f9fc] font-semibold text-[#5469d4]')}
                     aria-current={active ? 'page' : undefined}
                   >
                     {l.label}
@@ -258,8 +255,7 @@ export function SiteNav({
                 href={loginLink.href}
                 className={cn(
                   'inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full border border-[#e3e8ee] bg-white px-4 text-[14px] font-semibold text-[#0a2640] transition-colors duration-200 hover:border-[#5469d4]/40 hover:bg-[#f6f9fc] hover:text-[#5469d4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5469d4]',
-                  isActive(loginLink.href) &&
-                    'border-[#5469d4]/40 bg-[#f6f9fc] text-[#5469d4]',
+                  isActive(loginLink.href) && 'border-[#5469d4]/40 bg-[#f6f9fc] text-[#5469d4]',
                 )}
                 aria-current={isActive(loginLink.href) ? 'page' : undefined}
               >
@@ -372,8 +368,7 @@ export function SiteNav({
                   href={loginLink.href}
                   className={cn(
                     'inline-flex min-h-12 w-full items-center justify-center rounded-full border border-[#e3e8ee] bg-white px-4 text-sm font-semibold text-[#0a2640] transition-colors duration-200 hover:border-[#5469d4]/40 hover:bg-[#f6f9fc] hover:text-[#5469d4]',
-                    isActive(loginLink.href) &&
-                      'border-[#5469d4]/40 bg-[#f6f9fc] text-[#5469d4]',
+                    isActive(loginLink.href) && 'border-[#5469d4]/40 bg-[#f6f9fc] text-[#5469d4]',
                   )}
                   aria-current={isActive(loginLink.href) ? 'page' : undefined}
                 >

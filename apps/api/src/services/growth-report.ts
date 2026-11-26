@@ -134,13 +134,16 @@ export class GrowthReportService {
 
     for (const row of firstPaidRows) {
       if (!row.firstPaidAt) continue;
-      const paidDate = row.firstPaidAt instanceof Date ? row.firstPaidAt : new Date(row.firstPaidAt);
+      const paidDate =
+        row.firstPaidAt instanceof Date ? row.firstPaidAt : new Date(row.firstPaidAt);
       if (paidDate < since) continue;
       bumpWeek(weekKey(paidDate), row.country, 'eventsReachedPayment');
     }
 
     const weekly = [...weekMap.values()].sort((a, b) =>
-      a.weekStart === b.weekStart ? a.country.localeCompare(b.country) : b.weekStart.localeCompare(a.weekStart),
+      a.weekStart === b.weekStart
+        ? a.country.localeCompare(b.country)
+        : b.weekStart.localeCompare(a.weekStart),
     );
     const signupsBySource = [...sourceMap.values()].sort((a, b) =>
       a.weekStart === b.weekStart

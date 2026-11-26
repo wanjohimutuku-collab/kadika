@@ -1,6 +1,7 @@
 # 4-Week Small Paid Acquisition Test Plan (Prompt 12)
 
 > **STOP / DO NOT LAUNCH CHECKLIST**: Do **NOT** launch any paid campaign until:
+>
 > 1. `ANALYTICS_ENABLED=1` and `/v1/ops/growth-report` attribution are live and verified in production.
 > 2. Native Kiswahili reviewer and Kenyan reviewer have signed off [human-review-checklist.md](file:///c:/Users/yusuf/Documents/github/kadika/docs/marketing/human-review-checklist.md).
 > 3. Business verifies any production `pricing_settings` DB override matches `DEFAULT_PRICING.free.cards = 5`, and fills in daily test budgets and target cost per event created below.
@@ -14,7 +15,7 @@
   1. **Meta (Facebook & Instagram — Click-to-WhatsApp + Website Conversions)**
   2. **TikTok (Spark / In-Feed Video — Website Signups)**
 - **Target Cities**: Dar es Salaam, Arusha, Mwanza (Tanzania — primary paid conversion) and Nairobi (Kenya — pilot waitlist / early free test notice, no unconfirmed KES billing claims).
-- **Core Offer**: **"Anza bure na kadi 5" / "Start with 5 free cards"** (for Nairobi: *"Join our Kenya pilot — start free while KES pricing finalises"*).
+- **Core Offer**: **"Anza bure na kadi 5" / "Start with 5 free cards"** (for Nairobi: _"Join our Kenya pilot — start free while KES pricing finalises"_).
 - **Business-Owned Budget & Target Placeholders (Fill Before Launch)**:
   - `DAILY_BUDGET_META_TZ`: `[BUSINESS_TO_FILL — e.g. TZS ... / day]`
   - `DAILY_BUDGET_TIKTOK_TZ`: `[BUSINESS_TO_FILL — e.g. TZS ... / day]`
@@ -56,50 +57,56 @@
 ## 4. Six Ad Creatives (Kiswahili + English)
 
 ### Creative 1 — "Bibi Hana Smartphone" (Audience A · Meta Reels + TikTok · TZ/KE)
+
 - **Visual / Video Brief (25s Vertical 9:16)**: Split screen — young friend tapping a WhatsApp wedding card + grandmother receiving a plain SMS (`KH-4826`) on a keypad phone, then both admitted at the gate.
-- **Swahili Primary Copy**: *"Wageni wako wengine wako WhatsApp, wazazi kijijini hawana smartphone? Kwenye Kadi Sasa wote wanapata mwaliko: WhatsApp, SMS yenye namba fupi, na PDF ya kuchapisha yenye QR. Anza bure na kadi 5 — hakuna ada ya siri."*
-- **English Primary Copy (Nairobi)**: *"Send WhatsApp wedding cards to friends and plain SMS codes or printed QR PDFs to elders without smartphones. Try Kadi Sasa free in our Nairobi pilot."*
+- **Swahili Primary Copy**: _"Wageni wako wengine wako WhatsApp, wazazi kijijini hawana smartphone? Kwenye Kadi Sasa wote wanapata mwaliko: WhatsApp, SMS yenye namba fupi, na PDF ya kuchapisha yenye QR. Anza bure na kadi 5 — hakuna ada ya siri."_
+- **English Primary Copy (Nairobi)**: _"Send WhatsApp wedding cards to friends and plain SMS codes or printed QR PDFs to elders without smartphones. Try Kadi Sasa free in our Nairobi pilot."_
 - **Destination**:
   - TZ Web: `https://kadisasa.com/mwaliko-bila-smartphone?utm_source=tiktok&utm_medium=paid_social&utm_campaign=test_c1_elders_tz`
   - Click-to-WhatsApp Opening Message: `"Habari Kadi Sasa! Nataka kuanza bure (kadi 5) na kuona mfano wa kadi ya WhatsApp na SMS kwa wazee. [c1_elders]"`
 
 ### Creative 2 — "Lango Bila Mtandao / Already Admitted" (Audience C · TikTok + Meta CTWA · TZ/KE)
+
 - **Visual / Video Brief (20–30s Vertical 9:16)**: Usher at evening garden entrance holding Android phone scanning a paper/phone QR → green pass; second phone walks up with a screenshot of the same QR → red **"Tayari ameingia / Already admitted"** screen! Show airplane-mode / no-bars indicator.
-- **Swahili Primary Copy**: *"Mtandao ukikatika ukumbini au mtu akija na screenshot ya kadi, lango la Android la Kadi Sasa linasimamisha papo hapo — hata bila intaneti. Jaribu kadi 5 za kwanza bure."*
-- **English Primary Copy (Nairobi)**: *"Garden reception with weak signal? Our Android gate app scans QR & short codes offline and stops duplicate screenshots instantly. Test free with our Kenya pilot."*
+- **Swahili Primary Copy**: _"Mtandao ukikatika ukumbini au mtu akija na screenshot ya kadi, lango la Android la Kadi Sasa linasimamisha papo hapo — hata bila intaneti. Jaribu kadi 5 za kwanza bure."_
+- **English Primary Copy (Nairobi)**: _"Garden reception with weak signal? Our Android gate app scans QR & short codes offline and stops duplicate screenshots instantly. Test free with our Kenya pilot."_
 - **Destination**:
   - TZ Web: `https://kadisasa.com/kadi-za-harusi-online?utm_source=meta&utm_medium=paid_social&utm_campaign=test_c2_gate_tz`
   - Click-to-WhatsApp Opening Message: `"Habari! Nimeona video ya geti linalofanya kazi bila mtandao. Nataka kujaribu kadi 5 bure. [c2_gate]"`
 
 ### Creative 3 — "Mweka Hazina & 0% Makato ya Michango" (Audience B · Meta CTWA · TZ)
+
 - **Visual / Video Brief (Static Carousel 3 Slides or 25s Screen Motion)**: Slide 1: Messy WhatsApp chat crossed out vs clean ledger (`Ahadi / Imelipwa / Salio`); Slide 2: Direct M-Pesa / Mixx / Airtel / HaloPesa payment options with **0% Makato** badge; Slide 3: Starter offer **Kadi 5 Bure**.
-- **Swahili Primary Copy**: *"Kamati bado inatafuta ahadi za michango juu ya WhatsApp? Weka daftari moja la wazi la ahadi na malipo — wageni wanalipa moja kwa moja kwa kamati (0% makato ya Kadi Sasa). Anza bure na kadi 5."*
-- **English Primary Copy (Nairobi Harambee/Ruracio)**: *"Track Ruracio and Harambee pledges against M-Pesa Paybill/Till receipts in one transparent committee ledger — 0% platform cut. Request pilot access."*
+- **Swahili Primary Copy**: _"Kamati bado inatafuta ahadi za michango juu ya WhatsApp? Weka daftari moja la wazi la ahadi na malipo — wageni wanalipa moja kwa moja kwa kamati (0% makato ya Kadi Sasa). Anza bure na kadi 5."_
+- **English Primary Copy (Nairobi Harambee/Ruracio)**: _"Track Ruracio and Harambee pledges against M-Pesa Paybill/Till receipts in one transparent committee ledger — 0% platform cut. Request pilot access."_
 - **Destination**:
   - TZ Web: `https://kadisasa.com/michango-ya-harusi?utm_source=meta&utm_medium=paid_social&utm_campaign=test_c3_michango_tz`
   - KE Web: `https://kadisasa.com/ke/ruracio-harambee-invitations-contributions?utm_source=meta&utm_medium=paid_social&utm_campaign=test_c3_harambee_ke`
   - Click-to-WhatsApp Opening Message: `"Habari kamati ya Kadi Sasa! Tunataka mfumo wa michango (0% makato) na kadi za kamati — anza bure na kadi 5. [c3_michango]"`
 
 ### Creative 4 — "Send-off & Kitchen Party Fast Setup" (Audience A · Meta Reels + TikTok · TZ)
+
 - **Visual / Video Brief (20s Video)**: Fast step-by-step phone recording: pick Send-off theme -> add guests -> preview card with committee phone -> click edit venue once, all links update instantly.
-- **Swahili Primary Copy**: *"Ukibadilisha ukumbi au saa ya Send-off au Kitchen Party, huchapishi tena — unasasisha mara moja kwenye kadi zote. Anza leo na kadi 5 za kwanza bure."*
-- **English Primary Copy (Kenya)**: *"Update send-off or ruracio venue times once and every guest link updates automatically. Join the Kenya pilot free."*
+- **Swahili Primary Copy**: _"Ukibadilisha ukumbi au saa ya Send-off au Kitchen Party, huchapishi tena — unasasisha mara moja kwenye kadi zote. Anza leo na kadi 5 za kwanza bure."_
+- **English Primary Copy (Kenya)**: _"Update send-off or ruracio venue times once and every guest link updates automatically. Join the Kenya pilot free."_
 - **Destination**:
   - TZ Web: `https://kadisasa.com/kadi-ya-send-off-kitchen-party?utm_source=tiktok&utm_medium=paid_social&utm_campaign=test_c4_sendoff_tz`
   - Click-to-WhatsApp Opening Message: `"Habari! Ninaanda Send-off/Kitchen Party naomba maelezo ya kuanza bure (kadi 5). [c4_sendoff]"`
 
 ### Creative 5 — "Ukweli Kuhusu Gharama (/bei)" (Audience A & B · Meta Static + Carousel · TZ)
-- **Visual / Video Brief (Clean Typography Card matching `.ks` green/gold)**: *"Kadi za Mwanzo: Bure (Kadi 5) · 1–99: TZS 2,400/kadi · 100–499: TZS 2,200/kadi · 500+: TZS 1,950/kadi · Makato ya Michango: 0%"*.
-- **Swahili Primary Copy**: *"Unajua gharama halisi ya kadi zako kabla hujaanza: kadi 5 za kwanza bure, kisha TZS 1,950–2,400 kwa kadi na 0% makato kwenye michango. Linganisha na karatasi leo."*
-- **English Primary Copy**: *"Clear pricing with zero surprises: 5 free starter cards, TZS 1,950–2,400/card, and 0% commission on contributions."*
+
+- **Visual / Video Brief (Clean Typography Card matching `.ks` green/gold)**: _"Kadi za Mwanzo: Bure (Kadi 5) · 1–99: TZS 2,400/kadi · 100–499: TZS 2,200/kadi · 500+: TZS 1,950/kadi · Makato ya Michango: 0%"_.
+- **Swahili Primary Copy**: _"Unajua gharama halisi ya kadi zako kabla hujaanza: kadi 5 za kwanza bure, kisha TZS 1,950–2,400 kwa kadi na 0% makato kwenye michango. Linganisha na karatasi leo."_
+- **English Primary Copy**: _"Clear pricing with zero surprises: 5 free starter cards, TZS 1,950–2,400/card, and 0% commission on contributions."_
 - **Destination**:
   - TZ Web: `https://kadisasa.com/gharama-halisi-za-huduma-ya-mialiko?utm_source=meta&utm_medium=paid_social&utm_campaign=test_c5_cost_tz`
   - Click-to-WhatsApp Opening Message: `"Habari! Nimeona gharama zenu kwenye /bei, nataka kujaribu kadi 5 bure. [c5_cost]"`
 
 ### Creative 6 — "Usalama: Hakuna PIN, Namba ya Kamati Wazi" (Audience A & B · Meta CTWA + IG · KE & TZ)
+
 - **Visual / Video Brief (20s Clean Explainer)**: Highlighting the trust strip at the top of a Kadi Sasa guest card: committee name, green verified phone button, and bold overlay **"No PIN / Password Ever Asked"**.
-- **Swahili Primary Copy**: *"Kadi ya mwaliko haipaswi kumtia hofu mgeni. Kadi ya Kadi Sasa inaonyesha jina na simu ya kamati yako, wala haiombi PIN yoyote. Anza na kadi 5 bure."*
-- **English Primary Copy (Nairobi)**: *"Digital wedding cards Kenyan guests actually trust: your committee's name and phone on every card, zero PINs or logins needed to RSVP."*
+- **Swahili Primary Copy**: _"Kadi ya mwaliko haipaswi kumtia hofu mgeni. Kadi ya Kadi Sasa inaonyesha jina na simu ya kamati yako, wala haiombi PIN yoyote. Anza na kadi 5 bure."_
+- **English Primary Copy (Nairobi)**: _"Digital wedding cards Kenyan guests actually trust: your committee's name and phone on every card, zero PINs or logins needed to RSVP."_
 - **Destination**:
   - KE Web: `https://kadisasa.com/ke/digital-wedding-invitations-kenya?utm_source=meta&utm_medium=paid_social&utm_campaign=test_c6_trust_ke`
   - Click-to-WhatsApp Opening Message (KE): `"Hi Kadi Sasa! I'm planning an event in Kenya and would like to test your pilot cards. [c6_trust_ke]"`

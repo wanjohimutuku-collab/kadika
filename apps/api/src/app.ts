@@ -519,7 +519,9 @@ export function createApp(deps: Deps) {
         properties: {
           ...(attribution?.utmSource ? { utm_source: attribution.utmSource.slice(0, 64) } : {}),
           ...(attribution?.utmMedium ? { utm_medium: attribution.utmMedium.slice(0, 64) } : {}),
-          ...(attribution?.utmCampaign ? { utm_campaign: attribution.utmCampaign.slice(0, 64) } : {}),
+          ...(attribution?.utmCampaign
+            ? { utm_campaign: attribution.utmCampaign.slice(0, 64) }
+            : {}),
         },
       });
       if (referred) {
@@ -596,7 +598,9 @@ export function createApp(deps: Deps) {
         properties: {
           ...(attribution?.utmSource ? { utm_source: attribution.utmSource.slice(0, 64) } : {}),
           ...(attribution?.utmMedium ? { utm_medium: attribution.utmMedium.slice(0, 64) } : {}),
-          ...(attribution?.utmCampaign ? { utm_campaign: attribution.utmCampaign.slice(0, 64) } : {}),
+          ...(attribution?.utmCampaign
+            ? { utm_campaign: attribution.utmCampaign.slice(0, 64) }
+            : {}),
         },
       });
       if (referred) {
@@ -714,7 +718,9 @@ export function createApp(deps: Deps) {
       .select()
       .from(users)
       .where(eq(users.id, c.get('userId')));
-    const referralCode = u ? (u.referralCode ?? (await ensureUserReferralCode(deps.db, u.id))) : null;
+    const referralCode = u
+      ? (u.referralCode ?? (await ensureUserReferralCode(deps.db, u.id)))
+      : null;
     return c.json({
       id: u!.id,
       name: u!.name,

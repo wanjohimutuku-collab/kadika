@@ -652,11 +652,7 @@ export function LoginOtp() {
 
   if (needsName) {
     return (
-      <AuthShell
-        mode={mode}
-        previewName={name.trim() || draftName}
-        previewOccasion={occasionLabel}
-      >
+      <AuthShell mode={mode} previewName={name.trim() || draftName} previewOccasion={occasionLabel}>
         <AuthCard className="flex flex-col gap-5">
           <div>
             <h1 className="text-[28px] leading-tight font-bold text-[#0a2640]">{t('nameTitle')}</h1>
@@ -726,7 +722,9 @@ export function LoginOtp() {
           <p className="mt-1.5 text-[#494d59]">
             {t.rich('otpSentTo', {
               phone: formatPhone(phone),
-              b: (chunks) => <strong className="tabular font-semibold text-[#0a2640]">{chunks}</strong>,
+              b: (chunks) => (
+                <strong className="tabular font-semibold text-[#0a2640]">{chunks}</strong>
+              ),
             })}{' '}
             <button
               type="button"

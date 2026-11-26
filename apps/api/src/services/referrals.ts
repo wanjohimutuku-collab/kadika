@@ -48,21 +48,32 @@ function cleanHost(raw: string | null | undefined): string | null {
     const u = t.includes('://') ? new URL(t) : new URL(`https://${t}`);
     return u.hostname.replace(/^www\./, '').slice(0, 80) || null;
   } catch {
-    const hostOnly = t.split('/')[0]?.split('?')[0]?.replace(/^www\./, '').slice(0, 80);
+    const hostOnly = t
+      .split('/')[0]
+      ?.split('?')[0]
+      ?.replace(/^www\./, '')
+      .slice(0, 80);
     return hostOnly || null;
   }
 }
 
 function cleanReferralCode(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
+  const cleaned = raw
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, '')
+    .slice(0, 24);
   return cleaned || null;
 }
 
 /**
  * Ensures the given user has a unique `referralCode`, generating and persisting one if absent.
  */
-export async function ensureUserReferralCode(db: Deps['db'], userId: string): Promise<string | null> {
+export async function ensureUserReferralCode(
+  db: Deps['db'],
+  userId: string,
+): Promise<string | null> {
   const [existing] = await db
     .select({ referralCode: users.referralCode })
     .from(users)
@@ -133,7 +144,9 @@ export class ReferralService {
           ...(utmMedium ? { signupUtmMedium: utmMedium } : {}),
           ...(utmCampaign ? { signupUtmCampaign: utmCampaign } : {}),
           ...(referrerHost ? { signupReferrerHost: referrerHost } : {}),
-          ...(referrerUserId ? { referredByUserId: referrerUserId, signupReferralCode: resolvedCode } : {}),
+          ...(referrerUserId
+            ? { referredByUserId: referrerUserId, signupReferralCode: resolvedCode }
+            : {}),
         })
         .where(eq(users.id, userId));
     }
@@ -147,7 +160,9 @@ export class ReferralService {
    * credits the referrer once with `referralRewardCards` (or marks it `pending_event` until the
    * referrer creates an event).
    */
-  async evaluateAndAwardReferral(referredUserId: string): Promise<{ awarded: boolean; status?: 'credited' | 'pending_event' }> {
+  async evaluateAndAwardReferral(
+    referredUserId: string,
+  ): Promise<{ awarded: boolean; status?: 'credited' | 'pending_event' }> {
     const minPaid = this.deps.config.referralMinPaidCards;
     const rewardCards = this.deps.config.referralRewardCards;
     if (rewardCards <= 0) return { awarded: false };
@@ -236,7 +251,13 @@ export class ReferralService {
       return { awarded: true, status: 'pending_event' };
     }
 
-    await this.creditRewardToEvent(inserted.id, targetEvent.id, targetEvent.currency, rewardCards, now);
+    await this.creditRewardToEvent(
+      inserted.id,
+      targetEvent.id,
+      targetEvent.currency,
+      rewardCards,
+      now,
+    );
     return { awarded: true, status: 'credited' };
   }
 

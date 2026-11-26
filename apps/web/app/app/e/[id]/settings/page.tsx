@@ -7,7 +7,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
-import { allowsDonations, eventKindSuggestions, isInvitationFirstOccasion, occasionOf } from '@harusi/schemas';
+import {
+  allowsDonations,
+  eventKindSuggestions,
+  isInvitationFirstOccasion,
+  occasionOf,
+} from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { KindChips } from '@/components/console/kind-chips';
 import { MessageTemplatesEditor } from '@/components/console/message-templates-editor';

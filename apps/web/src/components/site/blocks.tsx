@@ -30,8 +30,7 @@ export function siteButton(kind: ButtonKind = 'primary') {
       'bg-gradient-to-r from-[#4f46e5] to-[#3b82f6] py-1.5 pr-1.5 pl-6 text-white shadow-[0_12px_26px_-10px_rgb(79_70_229/0.55)] hover:brightness-105',
     kind === 'secondary' &&
       'border border-[#e3e8ee] bg-white px-6 text-[#0a2640] shadow-xs hover:border-[#5469d4]/50 hover:bg-[#f6f9fc] hover:text-[#5469d4]',
-    kind === 'onDark' &&
-      'bg-white py-1.5 pr-1.5 pl-6 text-[#0a2640] shadow-xs hover:bg-[#f6f9fc]',
+    kind === 'onDark' && 'bg-white py-1.5 pr-1.5 pl-6 text-[#0a2640] shadow-xs hover:bg-[#f6f9fc]',
     kind === 'outlineOnDark' &&
       'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.35)] hover:bg-white/10',
   );

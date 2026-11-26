@@ -86,7 +86,10 @@ export function CardMockup({
             <span className="text-[9px] font-semibold tracking-[0.24em] text-[#8a6d3b] uppercase">
               Print Card · A6
             </span>
-            <div className="my-0.5 flex w-20 items-center gap-1.5 text-[#c8a96e]" aria-hidden="true">
+            <div
+              className="my-0.5 flex w-20 items-center gap-1.5 text-[#c8a96e]"
+              aria-hidden="true"
+            >
               <span className="h-px flex-1 bg-[#d6c5a3]" />
               <span className="text-[8px] leading-none">◆</span>
               <span className="h-px flex-1 bg-[#d6c5a3]" />

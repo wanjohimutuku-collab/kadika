@@ -192,7 +192,10 @@ export function pricingOffersNode(catalog: PricingCatalog, currency: Currency, l
   const prices = tiers.map((t) => t.price[currency]);
   const freeOffer = {
     '@type': 'Offer',
-    name: locale === 'sw' ? `Kadi ${catalog.free.cards} za kwanza bure` : `${catalog.free.cards} free starter cards`,
+    name:
+      locale === 'sw'
+        ? `Kadi ${catalog.free.cards} za kwanza bure`
+        : `${catalog.free.cards} free starter cards`,
     price: 0,
     priceCurrency: currency,
     eligibleQuantity: {

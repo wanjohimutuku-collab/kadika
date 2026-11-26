@@ -88,7 +88,11 @@ export class BillingService {
   constructor(
     private deps: Deps,
     private eventsSvc: EventService,
-    private onFirstPayment?: (event: { id: string; country: 'TZ' | 'KE'; eventKind: string | null }) => Promise<void>,
+    private onFirstPayment?: (event: {
+      id: string;
+      country: 'TZ' | 'KE';
+      eventKind: string | null;
+    }) => Promise<void>,
   ) {}
 
   private get db(): Db {

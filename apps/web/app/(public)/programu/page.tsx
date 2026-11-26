@@ -95,7 +95,9 @@ export default async function AppDownloadPage() {
   const mock = homeCopy(locale, await getPricingOnServer(), APP_DOMAIN).app.mock;
   const pageUrl = absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale);
   const faqPage = getPage('maswali');
-  const faqHref = faqPage ? localeUrl(pagePath(faqPage, locale), locale) : localeUrl('/faq', locale);
+  const faqHref = faqPage
+    ? localeUrl(pagePath(faqPage, locale), locale)
+    : localeUrl('/faq', locale);
   const relatedSlugs = ['lango-la-harusi-qr', 'michango-ya-harusi', 'kadi-ya-harusi-mtandaoni'];
   const relatedGuides = relatedSlugs
     .map((s) => getPage(s))

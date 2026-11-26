@@ -2044,8 +2044,7 @@ export class MockRepository implements Repository {
         committeePhone: e.committeePhone,
         pledgesEnabled: e.pledgesEnabled,
         onlinePay: this.controls.get().guestPayments,
-        showReferralFooter:
-          e.showReferralFooter ?? (occasionOf(e.eventKind) !== 'corporate'),
+        showReferralFooter: e.showReferralFooter ?? occasionOf(e.eventKind) !== 'corporate',
         referralCode: 'KSMOCK01',
         greeting: e.greeting,
         extraNote: e.extraNote,
@@ -3343,7 +3342,8 @@ export class MockRepository implements Repository {
       const weeks = Math.min(Math.max(Math.round(opts.weeks ?? 12), 1), 52);
       const weekStart = new Date(this.now()).toISOString().slice(0, 10);
       const evs = this.state.events.filter(
-        (e) => !e.deletedAt && (!opts.country || opts.country === 'all' || e.country === opts.country),
+        (e) =>
+          !e.deletedAt && (!opts.country || opts.country === 'all' || e.country === opts.country),
       );
       return {
         windowWeeks: weeks,

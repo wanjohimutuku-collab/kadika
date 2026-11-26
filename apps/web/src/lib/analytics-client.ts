@@ -44,11 +44,18 @@ const ALLOWED_PROPS = new Set([
   'referral_code',
 ]);
 
-function marketFromPath(path: string): { market: 'tz' | 'ke' | 'ug'; edition: 'sw' | 'en' | 'ke' | 'ug'; locale: 'sw' | 'en' } {
+function marketFromPath(path: string): {
+  market: 'tz' | 'ke' | 'ug';
+  edition: 'sw' | 'en' | 'ke' | 'ug';
+  locale: 'sw' | 'en';
+} {
   const clean = path.toLowerCase();
-  if (clean === '/ke' || clean.startsWith('/ke/')) return { market: 'ke', edition: 'ke', locale: clean.includes('/sw') ? 'sw' : 'en' };
-  if (clean === '/ug' || clean.startsWith('/ug/')) return { market: 'ug', edition: 'ug', locale: 'en' };
-  const locale = typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'sw';
+  if (clean === '/ke' || clean.startsWith('/ke/'))
+    return { market: 'ke', edition: 'ke', locale: clean.includes('/sw') ? 'sw' : 'en' };
+  if (clean === '/ug' || clean.startsWith('/ug/'))
+    return { market: 'ug', edition: 'ug', locale: 'en' };
+  const locale =
+    typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'sw';
   return { market: 'tz', edition: locale, locale };
 }
 
@@ -66,7 +73,8 @@ export function emit(name: string, data?: Record<string, unknown>): void {
     }
   }
   if (USE_MOCKS || !BACKEND_EVENTS.has(name)) return;
-  if (navigator.doNotTrack === '1' || (navigator as { doNotTrack?: string }).doNotTrack === 'yes') return;
+  if (navigator.doNotTrack === '1' || (navigator as { doNotTrack?: string }).doNotTrack === 'yes')
+    return;
 
   const properties: Record<string, string> = {};
   if (data) {

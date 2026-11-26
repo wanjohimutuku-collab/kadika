@@ -328,11 +328,11 @@ interface ApiCard {
   cardKind?: CardKind;
   contributionCollected?: number | null;
   event:
-  | (Omit<
-    NonNullable<CardView['event']>,
-    'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
-  > & { brandTheme: Record<string, unknown> | null; eventKind?: string | null })
-  | null;
+    | (Omit<
+        NonNullable<CardView['event']>,
+        'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
+      > & { brandTheme: Record<string, unknown> | null; eventKind?: string | null })
+    | null;
   guest: CardView['guest'];
   qrPayload: string | null;
   pledge?: CardView['pledge'];
@@ -360,35 +360,35 @@ function mapCard(token: string, c: ApiCard): CardView {
     contributionCollected: c.contributionCollected ?? null,
     event: e
       ? {
-        id: e.id,
-        eventKind: e.eventKind ?? '',
-        partnerA: a,
-        partnerB: b,
-        coupleNames: e.coupleNames,
-        dateStart: e.dateStart,
-        venueName: e.venueName ?? '',
-        venueMapUrl: e.venueMapUrl ?? '',
-        dressCode: e.dressCode ?? '',
-        themeId: theme.themeId ?? 'emerald-gold',
-        coverGradient: theme.coverGradient ?? '',
-        palette: sanitizeOverrides(theme.palette),
-        rsvpDeadline: e.rsvpDeadline,
-        senderName:
-          e.senderName ||
-          defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
-        committeePhone: e.committeePhone ?? '',
-        pledgesEnabled: e.pledgesEnabled ?? false,
-        onlinePay: e.onlinePay ?? false,
-        showReferralFooter: e.showReferralFooter ?? false,
-        referralCode: e.referralCode ?? null,
-        cardContent: e.cardContent ?? {},
-        contributionTarget: e.contributionTarget ?? 0,
-        greeting: e.greeting ?? '',
-        extraNote: '',
-        country: e.country ?? 'TZ',
-        currency: e.currency ?? 'TZS',
-        timezone: e.timezone || 'Africa/Dar_es_Salaam',
-      }
+          id: e.id,
+          eventKind: e.eventKind ?? '',
+          partnerA: a,
+          partnerB: b,
+          coupleNames: e.coupleNames,
+          dateStart: e.dateStart,
+          venueName: e.venueName ?? '',
+          venueMapUrl: e.venueMapUrl ?? '',
+          dressCode: e.dressCode ?? '',
+          themeId: theme.themeId ?? 'emerald-gold',
+          coverGradient: theme.coverGradient ?? '',
+          palette: sanitizeOverrides(theme.palette),
+          rsvpDeadline: e.rsvpDeadline,
+          senderName:
+            e.senderName ||
+            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
+          committeePhone: e.committeePhone ?? '',
+          pledgesEnabled: e.pledgesEnabled ?? false,
+          onlinePay: e.onlinePay ?? false,
+          showReferralFooter: e.showReferralFooter ?? false,
+          referralCode: e.referralCode ?? null,
+          cardContent: e.cardContent ?? {},
+          contributionTarget: e.contributionTarget ?? 0,
+          greeting: e.greeting ?? '',
+          extraNote: '',
+          country: e.country ?? 'TZ',
+          currency: e.currency ?? 'TZS',
+          timezone: e.timezone || 'Africa/Dar_es_Salaam',
+        }
       : null,
     guest: c.guest,
     qrPayload: c.qrPayload,
@@ -491,9 +491,9 @@ export function createHttpRepository(
           ...(isForm(body)
             ? {}
             : {
-              'content-type':
-                body instanceof Blob ? 'application/octet-stream' : 'application/json',
-            }),
+                'content-type':
+                  body instanceof Blob ? 'application/octet-stream' : 'application/json',
+              }),
           ...(auth && tokens.get()?.accessToken
             ? { authorization: `Bearer ${tokens.get()!.accessToken}` }
             : {}),

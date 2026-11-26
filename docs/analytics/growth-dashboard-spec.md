@@ -9,23 +9,24 @@
 
 ## 2. Funnel Events Catalog
 
-| Event Name | Trigger Location | Allow-listed Properties |
-|---|---|---|
-| `signup_started` | `POST /v1/auth/otp/request`, `POST /v1/auth/firebase/start` | `country`, `channel` (`whatsapp`/`sms`/`firebase`) |
-| `signup_completed` | `POST /v1/auth/otp/verify`, `POST /v1/auth/firebase` (new user only) | `country`, `utm_source`, `utm_medium`, `utm_campaign` |
-| `referral_signup` | `POST /v1/auth/otp/verify`, `POST /v1/auth/firebase` (new user matched valid `ref`) | `country`, `referral_code`, `utm_source` |
-| `event_created` | `POST /v1/events` | `country`, `event_kind` |
-| `michango_enabled` | `POST /v1/events` (default on) or `PATCH /v1/events/:id` (`false` → `true`) | `country` |
-| `guests_added` | `POST /v1/events/:id/guests`, `POST /v1/events/:id/guests/import` | `count_bucket` (`1`, `2_10`, `11_50`, `51_150`, `151_plus`) |
-| `cards_sent` | `POST /v1/events/:id/invitations/send`, `POST /v1/events/:id/cards/pdf` | `channel` (`whatsapp`, `sms`, `pdf`) |
-| `first_payment` | `BillingService.afterPaid` (first paid non-grant `cards`/`pack` purchase per event) | `country`, `event_kind` |
-| `gate_app_installed` | `GET /v1/app/android.apk` & Play/APK button clicks on `/programu` | `channel` (`play`, `apk`) |
-| `gate_scan_session_started` | `POST /v1/gate/join` | `country` |
-| `referral_link_clicked` | Guest card footer & post-RSVP referral click via `POST /v1/analytics` | `source` (`guest_card`), `event_kind`, `referral_code` |
+| Event Name                  | Trigger Location                                                                    | Allow-listed Properties                                     |
+| --------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `signup_started`            | `POST /v1/auth/otp/request`, `POST /v1/auth/firebase/start`                         | `country`, `channel` (`whatsapp`/`sms`/`firebase`)          |
+| `signup_completed`          | `POST /v1/auth/otp/verify`, `POST /v1/auth/firebase` (new user only)                | `country`, `utm_source`, `utm_medium`, `utm_campaign`       |
+| `referral_signup`           | `POST /v1/auth/otp/verify`, `POST /v1/auth/firebase` (new user matched valid `ref`) | `country`, `referral_code`, `utm_source`                    |
+| `event_created`             | `POST /v1/events`                                                                   | `country`, `event_kind`                                     |
+| `michango_enabled`          | `POST /v1/events` (default on) or `PATCH /v1/events/:id` (`false` → `true`)         | `country`                                                   |
+| `guests_added`              | `POST /v1/events/:id/guests`, `POST /v1/events/:id/guests/import`                   | `count_bucket` (`1`, `2_10`, `11_50`, `51_150`, `151_plus`) |
+| `cards_sent`                | `POST /v1/events/:id/invitations/send`, `POST /v1/events/:id/cards/pdf`             | `channel` (`whatsapp`, `sms`, `pdf`)                        |
+| `first_payment`             | `BillingService.afterPaid` (first paid non-grant `cards`/`pack` purchase per event) | `country`, `event_kind`                                     |
+| `gate_app_installed`        | `GET /v1/app/android.apk` & Play/APK button clicks on `/programu`                   | `channel` (`play`, `apk`)                                   |
+| `gate_scan_session_started` | `POST /v1/gate/join`                                                                | `country`                                                   |
+| `referral_link_clicked`     | Guest card footer & post-RSVP referral click via `POST /v1/analytics`               | `source` (`guest_card`), `event_kind`, `referral_code`      |
 
 ## 3. Account Attribution Columns (`users`)
 
 Captured once at account creation by `ReferralService.attachAttributionOnSignup()`:
+
 - `users.referral_code` — unique host code (`KSxxxxxx`) generated for every host
 - `users.referred_by_user_id` — nullable UUID of referring host (self-referral blocked)
 - `users.signup_utm_source`, `users.signup_utm_medium`, `users.signup_utm_campaign`

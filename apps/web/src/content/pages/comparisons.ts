@@ -36,7 +36,12 @@ export const COMPARISON_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'table',
-              head: ['Kigezo', 'Kadi Sasa', 'Kadi za karatasi pekee', 'Zana za kubuni picha (picha/PDF)'],
+              head: [
+                'Kigezo',
+                'Kadi Sasa',
+                'Kadi za karatasi pekee',
+                'Zana za kubuni picha (picha/PDF)',
+              ],
               rows: [
                 [
                   'Gharama ya kadi',
@@ -139,7 +144,12 @@ export const COMPARISON_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'table',
-              head: ['Criterion', 'Kadi Sasa', 'Paper cards only', 'Generic design tools (image/PDF)'],
+              head: [
+                'Criterion',
+                'Kadi Sasa',
+                'Paper cards only',
+                'Generic design tools (image/PDF)',
+              ],
               rows: [
                 [
                   'Per-card cost',
@@ -256,7 +266,11 @@ export const COMPARISON_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'table',
-              head: ['Kipengele cha gharama', 'Kwenye Kadi Sasa (/bei)', 'Kwenye njia au huduma zingine'],
+              head: [
+                'Kipengele cha gharama',
+                'Kwenye Kadi Sasa (/bei)',
+                'Kwenye njia au huduma zingine',
+              ],
               rows: [
                 [
                   'Kadi za kuanzia (majaribio)',

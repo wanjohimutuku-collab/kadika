@@ -4,13 +4,21 @@ const STORAGE_KEY = 'ks.attribution.v1';
 
 function cleanTag(raw: string | null | undefined, max = 64): string | undefined {
   if (!raw) return undefined;
-  const cleaned = raw.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, max);
+  const cleaned = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '')
+    .slice(0, max);
   return cleaned || undefined;
 }
 
 function cleanRefCode(raw: string | null | undefined): string | undefined {
   if (!raw) return undefined;
-  const cleaned = raw.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
+  const cleaned = raw
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, '')
+    .slice(0, 24);
   return cleaned || undefined;
 }
 
@@ -18,7 +26,10 @@ function externalReferrerHost(): string | undefined {
   if (typeof document === 'undefined' || !document.referrer) return undefined;
   try {
     const refUrl = new URL(document.referrer);
-    const refHost = refUrl.hostname.replace(/^www\./, '').toLowerCase().slice(0, 80);
+    const refHost = refUrl.hostname
+      .replace(/^www\./, '')
+      .toLowerCase()
+      .slice(0, 80);
     const currentHost =
       typeof window !== 'undefined'
         ? window.location.hostname.replace(/^www\./, '').toLowerCase()

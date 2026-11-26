@@ -2,7 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { DEFAULT_PRICING } from '@harusi/schemas/billing';
 import { eventPurchases, events, guests, referralRewards, users } from '@harusi/db';
-import { api, createTestContext, loginAs, loginAsStaff, type TestContext } from './testing/test-app';
+import {
+  api,
+  createTestContext,
+  loginAs,
+  loginAsStaff,
+  type TestContext,
+} from './testing/test-app';
 
 let ctx: TestContext | undefined;
 afterEach(async () => {
@@ -10,11 +16,7 @@ afterEach(async () => {
   ctx = undefined;
 });
 
-async function createEvent(
-  tc: TestContext,
-  token: string,
-  over: Record<string, unknown> = {},
-) {
+async function createEvent(tc: TestContext, token: string, over: Record<string, unknown> = {}) {
   const res = await api(tc, 'POST', '/v1/events', {
     token,
     body: {
@@ -187,15 +189,10 @@ describe('host referral loop & attribution (Prompt 8 & 9)', () => {
     });
     expect(orderRes.status).toBe(201);
     const orderBody = (await orderRes.json()) as { id: string };
-    const markPaid = await api(
-      ctx,
-      'POST',
-      `/v1/ops/purchases/${orderBody.id}/paid`,
-      {
-        token: staff.accessToken,
-        body: { note: 'Verified deposit' },
-      },
-    );
+    const markPaid = await api(ctx, 'POST', `/v1/ops/purchases/${orderBody.id}/paid`, {
+      token: staff.accessToken,
+      body: { note: 'Verified deposit' },
+    });
     expect(markPaid.status).toBe(200);
 
     const rewardsAfter = await ctx.db.select().from(referralRewards);
@@ -206,12 +203,9 @@ describe('host referral loop & attribution (Prompt 8 & 9)', () => {
     expect(rewardsAfter[0]!.status).toBe('credited');
     expect(rewardsAfter[0]!.creditedEventId).toBe(referrerEvent.id);
 
-    const referrerBilling = await api(
-      ctx,
-      'GET',
-      `/v1/events/${referrerEvent.id}/billing`,
-      { token: referrer.accessToken },
-    );
+    const referrerBilling = await api(ctx, 'GET', `/v1/events/${referrerEvent.id}/billing`, {
+      token: referrer.accessToken,
+    });
     // Default free cards (5) + 12 referral grant cards = 17
     expect(referrerBilling.body!.allowance.cards).toBe(DEFAULT_PRICING.free.cards + 12);
 

@@ -35,11 +35,15 @@ export const SUMMARY =
 
 export const FACTS = [
   'Languages: English (default at /) and Swahili (/sw), one tap away. Currencies: TZS in Tanzania (live), KES in Kenya (pilot), UGX in Uganda (planned).',
-  `Pricing (Tanzania): start free with ${DEFAULT_PRICING.free.cards} cards and ${DEFAULT_PRICING.free.messages} reminder messages. Paid tiers are ${TIERS.map((t, i) => {
-    const next = TIERS[i + 1]?.minCards;
-    const range = next ? `${t.minCards}–${next - 1}` : `${t.minCards}+`;
-    return `TZS ${fmt(t.price.TZS)}/card (${range} cards)`;
-  }).join(', ')}, each including ${DEFAULT_PRICING.messagesPerCard} reminder messages. Optional SMS credit packs start at TZS ${fmt(DEFAULT_PRICING.packs[0]!.price.TZS)} for ${DEFAULT_PRICING.packs[0]!.messages} credits. 0% commission on michango.`,
+  `Pricing (Tanzania): start free with ${DEFAULT_PRICING.free.cards} cards and ${DEFAULT_PRICING.free.messages} reminder messages. Paid tiers are ${TIERS.map(
+    (t, i) => {
+      const next = TIERS[i + 1]?.minCards;
+      const range = next ? `${t.minCards}–${next - 1}` : `${t.minCards}+`;
+      return `TZS ${fmt(t.price.TZS)}/card (${range} cards)`;
+    },
+  ).join(
+    ', ',
+  )}, each including ${DEFAULT_PRICING.messagesPerCard} reminder messages. Optional SMS credit packs start at TZS ${fmt(DEFAULT_PRICING.packs[0]!.price.TZS)} for ${DEFAULT_PRICING.packs[0]!.messages} credits. 0% commission on michango.`,
   'Delivery: WhatsApp, SMS (works on any phone, including basic feature phones) and printable paper cards with the same QR and card number.',
   'Category clarity: Kadi Sasa provides event and wedding e-cards (invitations, RSVPs, pledges, gate passes), not NFC digital business cards.',
   'Guests need no account and no app. Kadi Sasa never asks guests for a PIN, password or OTP.',

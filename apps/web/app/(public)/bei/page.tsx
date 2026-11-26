@@ -249,7 +249,7 @@ export default async function PricingPage() {
           </p>
           {c.enforced ? null : (
             <p
-              className="ks-enter-2 w-fit rounded-full border border-[#5469d4]/25 bg-[#eef2ff] px-4 py-2 text-sm font-semibold text-[#5469d4]"
+              className="ks-enter-2 w-fit rounded-full border border-[#5469d4]/25 bg-[#eef2ff] px-4 py-2 text-sm font-semibold text-[#3b4cc0]"
               data-testid="pricing-pilot"
             >
               {t('pilotFree')}

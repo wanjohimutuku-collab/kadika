@@ -83,7 +83,7 @@ export function CardMockup({
           />
 
           <div className="flex flex-col items-center gap-1 text-center">
-            <span className="text-[9px] font-semibold tracking-[0.24em] text-[#8a6d3b] uppercase">
+            <span className="text-[9px] font-semibold tracking-[0.24em] text-[#5c4318] uppercase">
               Print Card · A6
             </span>
             <div
@@ -108,13 +108,13 @@ export function CardMockup({
               <DemoQr label={qrLabel} />
             </div>
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[9.5px] font-medium tracking-wide text-[#6b6558] uppercase">
+              <span className="text-[9.5px] font-medium tracking-wide text-[#494d59] uppercase">
                 {numberLabel}
               </span>
               <span className="tabular text-[15px] font-bold tracking-tight whitespace-nowrap text-[#0a2640]">
                 {code}
               </span>
-              <span className="mt-1 inline-flex w-fit rounded-[2px] border border-[#e4dac6] bg-[#faf5ea] px-1.5 py-0.5 text-[8.5px] font-semibold tracking-wider text-[#8a6d3b] uppercase">
+              <span className="mt-1 inline-flex w-fit rounded-[2px] border border-[#e4dac6] bg-[#faf5ea] px-1.5 py-0.5 text-[8.5px] font-semibold tracking-wider text-[#5c4318] uppercase">
                 A6 · 300gsm
               </span>
             </div>

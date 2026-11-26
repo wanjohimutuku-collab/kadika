@@ -206,8 +206,13 @@ export function LoginPhone() {
           })}
         </div>
 
+        {mode === 'login' ? (
+          <p className="mb-1 text-xs font-semibold tracking-[0.16em] text-[#3b4cc0] uppercase">
+            {t('loginWelcome')}
+          </p>
+        ) : null}
         <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.02em] text-[#0a2640] sm:text-[32px]">
-          {mode === 'signup' ? t('signupHeading') : t('loginWelcome')}
+          {mode === 'signup' ? t('signupHeading') : t('title', { brand })}
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-[#494d59]">
           {mode === 'signup' ? t('signupSubtitle') : t('loginSubtitle')}
@@ -305,7 +310,7 @@ export function LoginPhone() {
                         className={cn(
                           'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                           active
-                            ? 'border-[#5469d4] bg-[#eef2ff] text-[#5469d4]'
+                            ? 'border-[#5469d4] bg-[#eef2ff] text-[#3b4cc0]'
                             : 'border-[#e3e8ee] bg-white text-[#494d59] hover:border-[#5469d4]/40 hover:text-[#0a2640]',
                         )}
                       >

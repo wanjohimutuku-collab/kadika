@@ -165,16 +165,16 @@ export const COMPANY_PAGES: ContentPageDef[] = [
     slugEn: 'about',
     group: 'company',
     schema: 'WebPage',
-    updated: UPDATED,
+    updated: '2026-11-26',
     related: ['kadi-ya-harusi-mtandaoni', 'usalama-wa-kadi-za-mtandaoni', 'mawasiliano', 'privacy'],
     sw: {
       nav: 'Kuhusu Kadi Sasa',
-      title: 'Kuhusu Kadi Sasa: Kadi za Harusi za Kitanzania',
+      title: 'Kuhusu Kadi Sasa: Kadi za Mwaliko Afrika Mashariki',
       description:
-        'Kadi Sasa inasaidia kamati na wenyeji wa harusi, send-off na uchumba Tanzania kutuma kadi, kufuatilia michango na kuingiza wageni langoni.',
-      h1: 'Kuhusu Kadi Sasa',
+        'Kadi Sasa inasaidia familia na kamati Afrika Mashariki kutuma kadi za WhatsApp, SMS na QR, kufuatilia michango (0% makato) na kulinda lango bila mtandao.',
+      h1: 'Mialiko ya heshima kwa kila mgeni, kuanzia kamati hadi ukumbini.',
       answer:
-        'Kadi Sasa inatengenezwa Tanzania ili kamati na wenyeji wa harusi, send-off na uchumba waweze kutuma kadi kwa kila mgeni, kufuatilia majibu na michango, na kuingiza wageni langoni bila msongamano, hata mtandao ukikatika.',
+        'Kadi Sasa ni mfumo ulioundwa Dar es Salaam kwa ajili ya familia, kamati na waandaaji wa sherehe Afrika Mashariki. Unatuma kadi za kidijitali kwa WhatsApp, SMS ya kawaida na PDF yenye QR, kufuatilia majibu na michango kwa 0% makato, na kuthibitisha wageni langoni hata bila mtandao.',
       sections: [
         {
           id: 'kwa-nini',
@@ -182,48 +182,41 @@ export const COMPANY_PAGES: ContentPageDef[] = [
           blocks: [
             {
               t: 'p',
-              text: 'Mialiko mingi huishia kwenye picha moja ya WhatsApp, QR isiyosomeka langoni, au daftari la michango lisilolingana. Wazee hawapati kadi, wageni wanaogopa ulaghai, na kamati inaumia siku ya tukio. Tulitaka mfumo mmoja unaofanya kazi kwa simu za kawaida na smartphone, mtandaoni na bila mtandao.',
+              text: 'Mialiko mingi bado huishia kwenye picha moja inayotupwa kwenye magroup, QR zinazoshindwa kusoma mtandao ukikatika ukumbini, au madaftari ya michango yanayoleta mabishano kwenye kikao. Wazee wasio na smartphone huachwa nyuma, na wageni huogopa link zisizoaminika.',
+            },
+            {
+              t: 'p',
+              text: 'Tuliijenga Kadi Sasa kutatua pengo hili halisi: kila mgeni apate mwaliko wake binafsi kwa njia anayoitumia (WhatsApp, SMS au karatasi ya QR), pesa ya michango iende moja kwa moja kwa wenye sherehe bila makato ya jukwaa, na walinzi langoni wasikwame mtandao ukipotea.',
             },
           ],
         },
         {
           id: 'misingi',
-          h2: 'Tunachoamini',
+          h2: 'Misingi yetu mitano',
           blocks: [
             {
               t: 'ul',
               items: [
-                'Kila mgeni anastahili kadi yake, hata asiye na smartphone.',
-                'Mialiko iwe ya heshima: hakuna matangazo, hakuna shinikizo la michango.',
-                'Uaminifu unaonekana: kila kadi inaonyesha mtumaji na namba ya kamati.',
-                'Data ya wageni ni ya mwenyeji; tunakusanya kiwango cha chini.',
-                'Kiswahili kwanza, Kiingereza kikiwa kwa mguso mmoja.',
+                'Kila mgeni ajumuishwe: WhatsApp kwa wenye smartphone, SMS yenye namba fupi na PDF yenye QR kwa wazazi na wazee.',
+                'Uaminifu mbele: kila kadi inaonyesha jina la mtumaji na simu ya kamati — hatuombi PIN wala nenosiri.',
+                '0% makato ya michango: michango ya harusi, send-off au harambee inapokelewa moja kwa moja na kamati.',
+                'Lango imara bila mtandao: programu ya Android inapakua orodha mapema na kutambua nakala za screenshot papo hapo.',
+                'Kiswahili kwanza, Kiingereza kwa mguso mmoja, huku data ya wageni ikilindwa chini ya mwenyeji.',
               ],
             },
           ],
         },
         {
-          id: 'inachofanya',
-          h2: 'Tunachotoa',
+          id: 'afrika-mashariki',
+          h2: 'Uwepo wetu Afrika Mashariki',
           blocks: [
             {
               t: 'ul',
               items: [
-                'Kadi ya mwaliko kwa kila mgeni kwa WhatsApp, SMS na karatasi.',
-                'Majibu, vikumbusho na ufuatiliaji wa hali ya kila kadi.',
-                'Michango: ahadi, malipo kwa simu na ripoti.',
-                'Lango la kuingiza wageni kwa QR, namba au jina, bila mtandao.',
+                'Tanzania (Huduma kamili): bei wazi kwa TZS (/bei), msaada wa M-Pesa, Mixx by Yas, Airtel Money na HaloPesa.',
+                'Kenya (Majaribio): namba za +254, ufuatiliaji wa ahadi za ruracio na harambee kwa M-Pesa Paybill na Till (/ke).',
+                'Uganda (Miongozo): miongozo ya mialiko na ahadi za kwanjula na kuhingira (/ug).',
               ],
-            },
-          ],
-        },
-        {
-          id: 'hali',
-          h2: 'Hali ya sasa',
-          blocks: [
-            {
-              t: 'p',
-              text: 'Kadi Sasa iko kwenye hatua ya majaribio na harusi chache. Tunasikiliza kamati na wageni ili kuboresha. Maoni yako yanakaribishwa kupitia ukurasa wa mawasiliano.',
             },
           ],
         },
@@ -231,75 +224,92 @@ export const COMPANY_PAGES: ContentPageDef[] = [
       faq: [
         {
           q: 'Nani anaweza kutumia Kadi Sasa?',
-          a: 'Wenyeji na kamati za harusi, send-off, uchumba na sherehe nyingine za faragha nchini Tanzania.',
+          a: 'Familia, wanandoa, kamati za harusi, send-off, kitchen party, nikah, ruracio, harambee, sherehe binafsi na makampuni au taasisi.',
+        },
+        {
+          q: 'Je, Kadi Sasa inakata asilimia yoyote kwenye michango?',
+          a: 'Hapana. Tunachukua 0% kwenye michango. Wageni wanalipa moja kwa moja kwa namba au akaunti ya wenye sherehe, na kamati inafuatilia ahadi na risiti ndani ya mfumo.',
+        },
+        {
+          q: 'Wazee wasio na smartphone wanapataje mwaliko?',
+          a: 'Wanapokea SMS ya kawaida yenye namba fupi ya kuingilia getini (mfano KH-4826) au PDF yenye QR ya kuchapisha na kukabidhiwa mkononi.',
+        },
+        {
+          q: 'Inagharimu kiasi gani kuanza?',
+          a: 'Unaanza bure na kadi 5 za mwanzo Tanzania, kisha unalipia vifurushi vya uwazi vya TZS 2,400 (1–99), TZS 2,200 (100–499) au TZS 1,950 (500+) kwa kadi. Kenya iko kwenye majaribio ya bure.',
         },
       ],
     },
     en: {
-      nav: 'About Kadi Sasa',
-      title: 'About Kadi Sasa: Tanzanian Wedding Invitations',
+      nav: 'About',
+      title: 'About Kadi Sasa: Digital Invitations for East Africa',
       description:
-        'Kadi Sasa helps hosts and committees for weddings, send-offs and engagements in Tanzania send cards, track contributions and admit guests at the gate.',
-      h1: 'About Kadi Sasa',
+        'Kadi Sasa helps families and committees across East Africa send WhatsApp, SMS and QR invitations, track michango (0% cut) and run offline gate check-in.',
+      h1: 'Respectful invitations for every guest, from the committee room to the gate.',
       answer:
-        'Kadi Sasa is built in Tanzania so hosts and committees for weddings, send-offs and engagements can send every guest a card, track replies and contributions, and admit guests at the gate without a crush, even when the network drops.',
+        'Kadi Sasa is built in Dar es Salaam for families, wedding committees, and organisers across East Africa. You send personal invitations by WhatsApp, plain SMS, and printable QR PDFs, track RSVPs and contributions with 0% commission, and check guests in at the gate even without mobile signal.',
       sections: [
         {
           id: 'why',
-          h2: 'Why we started it',
+          h2: 'Why we built Kadi Sasa',
           blocks: [
             {
               t: 'p',
-              text: 'Too many invitations end as one WhatsApp image, a QR that will not scan at the gate, or a contributions notebook that does not add up. Elders miss out, guests fear scams, and the committee suffers on the day. We wanted one system that works on basic phones and smartphones, with and without network.',
+              text: 'Too many celebrations still rely on a single flyer dropped into busy group chats, QR screenshots forwarded to uninvited guests, and contribution notebooks that cause friction at committee meetings. Meanwhile, parents and grandparents without smartphones are left out or confused by unverified links.',
+            },
+            {
+              t: 'p',
+              text: 'We built Kadi Sasa to solve those real-world gaps together: every guest gets a personal card via the channel that fits them best (WhatsApp, SMS, or print), contributions go straight to hosts with 0% platform cut, and gate ushers verify entries offline in seconds.',
             },
           ],
         },
         {
           id: 'believe',
-          h2: 'What we believe',
+          h2: 'Our five principles',
           blocks: [
             {
               t: 'ul',
               items: [
-                'Every guest deserves their own card, even without a smartphone.',
-                'Invitations should be courteous: no ads, no pressure to contribute.',
-                'Trust should be visible: every card shows the sender and committee number.',
-                'Guest data belongs to the host; we collect the minimum.',
-                'Swahili first, English one tap away.',
+                'No guest left behind: WhatsApp cards for smartphone users, plain SMS short codes and printable QR PDFs for elders.',
+                'Visible trust, zero PIN prompts: every card displays the sender name and clickable committee phone number.',
+                '0% cut on contributions: michango and harambee payments go directly to host mobile-money or bank accounts.',
+                'Offline-first gate security: our Android scanner downloads the encrypted guest list ahead of time and stops duplicate screenshots immediately.',
+                'Swahili first, English one tap away — with minimal guest data collection under host control.',
               ],
             },
           ],
         },
         {
-          id: 'offer',
-          h2: 'What we offer',
+          id: 'east-africa',
+          h2: 'Across East Africa',
           blocks: [
             {
               t: 'ul',
               items: [
-                'A card per guest by WhatsApp, SMS and paper.',
-                'Replies, reminders and status tracking per card.',
-                'Contributions: pledges, mobile payments and reports.',
-                'A gate that admits by QR, number or name, offline.',
+                'Tanzania (Live): transparent TZS tiers (/bei) with M-Pesa, Mixx by Yas, Airtel Money and HaloPesa.',
+                'Kenya (Pilot): +254 numbers, Nairobi time, and M-Pesa Paybill/Till tracking for weddings, ruracio and harambee (/ke).',
+                'Uganda (Early Guides): guides for kwanjula, kuhingira and pledge-card coordination (/ug).',
               ],
-            },
-          ],
-        },
-        {
-          id: 'status',
-          h2: 'Where we are now',
-          blocks: [
-            {
-              t: 'p',
-              text: 'Kadi Sasa is in a pilot with a small number of weddings. We listen to committees and guests to improve. Your feedback is welcome through the contact page.',
             },
           ],
         },
       ],
       faq: [
         {
-          q: 'Who can use Kadi Sasa?',
-          a: 'Hosts and committees for weddings, send-offs, engagements and other private celebrations in Tanzania.',
+          q: 'Who is Kadi Sasa built for?',
+          a: 'Couples, families, wedding and send-off committees, kitchen party planners, church and mosque organisers, ruracio and harambee teams, and private or corporate event hosts.',
+        },
+        {
+          q: 'Does Kadi Sasa take a percentage of contributions?',
+          a: 'No. We take 0% commission on michango and harambee funds. Guests pay directly to the host accounts, while treasurers track pledges and receipts in one clean ledger.',
+        },
+        {
+          q: 'How do elders without smartphones receive their invitation?',
+          a: 'They receive a plain SMS containing the venue details and their short gate code (e.g. KH-4826), or an A6/A5/4-up A4 printed card carrying the exact same signed QR code.',
+        },
+        {
+          q: 'How much does it cost to get started?',
+          a: 'In Tanzania you start with 5 free cards, followed by transparent TZS tiers (TZS 2,400 for 1–99, TZS 2,200 for 100–499, and TZS 1,950 for 500+ per card). Kenya is currently in free early pilot testing.',
         },
       ],
     },

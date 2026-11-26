@@ -14,11 +14,15 @@ export const PRIVATE = [
   '/s/',
   '/k$',
   '/en/k$',
+  '/sw/k$',
   '/login',
+  '/sw/login',
   '/dev',
   '/api/',
   '/jaribu',
   '/en/jaribu',
+  '/sw/jaribu',
+  '/gate-join',
 ];
 
 /**
@@ -29,11 +33,15 @@ export const PRIVATE = [
 export const SEARCH_BOTS = [
   'Googlebot',
   'Bingbot',
+  'Applebot',
   'OAI-SearchBot',
   'ChatGPT-User',
   'PerplexityBot',
+  'Perplexity-User',
   'Claude-SearchBot',
   'Claude-User',
+  'DuckAssistBot',
+  'MistralAI-User',
 ] as const;
 
 export default function robots(): MetadataRoute.Robots {

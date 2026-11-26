@@ -15,7 +15,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
     slugEn: '',
     group: 'product',
     schema: 'WebPage',
-    updated: UPDATED,
+    updated: '2026-11-26',
     related: [
       'digital-wedding-invitations-kenya',
       'ruracio-harambee-invitations-contributions',

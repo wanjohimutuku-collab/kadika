@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import type { Locale } from '@harusi/i18n';
+import { AboutPage } from '@/components/public/about-page';
 import { ContentPage } from '@/components/public/content-page';
 import { STATIC_ROUTE_SLUGS, pageBySlug } from '@/content';
 import { pageMetadata } from '@/content/metadata';
+import { getPricingOnServer } from '@/lib/server-pricing';
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -31,5 +33,9 @@ export default async function Page({ params }: Params) {
   const locale = (await getLocale()) as Locale;
   const page = resolve(slug, locale);
   if (!page) notFound();
+  if (page.slug === 'kuhusu') {
+    const catalog = await getPricingOnServer();
+    return <AboutPage page={page} locale={locale} catalog={catalog} />;
+  }
   return <ContentPage page={page} locale={locale} />;
 }

@@ -18,7 +18,6 @@ import {
   Ticket,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { siteButton } from '@/components/site/blocks';
 
 export interface NavLink {
   href: string;
@@ -50,6 +49,7 @@ export interface SiteNavProps {
   links: NavLink[];
   brand: ReactNode;
   cta: NavLink;
+  loginLink?: NavLink;
   cardLink: NavLink;
   /** Language and market switch, shown beside the menu on every width. */
   localeSwitch?: ReactNode;
@@ -57,7 +57,7 @@ export interface SiteNavProps {
 }
 
 const linkBase =
-  'inline-flex min-h-10 items-center rounded-full px-3.5 text-[14.5px] font-medium text-ks-ink/85 transition-all duration-300 hover:bg-ks-green-100/70 hover:text-ks-green-900 focus-visible:outline-2 focus-visible:outline-ks-green-700';
+  'inline-flex h-9 items-center whitespace-nowrap rounded-full px-3 text-[14px] font-medium text-[#0a2640]/80 transition-colors duration-200 hover:bg-[#f6f9fc] hover:text-[#5469d4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5469d4]';
 
 /**
  * Floating glass pill navigation, detached from the top edge so it floats over the warm hero mesh.
@@ -69,6 +69,7 @@ export function SiteNav({
   links,
   brand,
   cta,
+  loginLink,
   cardLink,
   localeSwitch,
   labels,
@@ -126,17 +127,17 @@ export function SiteNav({
         <nav
           aria-label={labels.main}
           className={cn(
-            'ks-ease relative mx-auto flex min-h-[3.75rem] max-w-[1120px] items-center gap-2 rounded-full py-1.5 pr-1.5 pl-4 backdrop-blur-xl transition-all duration-500 md:pl-5',
+            'ks-ease relative mx-auto flex min-h-[3.5rem] max-w-[1120px] items-center justify-between gap-3 rounded-full py-1.5 pr-1.5 pl-4 backdrop-blur-xl transition-all duration-500 md:pl-5',
             scrolled || sheet
-              ? 'bg-white/90 shadow-[0_18px_44px_-22px_rgb(10_10_7/0.35),inset_0_1px_0_rgb(255_255_255/0.9)] ring-1 ring-ks-ink/[0.08]'
-              : 'bg-ks-paper/80 shadow-[0_10px_28px_-20px_rgb(10_10_7/0.22),inset_0_1px_0_rgb(255_255_255/0.8)] ring-1 ring-ks-ink/[0.06]',
+              ? 'bg-white/95 shadow-[0_18px_44px_-22px_rgb(10_38_64/0.25)] ring-1 ring-[#e3e8ee]'
+              : 'bg-white/90 shadow-[0_10px_28px_-20px_rgb(10_38_64/0.16)] ring-1 ring-[#e3e8ee]',
           )}
         >
           {/* Brand mark */}
           <div className="flex flex-1 items-center gap-1 lg:flex-none">{brand}</div>
 
           {/* Primary desktop navigation */}
-          <ul className="ml-3 hidden items-center gap-0.5 lg:flex">
+          <ul className="ml-2 hidden shrink-0 items-center gap-1 lg:flex">
             {groups.map((g) => {
               const expanded = open === g.id;
               const groupHasActive = g.links.some((l) => isActive(l.href));
@@ -147,7 +148,7 @@ export function SiteNav({
                     className={cn(
                       linkBase,
                       'gap-1',
-                      (expanded || groupHasActive) && 'bg-[#f6f9fc] text-[#5469d4]',
+                      (expanded || groupHasActive) && 'bg-[#f6f9fc] font-semibold text-[#5469d4]',
                     )}
                     aria-expanded={expanded}
                     aria-controls={`nav-${g.id}`}
@@ -156,7 +157,7 @@ export function SiteNav({
                     {g.label}
                     <ChevronDown
                       className={cn(
-                        'ks-ease size-3.5 text-ks-muted transition-transform duration-300',
+                        'ks-ease size-3.5 text-[#494d59] transition-transform duration-300',
                         expanded && 'rotate-180 text-[#5469d4]',
                       )}
                       strokeWidth={2}
@@ -227,7 +228,7 @@ export function SiteNav({
                     href={l.href}
                     className={cn(
                       linkBase,
-                      active && 'bg-ks-green-100/75 font-semibold text-ks-green-900',
+                      active && 'bg-[#f6f9fc] font-semibold text-[#5469d4]',
                     )}
                     aria-current={active ? 'page' : undefined}
                   >
@@ -239,27 +240,40 @@ export function SiteNav({
           </ul>
 
           {/* Right utility & conversion cluster (desktop) */}
-          <div className="ml-auto hidden items-center gap-1.5 lg:flex">
+          <div className="ml-auto hidden shrink-0 items-center gap-1.5 lg:flex">
             <Link
               href={cardLink.href}
               className={cn(
-                'inline-flex min-h-10 items-center gap-1.5 rounded-full border border-ks-line/90 bg-white/85 px-3.5 text-[14px] font-medium text-ks-ink transition-all duration-300 hover:border-ks-green-700/35 hover:bg-ks-green-100/55 hover:text-ks-green-900 focus-visible:outline-2 focus-visible:outline-ks-green-700',
-                isActive(cardLink.href) &&
-                  'border-ks-green-700/40 bg-ks-green-100/75 font-semibold',
+                'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[13.5px] font-medium text-[#0a2640]/80 transition-colors duration-200 hover:bg-[#f6f9fc] hover:text-[#5469d4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5469d4] xl:px-3',
+                isActive(cardLink.href) && 'bg-[#f6f9fc] font-semibold text-[#5469d4]',
               )}
             >
-              <Ticket className="size-3.5 text-ks-saffron" strokeWidth={2.2} aria-hidden="true" />
+              <Ticket className="size-3.5 text-[#5469d4]" strokeWidth={2.2} aria-hidden="true" />
               <span>{cardLink.label}</span>
             </Link>
+            <span aria-hidden="true" className="h-4 w-px bg-[#e3e8ee]" />
             {localeSwitch}
+            {loginLink ? (
+              <Link
+                href={loginLink.href}
+                className={cn(
+                  'inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full border border-[#e3e8ee] bg-white px-4 text-[14px] font-semibold text-[#0a2640] transition-colors duration-200 hover:border-[#5469d4]/40 hover:bg-[#f6f9fc] hover:text-[#5469d4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5469d4]',
+                  isActive(loginLink.href) &&
+                    'border-[#5469d4]/40 bg-[#f6f9fc] text-[#5469d4]',
+                )}
+                aria-current={isActive(loginLink.href) ? 'page' : undefined}
+              >
+                {loginLink.label}
+              </Link>
+            ) : null}
             <Link
               href={cta.href}
-              className="group inline-flex min-h-10 items-center justify-center gap-2.5 rounded-full bg-ks-green-900 py-1 pr-1 pl-4 text-[14.5px] font-semibold text-white shadow-[0_12px_26px_-12px_rgb(10_63_53/0.65)] transition-all duration-500 ks-ease hover:bg-ks-ink active:scale-[0.98]"
+              className="qw-btn-primary min-h-10! py-1! pr-1.5! pl-4! text-[14px]!"
             >
               <span>{cta.label}</span>
               <span
                 aria-hidden="true"
-                className="ks-ease flex size-8 items-center justify-center rounded-full bg-white/15 text-white transition-all duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-px group-hover:bg-ks-saffron group-hover:text-ks-ink"
+                className="flex size-7 items-center justify-center rounded-full bg-white/15 text-white"
               >
                 <ArrowUpRight className="size-4" strokeWidth={2} />
               </span>
@@ -271,7 +285,7 @@ export function SiteNav({
             {localeSwitch}
             <button
               type="button"
-              className="ks-ease relative inline-flex size-10 items-center justify-center rounded-full bg-ks-green-900 text-white shadow-[0_8px_18px_-8px_rgb(10_63_53/0.55)] transition-transform duration-500 active:scale-95"
+              className="ks-ease relative inline-flex size-10 items-center justify-center rounded-full bg-[#0a2640] text-white shadow-[0_8px_18px_-8px_rgb(10_38_64/0.45)] transition-transform duration-500 active:scale-95"
               aria-label={sheet ? labels.close : labels.menu}
               aria-expanded={sheet}
               aria-controls="nav-sheet"
@@ -300,29 +314,29 @@ export function SiteNav({
       {sheet ? (
         <div
           id="nav-sheet"
-          className="fixed inset-0 z-30 overflow-y-auto bg-ks-paper/95 px-4 pt-24 pb-32 backdrop-blur-2xl lg:hidden"
+          className="fixed inset-0 z-30 overflow-y-auto bg-white/95 px-4 pt-24 pb-32 backdrop-blur-2xl lg:hidden"
         >
           <div className="ks-stagger mx-auto flex max-w-lg flex-col">
             {/* Relatable quick-access card for invited guests */}
             <Link
               href={cardLink.href}
-              className="mb-4 flex min-h-14 items-center justify-between rounded-2xl border border-ks-gold-500/35 bg-ks-gold-100/65 px-4 text-base font-semibold text-ks-green-900 shadow-[0_8px_20px_-14px_rgb(217_164_65/0.45)]"
+              className="mb-4 flex min-h-14 items-center justify-between rounded-2xl border border-[#e3e8ee] bg-[#f6f9fc] px-4 text-base font-semibold text-[#0a2640] shadow-xs"
             >
               <span className="inline-flex items-center gap-2.5">
-                <span className="inline-flex size-8 items-center justify-center rounded-full bg-white text-ks-saffron shadow-xs">
+                <span className="inline-flex size-8 items-center justify-center rounded-full bg-white text-[#5469d4] shadow-xs ring-1 ring-[#e3e8ee]">
                   <Ticket className="size-4" strokeWidth={2.2} aria-hidden="true" />
                 </span>
                 {cardLink.label}
               </span>
-              <ArrowUpRight className="size-4 text-ks-green-700" aria-hidden="true" />
+              <ArrowUpRight className="size-4 text-[#5469d4]" aria-hidden="true" />
             </Link>
 
             {groups.map((g) => (
-              <details key={g.id} className="group border-b border-ks-line">
-                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between text-2xl font-semibold tracking-[-0.02em] text-ks-ink">
+              <details key={g.id} className="group border-b border-[#e3e8ee]">
+                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between text-2xl font-semibold tracking-[-0.02em] text-[#0a2640]">
                   {g.label}
                   <ChevronDown
-                    className="ks-ease size-5 text-ks-muted transition-transform duration-500 group-open:rotate-180"
+                    className="ks-ease size-5 text-[#494d59] transition-transform duration-500 group-open:rotate-180 group-open:text-[#5469d4]"
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
@@ -332,7 +346,7 @@ export function SiteNav({
                     <li key={l.href}>
                       <Link
                         href={l.href}
-                        className="flex min-h-11 items-center rounded-xl px-2 text-base text-ks-ink/85 hover:bg-ks-green-100/60"
+                        className="flex min-h-11 items-center rounded-xl px-2 text-base text-[#0a2640]/85 hover:bg-[#f6f9fc] hover:text-[#5469d4]"
                       >
                         {l.label}
                       </Link>
@@ -345,22 +359,32 @@ export function SiteNav({
               <Link
                 key={l.href}
                 href={l.href}
-                className="flex min-h-16 items-center border-b border-ks-line text-2xl font-semibold tracking-[-0.02em] text-ks-ink"
+                className="flex min-h-16 items-center border-b border-[#e3e8ee] text-2xl font-semibold tracking-[-0.02em] text-[#0a2640]"
               >
                 {l.label}
               </Link>
             ))}
           </div>
-          <div className="fixed inset-x-0 bottom-0 border-t border-ks-line/70 bg-ks-paper/90 p-4 backdrop-blur-md">
-            <Link href={cta.href} className={cn(siteButton('primary'), 'w-full bg-ks-green-900')}>
-              {cta.label}
-              <span
-                aria-hidden="true"
-                className="flex size-9 items-center justify-center rounded-full bg-white/15"
-              >
-                <ArrowUpRight className="size-[18px]" strokeWidth={1.75} />
-              </span>
-            </Link>
+          <div className="fixed inset-x-0 bottom-0 border-t border-[#e3e8ee] bg-white/95 p-4 backdrop-blur-md">
+            <div className={cn(loginLink && 'grid grid-cols-2 gap-2.5')}>
+              {loginLink ? (
+                <Link
+                  href={loginLink.href}
+                  className={cn(
+                    'inline-flex min-h-12 w-full items-center justify-center rounded-full border border-[#e3e8ee] bg-white px-4 text-sm font-semibold text-[#0a2640] transition-colors duration-200 hover:border-[#5469d4]/40 hover:bg-[#f6f9fc] hover:text-[#5469d4]',
+                    isActive(loginLink.href) &&
+                      'border-[#5469d4]/40 bg-[#f6f9fc] text-[#5469d4]',
+                  )}
+                  aria-current={isActive(loginLink.href) ? 'page' : undefined}
+                >
+                  {loginLink.label}
+                </Link>
+              ) : null}
+              <Link href={cta.href} className="qw-btn-primary w-full justify-center">
+                <span>{cta.label}</span>
+                <ArrowUpRight className="size-[18px]" strokeWidth={2} aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </div>
       ) : null}

@@ -117,7 +117,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
   const currency = market === 'ke' ? 'KES' : 'TZS';
   const contact = getPage('mawasiliano');
   const pilotHref = contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/';
-  const primaryHref = market !== 'tz' ? pilotHref : '/login';
+  const primaryHref = market !== 'tz' ? pilotHref : '/login?mode=signup';
   const appHref = localeUrl(APP_DOWNLOAD_PATH, locale);
   const jaribuBase = '/jaribu';
   const demoSeed =

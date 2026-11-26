@@ -82,7 +82,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const cta =
     market !== 'tz'
       ? { href: contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/', label: ui.cta }
-      : { href: '/login', label: ui.cta };
+      : { href: '/login?mode=signup', label: ui.cta };
 
   const footerLocale: Locale = market !== 'tz' ? 'en' : locale;
   const columns: FooterColumn[] =
@@ -156,6 +156,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           groups={groups}
           links={links}
           cardLink={{ href: '/k', label: ui.card }}
+          loginLink={{ href: '/login', label: ui.login }}
           cta={cta}
           labels={ui.menu}
           localeSwitch={

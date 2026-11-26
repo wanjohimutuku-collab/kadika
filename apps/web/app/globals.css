@@ -672,6 +672,7 @@
   height: 100%;
   border-radius: 9999px;
   background: #00ec64;
+  transform: translate(-50%, -50%);
   animation: qw-ripple 1.8s infinite;
 }
 
@@ -680,6 +681,7 @@
 }
 
 .qw-orbit-node {
+  transform: translate(-50%, -50%);
   animation: qw-orbit-spin-reverse 40s linear infinite;
 }
 
@@ -741,6 +743,9 @@
   .qw-qr-scan-line {
     animation: none !important;
   }
+  .qw-ripple-dot::after {
+    opacity: 0;
+  }
   .qw-growth-line {
     stroke-dashoffset: 0;
   }
@@ -751,16 +756,16 @@
  * from the /ops brand (--brand-*, set on <html>), falling back to the site palette.
  */
 .auth-panel {
-  background-image: radial-gradient(
-    120% 90% at 100% 0%,
-    color-mix(in srgb, var(--hp-on-primary) 16%, transparent),
-    transparent 62%
-  );
+  background-color: #0a2640;
+  background-image:
+    radial-gradient(120% 90% at 100% 0%, rgb(84 105 212 / 0.3), transparent 60%),
+    radial-gradient(90% 70% at 0% 100%, rgb(13 48 61 / 0.75), transparent 65%),
+    linear-gradient(180deg, #0a2640 0%, #11253f 100%);
 }
 .auth-perforation {
   position: relative;
   margin: 0 18px;
-  border-top: 2px dashed color-mix(in srgb, var(--hp-on-primary) 38%, transparent);
+  border-top: 2px dashed rgb(255 255 255 / 0.24);
 }
 .auth-perforation::before,
 .auth-perforation::after {
@@ -770,7 +775,7 @@
   width: 22px;
   height: 22px;
   border-radius: 9999px;
-  background: var(--hp-bg);
+  background: var(--auth-notch-bg, #ffffff);
 }
 .auth-perforation::before {
   left: -29px;
@@ -780,8 +785,8 @@
 }
 .auth-card {
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.04),
-    0 28px 56px -32px color-mix(in srgb, var(--hp-primary) 55%, transparent);
+    0 1px 2px rgb(10 38 64 / 0.04),
+    0 24px 56px -24px rgba(10, 38, 64, 0.16);
 }
 @media (prefers-reduced-motion: no-preference) {
   .auth-panel,

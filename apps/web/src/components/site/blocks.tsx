@@ -22,17 +22,18 @@ type ButtonKind = 'primary' | 'secondary' | 'onDark' | 'outlineOnDark';
 const btnBase =
   'group inline-flex min-h-12 items-center justify-center gap-3 rounded-full whitespace-nowrap text-base font-semibold transition-[transform,background-color,color,box-shadow] duration-500 ks-ease active:scale-[0.98] focus-visible:outline-3 focus-visible:outline-offset-2';
 
-/** Primary = filled green, secondary = outline green, onDark = for green-900 sections (brand.md). */
+/** Primary = indigo-blue gradient pill, secondary = white bordered pill, onDark = white pill on navy bands. */
 export function siteButton(kind: ButtonKind = 'primary') {
   return cn(
     btnBase,
     kind === 'primary' &&
-      'bg-ks-green-700 py-1.5 pr-1.5 pl-6 text-white shadow-[0_10px_24px_-12px_rgb(15_92_77/0.7)] hover:bg-ks-green-900',
+      'bg-gradient-to-r from-[#4f46e5] to-[#3b82f6] py-1.5 pr-1.5 pl-6 text-white shadow-[0_12px_26px_-10px_rgb(79_70_229/0.55)] hover:brightness-105',
     kind === 'secondary' &&
-      'bg-white px-6 text-ks-green-900 shadow-[inset_0_0_0_1px_rgb(15_92_77/0.25)] hover:shadow-[inset_0_0_0_1.5px_rgb(15_92_77/0.6)]',
-    kind === 'onDark' && 'bg-white py-1.5 pr-1.5 pl-6 text-ks-green-900 hover:bg-ks-gold-100',
+      'border border-[#e3e8ee] bg-white px-6 text-[#0a2640] shadow-xs hover:border-[#5469d4]/50 hover:bg-[#f6f9fc] hover:text-[#5469d4]',
+    kind === 'onDark' &&
+      'bg-white py-1.5 pr-1.5 pl-6 text-[#0a2640] shadow-xs hover:bg-[#f6f9fc]',
     kind === 'outlineOnDark' &&
-      'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.4)] hover:bg-white/10',
+      'px-6 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.35)] hover:bg-white/10',
   );
 }
 
@@ -43,7 +44,7 @@ function ArrowDot({ dark }: { dark?: boolean }) {
       aria-hidden="true"
       className={cn(
         'flex size-9 items-center justify-center rounded-full transition-transform duration-500 ks-ease group-hover:translate-x-0.5 group-hover:-translate-y-px group-hover:scale-105',
-        dark ? 'bg-ks-green-100 text-ks-green-900' : 'bg-white/15 text-white',
+        dark ? 'bg-[#f6f9fc] text-[#0a2640]' : 'bg-white/15 text-white',
       )}
     >
       <ArrowUpRight className="size-[18px]" strokeWidth={1.75} />
@@ -95,13 +96,16 @@ export function Eyebrow({ children, dark }: { children: ReactNode; dark?: boolea
   return (
     <p
       className={cn(
-        'inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase',
+        'inline-flex w-fit items-center gap-2 rounded-full px-3.5 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase',
         dark
-          ? 'bg-white/10 text-ks-gold-100 ring-1 ring-white/15'
-          : 'bg-white text-ks-green-700 ring-1 ring-ks-green-700/15',
+          ? 'border border-white/15 bg-white/10 text-[#93c5fd]'
+          : 'border border-[#e3e8ee] bg-white text-[#5469d4]',
       )}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-ks-gold-500" />
+      <span
+        aria-hidden="true"
+        className={cn('size-1.5 rounded-full', dark ? 'bg-[#00ec64]' : 'bg-[#5469d4]')}
+      />
       {children}
     </p>
   );
@@ -127,11 +131,17 @@ export function SectionHeading({
       className={cn('flex max-w-2xl flex-col gap-4', center && 'mx-auto items-center text-center')}
     >
       {eyebrow ? <Eyebrow dark={dark}>{eyebrow}</Eyebrow> : null}
-      <h2 id={id} className="text-[28px] leading-[1.1] font-bold tracking-[-0.02em] md:text-[44px]">
+      <h2
+        id={id}
+        className={cn(
+          'text-[28px] leading-[1.1] font-bold tracking-[-0.025em] md:text-[42px]',
+          dark ? 'text-white' : 'text-[#0a2640]',
+        )}
+      >
         {children}
       </h2>
       {sub ? (
-        <p className={cn('text-lg leading-relaxed', dark ? 'text-white/75' : 'text-ks-muted')}>
+        <p className={cn('text-lg leading-relaxed', dark ? 'text-white/75' : 'text-[#494d59]')}>
           {sub}
         </p>
       ) : null}
@@ -283,19 +293,19 @@ export function CompareTable({
   rows: string[][];
 }) {
   return (
-    <div className="ks-bezel">
-      <div className="ks-core overflow-x-auto" role="region" aria-label={caption} tabIndex={0}>
+    <div className="qw-card overflow-hidden">
+      <div className="overflow-x-auto" role="region" aria-label={caption} tabIndex={0}>
         <table className="w-full min-w-[30rem] border-collapse text-left">
           <caption className="sr-only">{caption}</caption>
           <thead>
-            <tr className="border-b border-ks-line">
+            <tr className="border-b border-[#e3e8ee] bg-[#f6f9fc]">
               {head.map((h, i) => (
                 <th
                   key={h}
                   scope="col"
                   className={cn(
-                    'px-5 py-4 text-sm font-semibold tracking-wide uppercase',
-                    i === head.length - 1 ? 'text-ks-green-700' : 'text-ks-muted',
+                    'px-5 py-4 text-xs font-semibold tracking-wider uppercase',
+                    i === head.length - 1 ? 'text-[#5469d4]' : 'text-[#494d59]',
                   )}
                 >
                   {h}
@@ -305,14 +315,14 @@ export function CompareTable({
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r[0]} className="border-b border-ks-line last:border-0">
+              <tr key={r[0]} className="border-b border-[#e3e8ee] last:border-0">
                 {r.map((c, j) =>
                   j === 0 ? (
-                    <th key={j} scope="row" className="px-5 py-4 font-semibold">
+                    <th key={j} scope="row" className="px-5 py-4 font-semibold text-[#0a2640]">
                       {c}
                     </th>
                   ) : (
-                    <td key={j} className="px-5 py-4 align-top">
+                    <td key={j} className="px-5 py-4 align-top text-sm text-[#494d59]">
                       {c}
                     </td>
                   ),
@@ -429,8 +439,7 @@ export function CtaBand({
 }) {
   return (
     <Container as="section" className="pb-20 md:pb-28">
-      <div className="ks-mesh-dark ks-reveal relative overflow-hidden rounded-[2.5rem] px-6 py-16 text-white md:px-16 md:py-24">
-        <div className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80" aria-hidden="true" />
+      <div className="qw-navy-band ks-reveal relative overflow-hidden rounded-[2rem] border border-[#5469d4]/30 px-6 py-16 text-white shadow-[0_24px_56px_-20px_rgb(10_38_64/0.4)] md:px-16 md:py-24">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col gap-5">
             {eyebrow ? <Eyebrow dark>{eyebrow}</Eyebrow> : null}

@@ -3,11 +3,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Check, Lock, MessageSquare, ShieldCheck } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Briefcase,
+  Check,
+  Gift,
+  Heart,
+  Lock,
+  MessageSquare,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import { isRepositoryError } from '@harusi/api-client';
 import { countryOfE164, SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { parsePhone } from '@/lib/country';
 import type { Locale } from '@harusi/i18n';
+import { SiteLink as Link } from '@/components/site/site-link';
 import { Button, Spinner } from '@/components/ui/button';
 import { Banner } from '@/components/ui/display';
 import { QrBlock } from '@/components/ui/qr-block';
@@ -33,6 +44,22 @@ import {
 const PHONE_KEY = 'harusi.login.phone';
 /** How the pending code was sent (`sms` or `firebase`), so the code page checks it the same way. */
 const CHANNEL_KEY = 'harusi.login.channel';
+const DRAFT_NAME_KEY = 'harusi.login.draftName';
+const OCCASION_KEY = 'harusi.login.occasion';
+const MODE_KEY = 'harusi.login.mode';
+
+type OccasionKey = 'wedding' | 'sendoff' | 'birthday' | 'corporate';
+
+const OCCASIONS: ReadonlyArray<{
+  id: OccasionKey;
+  labelKey: 'occasionWedding' | 'occasionSendoff' | 'occasionBirthday' | 'occasionCorporate';
+  icon: typeof Heart;
+}> = [
+  { id: 'wedding', labelKey: 'occasionWedding', icon: Heart },
+  { id: 'sendoff', labelKey: 'occasionSendoff', icon: Sparkles },
+  { id: 'birthday', labelKey: 'occasionBirthday', icon: Gift },
+  { id: 'corporate', labelKey: 'occasionCorporate', icon: Briefcase },
+];
 
 /** True when `phone` gets our own SMS code: SMS sign-in, or a country the API keeps on SMS (Tanzania). */
 async function usesOwnSms(phone: string): Promise<boolean> {
@@ -104,6 +131,11 @@ export function LoginPhone() {
   const ts = useTranslations('states');
   const router = useRouter();
   const params = useSearchParams();
+  const paramMode =
+    params.get('mode') === 'signup' || Boolean(params.get('tier')) ? 'signup' : 'login';
+  const [mode, setMode] = useState<'login' | 'signup'>(paramMode);
+  const [draftName, setDraftName] = useState('');
+  const [occasion, setOccasion] = useState<OccasionKey>('wedding');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<Country | 'OTHER'>('TZ');
   const [anyCountry, setAnyCountry] = useState(false);
@@ -116,6 +148,10 @@ export function LoginPhone() {
   const firebaseMessage = useFirebaseMessage();
 
   useEffect(() => {
+    setMode(paramMode);
+  }, [paramMode]);
+
+  useEffect(() => {
     void loadAuthConfig()
       .then((cfg) => {
         if (cfg.otpProvider === 'firebase' && cfg.anyCountry) {
@@ -125,18 +161,64 @@ export function LoginPhone() {
       })
       .catch(() => undefined);
   }, []);
+
+  const occasionLabel = t(OCCASIONS.find((o) => o.id === occasion)?.labelKey ?? 'occasionWedding');
+
   return (
-    <AuthShell>
+    <AuthShell
+      mode={mode}
+      previewName={mode === 'signup' ? draftName : undefined}
+      previewOccasion={occasionLabel}
+    >
       <AuthCard>
-        <h1 className="font-display text-[30px] leading-tight font-semibold tracking-[-0.01em] sm:text-[34px]">
-          {t('title', { brand })}
+        <div
+          role="tablist"
+          aria-label={brand}
+          className="mb-5 grid grid-cols-2 rounded-full border border-[#e3e8ee] bg-[#f6f9fc] p-1"
+        >
+          {(
+            [
+              { id: 'login', label: t('tabLogin') },
+              { id: 'signup', label: t('tabSignup') },
+            ] as const
+          ).map((tab) => {
+            const active = mode === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => {
+                  setMode(tab.id);
+                  setError(null);
+                }}
+                className={cn(
+                  'min-h-10 rounded-full px-3 text-sm font-semibold transition-all duration-200',
+                  active
+                    ? 'bg-white text-[#0a2640] shadow-xs ring-1 ring-[#e3e8ee]'
+                    : 'text-[#494d59] hover:text-[#5469d4]',
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <h1 className="text-[28px] leading-[1.15] font-bold tracking-[-0.02em] text-[#0a2640] sm:text-[32px]">
+          {mode === 'signup' ? t('signupHeading') : t('loginWelcome')}
         </h1>
-        <p className="mt-2 text-muted">{t('subtitle')}</p>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#494d59]">
+          {mode === 'signup' ? t('signupSubtitle') : t('loginSubtitle')}
+        </p>
+
         {USE_MOCKS ? (
           <Banner tone="info" className="mt-4">
             {t('mockPhoneHint')} {t('staffHint', { brand })}
           </Banner>
         ) : null}
+
         <form
           noValidate
           className="mt-6 flex flex-col gap-4"
@@ -191,6 +273,14 @@ export function LoginPhone() {
               }
             }
             sessionStorage.setItem(PHONE_KEY, r.e164);
+            sessionStorage.setItem(MODE_KEY, mode);
+            sessionStorage.setItem(OCCASION_KEY, occasion);
+            const trimmedName = draftName.trim();
+            if (mode === 'signup' && trimmedName) {
+              sessionStorage.setItem(DRAFT_NAME_KEY, trimmedName);
+            } else {
+              sessionStorage.removeItem(DRAFT_NAME_KEY);
+            }
             // Keep `next` only when the visitor came from a protected page; staff without one land on /ops.
             const next = params.get('next');
             router.push(
@@ -198,6 +288,45 @@ export function LoginPhone() {
             );
           }}
         >
+          {mode === 'signup' ? (
+            <>
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-[#0a2640]">{t('occasionLabel')}</span>
+                <div className="flex flex-wrap gap-2">
+                  {OCCASIONS.map((item) => {
+                    const Icon = item.icon;
+                    const active = occasion === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setOccasion(item.id)}
+                        className={cn(
+                          'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                          active
+                            ? 'border-[#5469d4] bg-[#eef2ff] text-[#5469d4]'
+                            : 'border-[#e3e8ee] bg-white text-[#494d59] hover:border-[#5469d4]/40 hover:text-[#0a2640]',
+                        )}
+                      >
+                        <Icon className="size-3.5" aria-hidden="true" />
+                        <span>{t(item.labelKey)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <TextField
+                label={t('signupNameLabel')}
+                placeholder={t('signupNamePlaceholder')}
+                autoComplete="name"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                name="name"
+              />
+            </>
+          ) : null}
+
           {/* Kenyan numbers sign in even while the Kenya product is off. */}
           <Select
             label={tcm('country')}
@@ -223,7 +352,7 @@ export function LoginPhone() {
               onChange={(e) => setPhone(`+${e.target.value.replace(/[^\d]/g, '')}`)}
               error={error ?? undefined}
               name="phone"
-              autoFocus
+              autoFocus={mode === 'login'}
             />
           ) : (
             <PhoneField
@@ -234,20 +363,40 @@ export function LoginPhone() {
               onChange={setPhone}
               error={error ?? undefined}
               name="phone"
-              autoFocus
+              autoFocus={mode === 'login'}
             />
           )}
-          <Button type="submit" size="lg" block loading={busy} data-testid="send-code">
-            {t('sendCode')}
+          <Button
+            type="submit"
+            size="lg"
+            block
+            loading={busy}
+            className="qw-btn-primary rounded-full! border-0!"
+            data-testid="send-code"
+          >
+            {mode === 'signup' ? t('signupCta') : t('loginCta')}
           </Button>
           {/* Invisible reCAPTCHA for Firebase Phone Auth (ADR 048); empty otherwise. */}
           <div ref={recaptcha} />
         </form>
       </AuthCard>
-      <p className="flex items-start gap-2 px-1 text-sm text-muted">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
-        {t('trust')}
-      </p>
+
+      <div className="flex flex-col gap-2.5 px-1">
+        <p className="flex items-start gap-2 text-sm text-[#494d59]">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#5469d4]" aria-hidden="true" />
+          <span>{t('trust')}</span>
+        </p>
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-[#494d59]">
+          <span>{t('guestPrompt')}</span>
+          <Link
+            href="/k"
+            className="inline-flex items-center gap-1 font-semibold text-[#5469d4] underline-offset-4 hover:underline"
+          >
+            <span>{t('guestAction')}</span>
+            <ArrowUpRight className="size-3.5" aria-hidden="true" />
+          </Link>
+        </p>
+      </div>
     </AuthShell>
   );
 }
@@ -281,6 +430,9 @@ export function LoginOtp() {
   const firebaseMessage = useFirebaseMessage();
   /** Firebase sent the code (ADR 048): it checks it, then the API trades the ID token. */
   const [firebase, setFirebase] = useState(false);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [draftName, setDraftName] = useState('');
+  const [occasion, setOccasion] = useState<OccasionKey>('wedding');
 
   useEffect(() => {
     const p = sessionStorage.getItem(PHONE_KEY);
@@ -290,11 +442,25 @@ export function LoginOtp() {
     }
     setPhone(p);
     setHost(window.location.host);
+    setMode(sessionStorage.getItem(MODE_KEY) === 'signup' ? 'signup' : 'login');
+    setDraftName(sessionStorage.getItem(DRAFT_NAME_KEY) ?? '');
+    const storedOccasion = sessionStorage.getItem(OCCASION_KEY);
+    if (
+      storedOccasion === 'wedding' ||
+      storedOccasion === 'sendoff' ||
+      storedOccasion === 'birthday' ||
+      storedOccasion === 'corporate'
+    ) {
+      setOccasion(storedOccasion);
+    }
     if (USE_MOCKS || sessionStorage.getItem(CHANNEL_KEY) === 'sms') return;
     // The Firebase code lives in this tab only: after a reload the visitor asks for a new one.
     if (!hasPendingCode(p)) router.replace('/login');
     else setFirebase(true);
   }, [router]);
+
+  const occasionLabel = t(OCCASIONS.find((o) => o.id === occasion)?.labelKey ?? 'occasionWedding');
+  const firstName = draftName.trim().split(/\s+/)[0] ?? '';
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -313,6 +479,9 @@ export function LoginOtp() {
         : await getRepository().verifyOtp(phone, value, attribution);
       sessionStorage.removeItem(PHONE_KEY);
       sessionStorage.removeItem(CHANNEL_KEY);
+      sessionStorage.removeItem(DRAFT_NAME_KEY);
+      sessionStorage.removeItem(OCCASION_KEY);
+      sessionStorage.removeItem(MODE_KEY);
       clearAttribution();
       // The cells turn green before the next step, so the visitor sees the code was accepted.
       setBusy(false);
@@ -338,6 +507,16 @@ export function LoginOtp() {
         return;
       }
       if (!session.user.name) {
+        const savedName = draftName.trim();
+        if (savedName.length >= 2) {
+          try {
+            await getRepository().updateProfile({ name: savedName });
+            router.replace(safeNext(params.get('next')));
+            return;
+          } catch {
+            setName(savedName);
+          }
+        }
         setNeedsName(true);
         return;
       }
@@ -401,26 +580,35 @@ export function LoginOtp() {
 
   if (secondFactor) {
     return (
-      <AuthShell testId="second-factor">
+      <AuthShell
+        testId="second-factor"
+        mode={mode}
+        previewName={mode === 'signup' ? draftName : undefined}
+        previewOccasion={occasionLabel}
+      >
         <AuthCard className="flex flex-col gap-5">
           {enrolment.status === 'none' ? (
             <>
-              <h1 className="font-display text-3xl font-semibold">{t('secondFactorTitle')}</h1>
-              <p>{t('secondFactorBody')}</p>
+              <h1 className="text-[28px] leading-tight font-bold text-[#0a2640]">
+                {t('secondFactorTitle')}
+              </h1>
+              <p className="text-[#494d59]">{t('secondFactorBody')}</p>
             </>
           ) : (
             <>
-              <h1 className="font-display text-3xl font-semibold">{t('enrolTitle')}</h1>
-              <p>{t('enrolBody')}</p>
+              <h1 className="text-[28px] leading-tight font-bold text-[#0a2640]">
+                {t('enrolTitle')}
+              </h1>
+              <p className="text-[#494d59]">{t('enrolBody')}</p>
               {enrolment.status === 'loading' ? (
-                <p className="text-muted" role="status">
+                <p className="text-[#494d59]" role="status">
                   {t('enrolLoading')}
                 </p>
               ) : (
                 <div className="flex flex-col items-center gap-3" data-testid="totp-enrol">
                   <QrBlock payload={enrolment.url} alt={t('enrolQrAlt')} size={220} />
-                  <p className="text-sm text-muted">{t('enrolSecretLabel')}</p>
-                  <code className="break-all rounded-input border border-border bg-surface px-3 py-2 text-center font-mono text-base tracking-wider">
+                  <p className="text-sm text-[#494d59]">{t('enrolSecretLabel')}</p>
+                  <code className="break-all rounded-input border border-[#e3e8ee] bg-[#f6f9fc] px-3 py-2 text-center font-mono text-base tracking-wider text-[#0a2640]">
                     {enrolment.secret.replace(/(.{4})/g, '$1 ').trim()}
                   </code>
                 </div>
@@ -451,6 +639,7 @@ export function LoginOtp() {
               size="lg"
               block
               loading={busy}
+              className="qw-btn-primary rounded-full! border-0!"
               disabled={code.length !== 6 || locked}
             >
               {t('verify')}
@@ -463,9 +652,16 @@ export function LoginOtp() {
 
   if (needsName) {
     return (
-      <AuthShell>
+      <AuthShell
+        mode={mode}
+        previewName={name.trim() || draftName}
+        previewOccasion={occasionLabel}
+      >
         <AuthCard className="flex flex-col gap-5">
-          <h1 className="font-display text-3xl font-semibold">{t('nameTitle')}</h1>
+          <div>
+            <h1 className="text-[28px] leading-tight font-bold text-[#0a2640]">{t('nameTitle')}</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-[#494d59]">{t('nameSubtitle')}</p>
+          </div>
           <form
             className="flex flex-col gap-4"
             onSubmit={async (e) => {
@@ -483,7 +679,14 @@ export function LoginOtp() {
               autoComplete="name"
               autoFocus
             />
-            <Button type="submit" size="lg" block loading={busy} disabled={name.trim().length < 2}>
+            <Button
+              type="submit"
+              size="lg"
+              block
+              loading={busy}
+              className="qw-btn-primary rounded-full! border-0!"
+              disabled={name.trim().length < 2}
+            >
               {t('continue')}
             </Button>
           </form>
@@ -496,13 +699,17 @@ export function LoginOtp() {
   const timer = `${Math.floor(resendIn / 60)}:${String(resendIn % 60).padStart(2, '0')}`;
 
   return (
-    <AuthShell>
+    <AuthShell
+      mode={mode}
+      previewName={mode === 'signup' ? draftName : undefined}
+      previewOccasion={occasionLabel}
+    >
       <AuthCard>
         <div
           key={verified ? 'ok' : 'wait'}
           className={cn(
             'mb-5 grid size-12 place-items-center rounded-full',
-            verified ? 'otp-done bg-success/15 text-success' : 'bg-primary/10 text-primary',
+            verified ? 'otp-done bg-success/15 text-success' : 'bg-[#eef2ff] text-[#5469d4]',
           )}
           aria-hidden="true"
         >
@@ -512,20 +719,20 @@ export function LoginOtp() {
             <MessageSquare className="size-6" />
           )}
         </div>
-        <h1 className="font-display text-[28px] leading-tight font-semibold sm:text-[32px]">
-          {t('otpHeading')}
+        <h1 className="text-[28px] leading-tight font-bold tracking-[-0.02em] text-[#0a2640] sm:text-[32px]">
+          {firstName ? t('otpHeadingNamed', { name: firstName }) : t('otpHeading')}
         </h1>
         {phone ? (
-          <p className="mt-1.5 text-muted">
+          <p className="mt-1.5 text-[#494d59]">
             {t.rich('otpSentTo', {
               phone: formatPhone(phone),
-              b: (chunks) => <strong className="tabular font-semibold text-ink">{chunks}</strong>,
+              b: (chunks) => <strong className="tabular font-semibold text-[#0a2640]">{chunks}</strong>,
             })}{' '}
             <button
               type="button"
               onClick={() => router.push('/login')}
               disabled={busy || verified}
-              className="font-semibold text-primary underline-offset-4 hover:underline disabled:opacity-50"
+              className="font-semibold text-[#5469d4] underline-offset-4 hover:underline disabled:opacity-50"
             >
               {t('otpEdit')}
             </button>
@@ -569,7 +776,7 @@ export function LoginOtp() {
             data-testid="otp-status"
           >
             {busy ? (
-              <span className="fade-in flex items-center gap-2 text-primary">
+              <span className="fade-in flex items-center gap-2 text-[#5469d4]">
                 <Spinner className="size-4" />
                 {t('verifying')}
               </span>
@@ -581,15 +788,15 @@ export function LoginOtp() {
             ) : null}
           </p>
         </form>
-        <div className="mt-2 flex flex-wrap items-center gap-x-1 border-t border-border pt-4 text-sm">
-          <span className="text-muted">{t('otpNoCode')}</span>
+        <div className="mt-2 flex flex-wrap items-center gap-x-1 border-t border-[#e3e8ee] pt-4 text-sm">
+          <span className="text-[#494d59]">{t('otpNoCode')}</span>
           {resendIn > 0 ? (
-            <span className="tabular text-muted">{t('otpResendTimer', { time: timer })}</span>
+            <span className="tabular text-[#494d59]">{t('otpResendTimer', { time: timer })}</span>
           ) : (
             <button
               type="button"
               disabled={locked || verified}
-              className="-mx-2 min-h-12 px-2 font-semibold text-primary underline-offset-4 hover:underline disabled:opacity-50"
+              className="-mx-2 min-h-12 px-2 font-semibold text-[#5469d4] underline-offset-4 hover:underline disabled:opacity-50"
               onClick={async () => {
                 if (!phone) return;
                 setNotice(null);
@@ -609,21 +816,21 @@ export function LoginOtp() {
             </button>
           )}
           {notice ? (
-            <p role="status" className="fade-in w-full text-sm text-muted">
+            <p role="status" className="fade-in w-full text-sm text-[#494d59]">
               {notice}
             </p>
           ) : null}
           <div ref={recaptcha} />
         </div>
       </AuthCard>
-      <div className="flex flex-col gap-2 px-1 text-sm text-muted" lang={locale}>
+      <div className="flex flex-col gap-2 px-1 text-sm text-[#494d59]" lang={locale}>
         <p className="flex items-start gap-2">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#5469d4]" aria-hidden="true" />
           {t('otpTrust')}
         </p>
         {host ? (
           <p className="flex items-start gap-2">
-            <Lock className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+            <Lock className="mt-0.5 size-4 shrink-0 text-[#5469d4]" aria-hidden="true" />
             {t('otpSecure', { host })}
           </p>
         ) : null}

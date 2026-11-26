@@ -57,8 +57,14 @@ describe('robots.txt', () => {
     expect(sitemapPaths.filter((p) => !allowed(rules, p))).toEqual([]);
   });
 
-  it('lets crawlers fetch the logo the structured data names', () => {
+  it('lets crawlers fetch the logo and AI/sitemap discovery endpoints', () => {
     expect(allowed(rulesFor('Googlebot'), '/icons/512.png')).toBe(true);
+    for (const agent of [...SEARCH_BOTS, '*']) {
+      const rules = rulesFor(agent);
+      expect(allowed(rules, '/llms.txt'), agent).toBe(true);
+      expect(allowed(rules, '/llms-full.txt'), agent).toBe(true);
+      expect(allowed(rules, '/sitemap.xml'), agent).toBe(true);
+    }
   });
 
   it.each([
@@ -69,7 +75,12 @@ describe('robots.txt', () => {
     '/s/KH4826',
     '/k',
     '/en/k',
+    '/sw/k',
     '/login',
+    '/sw/login',
+    '/sw/jaribu',
+    '/gate-join',
+    '/gate-join/1234',
     '/api/x',
   ])('keeps %s out', (path) => {
     expect(allowed(rulesFor('Googlebot'), path)).toBe(false);

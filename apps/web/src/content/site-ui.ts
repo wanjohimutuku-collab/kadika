@@ -14,6 +14,7 @@ export const SITE_UI = {
     faq: 'Maswali',
     app: 'Programu ya Android',
     contact: 'Mawasiliano',
+    login: 'Ingia',
     cta: 'Anza bure',
     card: 'Nina namba ya kadi',
     switchLabel: 'Nchi na lugha',
@@ -33,6 +34,7 @@ export const SITE_UI = {
     faq: 'FAQ',
     app: 'Android app',
     contact: 'Contact',
+    login: 'Log in',
     cta: 'Start free',
     card: 'I have a card number',
     switchLabel: 'Country and language',
@@ -52,6 +54,7 @@ export const SITE_UI = {
     faq: 'FAQ',
     app: 'Android app',
     contact: 'Contact',
+    login: 'Log in',
     /** Kenya is built and being tested but not open, so the call to action is the pilot list, not sign-up. */
     cta: 'Join the Kenya pilot',
     card: 'I have a card number',
@@ -72,6 +75,7 @@ export const SITE_UI = {
     faq: 'FAQ',
     app: 'Android app',
     contact: 'Contact',
+    login: 'Log in',
     /** Uganda is planned and not open yet, so the call to action is the pilot list, not sign-up. */
     cta: 'Join the Uganda pilot',
     card: 'I have a card number',

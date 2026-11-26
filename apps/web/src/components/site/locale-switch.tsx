@@ -35,26 +35,28 @@ export function LocaleSwitch({
     <details className="group relative">
       <summary
         className={cn(
-          'flex cursor-pointer list-none items-center gap-1.5 border border-ks-line/90 bg-white/90 text-sm font-semibold text-ks-ink transition-colors hover:border-ks-green-700/35 hover:bg-white',
-          pill ? 'min-h-10 rounded-full px-3' : 'min-h-12 rounded-ks px-3',
+          'flex cursor-pointer list-none items-center gap-1.5 whitespace-nowrap border text-[#0a2640] transition-colors',
+          pill
+            ? 'h-9 rounded-full border-[#e3e8ee] bg-[#f6f9fc] px-3 text-[13px] font-semibold hover:border-[#5469d4]/45 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5469d4]'
+            : 'min-h-12 rounded-ks border-[#e3e8ee] bg-white px-3 text-sm font-semibold hover:border-[#5469d4]/45 hover:bg-[#f6f9fc]',
         )}
       >
-        <Globe className="size-4" aria-hidden="true" />
+        <Globe className="size-4 text-[#5469d4]" aria-hidden="true" />
         {/* The spoken name starts with the visible text, so voice control ("click TZ SW") works. */}
         <span className="tabular">{LABELS[current].short}</span>
         <span className="sr-only">
           , {label}: {LABELS[current].name}
         </span>
         <ChevronDown
-          className="size-4 transition-transform group-open:rotate-180"
+          className="size-4 text-[#494d59] transition-transform group-open:rotate-180"
           aria-hidden="true"
         />
       </summary>
       <ul
         className={cn(
-          'absolute z-50 w-60 rounded-ks border border-ks-line bg-white p-1.5 shadow-lg',
+          'absolute z-50 w-60 rounded-2xl border border-[#e3e8ee] bg-white p-1.5 shadow-[0_18px_40px_-14px_rgb(10_38_64/0.22)]',
           align === 'right' ? 'right-0' : 'left-0',
-          up ? 'bottom-full mb-1' : 'mt-1',
+          up ? 'bottom-full mb-1' : 'mt-1.5',
         )}
       >
         {(Object.keys(LABELS) as SiteEdition[]).map((e) => (
@@ -64,11 +66,11 @@ export function LocaleSwitch({
               hrefLang={e === 'ke' ? 'en-KE' : e === 'ug' ? 'en-UG' : `${e}-TZ`}
               lang={LABELS[e].lang}
               aria-current={e === current ? 'true' : undefined}
-              className="flex min-h-12 items-center justify-between gap-2 rounded-lg px-3 text-ks-ink hover:bg-ks-green-100"
+              className="flex min-h-12 items-center justify-between gap-2 rounded-xl px-3 text-[#0a2640] transition-colors hover:bg-[#f6f9fc] hover:text-[#5469d4]"
             >
               {LABELS[e].name}
               {e === current ? (
-                <Check className="size-4 text-ks-green-700" aria-hidden="true" />
+                <Check className="size-4 text-[#5469d4]" aria-hidden="true" />
               ) : null}
             </Link>
           </li>

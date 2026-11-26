@@ -34,18 +34,19 @@ export function SiteFooter({
 }) {
   return (
     <footer
-      className="ks-mesh-dark relative mt-12 overflow-hidden rounded-t-[2.5rem] text-white"
+      className="qw-navy-band relative mt-12 overflow-hidden rounded-t-[2.5rem] text-white"
       data-market={market}
     >
-      <div className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80" aria-hidden="true" />
       <div className="mx-auto grid w-full max-w-[1120px] grid-cols-2 gap-x-4 gap-y-10 px-4 pt-16 pb-12 md:grid-cols-[1.3fr_repeat(4,1fr)] md:gap-8 md:px-6 md:pt-20">
         <div className="col-span-2 flex flex-col gap-4 md:col-span-1">
-          <div className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-xl">{brand}</div>
-          <p className="max-w-xs leading-relaxed text-white/80">{line}</p>
+          <div className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-xl shadow-xs">
+            {brand}
+          </div>
+          <p className="max-w-xs leading-relaxed text-white/75">{line}</p>
         </div>
         {columns.map((c) => (
           <nav key={c.title} aria-label={c.title}>
-            <p className="mb-3 text-[11px] font-semibold tracking-[0.18em] text-ks-gold-100/80 uppercase">
+            <p className="mb-3 text-[11px] font-semibold tracking-[0.18em] text-[#93c5fd] uppercase">
               {c.title}
             </p>
             <ul className="space-y-0.5">

@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0F5C4D',
+  themeColor: '#0A2640',
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -47,6 +47,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     // Browser extensions (Grammarly, etc.) inject attributes into <html>/<body>
     // before hydration; suppress only those two elements' attribute warnings.
     <html lang={locale} style={brandStyle(brand)} suppressHydrationWarning>
+      <head>
+        <link
+          rel="alternate"
+          type="text/plain"
+          href="/llms.txt"
+          title="Kadi Sasa AI index (llms.txt)"
+        />
+      </head>
       <body className="min-h-dvh antialiased" suppressHydrationWarning>
         <BrandProvider initial={brand}>{children}</BrandProvider>
         {SHOW_DEV_TOOLS ? (

@@ -42,7 +42,7 @@ export interface CardMockupProps {
   numberLabel: string;
 }
 
-/** Phone screen showing a guest card with animated QR scan sweep. */
+/** Physical printed A6 paper invitation card mockup with a matching gate stub and QR. */
 export function CardMockup({
   names,
   date,
@@ -53,31 +53,68 @@ export function CardMockup({
   numberLabel,
 }: CardMockupProps) {
   return (
-    <figure
-      aria-hidden="true"
-      className="w-[15.5rem] shrink-0 rounded-[2rem] bg-[#0a2640] p-1.5 shadow-[0_24px_48px_-18px_rgb(10_38_64/0.45)] ring-1 ring-[#5469d4]/25"
-    >
-      <div className="overflow-hidden rounded-[1.6rem] bg-gradient-to-b from-white to-[#f6f9fc] text-[#0a2640]">
-        <div className="h-2 bg-gradient-to-r from-[#4f46e5] via-[#5469d4] to-[#3b82f6]" />
-        <div className="flex flex-col items-center gap-1 px-4 pt-4 pb-3 text-center">
-          <span className="mb-1 rounded-full bg-[#eef2ff] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#4f46e5]">
-            Digital Pass
-          </span>
-          <p className="font-ks-names text-[26px] leading-tight text-[#0a2640] italic">{names}</p>
-          <p className="text-xs font-semibold text-[#0a2640]">{date}</p>
-          <p className="text-xs text-[#494d59]">{venue}</p>
-          <p className="mt-1.5 text-xs font-medium text-[#0a2640]">{invites}</p>
-        </div>
-        <div className="mx-3 mb-3 flex items-center gap-2.5 rounded-xl border border-[#e3e8ee] bg-white p-2.5 shadow-xs">
-          <div className="relative shrink-0 overflow-hidden rounded-lg">
-            <DemoQr label={qrLabel} />
-            <span className="qw-qr-scan-line" />
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <span className="text-[10px] font-medium text-[#494d59]">{numberLabel}</span>
-            <span className="tabular text-base font-bold whitespace-nowrap text-[#0a2640]">
-              {code}
+    <figure aria-hidden="true" className="relative w-[16.25rem] shrink-0 select-none">
+      {/* Stacked cream envelope / backing card for tactile print depth */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 translate-x-2 translate-y-2 rotate-[2.2deg] rounded-[5px] border border-[#e6dfd1] bg-[#f3ede2] shadow-sm"
+      />
+
+      {/* Printed ivory cardstock face */}
+      <div className="relative overflow-hidden rounded-[5px] border border-[#e4dac6] bg-gradient-to-b from-[#fffdf9] via-[#fdfaf3] to-[#f8f3e8] p-2.5 text-[#0a2640] shadow-[0_22px_40px_-18px_rgba(10,38,64,0.24),0_2px_6px_rgba(10,38,64,0.08)]">
+        {/* Inner luxury invitation frame */}
+        <div className="relative rounded-[2px] border border-[#d6c5a3]/90 px-3.5 pt-3.5 pb-3">
+          {/* Subtle gold corner brackets */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1 left-1 size-2 border-t border-l border-[#b89246]/70"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1 right-1 size-2 border-t border-r border-[#b89246]/70"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute bottom-1 left-1 size-2 border-b border-l border-[#b89246]/70"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-1 bottom-1 size-2 border-r border-b border-[#b89246]/70"
+          />
+
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="text-[9px] font-semibold tracking-[0.24em] text-[#8a6d3b] uppercase">
+              Print Card · A6
             </span>
+            <div className="my-0.5 flex w-20 items-center gap-1.5 text-[#c8a96e]" aria-hidden="true">
+              <span className="h-px flex-1 bg-[#d6c5a3]" />
+              <span className="text-[8px] leading-none">◆</span>
+              <span className="h-px flex-1 bg-[#d6c5a3]" />
+            </div>
+            <p className="font-ks-names text-[26px] leading-tight text-[#0a2640] italic">{names}</p>
+            <p className="mt-0.5 text-[11.5px] font-semibold text-[#0a2640]">{date}</p>
+            <p className="text-[11px] text-[#494d59]">{venue}</p>
+            <p className="mt-2 inline-block border-y border-[#e6dec9] px-2.5 py-1 text-[11px] font-medium text-[#0a2640]">
+              {invites}
+            </p>
+          </div>
+
+          {/* Perforated/dashed printed gate stub */}
+          <div className="mt-3.5 flex items-center gap-2.5 border-t border-dashed border-[#d6c5a3] pt-3">
+            <div className="shrink-0 rounded-[2px] border border-[#e4dac6] bg-white p-1">
+              <DemoQr label={qrLabel} />
+            </div>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-[9.5px] font-medium tracking-wide text-[#6b6558] uppercase">
+                {numberLabel}
+              </span>
+              <span className="tabular text-[15px] font-bold tracking-tight whitespace-nowrap text-[#0a2640]">
+                {code}
+              </span>
+              <span className="mt-1 inline-flex w-fit rounded-[2px] border border-[#e4dac6] bg-[#faf5ea] px-1.5 py-0.5 text-[8.5px] font-semibold tracking-wider text-[#8a6d3b] uppercase">
+                A6 · 300gsm
+              </span>
+            </div>
           </div>
         </div>
       </div>

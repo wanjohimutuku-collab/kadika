@@ -9,18 +9,22 @@ const { routeSlugRedirect } = await import('@/content');
 const PRIVATE = /\/(k|c|s|login|app|ops|dev)(\/|$)/;
 
 describe('sitemaps', () => {
-  it('indexes one child sitemap per edition with lastmod dates', () => {
+  it('indexes one child sitemap per edition with latest 2026-11-26 lastmod dates', () => {
     const xml = renderIndex();
-    for (const e of ['sw', 'en', 'ke', 'ug']) expect(xml).toContain(`/sitemaps/${e}.xml</loc>`);
-    expect(xml).toContain('<lastmod>2026-11-26</lastmod>');
+    for (const e of ['sw', 'en', 'ke', 'ug']) {
+      expect(xml).toContain(`<loc>https://kadisasa.com/sitemaps/${e}.xml</loc><lastmod>2026-11-26</lastmod>`);
+    }
   });
 
-  it('gives core pages explicit lastmod dates', () => {
+  it('gives core and refreshed company pages explicit 2026-11-26 lastmod dates', () => {
     const en = sitemapEntries('en');
-    for (const path of ['/', '/bei', '/programu']) {
+    const sw = sitemapEntries('sw');
+    for (const path of ['/', '/bei', '/programu', '/about']) {
       const hit = en.find((e) => new URL(e.loc).pathname === path);
       expect(hit?.lastmod, path).toBe('2026-11-26');
     }
+    const swAbout = sw.find((e) => new URL(e.loc).pathname === '/sw/kuhusu');
+    expect(swAbout?.lastmod).toBe('2026-11-26');
   });
 
   it('lists no URL or alternate that triggers a slug redirect', () => {

@@ -14,7 +14,7 @@ export const UGANDA_PAGES: ContentPageDef[] = [
     slugEn: '',
     group: 'product',
     schema: 'WebPage',
-    updated: UPDATED,
+    updated: '2026-11-26',
     related: [
       'kwanjula-kuhingira-digital-invitation',
       'uganda-wedding-pledge-cards-guide',

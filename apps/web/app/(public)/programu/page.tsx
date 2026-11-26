@@ -14,8 +14,6 @@ import {
   Ticket,
 } from 'lucide-react';
 import type { Locale } from '@harusi/i18n';
-import { buttonClasses } from '@/components/ui/button';
-import { OrnamentDiamond } from '@/components/card/ornament';
 import { JsonLd } from '@/components/site/json-ld';
 import {
   ORG_ID,
@@ -155,164 +153,162 @@ export default async function AppDownloadPage() {
         }}
       />
       <AppDownloadTracker />
-      <section className="px-3 pt-4 md:px-6">
-        <div className="ks-mesh-dark relative mx-auto max-w-[1120px] overflow-hidden rounded-[2.5rem] text-white">
-          <div className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80" aria-hidden="true" />
-          <div className="grid gap-10 px-6 py-14 md:grid-cols-[1fr_auto] md:items-center md:px-12 md:py-20">
-            <div className="flex flex-col gap-5">
-              <nav aria-label="Breadcrumb" className="text-sm text-white/75">
-                <ol className="flex flex-wrap items-center gap-1.5">
-                  <li>
-                    <Link
-                      href={localeUrl('/', locale)}
-                      className="inline-flex min-h-10 items-center underline underline-offset-4 hover:text-white"
-                    >
-                      {locale === 'sw' ? 'Nyumbani' : 'Home'}
-                    </Link>
-                  </li>
-                  <li aria-hidden="true">/</li>
-                  <li aria-current="page" className="text-white">
-                    {locale === 'sw' ? 'Programu ya Android' : 'Android app'}
-                  </li>
-                </ol>
-              </nav>
-              <OrnamentDiamond className="[--hp-pattern:#D9B26A]" />
-              <p className="inline-flex items-center gap-2 text-sm font-semibold tracking-wide uppercase opacity-90">
-                <Smartphone className="size-5" aria-hidden="true" />
-                {t('eyebrow')}
-              </p>
-              <h1 className="text-[36px] leading-[1.05] font-bold tracking-[-0.03em] [text-wrap:balance] md:text-[52px]">
-                {t('title', { brand })}
-              </h1>
-              <p id="jibu-fupi" className="max-w-xl text-lg opacity-95">
-                {t('intro')}
-              </p>
-
-              {available ? (
-                <div className="flex flex-col gap-3 sm:max-w-md">
-                  {links.play ? (
-                    <a
-                      href={links.play}
-                      rel="noopener"
-                      className={buttonClasses('secondary', 'lg', 'border-transparent')}
-                      data-testid="app-download-play"
-                    >
-                      <PlayGlyph />
-                      {t('play')}
-                    </a>
-                  ) : null}
-                  {apk ? (
-                    <>
-                      <a
-                        href={apk.href}
-                        rel="noopener"
-                        className={buttonClasses(
-                          links.play ? 'ghost' : 'secondary',
-                          'lg',
-                          links.play
-                            ? // `cn` does not merge classes, so the ghost variant's text colour needs `!` to lose
-                              'border border-white/40 text-on-primary! hover:bg-white/10'
-                            : 'border-transparent',
-                        )}
-                        data-testid="app-download-apk"
-                      >
-                        <Download className="size-5" aria-hidden="true" />
-                        {t('apk')}
-                      </a>
-                      <p className="text-sm opacity-90">{t('apkHelp', { host: apk.host })}</p>
-                      {release ? (
-                        <p className="text-sm opacity-90" data-testid="app-download-apk-meta">
-                          {t('apkMeta', {
-                            version: release.version,
-                            size: (release.size / 1_000_000).toFixed(1),
-                          })}
-                          <br />
-                          <span className="font-mono text-xs break-all opacity-80">
-                            SHA-256: {release.sha256}
-                          </span>
-                        </p>
-                      ) : null}
-                    </>
-                  ) : null}
-                  <p className="text-sm opacity-90">{t('requirements')}</p>
-                </div>
-              ) : (
-                <div
-                  className="flex max-w-md flex-col gap-3 rounded-card bg-surface p-5 text-ink"
-                  role="status"
-                  data-testid="app-download-soon"
-                >
-                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-sm font-semibold text-ink">
-                    <Clock className="size-4" aria-hidden="true" />
-                    {t('soonBadge')}
-                  </span>
-                  <h2 className="text-xl font-semibold">{t('soonTitle')}</h2>
-                  <p className="text-muted">{t('soonBody')}</p>
-                  <Link href="/login" className={buttonClasses('primary', 'md', 'mt-1')}>
-                    {t('soonCta')}
+      <section className="relative overflow-hidden border-b border-[#e3e8ee] bg-white">
+        <div
+          aria-hidden="true"
+          className="qw-hero-trapezoid pointer-events-none absolute inset-x-0 top-0 h-[320px] opacity-25 md:h-[380px]"
+        />
+        <div className="relative mx-auto grid max-w-[1120px] gap-10 px-4 pt-10 pb-16 md:grid-cols-[1fr_auto] md:items-center md:px-6 md:pt-14 md:pb-24">
+          <div className="flex flex-col gap-5">
+            <nav aria-label="Breadcrumb" className="text-sm text-[#494d59]">
+              <ol className="flex flex-wrap items-center gap-1.5">
+                <li>
+                  <Link
+                    href={localeUrl('/', locale)}
+                    className="inline-flex min-h-10 items-center underline underline-offset-4 hover:text-[#5469d4]"
+                  >
+                    {locale === 'sw' ? 'Nyumbani' : 'Home'}
                   </Link>
-                </div>
-              )}
+                </li>
+                <li aria-hidden="true">/</li>
+                <li aria-current="page" className="font-medium text-[#0a2640]">
+                  {locale === 'sw' ? 'Programu ya Android' : 'Android app'}
+                </li>
+              </ol>
+            </nav>
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#e3e8ee] bg-white/95 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-[#0a2640] uppercase shadow-xs">
+                <span aria-hidden="true" className="qw-ripple-dot" />
+                <Smartphone className="size-3.5 text-[#5469d4]" aria-hidden="true" />
+                {t('eyebrow')}
+              </span>
             </div>
-            <div aria-hidden="true" className="hidden md:block">
-              <AppMockup labels={mock} />
-            </div>
+            <h1 className="text-[36px] leading-[1.06] font-bold tracking-[-0.03em] text-[#0a2640] [text-wrap:balance] md:text-[52px]">
+              {t('title', { brand })}
+            </h1>
+            <p id="jibu-fupi" className="max-w-xl text-lg leading-relaxed text-[#494d59]">
+              {t('intro')}
+            </p>
+
+            {available ? (
+              <div className="flex flex-col gap-3 sm:max-w-md">
+                {links.play ? (
+                  <a
+                    href={links.play}
+                    rel="noopener"
+                    className="qw-btn-primary justify-center"
+                    data-testid="app-download-play"
+                  >
+                    <PlayGlyph />
+                    <span>{t('play')}</span>
+                  </a>
+                ) : null}
+                {apk ? (
+                  <>
+                    <a
+                      href={apk.href}
+                      rel="noopener"
+                      className={
+                        links.play
+                          ? 'inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#e3e8ee] bg-white px-6 text-[15px] font-semibold text-[#0a2640] shadow-xs transition hover:border-[#5469d4]/50 hover:bg-[#f6f9fc] hover:text-[#5469d4]'
+                          : 'qw-btn-primary justify-center'
+                      }
+                      data-testid="app-download-apk"
+                    >
+                      <Download className="size-5" aria-hidden="true" />
+                      <span>{t('apk')}</span>
+                    </a>
+                    <p className="text-sm text-[#494d59]">{t('apkHelp', { host: apk.host })}</p>
+                    {release ? (
+                      <p className="text-sm text-[#494d59]" data-testid="app-download-apk-meta">
+                        {t('apkMeta', {
+                          version: release.version,
+                          size: (release.size / 1_000_000).toFixed(1),
+                        })}
+                        <br />
+                        <span className="font-mono text-xs break-all opacity-80">
+                          SHA-256: {release.sha256}
+                        </span>
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+                <p className="text-sm text-[#494d59]">{t('requirements')}</p>
+              </div>
+            ) : (
+              <div
+                className="qw-card flex max-w-md flex-col gap-3 p-5 text-[#0a2640]"
+                role="status"
+                data-testid="app-download-soon"
+              >
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[#e3e8ee] bg-[#f6f9fc] px-3 py-1 text-xs font-semibold text-[#5469d4]">
+                  <Clock className="size-3.5" aria-hidden="true" />
+                  {t('soonBadge')}
+                </span>
+                <h2 className="text-xl font-bold text-[#0a2640]">{t('soonTitle')}</h2>
+                <p className="text-[#494d59]">{t('soonBody')}</p>
+                <Link href="/login" className="qw-btn-primary mt-1 justify-center">
+                  {t('soonCta')}
+                </Link>
+              </div>
+            )}
+          </div>
+          <div aria-hidden="true" className="hidden md:block">
+            <AppMockup labels={mock} />
           </div>
         </div>
       </section>
 
-      <section
-        className="mx-auto max-w-[1120px] px-4 py-16 md:px-6 md:py-24"
-        aria-labelledby="app-features"
-      >
-        <h2
-          id="app-features"
-          className="max-w-2xl text-[28px] leading-[1.1] font-bold tracking-[-0.02em] text-ks-green-900 md:text-[44px]"
-        >
-          {t('featuresTitle')}
-        </h2>
-        <ul className="mt-10 grid gap-5 md:grid-cols-3">
-          {FEATURES.map(({ key, icon: Icon }) => (
-            <li key={key} className="ks-bezel ks-bento ks-reveal">
-              <div className="ks-core flex h-full flex-col gap-4 p-6 md:p-8">
-                <span className="flex size-12 items-center justify-center rounded-full bg-ks-green-100 text-ks-green-700">
+      <section className="bg-[#f6f9fc] py-16 md:py-24" aria-labelledby="app-features">
+        <div className="mx-auto max-w-[1120px] px-4 md:px-6">
+          <h2
+            id="app-features"
+            className="max-w-2xl text-[28px] leading-[1.12] font-bold tracking-[-0.025em] text-[#0a2640] md:text-[42px]"
+          >
+            {t('featuresTitle')}
+          </h2>
+          <ul className="mt-10 grid gap-5 md:grid-cols-3">
+            {FEATURES.map(({ key, icon: Icon }) => (
+              <li key={key} className="qw-card ks-reveal flex flex-col gap-4 p-6 md:p-8">
+                <span className="flex size-12 items-center justify-center rounded-xl border border-[#e3e8ee] bg-[#f6f9fc] text-[#5469d4]">
                   <Icon className="size-6" strokeWidth={1.75} aria-hidden="true" />
                 </span>
-                <h3 className="text-xl font-semibold text-ks-ink">{t(`features.${key}.title`)}</h3>
-                <p className="leading-relaxed text-ks-muted">{t(`features.${key}.body`)}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
+                <h3 className="text-xl font-bold text-[#0a2640]">{t(`features.${key}.title`)}</h3>
+                <p className="leading-relaxed text-[#494d59]">{t(`features.${key}.body`)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      <section className="mx-auto max-w-[1120px] px-4 pb-20 md:px-6" aria-labelledby="app-guest">
-        <div className="ks-bezel">
-          <div className="ks-core flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
-            <div className="flex gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-ks-green-100 text-ks-green-700">
-                <Ticket className="size-5" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 id="app-guest" className="text-xl font-semibold text-ks-ink">
-                  {t('guestTitle')}
-                </h2>
-                <p className="mt-1 text-ks-muted">{t('guestBody')}</p>
-              </div>
+      <section className="mx-auto max-w-[1120px] px-4 py-14 md:px-6" aria-labelledby="app-guest">
+        <div className="qw-card flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+          <div className="flex gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#e3e8ee] bg-[#f6f9fc] text-[#5469d4]">
+              <Ticket className="size-5" aria-hidden="true" />
+            </span>
+            <div>
+              <h2 id="app-guest" className="text-xl font-bold text-[#0a2640]">
+                {t('guestTitle')}
+              </h2>
+              <p className="mt-1 text-[#494d59]">{t('guestBody')}</p>
             </div>
-            <Link href="/k" className={buttonClasses('secondary', 'md', 'shrink-0')}>
-              {t('guestCta')}
-            </Link>
           </div>
+          <Link
+            href="/k"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-[#e3e8ee] bg-white px-5 text-sm font-semibold text-[#0a2640] shadow-xs transition hover:border-[#5469d4]/50 hover:bg-[#f6f9fc] hover:text-[#5469d4]"
+          >
+            {t('guestCta')}
+          </Link>
         </div>
-        <p className="mt-6 flex items-start gap-2 text-sm text-ks-muted">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-ks-ok" aria-hidden="true" />
+        <p className="mt-6 flex items-start gap-2 text-sm text-[#494d59]">
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[#0f7a47]" aria-hidden="true" />
           <span>{t('trust')}</span>
         </p>
-        <p className="mt-2 flex flex-wrap items-center gap-4 text-sm text-ks-ink">
+        <p className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[#0a2640]">
           <Link
             href={faqHref}
-            className="inline-flex min-h-12 items-center underline"
+            className="inline-flex min-h-12 items-center underline underline-offset-4 hover:text-[#5469d4]"
           >
             {t('faqLink')}
           </Link>
@@ -320,10 +316,10 @@ export default async function AppDownloadPage() {
             <Link
               key={g.slug}
               href={localeUrl(pagePath(g, locale), locale)}
-              className="inline-flex min-h-12 items-center gap-1 underline underline-offset-4"
+              className="inline-flex min-h-12 items-center gap-1 underline underline-offset-4 hover:text-[#5469d4]"
             >
               <span>{textOf(g, locale).nav}</span>
-              <ArrowUpRight className="size-3.5" aria-hidden="true" />
+              <ArrowUpRight className="size-3.5 text-[#5469d4]" aria-hidden="true" />
             </Link>
           ))}
         </p>

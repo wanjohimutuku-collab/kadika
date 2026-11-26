@@ -178,15 +178,9 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
   const url = absoluteLocaleUrl(path, locale);
   const name = DEFAULT_BRANDING.businessName;
   const org = { '@id': ORG_ID };
-  const authorNode =
-    page.schema === 'Article'
-      ? {
-          '@type': 'Person',
-          name: 'Kadi Sasa Editorial Team',
-          url: `${SITE_URL}/about`,
-          worksFor: org,
-        }
-      : org;
+  // Articles are written by the company, so the author is the shared organisation entity, not a made-up
+  // "Person" (a team is not a person, and Google reads author type as an expertise signal).
+  const authorNode = org;
   const graph: Record<string, unknown>[] = [
     organizationNode(),
     {

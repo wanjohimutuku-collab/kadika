@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "preserve",
     "allowJs": false,
     "incremental": true,
@@ -10,13 +14,18 @@
         "name": "next"
       }
     ],
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
     "*.ts",
+    ".next-live/types/**/*.ts",
     ".next-prod/types/**/*.ts",
     ".next/types/**/*.ts",
     ".storybook",
@@ -25,7 +34,11 @@
     "next-env.d.ts",
     "next.config.ts",
     "src",
-    ".next-live/types/**/*.ts"
+    ".next-check/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "storybook-static", ".next-prod"]
+  "exclude": [
+    "node_modules",
+    "storybook-static",
+    ".next-prod"
+  ]
 }

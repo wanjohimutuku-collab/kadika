@@ -10,6 +10,11 @@ variable "NEXT_PUBLIC_APP_DOMAIN" { default = "" }
 variable "NEXT_PUBLIC_SITE_URL" { default = "" }
 variable "NEXT_PUBLIC_KENYA_ENABLED" { default = "0" }
 variable "NEXT_PUBLIC_COOKIE_SESSION" { default = "0" }
+# Search and entity signals (public values, not secrets): profile links, support phone, site verification.
+variable "NEXT_PUBLIC_SOCIAL_URLS" { default = "" }
+variable "NEXT_PUBLIC_SUPPORT_PHONE" { default = "" }
+variable "NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION" { default = "" }
+variable "NEXT_PUBLIC_BING_SITE_VERIFICATION" { default = "" }
 
 # The commit being built, reported by each image's /health (ADR 035).
 variable "GIT_SHA" { default = "dev" }
@@ -52,6 +57,10 @@ target "web" {
     NEXT_PUBLIC_SITE_URL      = NEXT_PUBLIC_SITE_URL
     NEXT_PUBLIC_KENYA_ENABLED = NEXT_PUBLIC_KENYA_ENABLED
     NEXT_PUBLIC_COOKIE_SESSION = NEXT_PUBLIC_COOKIE_SESSION
+    NEXT_PUBLIC_SOCIAL_URLS = NEXT_PUBLIC_SOCIAL_URLS
+    NEXT_PUBLIC_SUPPORT_PHONE = NEXT_PUBLIC_SUPPORT_PHONE
+    NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION = NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    NEXT_PUBLIC_BING_SITE_VERIFICATION = NEXT_PUBLIC_BING_SITE_VERIFICATION
     GIT_SHA                   = GIT_SHA
   }
 }

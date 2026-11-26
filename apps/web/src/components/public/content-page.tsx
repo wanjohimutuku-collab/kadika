@@ -200,7 +200,8 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       publisher: org,
       speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu-fupi'] },
     },
-    ...(page.group === 'product'
+    // No Service node for Uganda: it is planned, not offered yet, and the page says so (see llms.txt).
+    ...(page.group === 'product' && market !== 'ug'
       ? [
           {
             '@type': 'Service',
@@ -209,7 +210,7 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
             description: t.answer,
             url,
             provider: org,
-            areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
+            areaServed: market === 'ke' ? 'KE' : 'TZ',
             availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
           },
         ]

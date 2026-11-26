@@ -65,6 +65,12 @@ export function ogImages(locale: Locale, market: Market = 'tz') {
   ];
 }
 
+/** Countries where Kadi Sasa is offered now: Tanzania (live) and Kenya (pilot). */
+export const SERVED_COUNTRIES = ['TZ', 'KE'] as const;
+
+/** Spellings people and engines use for the brand; the shared organisation node lists the others. */
+export const BRAND_ALTERNATE_NAMES = ['Kadi Sasa', 'KadiSasa', 'kadisasa.com'] as const;
+
 /** The organisation node every page's structured data shares, by `@id` (one entity, not one per page). */
 export const ORG_ID = `${SITE_URL}/#org`;
 export function organizationNode(description?: string) {
@@ -77,6 +83,8 @@ export function organizationNode(description?: string) {
     '@type': 'Organization',
     '@id': ORG_ID,
     name: DEFAULT_BRANDING.businessName,
+    // One entity across spellings: search and answer engines see "KadiSasa" (the domain) and "Kadi Sasa".
+    alternateName: BRAND_ALTERNATE_NAMES.filter((n) => n !== DEFAULT_BRANDING.businessName),
     url: SITE_URL,
     logo: { '@type': 'ImageObject', url: `${SITE_URL}/icons/512.png`, width: 512, height: 512 },
     ...(sameAs.length ? { sameAs } : {}),
@@ -90,7 +98,8 @@ export function organizationNode(description?: string) {
       '@type': 'Place',
       name: 'Dar es Salaam, Tanzania',
     },
-    areaServed: ['TZ', 'KE', 'UG'],
+    // Only markets where the service is offered today. Uganda is planned (see llms.txt), so it is not listed.
+    areaServed: SERVED_COUNTRIES,
     knowsAbout: [
       'Digital wedding invitations',
       'E-cards Tanzania, Kenya, and Uganda',

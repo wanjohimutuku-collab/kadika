@@ -36,6 +36,12 @@ ARG NEXT_PUBLIC_KENYA_ENABLED=0
 # 1 = the refresh token lives in an HttpOnly cookie on the API, not in localStorage (review M-05).
 # Needs the API on the same site as the web app and CORS_ORIGINS listing every web host.
 ARG NEXT_PUBLIC_COOKIE_SESSION=0
+# Search and entity signals: official profile links (comma-separated https URLs), support phone and the
+# Google Search Console / Bing Webmaster verification tokens. Public values; empty means "not shown".
+ARG NEXT_PUBLIC_SOCIAL_URLS
+ARG NEXT_PUBLIC_SUPPORT_PHONE
+ARG NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+ARG NEXT_PUBLIC_BING_SITE_VERIFICATION
 RUN --mount=type=cache,id=next-cache,target=/repo/apps/web/.next/cache \
     [ -n "$NEXT_PUBLIC_API_URL" ] || unset NEXT_PUBLIC_API_URL; \
     [ -n "$NEXT_PUBLIC_APP_DOMAIN" ] || unset NEXT_PUBLIC_APP_DOMAIN; \

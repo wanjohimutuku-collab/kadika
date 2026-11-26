@@ -10,6 +10,22 @@ import { brandStyle, resolveLogoSrc } from '@/lib/branding';
 import { getBrandingOnServer } from '@/lib/server-branding';
 import './globals.css';
 
+/**
+ * Search Console and Bing Webmaster ownership tags, from build-time variables (infra/coolify/README.md).
+ * Nothing is rendered when a value is unset, for example when the property is verified by DNS.
+ */
+function siteVerification(): Pick<Metadata, 'verification'> {
+  const google = (process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? '').trim();
+  const bing = (process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ?? '').trim();
+  if (!google && !bing) return {};
+  return {
+    verification: {
+      ...(google ? { google } : {}),
+      ...(bing ? { other: { 'msvalidate.01': bing } } : {}),
+    },
+  };
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('common');
   // The business name staff chose in /ops/settings (ADR 036); the default brand is the translated name.
@@ -22,6 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: brand.tagline || t('tagline'),
     applicationName: name,
     formatDetection: { telephone: false },
+    ...siteVerification(),
     ...(faviconSrc
       ? {
           icons: {

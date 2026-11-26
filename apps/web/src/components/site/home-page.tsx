@@ -223,16 +223,21 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
               about: { '@id': ORG_ID },
               speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu'] },
             },
-            {
-              '@type': 'Service',
-              name: c.title.split(' | ')[0],
-              serviceType:
-                'Digital e-cards, invitations, RSVP, contribution tracking and QR guest check-in',
-              provider: { '@id': ORG_ID },
-              areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
-              availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
-              description: c.description,
-            },
+            // Uganda is planned, not offered yet, so its home page carries no Service node.
+            ...(market === 'ug'
+              ? []
+              : [
+                  {
+                    '@type': 'Service',
+                    name: c.title.split(' | ')[0],
+                    serviceType:
+                      'Digital e-cards, invitations, RSVP, contribution tracking and QR guest check-in',
+                    provider: { '@id': ORG_ID },
+                    areaServed: market === 'ke' ? 'KE' : 'TZ',
+                    availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
+                    description: c.description,
+                  },
+                ]),
             {
               '@type': 'SoftwareApplication',
               name,

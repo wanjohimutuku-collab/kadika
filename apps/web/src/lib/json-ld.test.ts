@@ -23,6 +23,13 @@ describe('JSON-LD schema helpers (Prompt 3 & 4)', () => {
     }
   });
 
+  it('names the brand spellings once and lists only the markets served today', () => {
+    const org = organizationNode();
+    expect(org.alternateName).toEqual(['KadiSasa', 'kadisasa.com']);
+    expect(org.alternateName).not.toContain(org.name);
+    expect(org.areaServed).toEqual(['TZ', 'KE']);
+  });
+
   it('builds valid Kadi Sasa Organization JSON-LD without empty social or support values', () => {
     const org = organizationNode('Digital invitations');
     expect(org['@type']).toBe('Organization');

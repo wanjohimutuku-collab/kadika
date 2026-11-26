@@ -178,15 +178,9 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
   const url = absoluteLocaleUrl(path, locale);
   const name = DEFAULT_BRANDING.businessName;
   const org = { '@id': ORG_ID };
-  const authorNode =
-    page.schema === 'Article'
-      ? {
-          '@type': 'Person',
-          name: 'Kadi Sasa Editorial Team',
-          url: `${SITE_URL}/about`,
-          worksFor: org,
-        }
-      : org;
+  // Articles are written by the company, so the author is the shared organisation entity, not a made-up
+  // "Person" (a team is not a person, and Google reads author type as an expertise signal).
+  const authorNode = org;
   const graph: Record<string, unknown>[] = [
     organizationNode(),
     {
@@ -206,7 +200,8 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       publisher: org,
       speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu-fupi'] },
     },
-    ...(page.group === 'product'
+    // No Service node for Uganda: it is planned, not offered yet, and the page says so (see llms.txt).
+    ...(page.group === 'product' && market !== 'ug'
       ? [
           {
             '@type': 'Service',
@@ -215,7 +210,7 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
             description: t.answer,
             url,
             provider: org,
-            areaServed: market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ',
+            areaServed: market === 'ke' ? 'KE' : 'TZ',
             availableLanguage: market === 'tz' ? ['sw', 'en'] : ['en', 'sw'],
           },
         ]

@@ -31,6 +31,7 @@ import { getBrandingOnServer } from '@/lib/server-branding';
 import { APP_APK_PATH, APP_DOWNLOAD_PATH, appLinksFrom, hostOf } from '@/lib/app-download';
 import { getAndroidReleaseOnServer } from '@/lib/server-app-release';
 import { APP_DOMAIN } from '@/lib/env';
+import { AppDownloadTracker } from '@/components/public/app-download-tracker';
 import { AppMockup } from '@/components/site/mockups';
 import { homeCopy } from '@/content/home';
 import { getPricingOnServer } from '@/lib/server-pricing';
@@ -95,6 +96,8 @@ export default async function AppDownloadPage() {
   const brand = (await getBrandingOnServer()).businessName;
   const mock = homeCopy(locale, await getPricingOnServer(), APP_DOMAIN).app.mock;
   const pageUrl = absoluteLocaleUrl(APP_DOWNLOAD_PATH, locale);
+  const faqPage = getPage('maswali');
+  const faqHref = faqPage ? localeUrl(pagePath(faqPage, locale), locale) : localeUrl('/faq', locale);
   const relatedSlugs = ['lango-la-harusi-qr', 'michango-ya-harusi', 'kadi-ya-harusi-mtandaoni'];
   const relatedGuides = relatedSlugs
     .map((s) => getPage(s))
@@ -151,6 +154,7 @@ export default async function AppDownloadPage() {
           ],
         }}
       />
+      <AppDownloadTracker />
       <section className="px-3 pt-4 md:px-6">
         <div className="ks-mesh-dark relative mx-auto max-w-[1120px] overflow-hidden rounded-[2.5rem] text-white">
           <div className="ks-kanga absolute inset-x-0 top-0 h-1.5 opacity-80" aria-hidden="true" />
@@ -307,7 +311,7 @@ export default async function AppDownloadPage() {
         </p>
         <p className="mt-2 flex flex-wrap items-center gap-4 text-sm text-ks-ink">
           <Link
-            href={localeUrl('/maswali', locale)}
+            href={faqHref}
             className="inline-flex min-h-12 items-center underline"
           >
             {t('faqLink')}

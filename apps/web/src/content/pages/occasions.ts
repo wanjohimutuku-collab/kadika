@@ -20,6 +20,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
       'kadi-ya-kuzaliwa',
       'kadi-ya-mahafali',
       'kutuma-kadi-za-mwaliko-whatsapp',
+      'usalama-wa-kadi-za-mtandaoni',
     ],
     sw: {
       nav: 'Kadi za mwaliko mtandaoni',
@@ -197,6 +198,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
       'kadi-za-mwaliko-mtandaoni',
       'kutuma-kadi-za-mwaliko-whatsapp',
       'kusimamia-majibu-ya-rsvp',
+      'usalama-wa-kadi-za-mtandaoni',
     ],
     sw: {
       nav: 'Kadi ya siku ya kuzaliwa',
@@ -315,6 +317,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
       'kadi-ya-uchumba',
       'michango-ya-harusi',
       'kadi-za-mwaliko-mtandaoni',
+      'usalama-wa-kadi-za-mtandaoni',
     ],
     sw: {
       nav: 'Kadi ya kitchen party',
@@ -418,7 +421,12 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
-    related: ['kadi-za-mwaliko-mtandaoni', 'kadi-ya-kuzaliwa', 'kutuma-kadi-za-mwaliko-whatsapp'],
+    related: [
+      'kadi-za-mwaliko-mtandaoni',
+      'kadi-ya-kuzaliwa',
+      'kutuma-kadi-za-mwaliko-whatsapp',
+      'usalama-wa-kadi-za-mtandaoni',
+    ],
     sw: {
       nav: 'Kadi ya mahafali',
       title: 'Kadi ya Mwaliko wa Mahafali Mtandaoni | Kadi Sasa',
@@ -519,7 +527,12 @@ export const OCCASION_PAGES: ContentPageDef[] = [
     group: 'product',
     schema: 'WebPage',
     updated: UPDATED,
-    related: ['kadi-za-mwaliko-mtandaoni', 'lango-la-harusi-qr', 'kusimamia-majibu-ya-rsvp'],
+    related: [
+      'kadi-za-mwaliko-mtandaoni',
+      'lango-la-harusi-qr',
+      'kusimamia-majibu-ya-rsvp',
+      'usalama-wa-kadi-za-mtandaoni',
+    ],
     sw: {
       nav: 'Mialiko ya biashara',
       title: 'Mialiko ya Kidijitali kwa Matukio ya Biashara | Kadi Sasa',
@@ -624,6 +637,7 @@ export const OCCASION_PAGES: ContentPageDef[] = [
       'kadi-za-mwaliko-biashara',
       'lango-la-harusi-qr',
       'kutuma-kadi-za-mwaliko-whatsapp',
+      'usalama-wa-kadi-za-mtandaoni',
     ],
     sw: {
       nav: 'Kadi za kanisa',

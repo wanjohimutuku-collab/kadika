@@ -125,11 +125,20 @@ describe('localeUrl and hreflang — English-default', () => {
     });
   });
 
-  it('adds en-KE when there is a Kenya counterpart, the same from either side', () => {
-    const fromTz = hreflangMap('/wedding-contributions', '/ke/wedding-contributions-guide');
-    const fromKe = hreflangMap('/ke/wedding-contributions-guide', '/wedding-contributions');
+  it('emits en-KE, sw-TZ (using SW slug) and en-TZ reciprocally from either side', () => {
+    const fromTz = hreflangMap(
+      '/wedding-contributions',
+      '/ke/wedding-contributions-guide',
+      '/michango-ya-harusi',
+    );
+    const fromKe = hreflangMap(
+      '/ke/wedding-contributions-guide',
+      '/wedding-contributions',
+      '/michango-ya-harusi',
+    );
     expect(fromTz).toEqual(fromKe);
     expect(fromTz['en-KE']).toBe(`${SITE}/ke/wedding-contributions-guide`);
+    expect(fromTz['sw-TZ']).toBe(`${SITE}/sw/michango-ya-harusi`);
     expect(fromTz['x-default']).toBe(`${SITE}/wedding-contributions`);
     expect(fromTz).not.toHaveProperty('sw-KE');
   });

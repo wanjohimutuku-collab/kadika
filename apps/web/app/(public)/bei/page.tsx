@@ -22,6 +22,7 @@ import {
   localeUrl,
   ogImages,
   organizationNode,
+  pricingOffersNode,
   twitterSummaryCard,
 } from '@/lib/seo';
 import { getBrandingOnServer } from '@/lib/server-branding';
@@ -75,7 +76,6 @@ export default async function PricingPage() {
   const tiers = sortedTiers(c.cardTiers);
   const brand = (await getBrandingOnServer()).businessName;
   const url = absoluteLocaleUrl(PRICING_PATH, locale);
-  const prices = tiers.map((x) => x.price.TZS);
 
   const firstTier = tiers[0];
   const lastTier = tiers[tiers.length - 1];
@@ -152,8 +152,8 @@ export default async function PricingPage() {
   const guideLinks = [
     'kadi-ya-harusi-mtandaoni',
     'michango-ya-harusi',
-    'lango-la-harusi-qr',
-    'kadi-ya-mtandaoni-vs-karatasi',
+    'gharama-halisi-za-huduma-ya-mialiko',
+    'kadi-sasa-vs-karatasi-na-zana-za-kubuni',
   ]
     .map((slug) => getPage(slug))
     .filter((p): p is NonNullable<typeof p> => !!p);
@@ -202,31 +202,7 @@ export default async function PricingPage() {
               serviceType: 'Digital invitations and guest check-in',
               provider: { '@id': ORG_ID },
               areaServed: 'TZ',
-              ...(c.enforced && tiers.length
-                ? {
-                    offers: {
-                      '@type': 'AggregateOffer',
-                      priceCurrency: 'TZS',
-                      lowPrice: Math.min(...prices),
-                      highPrice: Math.max(...prices),
-                      offerCount: tiers.length,
-                      offers: tiers.map((x, i) => {
-                        const next = tiers[i + 1]?.minCards;
-                        return {
-                          '@type': 'Offer',
-                          priceCurrency: 'TZS',
-                          price: x.price.TZS,
-                          eligibleQuantity: {
-                            '@type': 'QuantitativeValue',
-                            minValue: x.minCards,
-                            ...(next ? { maxValue: next - 1 } : {}),
-                            unitText: 'card',
-                          },
-                        };
-                      }),
-                    },
-                  }
-                : {}),
+              offers: pricingOffersNode(c, 'TZS', locale),
             },
             {
               '@type': 'FAQPage',

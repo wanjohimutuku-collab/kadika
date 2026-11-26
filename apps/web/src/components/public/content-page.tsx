@@ -13,7 +13,7 @@ import {
   ogImages,
   organizationNode,
 } from '@/lib/seo';
-import { ALL_PAGES, marketOf, pagePath, resolveRelated, textOf } from '@/content';
+import { ALL_PAGES, getPage, marketOf, pagePath, resolveRelated, textOf } from '@/content';
 import type { Block, ContentPageDef } from '@/content/types';
 
 const UI = {
@@ -26,8 +26,8 @@ const UI = {
     updated: 'Imesasishwa',
     draft:
       'Rasimu — maandishi haya si ya mwisho na yatapitiwa na mwanasheria kabla ya kuzinduliwa.',
-    cta: 'Anza',
-    ctaBody: 'Tengeneza kadi ya kwanza bila malipo wakati wa majaribio.',
+    cta: 'Anza bure',
+    ctaBody: 'Anza na kadi 5 za kwanza bure.',
     ctaCard: 'Nina namba ya kadi',
     kenya: 'Kenya',
     uganda: 'Uganda',
@@ -38,6 +38,7 @@ const UI = {
     quickLinks: [
       { href: '/jaribu', label: 'Jaribu kadi' },
       { href: '/bei', label: 'Angalia bei' },
+      { href: '/usalama-wa-kadi-za-mtandaoni', label: 'Je, ni salama?' },
       { href: '/programu', label: 'Programu ya Android' },
       { href: '/k', label: 'Nina namba ya kadi' },
     ],
@@ -50,8 +51,8 @@ const UI = {
     related: 'Related',
     updated: 'Updated',
     draft: 'Draft — this text is not final and will be reviewed by a lawyer before launch.',
-    cta: 'Get started',
-    ctaBody: 'Create your first card free during the pilot.',
+    cta: 'Start free',
+    ctaBody: 'Start with 5 free cards.',
     ctaCard: 'I have a card number',
     kenya: 'Kenya',
     uganda: 'Uganda',
@@ -62,6 +63,7 @@ const UI = {
     quickLinks: [
       { href: '/jaribu', label: 'Try a demo card' },
       { href: '/bei', label: 'See pricing' },
+      { href: '/security-of-online-invitations', label: 'Is it safe?' },
       { href: '/programu', label: 'Android app' },
       { href: '/k', label: 'Open card by code' },
     ],
@@ -184,7 +186,7 @@ function jsonLd(page: ContentPageDef, locale: Locale) {
       description: t.description,
       inLanguage: `${locale}-${market.toUpperCase()}`,
       dateModified: page.updated,
-      datePublished: page.updated,
+      datePublished: page.published ?? page.updated,
       isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}/#site`, name, url: SITE_URL },
       author: authorNode,
       publisher: org,
@@ -455,7 +457,13 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
                 <p className="max-w-xl text-[24px] leading-tight font-bold tracking-[-0.02em] md:text-[32px]">
                   {market === 'ke' ? ui.ctaKe : ui.ctaUg}
                 </p>
-                <PillLink href={localeUrl('/mawasiliano', locale)} kind="onDark">
+                <PillLink
+                  href={(() => {
+                    const contact = getPage('mawasiliano');
+                    return contact ? localeUrl(pagePath(contact, 'en'), 'en') : '/contact';
+                  })()}
+                  kind="onDark"
+                >
                   {ui.ctaKeButton}
                 </PillLink>
               </div>

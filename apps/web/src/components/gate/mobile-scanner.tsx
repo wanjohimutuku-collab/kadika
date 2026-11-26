@@ -99,25 +99,25 @@ type ConfirmContext = {
 
 type ScanOutcome =
   | {
-      kind: 'ok';
-      guestName: string;
-      shortCode: string;
-      seats: number;
-      partyAdmitted: number;
-      chainDigest: string;
-    }
+    kind: 'ok';
+    guestName: string;
+    shortCode: string;
+    seats: number;
+    partyAdmitted: number;
+    chainDigest: string;
+  }
   | {
-      kind: 'duplicate';
-      guestName: string;
-      shortCode: string;
-      seats: number;
-      checkedInAt: string | null;
-    }
+    kind: 'duplicate';
+    guestName: string;
+    shortCode: string;
+    seats: number;
+    checkedInAt: string | null;
+  }
   | {
-      kind: 'error';
-      title: string;
-      detail: string;
-    };
+    kind: 'error';
+    title: string;
+    detail: string;
+  };
 
 function playFeedbackTone(kind: 'ok' | 'warn' | 'alarm' | 'success'): void {
   playGateSound(kind === 'ok' || kind === 'success' ? 'success' : 'alarm');
@@ -128,7 +128,7 @@ export function MobileGateScanner({
   onClose,
   eventId,
   eventTitle,
-  brandName = 'HarusiPass',
+  brandName = 'Kadi Sasa',
   linkCode,
   guests,
   onCommitAdmission,
@@ -396,7 +396,7 @@ export function MobileGateScanner({
       }
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => {});
+        await videoRef.current.play().catch(() => { });
       }
       setCameraState('live');
     } catch {
@@ -570,19 +570,19 @@ export function MobileGateScanner({
           setOutcome(
             r.kind === 'no_code'
               ? {
-                  kind: 'error',
-                  title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
-                  detail: sw
-                    ? 'Shikilia simu ya mgeni karibu na kamera (hata sehemu ya SMS inatosha), au weka namba.'
-                    : 'Hold the guest’s phone close to the camera (even part of the SMS works), or type the number.',
-                }
+                kind: 'error',
+                title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
+                detail: sw
+                  ? 'Shikilia simu ya mgeni karibu na kamera (hata sehemu ya SMS inatosha), au weka namba.'
+                  : 'Hold the guest’s phone close to the camera (even part of the SMS works), or type the number.',
+              }
               : {
-                  kind: 'error',
-                  title: sw ? 'Kusoma SMS hakupatikani' : 'SMS reading unavailable',
-                  detail: sw
-                    ? 'Mara ya kwanza kusoma SMS kunahitaji intaneti. Kwa sasa andika namba iliyo kwenye SMS.'
-                    : 'The first SMS scan needs an internet connection. For now, type the number shown in the SMS.',
-                },
+                kind: 'error',
+                title: sw ? 'Kusoma SMS hakupatikani' : 'SMS reading unavailable',
+                detail: sw
+                  ? 'Mara ya kwanza kusoma SMS kunahitaji intaneti. Kwa sasa andika namba iliyo kwenye SMS.'
+                  : 'The first SMS scan needs an internet connection. For now, type the number shown in the SMS.',
+              },
           );
           return;
         }
@@ -623,19 +623,19 @@ export function MobileGateScanner({
         setOutcome(
           r.kind === 'no_code'
             ? {
-                kind: 'error',
-                title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
-                detail: sw
-                  ? 'Shikilia simu ya mgeni karibu na kamera (hata sehemu ya SMS inatosha), au weka namba.'
-                  : 'Hold the guest’s phone close to the camera (even part of the SMS works), or type the number.',
-              }
+              kind: 'error',
+              title: sw ? 'Namba haikuonekana kwenye SMS' : 'No card number found in the SMS',
+              detail: sw
+                ? 'Shikilia simu ya mgeni karibu na kamera (hata sehemu ya SMS inatosha), au weka namba.'
+                : 'Hold the guest’s phone close to the camera (even part of the SMS works), or type the number.',
+            }
             : {
-                kind: 'error',
-                title: sw ? 'Kusoma SMS hakupatikani' : 'SMS reading unavailable',
-                detail: sw
-                  ? 'Mara ya kwanza kusoma SMS kunahitaji intaneti. Kwa sasa andika namba iliyo kwenye SMS.'
-                  : 'The first SMS scan needs an internet connection. For now, type the number shown in the SMS.',
-              },
+              kind: 'error',
+              title: sw ? 'Kusoma SMS hakupatikani' : 'SMS reading unavailable',
+              detail: sw
+                ? 'Mara ya kwanza kusoma SMS kunahitaji intaneti. Kwa sasa andika namba iliyo kwenye SMS.'
+                : 'The first SMS scan needs an internet connection. For now, type the number shown in the SMS.',
+            },
         );
       } catch {
         setOutcome({
@@ -915,11 +915,10 @@ export function MobileGateScanner({
               onClick={() => void toggleTorch()}
               disabled={!torchSupported}
               aria-label={sw ? 'Washa tochi' : 'Toggle flash'}
-              className={`inline-flex size-10 items-center justify-center rounded-full border transition ${
-                torchOn
+              className={`inline-flex size-10 items-center justify-center rounded-full border transition ${torchOn
                   ? 'border-[#1FE086] bg-[#1FE086] text-[#05140C]'
                   : 'border-white/12 bg-[#171C22] text-[#D7DFE8] disabled:opacity-40'
-              }`}
+                }`}
             >
               <Flashlight className="size-4" aria-hidden="true" />
             </button>
@@ -1002,9 +1001,8 @@ export function MobileGateScanner({
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#10151B] px-2.5 py-1 text-[11px] font-semibold text-[#D7DFE8] hover:border-[#1FE086]/40"
             >
               <ShieldCheck
-                className={`size-3.5 ${
-                  vaultVerification?.valid ? 'text-[#1FE086]' : 'text-[#8E98A6]'
-                }`}
+                className={`size-3.5 ${vaultVerification?.valid ? 'text-[#1FE086]' : 'text-[#8E98A6]'
+                  }`}
                 aria-hidden="true"
               />
               <span className="font-mono text-[10px]">
@@ -1175,9 +1173,8 @@ export function MobileGateScanner({
                 <CheckCircle2 className="size-8 text-[#1FE086]" />
               ) : (
                 <AlertTriangle
-                  className={`size-8 ${
-                    outcome.kind === 'duplicate' ? 'text-amber-400' : 'text-rose-400'
-                  }`}
+                  className={`size-8 ${outcome.kind === 'duplicate' ? 'text-amber-400' : 'text-rose-400'
+                    }`}
                 />
               )}
             </div>
@@ -1291,8 +1288,8 @@ export function MobileGateScanner({
                 </button>
               </div>
               {codeInput.trim().length > 4 &&
-              (extractShortCode(codeInput) ??
-                extractShortCodeFromPartialSms(codeInput, mergedGuests)) ? (
+                (extractShortCode(codeInput) ??
+                  extractShortCodeFromPartialSms(codeInput, mergedGuests)) ? (
                 <p className="text-center text-xs font-semibold text-[#1FE086]">
                   {sw
                     ? `Msimbo uliopatikana: ${extractShortCode(codeInput) ?? extractShortCodeFromPartialSms(codeInput, mergedGuests)}`
@@ -1382,9 +1379,8 @@ export function MobileGateScanner({
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                          isAdmitted ? 'bg-white/10 text-[#9AA4B2]' : 'bg-[#1FE086] text-[#05140C]'
-                        }`}
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${isAdmitted ? 'bg-white/10 text-[#9AA4B2]' : 'bg-[#1FE086] text-[#05140C]'
+                          }`}
                       >
                         {isAdmitted ? (sw ? 'Ameingia' : 'Checked in') : sw ? 'Ruhusu' : 'Admit'}
                       </span>
@@ -1430,11 +1426,10 @@ export function MobileGateScanner({
                 </span>
                 <span
                   data-testid="mobile-scanner-vault-status"
-                  className={`rounded-full px-2.5 py-0.5 font-bold ${
-                    vaultVerification?.valid
+                  className={`rounded-full px-2.5 py-0.5 font-bold ${vaultVerification?.valid
                       ? 'bg-[#1FE086]/15 text-[#1FE086]'
                       : 'bg-white/10 text-[#C2CBD6]'
-                  }`}
+                    }`}
                 >
                   {vaultVerification?.valid
                     ? sw

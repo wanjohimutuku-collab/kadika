@@ -36,6 +36,7 @@ import type {
   DataRequest,
   EventReport,
   GateOverview,
+  GrowthReport,
   MessageLogEntry,
   ScanEntry,
   Guest,
@@ -195,6 +196,7 @@ interface ApiEvent {
   dressCode: string | null;
   committeePhone?: string | null;
   pledgesEnabled?: boolean;
+  showReferralFooter?: boolean | null;
   memoriesEnabled?: boolean;
   senderName?: string | null;
   greeting?: string | null;
@@ -306,6 +308,7 @@ function mapEvent(e: ApiEvent, stats: ApiStats | null = null): WeddingEvent {
       e.senderName || defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
     committeePhone: e.committeePhone ?? '',
     pledgesEnabled: e.pledgesEnabled ?? true,
+    showReferralFooter: e.showReferralFooter ?? null,
     memoriesEnabled: e.memoriesEnabled ?? true,
     requirePledgeBeforeCard: false,
     greeting: e.greeting ?? '',
@@ -325,11 +328,11 @@ interface ApiCard {
   cardKind?: CardKind;
   contributionCollected?: number | null;
   event:
-    | (Omit<
-        NonNullable<CardView['event']>,
-        'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
-      > & { brandTheme: Record<string, unknown> | null; eventKind?: string | null })
-    | null;
+  | (Omit<
+    NonNullable<CardView['event']>,
+    'partnerA' | 'partnerB' | 'extraNote' | 'themeId' | 'coverGradient' | 'palette'
+  > & { brandTheme: Record<string, unknown> | null; eventKind?: string | null })
+  | null;
   guest: CardView['guest'];
   qrPayload: string | null;
   pledge?: CardView['pledge'];
@@ -357,33 +360,35 @@ function mapCard(token: string, c: ApiCard): CardView {
     contributionCollected: c.contributionCollected ?? null,
     event: e
       ? {
-          id: e.id,
-          eventKind: e.eventKind ?? '',
-          partnerA: a,
-          partnerB: b,
-          coupleNames: e.coupleNames,
-          dateStart: e.dateStart,
-          venueName: e.venueName ?? '',
-          venueMapUrl: e.venueMapUrl ?? '',
-          dressCode: e.dressCode ?? '',
-          themeId: theme.themeId ?? 'emerald-gold',
-          coverGradient: theme.coverGradient ?? '',
-          palette: sanitizeOverrides(theme.palette),
-          rsvpDeadline: e.rsvpDeadline,
-          senderName:
-            e.senderName ||
-            defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
-          committeePhone: e.committeePhone ?? '',
-          pledgesEnabled: e.pledgesEnabled ?? false,
-          onlinePay: e.onlinePay ?? false,
-          cardContent: e.cardContent ?? {},
-          contributionTarget: e.contributionTarget ?? 0,
-          greeting: e.greeting ?? '',
-          extraNote: '',
-          country: e.country ?? 'TZ',
-          currency: e.currency ?? 'TZS',
-          timezone: e.timezone || 'Africa/Dar_es_Salaam',
-        }
+        id: e.id,
+        eventKind: e.eventKind ?? '',
+        partnerA: a,
+        partnerB: b,
+        coupleNames: e.coupleNames,
+        dateStart: e.dateStart,
+        venueName: e.venueName ?? '',
+        venueMapUrl: e.venueMapUrl ?? '',
+        dressCode: e.dressCode ?? '',
+        themeId: theme.themeId ?? 'emerald-gold',
+        coverGradient: theme.coverGradient ?? '',
+        palette: sanitizeOverrides(theme.palette),
+        rsvpDeadline: e.rsvpDeadline,
+        senderName:
+          e.senderName ||
+          defaultSender(e.eventKind, e.coupleNames, senderKindOf(e.cardContent), 'en'),
+        committeePhone: e.committeePhone ?? '',
+        pledgesEnabled: e.pledgesEnabled ?? false,
+        onlinePay: e.onlinePay ?? false,
+        showReferralFooter: e.showReferralFooter ?? false,
+        referralCode: e.referralCode ?? null,
+        cardContent: e.cardContent ?? {},
+        contributionTarget: e.contributionTarget ?? 0,
+        greeting: e.greeting ?? '',
+        extraNote: '',
+        country: e.country ?? 'TZ',
+        currency: e.currency ?? 'TZS',
+        timezone: e.timezone || 'Africa/Dar_es_Salaam',
+      }
       : null,
     guest: c.guest,
     qrPayload: c.qrPayload,
@@ -486,9 +491,9 @@ export function createHttpRepository(
           ...(isForm(body)
             ? {}
             : {
-                'content-type':
-                  body instanceof Blob ? 'application/octet-stream' : 'application/json',
-              }),
+              'content-type':
+                body instanceof Blob ? 'application/octet-stream' : 'application/json',
+            }),
           ...(auth && tokens.get()?.accessToken
             ? { authorization: `Bearer ${tokens.get()!.accessToken}` }
             : {}),
@@ -616,8 +621,16 @@ export function createHttpRepository(
       if (r.status >= 400) return fail(r.status, r.json as never);
       return { resendAfterSeconds: Number(r.json!.resendAfterSeconds ?? 30) };
     },
-    async verifyOtp(phone, code) {
-      return signedIn(await raw('POST', '/v1/auth/otp/verify', { phone, code }, {}, false));
+    async verifyOtp(phone, code, attribution) {
+      return signedIn(
+        await raw(
+          'POST',
+          '/v1/auth/otp/verify',
+          { phone, code, ...(attribution ? { attribution } : {}) },
+          {},
+          false,
+        ),
+      );
     },
     async getAuthConfig() {
       const r = await raw('GET', '/v1/auth/config', undefined, {}, false);
@@ -629,8 +642,16 @@ export function createHttpRepository(
       if (r.status >= 400) return fail(r.status, r.json as never);
       return { phone: String(r.json!.phone) };
     },
-    async signInWithFirebase(idToken) {
-      return signedIn(await raw('POST', '/v1/auth/firebase', { idToken }, {}, false));
+    async signInWithFirebase(idToken, attribution) {
+      return signedIn(
+        await raw(
+          'POST',
+          '/v1/auth/firebase',
+          { idToken, ...(attribution ? { attribution } : {}) },
+          {},
+          false,
+        ),
+      );
     },
     async startStaffEnrolment() {
       if (!staffChallenge) throw new RepositoryError('unauthorized', 'Sign in again');
@@ -823,6 +844,12 @@ export function createHttpRepository(
       if (opts.days) q.set('days', String(opts.days));
       return call<PilotMetrics>('GET', `/v1/ops/pilot-metrics${q.size ? `?${q}` : ''}`);
     },
+    async opsGrowthReport(opts = {}) {
+      const q = new URLSearchParams();
+      if (opts.country) q.set('country', opts.country);
+      if (opts.weeks) q.set('weeks', String(opts.weeks));
+      return call<GrowthReport>('GET', `/v1/ops/growth-report${q.size ? `?${q}` : ''}`);
+    },
 
     async opsMessagingSettings() {
       return call<MessagingSettingsView>('GET', '/v1/ops/messaging');
@@ -941,6 +968,9 @@ export function createHttpRepository(
         languageDefault: input.languageDefault,
         rsvpDeadline: input.rsvpDeadline || null,
         contributionTarget: input.contributionTarget ?? null,
+        ...(input.showReferralFooter !== undefined
+          ? { showReferralFooter: input.showReferralFooter }
+          : {}),
         brandTheme: {
           themeId: input.themeId,
           coverGradient: input.coverGradient ?? '',
@@ -966,6 +996,8 @@ export function createHttpRepository(
       if (patch.contributionTarget !== undefined)
         body.contributionTarget = patch.contributionTarget;
       if (patch.pledgesEnabled !== undefined) body.pledgesEnabled = patch.pledgesEnabled;
+      if (patch.showReferralFooter !== undefined)
+        body.showReferralFooter = patch.showReferralFooter;
       if (patch.memoriesEnabled !== undefined) body.memoriesEnabled = patch.memoriesEnabled;
       if (patch.status !== undefined) body.status = patch.status;
       if (patch.committeePhone !== undefined) body.committeePhone = patch.committeePhone || null;

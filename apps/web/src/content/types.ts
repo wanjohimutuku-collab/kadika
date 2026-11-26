@@ -48,6 +48,8 @@ export interface ContentPageDef {
   slugEn: string;
   group: PageGroup;
   schema: 'Article' | 'WebPage';
+  /** ISO date when first published; falls back to `updated` if omitted. */
+  published?: string;
   /** ISO date; shown on the page, in structured data and in the sitemap. */
   updated: string;
   /** Slugs in the same market, or `tz:slug` / `ke:slug` to link across markets. */

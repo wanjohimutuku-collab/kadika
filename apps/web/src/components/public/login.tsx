@@ -15,6 +15,7 @@ import { OtpField, PhoneField, Select, TextField, type OtpStatus } from '@/compo
 import { cn } from '@/lib/cn';
 import { formatClock, formatPhone } from '@/lib/format';
 import { getRepository } from '@/lib/repo';
+import { clearAttribution, readAttribution } from '@/lib/attribution';
 import { USE_MOCKS } from '@/lib/env';
 import { useBrand } from '@/components/brand/brand-provider';
 import { AuthCard, AuthShell } from '@/components/public/auth-shell';
@@ -306,11 +307,13 @@ export function LoginOtp() {
     setBusy(true);
     setError(null);
     try {
+      const attribution = readAttribution();
       const session = firebase
-        ? await getRepository().signInWithFirebase(await confirmPhoneCode(value))
-        : await getRepository().verifyOtp(phone, value);
+        ? await getRepository().signInWithFirebase(await confirmPhoneCode(value), attribution)
+        : await getRepository().verifyOtp(phone, value, attribution);
       sessionStorage.removeItem(PHONE_KEY);
       sessionStorage.removeItem(CHANNEL_KEY);
+      clearAttribution();
       // The cells turn green before the next step, so the visitor sees the code was accepted.
       setBusy(false);
       setVerified(true);

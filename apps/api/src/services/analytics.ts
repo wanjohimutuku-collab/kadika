@@ -34,12 +34,24 @@ export const ANALYTICS_EVENT_NAMES = [
   'record_contribution',
   'scan_qr',
   'complete_checkin',
+  // Growth funnel events (Prompt 9)
+  'signup_started',
+  'signup_completed',
+  'event_created',
+  'guests_added',
+  'cards_sent',
+  'first_payment',
+  'gate_app_installed',
+  'gate_scan_session_started',
+  'michango_enabled',
+  'referral_link_clicked',
+  'referral_signup',
 ] as const;
 export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number];
 
-const MARKET = ['tz', 'ke'] as const;
+const MARKET = ['tz', 'ke', 'ug'] as const;
 const LOCALE = ['sw', 'en'] as const;
-const EDITION = ['sw', 'en', 'ke'] as const;
+const EDITION = ['sw', 'en', 'ke', 'ug'] as const;
 export type AnalyticsDevice = 'mobile' | 'tablet' | 'desktop';
 export type AnalyticsSource = 'direct' | 'search' | 'social' | 'referral';
 
@@ -54,8 +66,25 @@ const PROPERTY_KEYS = [
   'invitation_channel',
   'occasion_bucket',
   'step_name',
+  // Prompt 9 growth funnel properties (all non-PII)
+  'event_kind',
+  'count_bucket',
+  'channel',
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'referral_code',
 ] as const;
 const PROPERTY_VALUE_MAX = 64;
+
+/** Anonymous guest-count bucket for `guests_added` events (never stores guest PII). */
+export function guestCountBucket(n: number): '1' | '2_10' | '11_50' | '51_150' | '151_plus' {
+  if (n <= 1) return '1';
+  if (n <= 10) return '2_10';
+  if (n <= 50) return '11_50';
+  if (n <= 150) return '51_150';
+  return '151_plus';
+}
 
 const propertiesSchema = z
   .record(z.string(), z.string().max(PROPERTY_VALUE_MAX))

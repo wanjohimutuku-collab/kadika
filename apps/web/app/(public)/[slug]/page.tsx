@@ -14,6 +14,7 @@ function resolve(slug: string, locale: Locale) {
   if (STATIC_ROUTE_SLUGS.has(slug)) return null;
   const match = pageBySlug(slug, 'tz');
   if (!match) return null;
+  if (match.page.slug === match.page.slugEn) return match.page;
   return match.matchedLocale === locale ? match.page : null;
 }
 

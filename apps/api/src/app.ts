@@ -61,6 +61,13 @@ import { safeErrorMessage } from './observability';
 import { BillingService } from './services/billing';
 import { SmsCampaignService } from './services/sms-campaigns';
 import { smsTargetSchema } from '@harusi/schemas/sms';
+import {
+  ANALYTICS_EVENT_NAMES,
+  createAnalyticsService,
+  guestCountBucket,
+} from './services/analytics';
+import { GrowthReportService } from './services/growth-report';
+import { ensureUserReferralCode } from './services/referrals';
 
 type Env = { Variables: { userId: string; mfa: boolean; gate?: GateClaims } };
 
@@ -129,6 +136,7 @@ const eventBase = z.object({
   rsvpDeadline: optionalDate,
   contributionTarget: z.number().int().min(0).nullish(),
   pledgesEnabled: z.boolean().optional(),
+  showReferralFooter: z.boolean().nullable().optional(),
   memoriesEnabled: z.boolean().optional(),
   brandTheme: z.record(z.unknown()).nullish(),
   cardContent: cardContentSchema.optional(),
@@ -147,6 +155,13 @@ const sendInputSchema = z.object({
   kind: z.enum(['invite', 'reminder']).optional(),
   /** Which cards: invitation or contribution; left out, both, as before (ADR 041). */
   cardKind: cardKindSchema.optional(),
+});
+const signupAttributionSchema = z.object({
+  utmSource: z.string().max(100).nullish(),
+  utmMedium: z.string().max(100).nullish(),
+  utmCampaign: z.string().max(100).nullish(),
+  referrerHost: z.string().max(255).nullish(),
+  referralCode: z.string().max(40).nullish(),
 });
 const guestBase = z.object({
   displayName: z.string().trim().min(2).max(80),
@@ -270,9 +285,33 @@ export function createApp(deps: Deps) {
   const printSvc = new PrintService(deps, eventsSvc, guestsSvc);
   const gateSvc = new GateService(deps, eventsSvc);
   const pledgeSvc = new PledgeService(deps, eventsSvc);
+  const siteHost = (() => {
+    try {
+      return new URL(deps.config.appBaseUrl).host;
+    } catch {
+      return 'kadisasa.com';
+    }
+  })();
+  const analyticsSvc = createAnalyticsService(deps, siteHost);
   const pilotSvc = new PilotMetricsService(deps);
+  const growthReportSvc = new GrowthReportService(deps);
   const opsSvc = new OpsService(deps);
-  const billingSvc = new BillingService(deps, eventsSvc);
+  const billingSvc = new BillingService(deps, eventsSvc, async (ev) => {
+    const mkt = ev.country === 'KE' ? 'ke' : 'tz';
+    await analyticsSvc.record({
+      name: 'first_payment',
+      path: '/app/billing',
+      ip: '127.0.0.1',
+      userAgent: 'api',
+      market: mkt,
+      locale: 'sw',
+      edition: mkt === 'tz' ? 'sw' : mkt,
+      properties: {
+        country: ev.country,
+        ...(ev.eventKind ? { event_kind: ev.eventKind.slice(0, 64) } : {}),
+      },
+    });
+  });
   const messagingSvc = deps.messagingSettings ?? new MessagingSettingsService(deps);
   const paymentSettingsSvc = deps.paymentSettings ?? new PaymentSettingsService(deps);
   const signInSettingsSvc = deps.signInSettings ?? new SignInSettingsService(deps);
@@ -300,7 +339,33 @@ export function createApp(deps: Deps) {
   const memoryPhotos = new RateLimiter(deps.now, 600, 60_000, 'memory-photo', deps.rateStore);
   // a test message goes to the caller's own phone and costs us a send: a few per ten minutes
   const testSends = new RateLimiter(deps.now, 5, 600_000, 'test-send', deps.rateStore);
+  const analyticsIngest = new RateLimiter(deps.now, 120, 60_000, 'analytics', deps.rateStore);
   const client = (c: Context) => clientIp((h) => c.req.header(h), deps.config.clientIpHeader);
+  const emitAnalytics = (
+    c: Context,
+    name: (typeof ANALYTICS_EVENT_NAMES)[number],
+    opts: {
+      path?: string;
+      country?: string;
+      market?: 'tz' | 'ke' | 'ug';
+      properties?: Record<string, string>;
+    } = {},
+  ) => {
+    const mkt = opts.market ?? (opts.country === 'KE' ? 'ke' : opts.country === 'UG' ? 'ug' : 'tz');
+    void analyticsSvc
+      .record({
+        name,
+        path: opts.path ?? c.req.path,
+        ip: client(c) || '127.0.0.1',
+        userAgent: (c.req.header('user-agent') || 'api').slice(0, 512),
+        market: mkt,
+        locale: 'sw',
+        edition: mkt === 'tz' ? 'sw' : mkt,
+        referrer: c.req.header('referer'),
+        properties: { ...(opts.country ? { country: opts.country } : {}), ...opts.properties },
+      })
+      .catch(() => {});
+  };
   // Each login code is a paid SMS: cap them per IP across numbers, and in total (SMS pumping, §9).
   const otpByIp = new RateLimiter(
     deps.now,
@@ -415,16 +480,61 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     await codeBudget(c);
-    return c.json(await auth.requestOtp(p, fallback, language, client(c)));
+    const res = await auth.requestOtp(p, fallback, language, client(c));
+    const country = res.phone.startsWith('+254')
+      ? 'KE'
+      : res.phone.startsWith('+256')
+        ? 'UG'
+        : 'TZ';
+    emitAnalytics(c, 'signup_started', {
+      country,
+      properties: { channel: fallback ? 'sms' : 'whatsapp' },
+    });
+    return c.json(res);
   });
   app.post('/v1/auth/otp/verify', async (c) => {
     await authAttempts.check(`ip:${client(c)}`);
-    const { phone: p, code } = parse(
-      z.object({ phone, code: z.string().regex(/^\d{6}$/) }),
+    const {
+      phone: p,
+      code,
+      attribution,
+    } = parse(
+      z.object({
+        phone,
+        code: z.string().regex(/^\d{6}$/),
+        attribution: signupAttributionSchema.optional(),
+      }),
       await body(c),
     );
     const web = webSession(c);
-    return c.json(toCookieSession(c, web, await auth.verifyOtp(p, code, client(c))));
+    const { isNewUser, referred, ...res } = await auth.verifyOtp(p, code, client(c), attribution);
+    if (isNewUser) {
+      const country = res.user.phoneE164.startsWith('+254')
+        ? 'KE'
+        : res.user.phoneE164.startsWith('+256')
+          ? 'UG'
+          : 'TZ';
+      emitAnalytics(c, 'signup_completed', {
+        country,
+        properties: {
+          ...(attribution?.utmSource ? { utm_source: attribution.utmSource.slice(0, 64) } : {}),
+          ...(attribution?.utmMedium ? { utm_medium: attribution.utmMedium.slice(0, 64) } : {}),
+          ...(attribution?.utmCampaign ? { utm_campaign: attribution.utmCampaign.slice(0, 64) } : {}),
+        },
+      });
+      if (referred) {
+        emitAnalytics(c, 'referral_signup', {
+          country,
+          properties: {
+            ...(attribution?.referralCode
+              ? { referral_code: attribution.referralCode.slice(0, 64) }
+              : {}),
+            ...(attribution?.utmSource ? { utm_source: attribution.utmSource.slice(0, 64) } : {}),
+          },
+        });
+      }
+    }
+    return c.json(toCookieSession(c, web, res));
   });
   // Which sign-in flow clients use (ADR 048); the Firebase web values are public by design.
   app.get('/v1/auth/config', (c) => {
@@ -455,14 +565,52 @@ export function createApp(deps: Deps) {
     const e164 = parsePhone(p, 'TZ', SIGN_IN_COUNTRIES, anyCountry);
     await codeBudget(c);
     await firebaseCodes.check(`p:${e164}`);
+    const country = e164.startsWith('+254') ? 'KE' : e164.startsWith('+256') ? 'UG' : 'TZ';
+    emitAnalytics(c, 'signup_started', { country, properties: { channel: 'firebase' } });
     return c.json({ phone: e164 });
   });
   app.post('/v1/auth/firebase', async (c) => {
     await firebaseSignIns.check(`ip:${client(c)}`);
-    const { idToken } = parse(z.object({ idToken: z.string().min(20).max(4096) }), await body(c));
+    const { idToken, attribution } = parse(
+      z.object({
+        idToken: z.string().min(20).max(4096),
+        attribution: signupAttributionSchema.optional(),
+      }),
+      await body(c),
+    );
     const web = webSession(c);
     const { anyCountry } = signInOf(deps);
-    return c.json(toCookieSession(c, web, await auth.verifyFirebase(idToken, anyCountry)));
+    const { isNewUser, referred, ...res } = await auth.verifyFirebase(
+      idToken,
+      anyCountry,
+      attribution,
+    );
+    if (isNewUser) {
+      const country = res.user.phoneE164.startsWith('+254')
+        ? 'KE'
+        : res.user.phoneE164.startsWith('+256')
+          ? 'UG'
+          : 'TZ';
+      emitAnalytics(c, 'signup_completed', {
+        country,
+        properties: {
+          ...(attribution?.utmSource ? { utm_source: attribution.utmSource.slice(0, 64) } : {}),
+          ...(attribution?.utmMedium ? { utm_medium: attribution.utmMedium.slice(0, 64) } : {}),
+          ...(attribution?.utmCampaign ? { utm_campaign: attribution.utmCampaign.slice(0, 64) } : {}),
+        },
+      });
+      if (referred) {
+        emitAnalytics(c, 'referral_signup', {
+          country,
+          properties: {
+            ...(attribution?.referralCode
+              ? { referral_code: attribution.referralCode.slice(0, 64) }
+              : {}),
+          },
+        });
+      }
+    }
+    return c.json(toCookieSession(c, web, res));
   });
   app.post('/v1/auth/refresh', async (c) => {
     await authAttempts.check(`ip:${client(c)}`);
@@ -514,6 +662,7 @@ export function createApp(deps: Deps) {
     c.req.path === '/v1/pricing' ||
     c.req.path === '/v1/app/android' ||
     c.req.path === '/v1/app/android.apk' ||
+    c.req.path === '/v1/analytics' ||
     c.req.path === '/v1/branding/logo' ||
     c.req.path === '/v1/branding/favicon' ||
     /^\/v1\/payments\/[^/]+\/status$/.test(c.req.path)
@@ -530,15 +679,47 @@ export function createApp(deps: Deps) {
   app.post('/v1/events/:id/sms/campaigns', once);
   app.post('/v1/payments/manual', once);
 
+  app.post('/v1/analytics', async (c) => {
+    await analyticsIngest.check(`ip:${client(c)}`);
+    const raw = await c.req.text();
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(raw);
+    } catch {
+      throw new ApiError('validation', 'Body must be JSON');
+    }
+    const input = parse(
+      z.object({
+        name: z.enum(ANALYTICS_EVENT_NAMES),
+        path: z.string().min(1).max(640),
+        market: z.enum(['tz', 'ke', 'ug']).default('tz'),
+        locale: z.enum(['sw', 'en']).default('sw'),
+        edition: z.enum(['sw', 'en', 'ke', 'ug']).default('sw'),
+        referrer: z.string().max(2048).optional(),
+        properties: z.record(z.string(), z.string().max(64)).optional(),
+      }),
+      parsedJson,
+    );
+    await analyticsSvc.record({
+      ...input,
+      ip: client(c) || '127.0.0.1',
+      userAgent: (c.req.header('user-agent') || 'web').slice(0, 512),
+      referrer: input.referrer ?? c.req.header('referer'),
+    });
+    return c.body(null, 204);
+  });
+
   app.get('/v1/me', async (c) => {
     const [u] = await deps.db
       .select()
       .from(users)
       .where(eq(users.id, c.get('userId')));
+    const referralCode = u ? (u.referralCode ?? (await ensureUserReferralCode(deps.db, u.id))) : null;
     return c.json({
       id: u!.id,
       name: u!.name,
       phoneE164: u!.phoneE164,
+      referralCode,
       roleGlobal: u!.roleGlobal,
       // Staff level (ADR 012) so /ops shows only the actions this person may use.
       staffRole: u!.roleGlobal === 'admin' ? (u!.staffRole ?? 'support') : null,
@@ -719,9 +900,17 @@ export function createApp(deps: Deps) {
   app.get('/v1/events', async (c) =>
     c.json({ items: await eventsSvc.listForUser(c.get('userId')) }),
   );
-  app.post('/v1/events', async (c) =>
-    c.json(await eventsSvc.create(c.get('userId'), parse(eventBase, await body(c))), 201),
-  );
+  app.post('/v1/events', async (c) => {
+    const ev = await eventsSvc.create(c.get('userId'), parse(eventBase, await body(c)));
+    emitAnalytics(c, 'event_created', {
+      country: ev.country,
+      properties: { ...(ev.eventKind ? { event_kind: ev.eventKind.slice(0, 64) } : {}) },
+    });
+    if (ev.pledgesEnabled) {
+      emitAnalytics(c, 'michango_enabled', { country: ev.country });
+    }
+    return c.json(ev, 201);
+  });
   app.get('/v1/events/:id', async (c) =>
     c.json(await eventsSvc.get(c.req.param('id'), c.get('userId'))),
   );
@@ -733,7 +922,14 @@ export function createApp(deps: Deps) {
         .extend({ status: z.enum(['draft', 'active', 'completed', 'archived']).optional() }),
       await body(c),
     );
-    return c.json(await eventsSvc.update(c.req.param('id'), c.get('userId'), patch));
+    const id = c.req.param('id');
+    const uid = c.get('userId');
+    const prev = patch.pledgesEnabled === true ? await eventsSvc.get(id, uid) : null;
+    const updated = await eventsSvc.update(id, uid, patch);
+    if (prev && !prev.pledgesEnabled && updated.pledgesEnabled) {
+      emitAnalytics(c, 'michango_enabled', { country: updated.country });
+    }
+    return c.json(updated);
   });
   app.delete('/v1/events/:id', async (c) => {
     await eventsSvc.remove(c.req.param('id'), c.get('userId'));
@@ -825,7 +1021,9 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(await gateSvc.join(input));
+    const joined = await gateSvc.join(input);
+    emitAnalytics(c, 'gate_scan_session_started');
+    return c.json(joined);
   });
   app.post('/v1/events/:id/gate-links', async (c) =>
     c.json(await gateSvc.createLink(c.req.param('id'), c.get('userId')), 201),
@@ -972,12 +1170,15 @@ export function createApp(deps: Deps) {
       ),
     );
   });
-  app.post('/v1/events/:id/guests', async (c) =>
-    c.json(
-      await guestsSvc.create(c.req.param('id'), c.get('userId'), parse(guestBase, await body(c))),
-      201,
-    ),
-  );
+  app.post('/v1/events/:id/guests', async (c) => {
+    const g = await guestsSvc.create(
+      c.req.param('id'),
+      c.get('userId'),
+      parse(guestBase, await body(c)),
+    );
+    emitAnalytics(c, 'guests_added', { properties: { count_bucket: guestCountBucket(1) } });
+    return c.json(g, 201);
+  });
   app.post('/v1/events/:id/guests/import', async (c) => {
     const input = parse(
       z.object({
@@ -988,7 +1189,13 @@ export function createApp(deps: Deps) {
       }),
       await body(c),
     );
-    return c.json(await guestsSvc.import(c.req.param('id'), c.get('userId'), input));
+    const res = await guestsSvc.import(c.req.param('id'), c.get('userId'), input);
+    if (!input.dryRun && res.created > 0) {
+      emitAnalytics(c, 'guests_added', {
+        properties: { count_bucket: guestCountBucket(res.created) },
+      });
+    }
+    return c.json(res);
   });
   app.post('/v1/events/:id/invitations/send', async (c) => {
     const input = parse(sendInputSchema, await body(c));
@@ -999,9 +1206,18 @@ export function createApp(deps: Deps) {
         userId: c.get('userId'),
         input,
       });
+      emitAnalytics(c, 'cards_sent', {
+        properties: { channel: input.channel === 'sms' ? 'sms' : 'whatsapp' },
+      });
       return c.json({ queued: true, jobId }, 202);
     }
-    return c.json(await deliverySvc.send(c.req.param('id'), c.get('userId'), input));
+    const res = await deliverySvc.send(c.req.param('id'), c.get('userId'), input);
+    if (res.sent > 0) {
+      emitAnalytics(c, 'cards_sent', {
+        properties: { channel: input.channel === 'sms' ? 'sms' : 'whatsapp' },
+      });
+    }
+    return c.json(res);
   });
   // What a send would do, with nothing sent: the same audience rules as the send itself (ADR 041).
   app.post('/v1/events/:id/invitations/preview', async (c) =>
@@ -1085,6 +1301,9 @@ export function createApp(deps: Deps) {
       await body(c),
     );
     const { bytes, filename } = await printSvc.pdf(c.req.param('id'), c.get('userId'), input);
+    if (input.format !== 'test') {
+      emitAnalytics(c, 'cards_sent', { properties: { channel: 'pdf' } });
+    }
     return c.body(bytes as unknown as ArrayBuffer, 200, {
       'content-type': 'application/pdf',
       'content-disposition': `attachment; filename="${filename}"`,
@@ -1330,6 +1549,16 @@ export function createApp(deps: Deps) {
     );
     return c.json(await pilotSvc.report(staff(c), q));
   });
+  app.get('/v1/ops/growth-report', async (c) => {
+    const q = parse(
+      z.object({
+        country: z.enum(['TZ', 'KE', 'UG', 'all']).optional(),
+        weeks: z.coerce.number().int().min(1).max(52).optional(),
+      }),
+      c.req.query(),
+    );
+    return c.json(await growthReportSvc.report(staff(c), q));
+  });
   // ---- staff: SMS and WhatsApp provider settings (ADR 031, admin staff only)
   const routeParam = (c: Context) => parse(z.enum(MESSAGING_ROUTES), c.req.param('route'));
   app.get('/v1/ops/messaging', async (c) => c.json(await messagingSvc.view(staff(c))));
@@ -1426,6 +1655,7 @@ export function createApp(deps: Deps) {
     };
     if (c.req.header('if-none-match') === etag) return c.body(null, 304, headers);
     headers['content-length'] = String(file.meta.size);
+    emitAnalytics(c, 'gate_app_installed', { properties: { channel: 'apk' } });
     return c.body(Readable.toWeb(file.stream()) as ReadableStream, 200, headers);
   });
   app.get('/v1/ops/app/android', async (c) => {

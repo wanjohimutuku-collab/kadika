@@ -56,6 +56,17 @@ export const analyticsEventEnum = pgEnum('analytics_event', [
   'record_contribution',
   'scan_qr',
   'complete_checkin',
+  'signup_started',
+  'signup_completed',
+  'event_created',
+  'guests_added',
+  'cards_sent',
+  'first_payment',
+  'gate_app_installed',
+  'gate_scan_session_started',
+  'michango_enabled',
+  'referral_link_clicked',
+  'referral_signup',
 ]);
 /** Visitor's device class, from the User-Agent, bucketed before the hash so it is never free text. */
 export const analyticsDeviceEnum = pgEnum('analytics_device', ['mobile', 'tablet', 'desktop']);
@@ -116,9 +127,20 @@ export const users = pgTable(
     staffTotpLastStep: integer('staff_totp_last_step'),
     staffTotpFailedAttempts: integer('staff_totp_failed_attempts').notNull().default(0),
     staffTotpLockedUntil: timestamp('staff_totp_locked_until', { withTimezone: true }),
+    referralCode: text('referral_code'),
+    referredByUserId: uuid('referred_by_user_id'),
+    signupUtmSource: text('signup_utm_source'),
+    signupUtmMedium: text('signup_utm_medium'),
+    signupUtmCampaign: text('signup_utm_campaign'),
+    signupReferrerHost: text('signup_referrer_host'),
+    signupReferralCode: text('signup_referral_code'),
     ...timestamps,
   },
-  (t) => [uniqueIndex('users_phone_e164_uq').on(t.phoneE164)],
+  (t) => [
+    uniqueIndex('users_phone_e164_uq').on(t.phoneE164),
+    uniqueIndex('users_referral_code_uq').on(t.referralCode),
+    index('users_referred_by_idx').on(t.referredByUserId),
+  ],
 );
 
 export const events = pgTable('events', {
@@ -165,6 +187,8 @@ export const events = pgTable('events', {
    * Chosen when the event is created and never changed by the owner.
    */
   product: eventProductEnum('product').notNull().default('cards'),
+  /** Null means default: false for corporate events, true for social/personal/community events. */
+  showReferralFooter: boolean('show_referral_footer'),
   /**
    * Set when the owner deletes the event. Its members, cards and gate stop working at once; the rows
    * stay for billing records and PDPA requests and can be restored by staff.
@@ -843,5 +867,38 @@ export const analyticsEvents = pgTable(
   (t) => [
     index('analytics_events_name_time_idx').on(t.name, t.occurredAt),
     index('analytics_events_time_idx').on(t.occurredAt),
+  ],
+);
+
+export const referralRewardStatusEnum = pgEnum('referral_reward_status', [
+  'pending_event',
+  'credited',
+]);
+
+/**
+ * Referral rewards credited to hosts whose referred signups purchase and generate at least
+ * `REFERRAL_MIN_PAID_CARDS` cards. One row per referred user so rewards cannot double-credit.
+ */
+export const referralRewards = pgTable(
+  'referral_rewards',
+  {
+    id: id(),
+    referrerUserId: uuid('referrer_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    referredUserId: uuid('referred_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cardsAwarded: integer('cards_awarded').notNull(),
+    status: referralRewardStatusEnum('status').notNull().default('pending_event'),
+    creditedEventId: uuid('credited_event_id').references(() => events.id, {
+      onDelete: 'set null',
+    }),
+    creditedAt: timestamp('credited_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('referral_rewards_referred_uq').on(t.referredUserId),
+    index('referral_rewards_referrer_idx').on(t.referrerUserId, t.status),
   ],
 );

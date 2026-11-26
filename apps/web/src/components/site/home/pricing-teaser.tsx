@@ -35,7 +35,7 @@ export function PricingTeaser({
   highlights,
 }: PricingTeaserProps) {
   const tiers = sortedTiers(catalog.cardTiers).slice(0, 3);
-  const loginBase = locale === 'sw' ? '/login' : '/en/login';
+  const loginBase = '/login';
   const popularBadge = locale === 'sw' ? 'Maarufu zaidi' : 'Most popular';
   const list =
     highlights ??

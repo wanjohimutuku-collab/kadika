@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
     robots: PUBLIC_ROBOTS,
     alternates: {
       canonical: url,
-      languages: hreflangMap('/', '/ke'),
+      languages: hreflangMap('/', ['/ke', '/ug']),
     },
     openGraph: {
       type: 'website',

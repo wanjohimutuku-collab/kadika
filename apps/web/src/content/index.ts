@@ -7,8 +7,10 @@ import { LEGAL_PAGES } from './pages/legal';
 import { PRODUCT_PAGES } from './pages/products';
 import { OCCASION_PAGES } from './pages/occasions';
 import { ARTICLE_PAGES } from './pages/articles';
+import { COMPARISON_PAGES } from './pages/comparisons';
 import { GEO_PAGES } from './pages/geo';
 import { EXPANSIONS } from './pages/expansions';
+import { SWAHILI_ANSWER_PAGES } from './pages/swahili-answers';
 import { UGANDA_PAGES } from './pages/uganda';
 import type { ContentPageDef, Market, PageGroup, PageText } from './types';
 
@@ -29,6 +31,8 @@ export const ALL_PAGES: ContentPageDef[] = [
   ...OCCASION_PAGES,
   ...GEO_PAGES,
   ...GUIDE_PAGES,
+  ...SWAHILI_ANSWER_PAGES,
+  ...COMPARISON_PAGES,
   ...ARTICLE_PAGES,
   ...COMPANY_PAGES,
   ...LEGAL_PAGES,
@@ -117,6 +121,22 @@ export function counterpartOf(p: ContentPageDef): ContentPageDef | undefined {
       o.counterpart.market === marketOf(p) &&
       marketOf(o) !== marketOf(p),
   );
+}
+
+/** All same-topic counterpart pages across other markets, preserving reciprocal hreflang links. */
+export function counterpartsOf(p: ContentPageDef): ContentPageDef[] {
+  const seen = new Set<ContentPageDef>();
+  const m = marketOf(p);
+  if (p.counterpart) {
+    const direct = getPage(p.counterpart.slug, p.counterpart.market);
+    if (direct && marketOf(direct) !== m) seen.add(direct);
+  }
+  for (const o of ALL_PAGES) {
+    if (marketOf(o) !== m && o.counterpart?.slug === p.slug && o.counterpart.market === m) {
+      seen.add(o);
+    }
+  }
+  return [...seen];
 }
 
 export function textOf(page: ContentPageDef, locale: Locale): PageText {

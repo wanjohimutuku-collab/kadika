@@ -8,7 +8,7 @@ import {
   ogImages,
   twitterSummaryCard,
 } from '@/lib/seo';
-import { counterpartOf, marketOf, pagePath, textOf } from './index';
+import { counterpartsOf, marketOf, pagePath, textOf } from './index';
 import type { ContentPageDef } from './types';
 
 export function pageMetadata(page: ContentPageDef, locale: Locale): Metadata {
@@ -17,11 +17,16 @@ export function pageMetadata(page: ContentPageDef, locale: Locale): Metadata {
   const region = market === 'ke' ? 'KE' : market === 'ug' ? 'UG' : 'TZ';
   const path = pagePath(page, locale);
   const url = absoluteLocaleUrl(path, locale);
-  const counterpart = counterpartOf(page);
+  const counterparts = counterpartsOf(page);
+  const tzCounterpart = counterparts.find((c) => marketOf(c) === 'tz');
   const languages = hreflangMap(
     market === 'tz' ? pagePath(page, 'en') : path,
-    counterpart ? pagePath(counterpart, 'en') : undefined,
-    market === 'tz' ? pagePath(page, 'sw') : undefined,
+    counterparts.map((c) => pagePath(c, 'en')),
+    market === 'tz'
+      ? pagePath(page, 'sw')
+      : tzCounterpart
+        ? pagePath(tzCounterpart, 'sw')
+        : undefined,
   );
   return {
     title: { absolute: t.title },

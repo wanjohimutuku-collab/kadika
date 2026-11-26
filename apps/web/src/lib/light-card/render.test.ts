@@ -220,4 +220,59 @@ describe('light guest card', () => {
     expect(htmlEn).toContain('Share on WhatsApp');
     expect(htmlEn).toContain('Download card image');
   });
+
+  it('renders discreet referral links in footer & post-RSVP when enabled, without guest PII, under 50 KB', () => {
+    const enabled = renderCard(
+      view({
+        event: {
+          ...view().event!,
+          eventKind: 'Harusi',
+          showReferralFooter: true,
+          referralCode: 'KS7M4P9Q',
+        },
+      }),
+      opts,
+    );
+    expect(Buffer.byteLength(enabled)).toBeLessThan(50_000);
+    expect(enabled).toContain('data-testid="card-referral-footer"');
+    expect(enabled).toContain('data-testid="rsvp-referral"');
+    expect(enabled).toContain('Imetengenezwa na Kadi Sasa. Tengeneza kadi yako');
+    expect(enabled).toContain(
+      '/login?utm_source=guest_card&amp;utm_medium=referral&amp;utm_campaign=harusi&amp;ref=KS7M4P9Q',
+    );
+    expect(enabled).toContain('hidden'); // post-RSVP link stays hidden until answered
+    const refHrefMatch = /href="(\/login\?[^"]+)"/.exec(enabled);
+    expect(refHrefMatch).not.toBeNull();
+    expect(refHrefMatch![1]).not.toContain('Bibi');
+    expect(refHrefMatch![1]).not.toContain('KH-4821');
+    expect(refHrefMatch![1]).not.toContain(opts.token);
+
+    const enabledEn = renderCard(
+      view({
+        event: {
+          ...view().event!,
+          eventKind: 'Corporate Summit',
+          showReferralFooter: true,
+          referralCode: 'KS7M4P9Q',
+        },
+      }),
+      { ...opts, locale: 'en' },
+    );
+    expect(enabledEn).toContain('Made with Kadi Sasa. Create your card');
+
+    const disabled = renderCard(
+      view({
+        event: {
+          ...view().event!,
+          showReferralFooter: false,
+          referralCode: 'KS7M4P9Q',
+        },
+      }),
+      opts,
+    );
+    expect(disabled).not.toContain('data-testid="card-referral-footer"');
+    expect(disabled).not.toContain('data-testid="rsvp-referral"');
+    expect(disabled).not.toContain('KS7M4P9Q');
+    expect(disabled).not.toContain('Imetengenezwa na Kadi Sasa');
+  });
 });

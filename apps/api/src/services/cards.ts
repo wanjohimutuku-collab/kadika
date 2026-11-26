@@ -7,6 +7,7 @@ import { ApiError } from '../errors';
 import { decryptSecret } from '../crypto-at-rest';
 import { pledgeSummaryOf, type PledgeSummary } from './pledges';
 import { ContributionRecords } from './contribution-records';
+import { ensureUserReferralCode, shouldShowReferralFooter } from './referrals';
 
 type Status = typeof invitations.$inferSelect.status;
 const RANK: Record<Status, number> = {
@@ -44,6 +45,8 @@ export interface CardView {
     pledgesEnabled: boolean;
     /** Guests can pay through us (off by default, ADR 043); otherwise the card lists `payTo`. */
     onlinePay: boolean;
+    showReferralFooter: boolean;
+    referralCode: string | null;
     rsvpDeadline: Date | null;
     country: 'TZ' | 'KE';
     currency: 'TZS' | 'KES';
@@ -103,6 +106,7 @@ export class CardService {
     qrPayload: string,
     pledge: PledgeSummary | null = null,
     collected: number | null = null,
+    referralCode: string | null = null,
   ): CardView {
     // Only a contribution card speaks about money; an invitation shows no pledge at all.
     if (row.guest.cardKind !== 'contribution') pledge = null;
@@ -120,6 +124,10 @@ export class CardService {
           ? 'declined'
           : 'pending';
     const contribution = guest.cardKind === 'contribution';
+    const showReferralFooter = shouldShowReferralFooter({
+      kind: event.eventKind ?? '',
+      showReferralFooter: event.showReferralFooter,
+    });
     return {
       state: 'ok',
       cardKind: guest.cardKind,
@@ -139,6 +147,8 @@ export class CardService {
         brandTheme: event.brandTheme,
         pledgesEnabled: event.pledgesEnabled,
         onlinePay: this.deps.config.guestPaymentsEnabled,
+        showReferralFooter,
+        referralCode: showReferralFooter ? referralCode : null,
         rsvpDeadline: event.rsvpDeadline,
         country: event.country,
         currency: event.currency,
@@ -218,6 +228,20 @@ export class CardService {
     return qr;
   }
 
+  private async referralCodeFor(
+    row: NonNullable<Awaited<ReturnType<CardService['find']>>['row']>,
+  ): Promise<string | null> {
+    if (
+      !shouldShowReferralFooter({
+        kind: row.event.eventKind ?? '',
+        showReferralFooter: row.event.showReferralFooter,
+      })
+    ) {
+      return null;
+    }
+    return ensureUserReferralCode(this.deps.db, row.event.ownerId);
+  }
+
   /**
    * Read-only card for link-preview bots, the OG image and the PWA manifest: same data as `get`
    * but no QR and, above all, it never marks the invitation `opened`.
@@ -230,6 +254,7 @@ export class CardService {
           '',
           await pledgeSummaryOf(this.deps, row.guest.id),
           await this.collectedFor(row),
+          await this.referralCodeFor(row),
         )
       : EMPTY('invalid');
   }
@@ -271,6 +296,7 @@ export class CardService {
       row.guest.cardKind === 'contribution' ? '' : await this.qr(row),
       await pledgeSummaryOf(this.deps, row.guest.id),
       await this.collectedFor(row),
+      await this.referralCodeFor(row),
     );
   }
 
@@ -306,6 +332,12 @@ export class CardService {
       row.invitation.status = status;
       row.invitation.rsvpPartySize = party;
     }
-    return this.view(row, await this.qr(row), await pledgeSummaryOf(this.deps, row.guest.id));
+    return this.view(
+      row,
+      await this.qr(row),
+      await pledgeSummaryOf(this.deps, row.guest.id),
+      await this.collectedFor(row),
+      await this.referralCodeFor(row),
+    );
   }
 }

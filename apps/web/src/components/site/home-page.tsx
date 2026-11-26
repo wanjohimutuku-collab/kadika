@@ -13,11 +13,18 @@ import {
   MoonStar,
   Sparkles,
 } from 'lucide-react';
-import { sortedTiers, type PricingCatalog } from '@harusi/schemas/billing';
+import { type PricingCatalog } from '@harusi/schemas/billing';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
 import { ALL_PAGES, getPage, marketOf, pagePath, textOf } from '@/content';
 import { homeCopy } from '@/content/home';
-import { ORG_ID, SITE_URL, absoluteLocaleUrl, localeUrl, organizationNode } from '@/lib/seo';
+import {
+  ORG_ID,
+  SITE_URL,
+  absoluteLocaleUrl,
+  localeUrl,
+  organizationNode,
+  pricingOffersNode,
+} from '@/lib/seo';
 import { APP_DOWNLOAD_PATH } from '@/lib/app-download';
 import { PRICING_PATH } from '@/lib/server-pricing';
 import type { SiteEdition } from '@/lib/site-nav';
@@ -39,35 +46,42 @@ import {
   QuickworkSyncFlow,
 } from './home/quickwork-sections';
 
-/** Tanzania event pages linked from the home page (kit content-tz.md § Home, section 8). */
+/** Tanzania event pages linked from the home page (social/weddings first, corporate last). */
 const TZ_EVENTS = [
-  'kadi-za-mwaliko-biashara',
   'kadi-ya-harusi-mtandaoni',
   'kadi-ya-send-off',
   'kadi-ya-kitchen-party',
   'kadi-ya-uchumba',
   'kadi-ya-nikah-na-walima',
+  'kadi-za-kanisa',
   'kadi-ya-mahafali',
   'kadi-ya-kuzaliwa',
-  'kadi-za-kanisa',
   'kadi-za-mwaliko-tanzania',
   'kadi-za-kidijitali-tanzania',
+  'kadi-za-mwaliko-biashara',
 ] as const;
 
 /** Pillar guides and comparison articles linked from the home page to pass internal PageRank. */
 const TZ_GUIDES = [
+  'kadi-za-harusi-online',
+  'michango-ya-harusi',
+  'kadi-ya-send-off-kitchen-party',
+  'mwaliko-bila-smartphone',
+  'kadi-sasa-vs-karatasi-na-zana-za-kubuni',
+  'gharama-halisi-za-huduma-ya-mialiko',
   'jinsi-ya-kuunda-kadi-ya-harusi-tanzania',
   'kutuma-kadi-za-mwaliko-whatsapp',
   'kadi-ya-mtandaoni-vs-karatasi',
   'kusimamia-majibu-ya-rsvp',
   'lango-la-harusi-qr',
   'jinsi-ya-kuchagua-huduma-ya-kadi-za-mwaliko',
-  'michango-ya-harusi',
   'kadi-ya-harusi-bila-smartphone',
   'kamusi-ya-harusi',
 ] as const;
 
 const KE_GUIDES = [
+  'digital-wedding-invitations-kenya',
+  'ruracio-harambee-invitations-contributions',
   'wedding-committee-guide',
   'wedding-contributions-guide',
   'wedding-invitation-wording',
@@ -106,7 +120,34 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
   const primaryHref = market !== 'tz' ? pilotHref : '/login';
   const appHref = localeUrl(APP_DOWNLOAD_PATH, locale);
   const jaribuBase = '/jaribu';
-  const demoHrefSeed = `${jaribuBase}?names=${encodeURIComponent('Asha & Juma')}&date=2026-12-19&event=harusi`;
+  const demoSeed =
+    market === 'ke'
+      ? {
+          coupleNames: 'Wanjiru & Otieno',
+          partnerA: 'Wanjiru',
+          partnerB: 'Otieno',
+          guestName: 'Mr & Mrs Kamau',
+          shortCode: 'WK-3725',
+          venue: 'Safari Park Gardens, Nairobi',
+        }
+      : market === 'ug'
+        ? {
+            coupleNames: 'Namukasa & Kato',
+            partnerA: 'Namukasa',
+            partnerB: 'Kato',
+            guestName: 'Ssenga Grace',
+            shortCode: 'UG-2104',
+            venue: 'Serena Gardens, Kampala',
+          }
+        : {
+            coupleNames: 'Asha & Juma',
+            partnerA: 'Asha',
+            partnerB: 'Juma',
+            guestName: 'Mwanaidi Salim',
+            shortCode: 'KH-4826',
+            venue: 'Ukumbi wa Mwanga, Kibaha',
+          };
+  const demoHrefSeed = `${jaribuBase}?names=${encodeURIComponent(demoSeed.coupleNames)}&date=2026-12-19&event=harusi`;
   const name = DEFAULT_BRANDING.businessName;
   const events =
     market !== 'tz'
@@ -118,23 +159,35 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
   const pageUrl = absoluteLocaleUrl(path, locale);
   const perCardLabel = locale === 'sw' ? 'Kwa kadi' : 'per card';
   const fromLabel = locale === 'sw' ? 'Kuanzia' : 'From';
-  const tiers = sortedTiers(pricing.cardTiers);
-  const tierPrices = tiers.map((t) => t.price[currency]);
   const readGuideLabel = locale === 'sw' ? 'Soma mwongozo' : 'Read guide';
   const heroCapabilities =
-    locale === 'sw'
+    market === 'ke'
       ? [
-          'WhatsApp, SMS na karatasi (A6/A4)',
-          'Skani ya QR bila mtandao',
-          'Daftari la ahadi na michango',
-          'Kiswahili na Kiingereza',
-        ]
-      : [
           'WhatsApp, SMS & printable PDF',
           'Offline QR gate verification',
-          'Direct-to-host pledge ledger',
+          '0% cut on M-Pesa harambee pledges',
           'Swahili & English support',
-        ];
+        ]
+      : market === 'ug'
+        ? [
+            'WhatsApp, SMS & printable PDF',
+            'Offline QR gate verification',
+            '0% cut on UGX pledge cards',
+            'Swahili & English support',
+          ]
+        : locale === 'sw'
+          ? [
+              'WhatsApp, SMS na karatasi (A6/A4)',
+              'Skani ya QR bila mtandao',
+              '0% makato kwenye michango',
+              'Kiswahili na Kiingereza',
+            ]
+          : [
+              'WhatsApp, SMS & printable PDF',
+              'Offline QR gate verification',
+              '0% commission on michango',
+              'Swahili & English support',
+            ];
   const answerBadges =
     market === 'ke'
       ? ['WhatsApp + SMS Cards', 'RSVP & Party Size', 'Offline QR Gate', 'M-Pesa Harambee Ledger']
@@ -171,24 +224,6 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
               speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '#jibu'] },
             },
             {
-              '@type': 'BreadcrumbList',
-              itemListElement: [
-                {
-                  '@type': 'ListItem',
-                  position: 1,
-                  name:
-                    market === 'ke'
-                      ? 'Kenya'
-                      : market === 'ug'
-                        ? 'Uganda'
-                        : locale === 'sw'
-                          ? 'Nyumbani'
-                          : 'Home',
-                  item: pageUrl,
-                },
-              ],
-            },
-            {
               '@type': 'Service',
               name: c.title.split(' | ')[0],
               serviceType:
@@ -216,15 +251,8 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
                 'Offline Android QR gate and reception check-in',
               ],
               offers:
-                pricing.enforced && tiers.length
-                  ? {
-                      '@type': 'AggregateOffer',
-                      priceCurrency: currency,
-                      lowPrice: Math.min(...tierPrices),
-                      highPrice: Math.max(...tierPrices),
-                      offerCount: tiers.length,
-                      description: c.heroTrustLine,
-                    }
+                market === 'tz'
+                  ? pricingOffersNode(pricing, 'TZS', locale)
                   : {
                       '@type': 'Offer',
                       price: '0',
@@ -261,6 +289,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         previewFrameAlt={c.hero.h1}
         statCards={c.heroStatCards}
         capabilities={heroCapabilities}
+        demoCard={demoSeed}
       />
 
       <QuickworkStandout locale={locale} />
@@ -269,9 +298,9 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         <AnswerBlock label={c.answerLabel} text={c.answer} badges={answerBadges} />
       </div>
 
-      <QuickworkFourPlanes locale={locale} />
+      <QuickworkFourPlanes locale={locale} market={market} />
 
-      <QuickworkSyncFlow locale={locale} />
+      <QuickworkSyncFlow locale={locale} market={market} />
 
       <OccasionShowcase
         copy={c.occasionShowcase}
@@ -291,6 +320,7 @@ export function HomePage({ edition, pricing }: { edition: SiteEdition; pricing: 
         form={c.formLabels}
         previewFrameAlt={c.hero.h1}
         initialDateISO={nextSaturdayFromToday()}
+        defaultNames={demoSeed.coupleNames}
       />
 
       <div className="bg-[#f6f9fc]">

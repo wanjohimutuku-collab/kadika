@@ -38,7 +38,7 @@ export function OccasionShowcase({
   initialDateISO,
   locale,
 }: OccasionShowcaseProps) {
-  const [activeId, setActiveId] = useState<OccasionTabCopy['id']>('corporate');
+  const [activeId, setActiveId] = useState<OccasionTabCopy['id']>(copy.tabs[0].id);
   const active = copy.tabs.find((t) => t.id === activeId) ?? copy.tabs[0];
   const { partnerA, partnerB } = splitTitle(active.demoNames);
   const { src: cardImgSrc } = useCardImageSrc({

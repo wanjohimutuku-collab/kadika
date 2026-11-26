@@ -303,6 +303,7 @@ export const eventInputSchema = z.object({
   rsvpDeadline: z.string().optional().default(''),
   contributionTarget: z.coerce.number().int().min(0).optional().default(0),
   pledgesEnabled: z.boolean().optional(),
+  showReferralFooter: z.boolean().nullable().optional(),
   /** Texts, labels and toggles for the cards and messages; new events start family-sent (ADR 029). */
   cardContent: cardContentSchema.optional(),
 });

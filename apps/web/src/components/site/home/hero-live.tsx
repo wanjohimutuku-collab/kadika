@@ -57,6 +57,7 @@ export interface HeroLiveProps {
   previewFrameAlt: string;
   /** Server-computed initial date for the hero's date input. Prevents SSR/CSR drift from `new Date()`. */
   initialDateISO: string;
+  defaultNames?: string;
 }
 
 /**
@@ -66,7 +67,7 @@ export interface HeroLiveProps {
  * Kept named `HeroLive` for backwards import compatibility.
  */
 export function HeroLive(props: HeroLiveProps) {
-  const [names, setNames] = useState('Asha & Juma');
+  const [names, setNames] = useState(props.defaultNames ?? 'Asha & Juma');
   // Seed the initial date server-side via a prop so SSR and the client's first render agree.
   // Computing it client-side (`new Date()` in useState or useEffect) races the server's render
   // and React 19 flags a hydration mismatch, which then regenerates the whole subtree — that was

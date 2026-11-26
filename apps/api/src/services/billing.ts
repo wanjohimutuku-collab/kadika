@@ -34,6 +34,7 @@ import { routeCountry, smsFor } from '../sms-routing';
 import { recordAudit } from './audit';
 import { BrandingService } from './branding';
 import type { EventService } from './events';
+import { ReferralService } from './referrals';
 import { requireStaff, type StaffCaller } from './staff-guard';
 import type { MOBILE_METHODS } from './pledges';
 
@@ -87,6 +88,7 @@ export class BillingService {
   constructor(
     private deps: Deps,
     private eventsSvc: EventService,
+    private onFirstPayment?: (event: { id: string; country: 'TZ' | 'KE'; eventKind: string | null }) => Promise<void>,
   ) {}
 
   private get db(): Db {
@@ -231,6 +233,21 @@ export class BillingService {
       .update(guests)
       .set({ cardGeneratedAt: this.deps.now() })
       .where(and(inArray(guests.id, guestIds), isNull(guests.cardGeneratedAt)));
+
+    // Check referral qualification when a referred host generates cards.
+    try {
+      const owners = await this.db
+        .selectDistinct({ ownerId: events.ownerId })
+        .from(guests)
+        .innerJoin(events, eq(events.id, guests.eventId))
+        .where(and(inArray(guests.id, guestIds), isNull(events.deletedAt)));
+      const referrals = new ReferralService(this.deps);
+      for (const { ownerId } of owners) {
+        await referrals.evaluateAndAwardReferral(ownerId);
+      }
+    } catch {
+      // Referral evaluation must never block card generation.
+    }
   }
 
   async allowance(eventId: string, catalog?: PricingCatalog): Promise<Allowance> {
@@ -652,6 +669,44 @@ export class BillingService {
       diff: { item: p.itemKey, amount: p.amount, method: p.method },
     });
     await this.notifyCustomer(p);
+
+    if (p.method !== 'grant' && (p.kind === 'cards' || p.kind === 'pack')) {
+      try {
+        const [ev] = await this.db
+          .select({
+            id: events.id,
+            ownerId: events.ownerId,
+            country: events.country,
+            eventKind: events.eventKind,
+          })
+          .from(events)
+          .where(eq(events.id, p.eventId));
+        if (ev) {
+          const [prior] = await this.db
+            .select({ id: eventPurchases.id })
+            .from(eventPurchases)
+            .where(
+              and(
+                eq(eventPurchases.eventId, p.eventId),
+                eq(eventPurchases.status, 'paid'),
+                ne(eventPurchases.method, 'grant'),
+                ne(eventPurchases.id, p.id),
+              ),
+            )
+            .limit(1);
+          if (!prior && this.onFirstPayment) {
+            await this.onFirstPayment({
+              id: ev.id,
+              country: ev.country,
+              eventKind: ev.eventKind,
+            });
+          }
+          await new ReferralService(this.deps).evaluateAndAwardReferral(ev.ownerId);
+        }
+      } catch {
+        // Non-blocking growth tracking & referral check.
+      }
+    }
   }
 
   // ---------------------------------------------------------------- staff

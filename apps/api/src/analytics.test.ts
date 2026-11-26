@@ -5,6 +5,7 @@ import {
   createAnalyticsService,
   dateBucket,
   deviceOf,
+  guestCountBucket,
   normalisePath,
   sessionHash,
   sourceOf,
@@ -252,5 +253,56 @@ describe('retention sweep', () => {
     // 180-day window keeps it; 1-day window deletes it.
     expect(await svc.sweepOld(new Date('2026-11-07T00:00:00Z'), 180)).toBe(0);
     expect(await svc.sweepOld(new Date('2026-11-07T00:00:00Z'), 1)).toBe(1);
+  });
+});
+
+describe('growth funnel analytics & POST /v1/analytics (Prompt 9)', () => {
+  it('buckets guest counts anonymously', () => {
+    expect(guestCountBucket(1)).toBe('1');
+    expect(guestCountBucket(10)).toBe('2_10');
+    expect(guestCountBucket(50)).toBe('11_50');
+    expect(guestCountBucket(150)).toBe('51_150');
+    expect(guestCountBucket(240)).toBe('151_plus');
+  });
+
+  it('accepts POST /v1/analytics with no cookies, records Prompt 9 events, and drops PII keys', async () => {
+    ctx = await createTestContext({
+      env: { ANALYTICS_ENABLED: '1', ANALYTICS_SESSION_SECRET: 's' },
+    });
+    const res = await ctx.app.request('/v1/analytics', {
+      method: 'POST',
+      headers: {
+        'content-type': 'text/plain',
+        'user-agent': 'Mozilla/5.0 (Linux; Android 13) Mobile Safari/537.36',
+      },
+      body: JSON.stringify({
+        name: 'referral_link_clicked',
+        path: '/c?token=SECRET_TOKEN',
+        market: 'tz',
+        locale: 'sw',
+        edition: 'sw',
+        properties: {
+          source: 'guest_card',
+          event_kind: 'harusi',
+          referral_code: 'KS7M4P9Q',
+          guestName: 'Asha Juma',
+          phone: '+255712000001',
+        },
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(res.headers.get('set-cookie')).toBeNull();
+
+    const rows = await ctx.db
+      .select()
+      .from(analyticsEvents)
+      .where(eq(analyticsEvents.name, 'referral_link_clicked'));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.path).toBe('/c');
+    expect(rows[0]!.properties).toEqual({
+      source: 'guest_card',
+      event_kind: 'harusi',
+      referral_code: 'KS7M4P9Q',
+    });
   });
 });

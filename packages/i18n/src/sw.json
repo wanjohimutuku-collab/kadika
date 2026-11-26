@@ -1355,9 +1355,11 @@
       "insert": "Bonyeza kuingiza",
       "preview": "Onyesho",
       "reset": "Rudisha chaguomsingi",
-      "linkRequired": "Jumuisha '{link}' ili wageni waweze kufungua kadi.",
+      "linkRequired": "Jumuisha {link} ili wageni waweze kufungua kadi.",
       "unknownVar": "Thamani \"{name}\" haijulikani."
-    }
+    },
+    "referralFooter": "Onyesha 'Imetengenezwa na Kadi Sasa' chini ya kadi",
+    "referralFooterDesc": "Huwashwa kwa hafla za familia na marafiki, na huzimwa kwa hafla za makampuni isipokuwa ukiiwasha."
   },
   "account": {
     "title": "Akaunti",

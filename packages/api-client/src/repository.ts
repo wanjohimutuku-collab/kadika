@@ -50,6 +50,7 @@ import type {
   EventReport,
   GateLink,
   GateOverview,
+  GrowthReport,
   Guest,
   GuestQuery,
   ImportOptions,
@@ -67,6 +68,7 @@ import type {
   SendPreview,
   SendRequest,
   Session,
+  SignupAttribution,
   AuthConfig,
   WeddingEvent,
   DataRequest,
@@ -101,7 +103,7 @@ export interface Repository {
     phoneE164: string,
     opts?: { fallback?: boolean; language?: 'sw' | 'en' },
   ): Promise<{ resendAfterSeconds: number }>;
-  verifyOtp(phoneE164: string, code: string): Promise<Session>;
+  verifyOtp(phoneE164: string, code: string, attribution?: SignupAttribution): Promise<Session>;
   /** GET /v1/auth/config: our own SMS code or Firebase Phone Auth (ADR 048). */
   getAuthConfig(): Promise<AuthConfig>;
   /**
@@ -113,7 +115,7 @@ export interface Repository {
    * POST /v1/auth/firebase: trades a Firebase ID token from a phone sign-in for our session. Same
    * result as `verifyOtp`, including `needsSecondFactor` for staff.
    */
-  signInWithFirebase(idToken: string): Promise<Session>;
+  signInWithFirebase(idToken: string, attribution?: SignupAttribution): Promise<Session>;
   /**
    * Staff only (ADR 040): second step after the SMS code — POST /v1/auth/staff/totp/verify with the
    * authenticator code. The first good code also completes the authenticator setup.
@@ -318,6 +320,8 @@ export interface Repository {
   opsUsage(): Promise<OpsUsage>;
   /** Launch-gate numbers for one country (or all), for the pilot dashboard (Phase 5). */
   opsPilotMetrics(opts?: { country?: Country | 'all'; days?: number }): Promise<PilotMetrics>;
+  /** Weekly growth funnel & attribution report by country (Prompt 9). */
+  opsGrowthReport(opts?: { country?: Country | 'UG' | 'all'; weeks?: number }): Promise<GrowthReport>;
   opsLookup(query: string): Promise<OpsLookupResult>;
   opsRevealPhone(
     target: { kind: 'guest' | 'organizer'; id: string },

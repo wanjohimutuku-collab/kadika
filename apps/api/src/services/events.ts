@@ -13,6 +13,7 @@ import { ApiError } from '../errors';
 import { recordAudit } from './audit';
 import { purgeEventMemories } from './memories';
 import { encryptSecret } from '../crypto-at-rest';
+import { ensureUserReferralCode, ReferralService } from './referrals';
 
 export type MemberRole = 'owner' | 'committee' | 'gate';
 
@@ -33,6 +34,7 @@ export interface EventInput {
   rsvpDeadline?: Date | null;
   contributionTarget?: number | null;
   pledgesEnabled?: boolean;
+  showReferralFooter?: boolean | null;
   /** Kumbukumbu page shown to guests (ADR 050). */
   memoriesEnabled?: boolean;
   brandTheme?: Record<string, unknown> | null;
@@ -89,7 +91,7 @@ export class EventService {
       });
     const keys = generateEventKeyPair(this.deps.random);
     const encrypted = await encryptSecret(keys.privateKey, this.deps.config.keyEncSecret);
-    return this.deps.db.transaction(async (tx) => {
+    const created = await this.deps.db.transaction(async (tx) => {
       const eventId = newId();
       const keyId = newId();
       const [event] = await tx
@@ -104,6 +106,9 @@ export class EventService {
           brandTheme: mergeBrandTheme(null, input.brandTheme),
           cardContent: input.cardContent ?? { sender: { kind: 'family' } },
           ...(input.pledgesEnabled !== undefined ? { pledgesEnabled: input.pledgesEnabled } : {}),
+          ...(input.showReferralFooter !== undefined
+            ? { showReferralFooter: input.showReferralFooter }
+            : {}),
         })
         .returning();
       await tx
@@ -119,6 +124,15 @@ export class EventService {
         .values({ id: newId(), eventId, userId: ownerId, role: 'owner' });
       return updated ?? event!;
     });
+    await ensureUserReferralCode(this.deps.db, ownerId);
+    if ((created.product ?? 'cards') === 'cards') {
+      await new ReferralService(this.deps).applyPendingReferralRewardsToNewEvent(
+        ownerId,
+        created.id,
+        created.currency,
+      );
+    }
+    return created;
   }
 
   async listForUser(userId: string) {

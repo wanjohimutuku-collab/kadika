@@ -200,6 +200,8 @@
       "deleteWord": "FUTA",
       "deleted": "Harusi imefutwa",
       "pledgesEnabled": "Ruhusu michango kwenye kadi",
+      "referralFooter": "Onyesha 'Imetengenezwa na Kadi Sasa' chini ya kadi",
+      "referralFooterDesc": "Huwashwa kwa hafla za familia na marafiki, na huzimwa kwa hafla za makampuni isipokuwa ukiiwasha.",
       "fallbackHours": "Subiri saa ngapi kabla ya SMS",
       "templates": {
         "title": "Violezo vya SMS",
@@ -445,6 +447,8 @@
       "deleteWord": "FUTA",
       "deleted": "Wedding deleted",
       "pledgesEnabled": "Allow contributions on cards",
+      "referralFooter": "Show 'Made with Kadi Sasa' link on guest cards",
+      "referralFooterDesc": "On by default for weddings and social events, and off for corporate events unless opted in.",
       "fallbackHours": "Hours to wait before SMS",
       "templates": {
         "title": "SMS templates",

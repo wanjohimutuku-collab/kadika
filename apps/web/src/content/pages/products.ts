@@ -218,7 +218,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
     slugEn: 'wedding-contributions',
     group: 'product',
     schema: 'WebPage',
-    updated: UPDATED,
+    updated: '2026-11-26',
     related: [
       'kadi-ya-harusi-mtandaoni',
       'lango-la-harusi-qr',
@@ -229,80 +229,101 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       nav: 'Michango ya harusi',
       title: 'Michango ya Harusi: Fuatilia Ahadi na Malipo | Kadi Sasa',
       description:
-        'Rekodi ahadi na malipo ya michango ya harusi kwa kila mgeni. Wageni wanalipa wenye sherehe moja kwa moja kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa.',
-      h1: 'Michango ya harusi: ahadi na malipo mahali pamoja',
+        'Fuatilia ahadi na malipo ya michango ya harusi Tanzania. Wageni wanalipa moja kwa moja kwa M-Pesa, Mixx, Airtel au HaloPesa bila makato.',
+      h1: 'Michango ya harusi: jinsi ya kufuatilia ahadi na malipo',
       answer:
-        'Kadi Sasa inaipa kamati daftari la michango lililo salama. Kamati inarekodi ahadi ya kila mgeni, mgeni analipa wenye sherehe moja kwa moja kwa simu au taslimu, na mweka hazina anaona kilichoahidiwa, kilicholipwa na salio la kila mtu. Kadi Sasa haishiki pesa za michango.',
+        'Ili kufuatilia michango ya harusi bila mabishano, weka ahadi ya kila mgeni kwenye daftari la kidijitali, pokee malipo moja kwa moja kupitia M-Pesa, Mixx by Yas, Airtel Money au HaloPesa kwa 0% makato, na utumie vikumbusho vya SMS kwa salio. Mweka hazina anapata ripoti ya kusoma kwenye kikao kwa sekunde. Anza bure na kadi 5.',
       sections: [
         {
           id: 'tatizo',
-          h2: 'Tatizo la michango kwenye makundi ya WhatsApp',
+          h2: 'Kwa nini kufuatilia michango kwenye daftari au kundi la WhatsApp kunaleta shida?',
           blocks: [
             {
               t: 'p',
-              text: 'Kamati nyingi hufuatilia michango kwenye daftari au kundi la WhatsApp. Ahadi zinapotea kwenye mazungumzo marefu, hakuna anayejua salio la kila mtu, na wageni wengine hawakumbushwi. Matokeo yake ni mabishano na hesabu zisizolingana wakati wa kufunga.',
+              text: 'Kamati nyingi za harusi bado huandika ahadi za michango kwenye madaftari au kuzitafuta katikati ya mazungumzo marefu kwenye kundi la WhatsApp. Ahadi zingine hupotea, mweka hazina hushindwa kujua salio halisi la kila mgeni haraka, na baadhi ya wachangiaji hukosa vikumbusho vya heshima kabla ya tarehe ya kufunga bajeti.',
+            },
+            {
+              t: 'p',
+              text: 'Pia, kuchanganya malipo ya michango kwenye simu binafsi bila rekodi ya pamoja huleta maswali wakati wa kikao cha kamati. Kadi Sasa inampa kila mgeni mstari wake wa ahadi, kilicholipwa na salio linalobaki, huku fedha zikienda moja kwa moja kwa wenye sherehe.',
             },
           ],
         },
         {
           id: 'inavyofanya',
-          h2: 'Jinsi michango inavyofanya kazi kwenye Kadi Sasa',
+          h2: 'Jinsi ya kufuatilia ahadi na malipo ya michango hatua kwa hatua?',
           blocks: [
             {
               t: 'ol',
               items: [
-                'Kamati inarekodi ahadi ya mgeni (kiasi na maelezo) kwenye wasifu wake.',
-                'Mgeni anapokea kadi ya michango inayoonyesha ahadi yake, salio na namba za kamati za kulipia (M-Pesa, Lipa Namba au benki).',
-                'Analipa wenye sherehe moja kwa moja. Pesa haipiti kwetu, na hatumwombi PIN.',
-                'Mweka hazina anarekodi malipo na salio linapungua. Taslimu na benki zinarekodiwa vilevile.',
-                'Mgeni anayedaiwa anapokea ukumbusho kwa heshima, si zaidi ya mara chache.',
+                'Weka lengo la bajeti ya michango ya sherehe kwenye mipangilio ya tukio lako la Kadi Sasa.',
+                'Weka namba au akaunti ya wenye sherehe ya kupokelea malipo (M-Pesa, Lipa Namba, Mixx by Yas, Airtel Money, HaloPesa au benki).',
+                'Rekodi ahadi ya kila mgeni (kiasi na maelezo) kwenye wasifu wake.',
+                'Mgeni anapofungua kadi yake ya michango anaona ahadi yake, salio na namba sahihi za kamati za kulipia.',
+                'Mgeni analipa moja kwa moja kwa wenye sherehe; mweka hazina anarekodi malipo na salio linashuka mara moja (taslimu na benki zinarekodiwa vilevile).',
+                'Tuma vikumbusho vya SMS kwa heshima kwa waliobaki na salio na pakua ripoti ya CSV kabla ya kikao.',
               ],
+            },
+            {
+              t: 'p',
+              text: 'Kadi za michango hutumwa kama kadi ya ahadi na malipo peke yake, bila kuweka shinikizo kwenye kadi ya mwaliko wa sherehe. Kwa chaguo-msingi, kila mgeni anapata kadi ya mwaliko bila kuhitajika kuchangia kwanza.',
             },
           ],
         },
         {
           id: 'kamati',
-          h2: 'Kwa kamati: uwazi na ripoti',
+          h2: 'Mweka hazina na kamati wanaona nini kwenye ripoti?',
           blocks: [
             {
               t: 'ul',
               items: [
-                'Lengo la michango dhidi ya kilichokusanywa, na kilichoahidiwa dhidi ya kilicholipwa.',
-                'Salio la kila mgeni, na orodha ya wasiolipa bado.',
-                'Kila mabadiliko ya malipo yanarekodiwa kwenye kumbukumbu ya ukaguzi.',
-                'Ripoti ya CSV ya kufunga hesabu.',
-                'Walinda lango hawaoni taarifa za pesa; ni kamati na mwenyeji tu.',
+                'Jumla ya lengo la michango dhidi ya ahadi zilizorekodiwa na kiasi kilichokwishalipwa.',
+                'Salio la kila mgeni mmoja mmoja, na orodha ya waliomaliza au wenye salio.',
+                'Kumbukumbu ya ukaguzi (audit log) kwa kila badiliko la ahadi au malipo ili kuongeza uaminifu.',
+                'Ripoti ya CSV ya kusoma kwenye kikao cha kamati au kuhifadhi kwenye kumbukumbu za familia.',
+                'Usiri kamili: kumbukumbu zimesimbwa kwa usimbaji fiche na walinda lango wa mlangoni hawaoni taarifa za pesa.',
               ],
             },
           ],
         },
         {
           id: 'bila-shinikizo',
-          h2: 'Michango si sharti la kupata kadi',
+          h2: 'Je, Kadi Sasa inachukua asilimia au PIN ya malipo?',
           blocks: [
             {
               t: 'p',
-              text: 'Kwa chaguo-msingi, kila mgeni anapata kadi bila kuhitajika kuahidi chochote. Mwenyeji akitaka kuweka masharti, lazima ayawashe mwenyewe. Tunaamini mwaliko ni wa heshima kwanza.',
+              text: 'Hapana. Kadi Sasa haishiki pesa za michango wala haichukui asilimia yoyote (0% makato). Malipo yanafanyika moja kwa moja kati ya mgeni na wenye sherehe kwenye mitandao ya Tanzania (M-Pesa, Mixx by Yas, Airtel Money, HaloPesa) au taslimu. Hatuombi kamwe PIN wala nenosiri la simu.',
+            },
+            {
+              t: 'p',
+              text: 'Bei ya jukwaa iko wazi kwenye ukurasa wa bei (/bei): unaanza bure na kadi 5, kisha TZS 2,400 (1–99), TZS 2,200 (100–499), na TZS 1,950 (500+). Tazama pia ukurasa wa kadi ya harusi (/kadi-ya-harusi-mtandaoni) na mwongozo wa usalama (/usalama-wa-kadi-za-mtandaoni).',
+            },
+            {
+              t: 'note',
+              text: 'Jaribu daftari la michango na kadi zako 5 za kwanza bure leo — panga ahadi na ripoti ya mweka hazina bila daftari la karatasi.',
             },
           ],
         },
       ],
       faq: [
         {
-          q: 'Michango inalipwaje?',
-          a: 'Moja kwa moja kwa wenye sherehe, kwa M-Pesa, Mixx by Yas, Airtel Money au HaloPesa. Taslimu na benki zinarekodiwa na kamati pia. Kadi Sasa haishiki pesa za michango.',
+          q: 'Michango inalipwa kupitia mitandao ipi Tanzania?',
+          a: 'Wageni wanalipa moja kwa moja kwa wenye sherehe kupitia M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, benki au taslimu. Kamati inarekodi kila malipo dhidi ya ahadi.',
         },
         {
-          q: 'Pesa zinaenda wapi?',
-          a: 'Moja kwa moja kwa wenye sherehe, kwenye namba au akaunti walizoweka wenyewe. Kadi Sasa inahifadhi kumbukumbu tu, zimefungwa kwa usimbaji fiche, na ni kamati na mwenyeji tu wanaoziona.',
+          q: 'Je, Kadi Sasa inakata asilimia yoyote kwenye michango?',
+          a: 'Hapana. Kadi Sasa inachukua 0% ya michango na haishiki fedha za wageni. Kiasi chote kinaenda moja kwa moja kwa wenye sherehe.',
         },
         {
-          q: 'Je, Kadi Sasa inahifadhi PIN za malipo?',
-          a: 'Hapana. Malipo yanafanyika kati ya mgeni na wenye sherehe, na hatuombi PIN wala nenosiri.',
+          q: 'Nani anaweza kuona kiasi ambacho mgeni ameahidi au kulipa?',
+          a: 'Mwenyeji na wanakamati walioidhinishwa tu. Walinzi wa langoni na wageni wengine hawaoni ahadi za watu wengine.',
         },
         {
-          q: 'Je, inaweza kutumika kwa mchango wa send-off au uchumba?',
-          a: 'Ndiyo. Michango inaweza kuwashwa kwa tukio lolote.',
+          q: 'Mgeni anaweza kupata kikumbusho cha ahadi yake kwa SMS?',
+          a: 'Ndiyo. Kamati inaweza kutuma vikumbusho vya SMS vyenye kiasi cha salio lake kwa heshima kabla ya siku ya kufunga hesabu.',
+        },
+        {
+          q: 'Michango inaweza kutumika kwa send-off, kitchen party au harambee ya kanisa?',
+          a: 'Ndiyo. Kipengele cha michango kinaweza kuwashwa au kuzimwa kwenye tukio lolote unalounda.',
         },
       ],
     },
@@ -310,80 +331,101 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       nav: 'Wedding contributions',
       title: 'Wedding Contributions (Michango): Track Pledges | Kadi Sasa',
       description:
-        'Record pledges and payments for each wedding guest. Guests pay the hosts directly by M-Pesa, Mixx by Yas, Airtel Money or HaloPesa.',
-      h1: 'Wedding contributions (michango): pledges and payments in one place',
+        'How to track wedding pledges and payments in Tanzania. Guests pay hosts directly via M-Pesa, Mixx by Yas, Airtel Money or HaloPesa with 0% commission.',
+      h1: 'Wedding contributions (michango): how to track pledges and payments',
       answer:
-        'Kadi Sasa gives the committee a secure contributions ledger. The committee records each guest’s pledge, the guest pays the hosts directly by phone or cash, and the treasurer sees pledged, paid and balance per person. Kadi Sasa never holds contribution money.',
+        'To track wedding michango without disputes, record each guest’s pledge in a shared ledger, let guests pay hosts directly via M-Pesa, Mixx by Yas, Airtel Money or HaloPesa with 0% cut, and send polite SMS balance reminders. The treasurer gets a meeting-ready report in seconds. Start free with 5 cards.',
       sections: [
         {
-          id: 'problem',
-          h2: 'The problem with contributions in WhatsApp groups',
+          id: 'tatizo',
+          h2: 'Why do notebooks and WhatsApp groups cause trouble for michango?',
           blocks: [
             {
               t: 'p',
-              text: 'Many committees track michango in a notebook or a WhatsApp group. Pledges get lost in long chats, nobody knows each person’s balance, and some guests are never reminded. The result is arguments and accounts that do not match at closing.',
+              text: 'Many committees track pledges in paper notebooks or search through long WhatsApp threads. Pledges get missed, the treasurer struggles to pull an exact balance per guest before meetings, and contributors rarely receive timely, polite reminders.',
+            },
+            {
+              t: 'p',
+              text: 'Collecting funds on a personal phone without a shared audit trail also creates avoidable tension. Kadi Sasa gives every guest a clear pledge, paid amount and remaining balance while money goes straight to the hosts.',
             },
           ],
         },
         {
-          id: 'how',
-          h2: 'How contributions work in Kadi Sasa',
+          id: 'inavyofanya',
+          h2: 'How do you track pledges and payments step by step?',
           blocks: [
             {
               t: 'ol',
               items: [
-                'The committee records a guest’s pledge (amount and note) on their profile.',
-                'The guest receives a contribution card showing the pledge, the balance and the committee’s own payment numbers (M-Pesa, Lipa Namba or bank).',
-                'They pay the hosts directly. The money never passes through us, and we never ask for a PIN.',
-                'The treasurer records the payment and the balance drops. Cash and bank payments are recorded the same way.',
-                'A guest who owes receives a polite reminder, only a few times.',
+                'Set your contribution target in your Kadi Sasa event settings.',
+                'Add the hosts’ own receiving numbers or accounts (M-Pesa, Lipa Namba, Mixx by Yas, Airtel Money, HaloPesa or bank).',
+                'Record each guest’s pledge amount and optional note on their profile.',
+                'When the guest opens their contribution card, they see their pledge, balance and the committee’s verified payment numbers.',
+                'The guest pays the hosts directly; the treasurer logs each payment (including cash or bank) and the balance updates at once.',
+                'Send polite SMS pledge reminders to remaining balances and export a CSV report for committee meetings.',
               ],
+            },
+            {
+              t: 'p',
+              text: 'Contribution cards stay separate from invitation cards so no guest feels pressured to contribute simply to receive an invite.',
             },
           ],
         },
         {
-          id: 'committee',
-          h2: 'For the committee: transparency and reports',
+          id: 'kamati',
+          h2: 'What do the treasurer and committee see in reports?',
           blocks: [
             {
               t: 'ul',
               items: [
-                'Contribution target against collected, and pledged against paid.',
-                'Each guest’s balance, and a list of those still to pay.',
-                'Every payment change is written to an audit log.',
-                'A CSV report for closing the accounts.',
-                'Gate agents cannot see money details; only the committee and host can.',
+                'Event target versus total pledged and total collected.',
+                'Individual balances per guest, filtered by paid, partial or unpaid.',
+                'An audit log recording every pledge or payment update for accountability.',
+                'A downloadable CSV report ready to read out at committee meetings.',
+                'Full privacy: contribution amounts are encrypted and gate ushers never see financial figures.',
               ],
             },
           ],
         },
         {
-          id: 'no-pressure',
-          h2: 'Contributions are not a condition for receiving a card',
+          id: 'bila-shinikizo',
+          h2: 'Does Kadi Sasa take a commission or ask for payment PINs?',
           blocks: [
             {
               t: 'p',
-              text: 'By default every guest gets a card without having to pledge anything. A host who wants conditions must switch them on deliberately. We believe an invitation should be courteous first.',
+              text: 'No. Kadi Sasa never holds contribution funds and takes 0% commission. Guests pay hosts directly via M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, bank or cash, and we never ask for a PIN or password.',
+            },
+            {
+              t: 'p',
+              text: 'Platform pricing is listed openly on /bei: start free with 5 cards, then TZS 2,400 (1–99), TZS 2,200 (100–499) and TZS 1,950 (500+). See our online wedding card service (/online-wedding-invitation) and safety guide (/security-of-online-invitations).',
+            },
+            {
+              t: 'note',
+              text: 'Try the michango ledger with your first 5 free cards today and replace messy notebooks before your next committee meeting.',
             },
           ],
         },
       ],
       faq: [
         {
-          q: 'How are contributions paid?',
-          a: 'Directly to the hosts, by M-Pesa, Mixx by Yas, Airtel Money or HaloPesa. Cash and bank payments are recorded by the committee too. Kadi Sasa never holds contribution money.',
+          q: 'Which payment methods can guests use in Tanzania?',
+          a: 'Guests pay hosts directly via M-Pesa, Mixx by Yas, Airtel Money, HaloPesa, bank transfer or cash, and the committee logs each payment against the pledge.',
         },
         {
-          q: 'Where does the money go?',
-          a: 'Straight to the hosts, to the numbers or accounts they set themselves. Kadi Sasa keeps only the records, encrypted, and only the committee and hosts can see them.',
+          q: 'Does Kadi Sasa take any percentage of michango?',
+          a: 'No. Kadi Sasa takes 0% commission and never holds contribution money. Every shilling goes straight to the hosts.',
         },
         {
-          q: 'Does Kadi Sasa store payment PINs?',
-          a: 'No. Payments happen between the guest and the hosts, and we never ask for a PIN or password.',
+          q: 'Who can see how much each guest pledged or paid?',
+          a: 'Only the host and authorised committee members. Gate ushers and other guests cannot see anyone else’s pledges.',
         },
         {
-          q: 'Can I use it for a send-off or engagement?',
-          a: 'Yes. Contributions can be switched on for any event.',
+          q: 'Can guests receive polite SMS pledge reminders?',
+          a: 'Yes. The committee can send SMS reminders showing the remaining balance before the closing date.',
+        },
+        {
+          q: 'Can michango tracking be used for send-offs, kitchen parties or church drives?',
+          a: 'Yes. Contributions can be switched on or off for any event you create.',
         },
       ],
     },
@@ -399,6 +441,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       'maneno-ya-kadi-ya-harusi',
       'michango-ya-harusi',
       'kadi-ya-harusi-mtandaoni',
+      'usalama-wa-kadi-za-mtandaoni',
     ],
     sw: {
       nav: 'Kadi ya send-off',
@@ -556,6 +599,7 @@ export const PRODUCT_PAGES: ContentPageDef[] = [
       'maneno-ya-kadi-ya-harusi',
       'kadi-ya-harusi-mtandaoni',
       'michango-ya-harusi',
+      'usalama-wa-kadi-za-mtandaoni',
     ],
     sw: {
       nav: 'Kadi ya uchumba',

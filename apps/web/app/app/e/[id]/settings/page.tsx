@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Archive, ShieldAlert, Trash2 } from 'lucide-react';
 import type { WeddingEvent } from '@harusi/api-client';
-import { allowsDonations, eventKindSuggestions, isInvitationFirstOccasion } from '@harusi/schemas';
+import { allowsDonations, eventKindSuggestions, isInvitationFirstOccasion, occasionOf } from '@harusi/schemas';
 import type { Locale } from '@harusi/i18n';
 import { KindChips } from '@/components/console/kind-chips';
 import { MessageTemplatesEditor } from '@/components/console/message-templates-editor';
@@ -39,6 +39,7 @@ interface FormState {
   committeePhone: string;
   languageDefault: 'sw' | 'en';
   pledgesEnabled: boolean;
+  showReferralFooter: boolean;
   whatsappFallbackHours: number;
   contributionTarget: number;
   payTo: { label: string; account: string; name: string }[];
@@ -60,6 +61,7 @@ function toForm(e: WeddingEvent): FormState {
     committeePhone: formatPhone(e.committeePhone).slice(1),
     languageDefault: e.languageDefault,
     pledgesEnabled: e.pledgesEnabled,
+    showReferralFooter: e.showReferralFooter ?? occasionOf(e.eventKind) !== 'corporate',
     whatsappFallbackHours: e.whatsappFallbackHours,
     contributionTarget: e.contributionTarget,
     payTo: (e.cardContent?.contribution?.payTo ?? []).map((a) => ({
@@ -160,6 +162,7 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
       committeePhone: phone.e164,
       languageDefault: form.languageDefault,
       pledgesEnabled: form.pledgesEnabled,
+      showReferralFooter: form.showReferralFooter,
       whatsappFallbackHours: form.whatsappFallbackHours,
       contributionTarget: form.contributionTarget,
       cardContent: {
@@ -319,6 +322,14 @@ function CardsSettingsPage({ params }: { params: Promise<{ id: string }> }) {
                     />
                   </div>
                 ) : null}
+                <div className="mt-4 rounded-card border border-border p-3.5 bg-surface/50">
+                  <Switch
+                    checked={form.showReferralFooter}
+                    onCheckedChange={(v) => set('showReferralFooter', v)}
+                    label={t('referralFooter')}
+                    description={t('referralFooterDesc')}
+                  />
+                </div>
               </Card>
               {canDonate ? (
                 <Card title={t('payToTitle')} titleId="payto-h">

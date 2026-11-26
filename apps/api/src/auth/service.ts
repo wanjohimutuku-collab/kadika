@@ -3,8 +3,10 @@ import { eventInvites, eventMembers, newId, refreshTokens, users } from '@harusi
 import { hashGuestToken } from '@harusi/crypto';
 import { SIGN_IN_COUNTRIES, type Country } from '@harusi/schemas/country';
 import { normalizeAnyPhone, normalizePhone } from '@harusi/schemas/phone';
+import type { SignupAttribution } from '@harusi/api-client';
 import type { Deps } from '../context';
 import { ApiError } from '../errors';
+import { ensureUserReferralCode, ReferralService } from '../services/referrals';
 import { signInOf, smsSignInCountry } from '../services/signin-settings';
 import { verifyFirebaseIdToken } from './firebase';
 import { OtpService } from './otp';
@@ -23,6 +25,8 @@ export interface AuthResult {
   accessToken: string;
   refreshToken: string;
   user: AuthUser;
+  isNewUser?: boolean;
+  referred?: boolean;
 }
 
 /**
@@ -32,6 +36,8 @@ export interface AuthResult {
 export interface StaffChallengeResult {
   secondFactor: { challenge: string; enrolled: boolean; expiresAt: string };
   user: AuthUser;
+  isNewUser?: boolean;
+  referred?: boolean;
 }
 
 /**
@@ -87,36 +93,52 @@ export class AuthService {
     phoneInput: string,
     code: string,
     client?: string,
+    attribution?: SignupAttribution,
   ): Promise<AuthResult | StaffChallengeResult> {
     const phone = parsePhone(phoneInput, 'TZ', SIGN_IN_COUNTRIES);
     this.otp.verify(phone, code, client);
-    return this.signIn(phone);
+    return this.signIn(phone, attribution);
   }
 
   /** Firebase Phone Auth (ADR 048): the verified number from the ID token signs in like an SMS code. */
   async verifyFirebase(
     idToken: string,
     anyCountry?: boolean,
+    attribution?: SignupAttribution,
   ): Promise<AuthResult | StaffChallengeResult> {
     const { phoneE164 } = await verifyFirebaseIdToken(this.deps, idToken);
     const phone = parsePhone(phoneE164, 'TZ', SIGN_IN_COUNTRIES, anyCountry);
-    return this.signIn(phone);
+    return this.signIn(phone, attribution);
   }
 
   /** After the phone is proven: the account, invitations, then a session or the staff challenge. */
-  private async signIn(phone: string): Promise<AuthResult | StaffChallengeResult> {
+  private async signIn(
+    phone: string,
+    attribution?: SignupAttribution,
+  ): Promise<AuthResult | StaffChallengeResult> {
     const { db } = this.deps;
     const now = this.deps.now();
     let [user] = await db.select().from(users).where(eq(users.phoneE164, phone));
     if (user?.status === 'suspended')
       throw new ApiError('forbidden', 'Account suspended', { reason: 'suspended' });
+    let isNewUser = false;
+    let referred = false;
     if (!user) {
+      isNewUser = true;
       [user] = await db
         .insert(users)
         .values({ id: newId(), name: '', phoneE164: phone, lastLoginAt: now })
         .returning();
+      if (user) {
+        const res = await new ReferralService(this.deps).attachAttributionOnSignup(
+          user.id,
+          attribution,
+        );
+        referred = res.referred;
+      }
     } else {
       await db.update(users).set({ lastLoginAt: now }).where(eq(users.id, user.id));
+      await ensureUserReferralCode(db, user.id);
     }
     if (!user) throw new ApiError('internal');
     await this.acceptInvites(user.id, phone);
@@ -130,9 +152,12 @@ export class AuthService {
           expiresAt: c.expiresAt.toISOString(),
         },
         user: { id: user.id, name: user.name, phoneE164: phone, roleGlobal: user.roleGlobal },
+        isNewUser,
+        referred,
       };
     }
-    return this.issue(user.id, user.name, phone, user.roleGlobal);
+    const issued = await this.issue(user.id, user.name, phone, user.roleGlobal);
+    return { ...issued, isNewUser, referred };
   }
 
   /** Authenticator setup for staff who have none yet; needs the challenge from `verifyOtp`. */

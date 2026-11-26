@@ -10,6 +10,7 @@ import { figtree, fraunces } from '@/lib/fonts';
 import { localeUrl } from '@/lib/seo';
 import { editionTargets, type SiteEdition } from '@/lib/site-nav';
 import { SiteNav } from '@/components/public/site-nav';
+import { AttributionCapture } from '@/components/public/attribution-capture';
 import { LocaleSwitch } from '@/components/site/locale-switch';
 import { FOOTER_LINE, SiteFooter, type FooterColumn } from '@/components/site/site-footer';
 import { getPage, pagePath, pagesIn, pagesOf, textOf } from '@/content';
@@ -161,6 +162,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
             <LocaleSwitch current={edition} targets={targets} label={ui.switchLabel} pill />
           }
         />
+        <AttributionCapture />
         <div id="main">{children}</div>
         <SiteFooter
           market={market}

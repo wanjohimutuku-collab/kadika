@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import type { Locale } from '@harusi/i18n';
+import { sortedTiers, type PricingCatalog } from '@harusi/schemas/billing';
 import { DEFAULT_BRANDING } from '@harusi/schemas/branding';
+import type { Currency } from '@harusi/schemas/country';
 import { APP_DOMAIN } from './env';
 import { swPath } from './site-locale';
 
@@ -169,7 +171,7 @@ export function hreflangMap(
   const tz = all.find((p) => marketOfPath(p) === 'tz');
   const ke = all.find((p) => marketOfPath(p) === 'ke');
   const ug = all.find((p) => marketOfPath(p) === 'ug');
-  const tzSw = tz ? (swOverride && marketOfPath(path) === 'tz' ? swOverride : tz) : undefined;
+  const tzSw = tz ? (swOverride ?? tz) : undefined;
   const map: Record<string, string> = {};
   if (tz) {
     map['en-TZ'] = abs(tz, 'en');
@@ -179,4 +181,47 @@ export function hreflangMap(
   if (ug) map['en-UG'] = abs(ug, 'en');
   map['x-default'] = tz ? abs(tz, 'en') : abs((ke ?? ug)!, 'en');
   return map;
+}
+
+/**
+ * Schema.org `AggregateOffer` built directly from the live `PricingCatalog` (free starter cards
+ * plus the 1–99, 100–499, and 500+ tiers) so structured data cannot drift from visible `/bei` prices.
+ */
+export function pricingOffersNode(catalog: PricingCatalog, currency: Currency, locale: Locale) {
+  const tiers = sortedTiers(catalog.cardTiers);
+  const prices = tiers.map((t) => t.price[currency]);
+  const freeOffer = {
+    '@type': 'Offer',
+    name: locale === 'sw' ? `Kadi ${catalog.free.cards} za kwanza bure` : `${catalog.free.cards} free starter cards`,
+    price: 0,
+    priceCurrency: currency,
+    eligibleQuantity: {
+      '@type': 'QuantitativeValue',
+      minValue: 1,
+      maxValue: catalog.free.cards,
+      unitText: 'card',
+    },
+  };
+  const tierOffers = tiers.map((x, i) => {
+    const next = tiers[i + 1]?.minCards;
+    return {
+      '@type': 'Offer',
+      priceCurrency: currency,
+      price: x.price[currency],
+      eligibleQuantity: {
+        '@type': 'QuantitativeValue',
+        minValue: x.minCards,
+        ...(next ? { maxValue: next - 1 } : {}),
+        unitText: 'card',
+      },
+    };
+  });
+  return {
+    '@type': 'AggregateOffer',
+    priceCurrency: currency,
+    lowPrice: prices.length ? 0 : 0,
+    highPrice: prices.length ? Math.max(...prices) : 0,
+    offerCount: tierOffers.length + 1,
+    offers: [freeOffer, ...tierOffers],
+  };
 }

@@ -1351,9 +1351,11 @@
       "insert": "Tap to insert",
       "preview": "Preview",
       "reset": "Use the default",
-      "linkRequired": "Include '{link}' so guests can open the card.",
+      "linkRequired": "Include {link} so guests can open the card.",
       "unknownVar": "Unknown value \"{name}\"."
-    }
+    },
+    "referralFooter": "Show 'Made with Kadi Sasa' link on guest cards",
+    "referralFooterDesc": "On by default for weddings and social events, and off for corporate events unless opted in."
   },
   "account": {
     "title": "Account",

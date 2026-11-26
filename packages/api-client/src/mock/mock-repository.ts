@@ -34,7 +34,7 @@ import {
   type PurchaseStatus,
   type PurchaseView,
 } from '@harusi/schemas/billing';
-import { defaultSender, type CardKind } from '@harusi/schemas';
+import { defaultSender, occasionOf, type CardKind } from '@harusi/schemas';
 import { maskPhone } from '@harusi/schemas/phone';
 import {
   SMS_MAX_PENDING,
@@ -76,6 +76,7 @@ import type {
   EventStats,
   GateLink,
   GateOverview,
+  GrowthReport,
   Guest,
   GuestQuery,
   ImportOptions,
@@ -93,6 +94,7 @@ import type {
   SendPreview,
   SendRequest,
   Session,
+  SignupAttribution,
   AuthConfig,
   WeddingEvent,
   User,
@@ -552,7 +554,7 @@ export class MockRepository implements Repository {
     });
   }
 
-  verifyOtp(phoneE164: string, code: string): Promise<Session> {
+  verifyOtp(phoneE164: string, code: string, _attribution?: SignupAttribution): Promise<Session> {
     return this.run('online-only', 'otp', () => {
       const rec = (this.state.otp[phoneE164] ??= {
         attempts: 0,
@@ -631,7 +633,7 @@ export class MockRepository implements Repository {
     );
   }
 
-  signInWithFirebase(_idToken: string): Promise<Session> {
+  signInWithFirebase(_idToken: string, _attribution?: SignupAttribution): Promise<Session> {
     return Promise.reject(
       new RepositoryError('not_implemented', 'Firebase sign-in is not available in the mock'),
     );
@@ -773,7 +775,8 @@ export class MockRepository implements Repository {
           [v.partnerA, v.partnerB].filter(Boolean).join(' & '),
         ),
         committeePhone: u.phoneE164,
-        pledgesEnabled: true,
+        pledgesEnabled: v.pledgesEnabled ?? true,
+        showReferralFooter: v.showReferralFooter ?? null,
         requirePledgeBeforeCard: false,
         greeting: '',
         extraNote: '',
@@ -2041,6 +2044,9 @@ export class MockRepository implements Repository {
         committeePhone: e.committeePhone,
         pledgesEnabled: e.pledgesEnabled,
         onlinePay: this.controls.get().guestPayments,
+        showReferralFooter:
+          e.showReferralFooter ?? (occasionOf(e.eventKind) !== 'corporate'),
+        referralCode: 'KSMOCK01',
         greeting: e.greeting,
         extraNote: e.extraNote,
         cardContent: e.cardContent,
@@ -3325,6 +3331,42 @@ export class MockRepository implements Repository {
           unsyncedOffline: 0,
           medianSecondsBetweenAdmissions: null,
         },
+      };
+    });
+  }
+
+  opsGrowthReport(
+    opts: { country?: Country | 'UG' | 'all'; weeks?: number } = {},
+  ): Promise<GrowthReport> {
+    return this.run('read', 'ops', () => {
+      this.requireStaff();
+      const weeks = Math.min(Math.max(Math.round(opts.weeks ?? 12), 1), 52);
+      const weekStart = new Date(this.now()).toISOString().slice(0, 10);
+      const evs = this.state.events.filter(
+        (e) => !e.deletedAt && (!opts.country || opts.country === 'all' || e.country === opts.country),
+      );
+      return {
+        windowWeeks: weeks,
+        generatedAt: new Date(this.now()).toISOString(),
+        weekly: evs.length
+          ? [
+              {
+                weekStart,
+                country: evs[0]!.country,
+                signups: this.state.users.length,
+                eventsCreated: evs.length,
+                eventsReachedPayment: evs.filter((e) => e.plan === 'paid').length,
+              },
+            ]
+          : [],
+        signupsBySource: [
+          {
+            weekStart,
+            country: 'TZ',
+            source: 'direct',
+            signups: this.state.users.length,
+          },
+        ],
       };
     });
   }

@@ -23,7 +23,7 @@ import { Container } from '@/components/site/blocks';
 import { cn } from '@/lib/cn';
 
 /**
- * Quickwork.co-inspired sections & animations adapted for Kadika / Harusi Pass:
+ * Quickwork.co-inspired sections & animations adapted for Kadi Sasa:
  * 1. QuickworkStandout (`standout-section`)
  * 2. QuickworkFourPlanes (`four-planes-section`: Create · Deliver · Collect · Verify with CSS Orbit Hub)
  * 3. QuickworkSyncFlow (`ai-agent-orchestration-section`: 6-stage connected pipeline)
@@ -80,10 +80,10 @@ export function QuickworkStandout({ locale }: { locale: 'sw' | 'en' }) {
       <Container className="flex flex-col gap-10">
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-3 text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#e3e8ee] bg-white px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5469d4]">
-            {isSw ? 'Kwa nini Kadika' : 'Why Kadika'}
+            {isSw ? 'Kwa nini Kadi Sasa' : 'Why Kadi Sasa'}
           </span>
           <h2 className="text-[30px] font-bold leading-[1.12] tracking-[-0.025em] text-[#0a2640] md:text-[42px]">
-            {isSw ? 'Mahali Kadika Inapojitofautisha' : 'Where Kadika Stands Out'}
+            {isSw ? 'Mahali Kadi Sasa Inapojitofautisha' : 'Where Kadi Sasa Stands Out'}
           </h2>
         </div>
 
@@ -110,9 +110,27 @@ export function QuickworkStandout({ locale }: { locale: 'sw' | 'en' }) {
 
 type PlaneId = 'create' | 'deliver' | 'collect' | 'verify';
 
-export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
+export function QuickworkFourPlanes({
+  locale,
+  market = 'tz',
+}: {
+  locale: 'sw' | 'en';
+  market?: 'tz' | 'ke' | 'ug';
+}) {
   const isSw = locale === 'sw';
   const [activePlane, setActivePlane] = useState<PlaneId>('verify');
+  const pledgeWord = market === 'ke' ? 'harambee' : market === 'ug' ? 'pledge' : 'michango';
+  const pledgeTitle = market === 'ke' ? 'Harambee' : market === 'ug' ? 'Pledges' : 'Michango';
+  const sampleCouple =
+    market === 'ke' ? 'Wanjiru & Otieno' : market === 'ug' ? 'Namukasa & Kato' : 'Asha & Juma';
+  const sampleGuest =
+    market === 'ke'
+      ? 'Mr & Mrs Kamau · 2 Seats'
+      : market === 'ug'
+        ? 'Ssenga Grace · 2 Seats'
+        : isSw
+          ? 'Mgeni: Mwanaidi Salim · Viti 2'
+          : 'Guest: Mwanaidi Salim · 2 Seats';
 
   const planes: {
     id: PlaneId;
@@ -171,7 +189,7 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
           label: '3. Collect',
           planeTitle: 'The Collect Plane',
           heading: 'Real-Time RSVP & Pledge Visibility',
-          body: 'Monitor confirmations, party sizes, and direct-to-host michango pledges with live status updates.',
+          body: `Monitor confirmations, party sizes, and direct-to-host ${pledgeWord} pledges with live status updates.`,
         },
         {
           id: 'verify',
@@ -336,7 +354,7 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-[#f6f9fc] px-4 py-3">
                   <span className="text-sm font-medium text-[#494d59]">
-                    {isSw ? 'Michango Iliyokusanywa' : 'Pledges Fulfilled'}
+                    {isSw ? 'Michango Iliyokusanywa' : `${pledgeTitle} Fulfilled`}
                   </span>
                   <span className="text-lg font-bold text-[#5469d4]">82%</span>
                 </div>
@@ -351,10 +369,8 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
                   <p className="text-[11px] uppercase tracking-widest text-white/70">
                     {isSw ? 'Mwaliko Rasmi' : 'Official Invitation'}
                   </p>
-                  <p className="mt-1 text-xl font-bold">Asha &amp; Juma</p>
-                  <p className="mt-2 text-xs text-white/80">
-                    {isSw ? 'Mgeni: Mwanaidi Salim · Viti 2' : 'Guest: Mwanaidi Salim · 2 Seats'}
-                  </p>
+                  <p className="mt-1 text-xl font-bold">{sampleCouple}</p>
+                  <p className="mt-2 text-xs text-white/80">{sampleGuest}</p>
                 </div>
               </div>
             )}
@@ -365,8 +381,15 @@ export function QuickworkFourPlanes({ locale }: { locale: 'sw' | 'en' }) {
   );
 }
 
-export function QuickworkSyncFlow({ locale }: { locale: 'sw' | 'en' }) {
+export function QuickworkSyncFlow({
+  locale,
+  market = 'tz',
+}: {
+  locale: 'sw' | 'en';
+  market?: 'tz' | 'ke' | 'ug';
+}) {
   const isSw = locale === 'sw';
+  const pledgeLabel = market === 'ke' ? 'Harambee' : market === 'ug' ? 'Pledges' : 'Michango';
   const nodes = isSw
     ? [
         { label: 'Kadi', sub: 'Mandhari & QR' },
@@ -380,7 +403,7 @@ export function QuickworkSyncFlow({ locale }: { locale: 'sw' | 'en' }) {
         { label: 'Card', sub: 'Theme & QR' },
         { label: 'Dispatch', sub: 'WhatsApp & SMS' },
         { label: 'RSVP', sub: 'Confirm & Seats' },
-        { label: 'Michango', sub: 'Pledge Ledger' },
+        { label: pledgeLabel, sub: 'Pledge Ledger' },
         { label: 'Pass', sub: 'Short Code & PDF' },
         { label: 'Gate', sub: 'Offline Scan' },
       ];

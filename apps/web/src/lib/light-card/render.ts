@@ -167,6 +167,8 @@ footer nav a{min-height:44px;display:inline-flex;align-items:center}
 .bar{height:10px;border-radius:999px;background:var(--border);overflow:hidden}
 .bar span{display:block;height:100%;background:var(--hp-primary)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ref-line{font-size:13px;line-height:1.4;color:var(--muted);text-align:center;max-width:100%;overflow-wrap:anywhere}
+.ref-link{text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:4px 0}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media print{.no-print{display:none!important}.card{border:0;margin:0}}
 `;
@@ -300,7 +302,7 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
       : occasion === 'sendoff'
         ? t.occSendoffBody
         : // Events made before kinds existed (no kind) keep their cards as they were.
-          occasion === 'wedding' && event.eventKind?.trim()
+        occasion === 'wedding' && event.eventKind?.trim()
           ? t.occWeddingBody
           : undefined;
   const occContrib =
@@ -342,6 +344,20 @@ export function renderCard(view: CardView, o: LightCardOptions): string {
   const rsvpOpen = view.rsvpOpen && !view.eventPassed;
   const partyMax = Math.max(1, guest.partySizeAllowed);
   const partyShown = Math.max(1, view.rsvp.partySize || partyMax);
+  const refCampaign =
+    (event.eventKind ?? 'event')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'event';
+  const refHref =
+    event.showReferralFooter && event.referralCode
+      ? `/login?utm_source=guest_card&utm_medium=referral&utm_campaign=${encodeURIComponent(refCampaign)}&ref=${encodeURIComponent(event.referralCode)}`
+      : null;
+  const refCopy =
+    locale === 'sw'
+      ? 'Imetengenezwa na Kadi Sasa. Tengeneza kadi yako'
+      : 'Made with Kadi Sasa. Create your card';
 
   const qr = view.qrPayload && !isContribution ? qrMatrix(view.qrPayload) : null;
   const qrDim = qr ? qr.size + QR_QUIET_ZONE * 2 : 0;
@@ -389,6 +405,7 @@ ${calendarButton}<button type="button" class="btn" id="hp-install">${esc(t.addHo
 <div id="hp-rsvp-summary" class="summary mt" data-testid="rsvp-summary"${answered ? '' : ' hidden'}>
 <span><span id="hp-rsvp-icon" aria-hidden="true">${view.rsvp.status === 'declined' ? '✖' : '✔'}</span> <span id="hp-rsvp-text">${esc(view.rsvp.status === 'confirmed' ? fmt(t.confirmedCompact!, { people: people(view.rsvp.partySize ?? 1) }) : t.declinedCompact)}</span></span>
 <button type="button" class="btn ghost" id="hp-change"${rsvpOpen ? '' : ' hidden'}>${esc(t.changeAnswer)}</button></div>
+${refHref ? `<p id="hp-rsvp-referral" class="ref-line mt" data-testid="rsvp-referral"${answered ? '' : ' hidden'}><a class="ref-link" href="${esc(refHref)}" data-ref-link="rsvp">${esc(refCopy)}</a></p>` : ''}
 ${!rsvpOpen && !answered ? `<div class="banner warning mt">${esc(t.rsvpClosed)}</div>` : ''}
 <div id="hp-rsvp-form" class="stack mt"${answered || !rsvpOpen ? ' hidden' : ''}>
 ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvpDeadline!, { date: formatDateShort(event.rsvpDeadline, locale) }))}</p>` : ''}
@@ -408,16 +425,15 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
   // Guests pay the hosts directly (ADR 043): the card lists where to send it, unless paying through
   // us was switched back on.
   const payTo = (con.payTo ?? []).filter((a) => a.account.trim());
-  const payDirect = `<div class="panel mt" data-testid="pay-to"><p><b>${esc(t.payToTitle)}</b></p>${
-    payTo.length
-      ? `<ul class="stack" style="list-style:none;padding:0;margin:8px 0 0">${payTo
-          .map(
-            (a) =>
-              `<li><b>${esc(a.label)}</b>: <span style="font-variant-numeric:tabular-nums">${esc(a.account)}</span>${a.name ? ` <span class="muted">(${esc(a.name)})</span>` : ''}</li>`,
-          )
-          .join('')}</ul>`
-      : `<p class="muted mt">${esc(t.payToNone)}</p>`
-  }<p class="muted mt" style="font-size:14px">${esc(t.payToDirect)}</p></div>`;
+  const payDirect = `<div class="panel mt" data-testid="pay-to"><p><b>${esc(t.payToTitle)}</b></p>${payTo.length
+    ? `<ul class="stack" style="list-style:none;padding:0;margin:8px 0 0">${payTo
+      .map(
+        (a) =>
+          `<li><b>${esc(a.label)}</b>: <span style="font-variant-numeric:tabular-nums">${esc(a.account)}</span>${a.name ? ` <span class="muted">(${esc(a.name)})</span>` : ''}</li>`,
+      )
+      .join('')}</ul>`
+    : `<p class="muted mt">${esc(t.payToNone)}</p>`
+    }<p class="muted mt" style="font-size:14px">${esc(t.payToDirect)}</p></div>`;
   const payButton = paidInFull
     ? `<p class="mt"><b>✔ ${esc(t.pledgePaidInFull)}</b></p>`
     : event.onlinePay
@@ -431,19 +447,16 @@ ${event.rsvpDeadline ? `<p class="muted" style="font-size:14px">${esc(fmt(t.rsvp
   const collected = view.contributionCollected ?? null;
   const suggested = (con.suggestedAmounts ?? []).filter((n) => n > 0);
   const contributionSection = isContribution
-    ? `<section class="no-print" data-testid="contribution-section"><h2>${esc(L(con.title) ? say(L(con.title)!) : t.pledgeTitle)}</h2>${
-        event.pledgesEnabled
-          ? `${shown(con.show, 'target') && target > 0 ? `<p class="mt" data-testid="contribution-target"><b>${esc(fmt(t.contribTarget!, { target: formatMoney(target, cur) }))}</b></p>` : ''}${
-              shown(con.show, 'progress', false) && target > 0 && collected !== null
-                ? `<div class="bar mt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((collected / target) * 100))}" aria-label="${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}"><span style="width:${Math.min(100, Math.round((collected / target) * 100))}%"></span></div><p class="muted" style="font-size:14px">${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}</p>`
-                : ''
-            }${con.deadline ? `<p class="muted mt" style="font-size:14px">${esc(fmt(t.contribDeadline!, { date: formatDateShort(`${con.deadline}T12:00:00Z`, locale) }))}</p>` : ''}${pledgeSummary.replace('<p ', '<p class="mt" ')}${
-              suggested.length && !paidInFull
-                ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => (event.onlinePay ? `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>` : `<span class="btn" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</span>`)).join('')}</div>`
-                : ''
-            }${payButton}${L(con.payNote) ? paras(L(con.payNote)!, ' class="muted mt"') : ''}`
-          : `<div class="banner warning mt">${esc(t.contribClosed)}</div>`
-      }</section>`
+    ? `<section class="no-print" data-testid="contribution-section"><h2>${esc(L(con.title) ? say(L(con.title)!) : t.pledgeTitle)}</h2>${event.pledgesEnabled
+      ? `${shown(con.show, 'target') && target > 0 ? `<p class="mt" data-testid="contribution-target"><b>${esc(fmt(t.contribTarget!, { target: formatMoney(target, cur) }))}</b></p>` : ''}${shown(con.show, 'progress', false) && target > 0 && collected !== null
+        ? `<div class="bar mt" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.round((collected / target) * 100))}" aria-label="${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}"><span style="width:${Math.min(100, Math.round((collected / target) * 100))}%"></span></div><p class="muted" style="font-size:14px">${esc(fmt(t.contribProgress!, { collected: formatMoney(collected, cur), target: formatMoney(target, cur) }))}</p>`
+        : ''
+      }${con.deadline ? `<p class="muted mt" style="font-size:14px">${esc(fmt(t.contribDeadline!, { date: formatDateShort(`${con.deadline}T12:00:00Z`, locale) }))}</p>` : ''}${pledgeSummary.replace('<p ', '<p class="mt" ')}${suggested.length && !paidInFull
+        ? `<p class="mt"><b>${esc(t.contribSuggested)}</b></p><div class="chips">${suggested.map((n) => (event.onlinePay ? `<a class="btn" href="${payHref}?amount=${n}" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</a>` : `<span class="btn" data-testid="suggested-amount">${esc(formatMoney(n, cur))}</span>`)).join('')}</div>`
+        : ''
+      }${payButton}${L(con.payNote) ? paras(L(con.payNote)!, ' class="muted mt"') : ''}`
+      : `<div class="banner warning mt">${esc(t.contribClosed)}</div>`
+    }</section>`
     : '';
 
   const hasPhone = !!phoneRaw;
@@ -498,9 +511,9 @@ ${L(inv.dressNote) ? paras(L(inv.dressNote)!, ' class="muted mt"') : ''}
 ${venueNote ? paras(venueNote, ' class="muted mt"') : ''}</section>`;
   const closing = isContribution
     ? [L(con.thanks), L(con.closing)]
-        .filter(Boolean)
-        .map((x) => paras(x!))
-        .join('')
+      .filter(Boolean)
+      .map((x) => paras(x!))
+      .join('')
     : L(inv.closing)
       ? paras(L(inv.closing)!)
       : '';
@@ -527,7 +540,7 @@ ${rsvpSection}
 ${confirmed ? '' : qrSection}
 ${contributionSection}
 ${closingSection}
-<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a><a href="/programu" data-testid="card-app-link">${esc(t.appLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p><button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
+<footer class="no-print">${langChip(locale)}<nav><a href="${privacyHref}">${esc(t.privacyLink)}</a><a href="/programu" data-testid="card-app-link">${esc(t.appLink)}</a>${hasPhone ? `<a href="tel:${esc(telHref)}">${esc(fromCommittee ? t.footerContact : t.footerContactGeneric)} · ${esc(phone)}</a>` : ''}</nav>${footerNote}${brandLogo(o.brand)}<p class="muted">${esc(o.domain)}</p>${refHref ? `<p class="ref-line" data-testid="card-referral-footer"><a class="ref-link" href="${esc(refHref)}" data-ref-link="footer">${esc(refCopy)}</a></p>` : ''}<button type="button" id="hp-optout" class="btn" data-testid="stop-reminders" style="margin-top:8px">${esc(t.stopReminders)}</button><p id="hp-optout-msg" class="muted" style="font-size:14px" role="status" hidden></p></footer>
 </main>`;
 
   // Strings and state the script needs (no ICU in the browser: plurals are pre-split here).
@@ -552,6 +565,9 @@ ${closingSection}
       guestName: guest.displayName,
       start: event.dateStart,
       couple: event.coupleNames,
+      eventKind: refHref ? refCampaign : '',
+      referralCode: refHref ? (event.referralCode ?? '') : '',
+      country: event.country ?? 'TZ',
       kind: eventKindLabel(event.eventKind, locale),
       kindOf: kindOfName,
       eyebrow,
@@ -572,17 +588,17 @@ ${closingSection}
 
   const title = isContribution
     ? fmt(t.contribMeta!, {
-        couple: event.coupleNames,
-        kind: kindLower,
-        kindOf: kindOfName.toLowerCase(),
-      })
+      couple: event.coupleNames,
+      kind: kindLower,
+      kindOf: kindOfName.toLowerCase(),
+    })
     : fmt(t.metaTitle!, { couple: event.coupleNames, kind: kindName, kindOf: kindOfName });
   const description = isContribution
     ? fmt(t.contribMetaDescription!, { sender })
     : fmt(t.metaDescription!, {
-        date: formatDate(event.dateStart, locale),
-        venue: event.venueName,
-      });
+      date: formatDate(event.dateStart, locale),
+      venue: event.venueName,
+    });
   // The link preview is the guest's real card in the organiser's chosen template (ADR 058), the
   // same PNG WhatsApp media sends, not a generic design.
   const ogImage = `${o.origin ?? `https://${o.domain}`}${cardImgPath}`;

@@ -1,4 +1,4 @@
-import { ALL_PAGES, marketOf, pagePath } from '@/content';
+import { ALL_PAGES, counterpartsOf, marketOf, pagePath } from '@/content';
 import type { ContentPageDef } from '@/content/types';
 import { APP_DOWNLOAD_PATH } from './app-download';
 import { PRICING_PATH } from './server-pricing';
@@ -18,7 +18,7 @@ export interface SitemapEntry {
   alternates: Record<string, string>;
 }
 
-const CORE_UPDATED = '2026-11-25';
+const CORE_UPDATED = '2026-11-26';
 
 const weight = (p: ContentPageDef) =>
   p.slug === '' ? 1 : p.group === 'legal' ? 0.3 : p.group === 'product' ? 0.9 : 0.7;
@@ -44,16 +44,23 @@ export function sitemapEntries(edition: SiteEdition): SitemapEntry[] {
   for (const p of ALL_PAGES) {
     if (marketOf(p) !== market) continue;
     const path = pagePath(p, locale);
+    const tzCounterpart =
+      market !== 'tz' ? counterpartsOf(p).find((c) => marketOf(c) === 'tz') : undefined;
     // hreflangMap expects the TZ EN path as the first arg; keep the SW path aside so the
     // alternate can use the SW slug, not the EN slug under /sw.
     pages.push({
       path,
       pathEn: market === 'tz' ? pagePath(p, 'en') : path,
-      pathSw: market === 'tz' ? pagePath(p, 'sw') : undefined,
+      pathSw:
+        market === 'tz'
+          ? pagePath(p, 'sw')
+          : tzCounterpart
+            ? pagePath(tzCounterpart, 'sw')
+            : undefined,
       counterpart:
         p.slug === '' && market !== 'tz'
           ? ['/', market === 'ke' ? '/ug' : '/ke']
-          : counterpartPath(path, locale),
+          : counterpartPath(path, 'en'),
       updated: p.updated,
       priority: weight(p),
     });

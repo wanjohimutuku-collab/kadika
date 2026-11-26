@@ -33,6 +33,14 @@ export interface HeroProps {
   previewFrameAlt: string;
   statCards: HeroStatCardsCopy;
   capabilities?: readonly string[];
+  demoCard?: {
+    coupleNames: string;
+    partnerA: string;
+    partnerB: string;
+    guestName: string;
+    shortCode: string;
+    venue: string;
+  };
 }
 
 function splitOnAccent(h1: string, accent: string): [string, string, string, string] {
@@ -49,18 +57,26 @@ function splitOnAccent(h1: string, accent: string): [string, string, string, str
 export function Hero(props: HeroProps) {
   const [pre, accent, punct, post] = splitOnAccent(props.h1, props.accentWord);
   const s = props.statCards;
-  const heroCardReq = cardImageRequest({
+  const cardSeed = props.demoCard ?? {
     coupleNames: 'Asha & Juma',
     partnerA: 'Asha',
     partnerB: 'Juma',
+    guestName: 'Mwanaidi Salim',
+    shortCode: 'KH-4826',
+    venue: `${s.previewVenueLine1} ${s.previewVenueLine2}`,
+  };
+  const heroCardReq = cardImageRequest({
+    coupleNames: cardSeed.coupleNames,
+    partnerA: cardSeed.partnerA,
+    partnerB: cardSeed.partnerB,
     eventKind: 'harusi',
     dateStart: '2026-12-14T13:00:00Z',
-    venueName: `${s.previewVenueLine1} ${s.previewVenueLine2}`,
+    venueName: cardSeed.venue,
     dressCode: 'Formal',
     themeId: 'navy-silver',
     coverGradient: 'linear-gradient(135deg,#1F3A5F 0%,#8A96A3 100%)',
-    guestName: 'Mwanaidi Salim',
-    shortCode: 'KH-4826',
+    guestName: cardSeed.guestName,
+    shortCode: cardSeed.shortCode,
     template: 'classic',
     seats: 2,
     locale: 'en',

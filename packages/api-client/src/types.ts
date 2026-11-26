@@ -40,10 +40,42 @@ export const STAFF_PERMISSIONS: Record<StaffRole, StaffPermission[]> = {
   admin: ['read', 'lookup', 'reveal', 'requests', 'plan', 'suspend', 'settings'],
 };
 
+export interface SignupAttribution {
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  referrerHost?: string | null;
+  referralCode?: string | null;
+}
+
+export interface GrowthReportWeek {
+  weekStart: string;
+  country: Country | 'UG' | 'unknown';
+  signups: number;
+  eventsCreated: number;
+  eventsReachedPayment: number;
+}
+
+export interface GrowthReportSourceRow {
+  weekStart: string;
+  country: Country | 'UG' | 'unknown';
+  source: string;
+  signups: number;
+}
+
+export interface GrowthReport {
+  windowWeeks: number;
+  generatedAt: ISODate;
+  weekly: GrowthReportWeek[];
+  signupsBySource: GrowthReportSourceRow[];
+}
+
 export interface User {
   id: string;
   name: string;
   phoneE164: string;
+  /** Referral code tied to the host account (Prompt 8). */
+  referralCode?: string | null;
   /** `admin` = staff of the business (ops panel). Customers are `user`. */
   roleGlobal?: 'user' | 'admin';
   /** Staff level (ops panel). support: lookups, reveals, data requests · billing: plans · admin: everything incl. suspension. */
@@ -145,6 +177,8 @@ export interface WeddingEvent {
   senderName: string;
   committeePhone: string;
   pledgesEnabled: boolean;
+  /** Null/undefined means default: false for corporate events, true for all others (Prompt 8). */
+  showReferralFooter?: boolean | null;
   /** Kumbukumbu page shown to guests (ADR 050); absent means on. */
   memoriesEnabled?: boolean;
   /** §7.5 policy toggle, default OFF. */
@@ -369,6 +403,10 @@ export interface CardView {
       > & {
         /** Guests can pay through us; off by default, so the card lists the hosts' own accounts (ADR 043). */
         onlinePay: boolean;
+        /** Whether to display the discreet Kadi Sasa referral link at bottom / post-RSVP. */
+        showReferralFooter?: boolean;
+        /** Referrer code tied to the host account (never includes guest PII). */
+        referralCode?: string | null;
       })
     | null;
   guest: {

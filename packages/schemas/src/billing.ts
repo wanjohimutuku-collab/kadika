@@ -61,7 +61,7 @@ export const CARD_DELIVERY_KINDS = ['invite', 'fallback', 'test'] as const;
  */
 export const DEFAULT_PRICING: PricingCatalog = {
   enforced: false,
-  free: { cards: 10, messages: 40 },
+  free: { cards: 5, messages: 40 },
   messagesPerCard: 4,
   cardTiers: [
     { minCards: 1, price: { TZS: 2_400, KES: 120 } },

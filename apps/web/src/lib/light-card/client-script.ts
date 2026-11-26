@@ -98,6 +98,8 @@ export const CLIENT_SCRIPT = String.raw`
     var anchor = $('#hp-trust-section');
     if (state.status === 'confirmed') anchor.parentNode.insertBefore(qrSec, anchor.nextSibling);
     else $('#hp-rsvp-section').parentNode.insertBefore(qrSec, $('#hp-rsvp-section').nextSibling);
+    var refEl = $('#hp-rsvp-referral');
+    if (refEl) refEl.hidden = !answered;
   }
   function submit(attending, size) {
     var btns = $$('#hp-rsvp-form button'); btns.forEach(function (b) { b.disabled = true; });
@@ -263,6 +265,28 @@ export const CLIENT_SCRIPT = String.raw`
       .catch(function () { say(T.stopRemindersFailed); });
   });
   $('#hp-print').addEventListener('click', function () { window.print(); });
+  document.querySelectorAll('[data-ref-link]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      if (S.mode === 'mock' || !navigator.sendBeacon || navigator.doNotTrack === '1') return;
+      try {
+        var lang = document.documentElement.lang === 'en' ? 'en' : 'sw';
+        var mkt = S.country === 'KE' ? 'ke' : S.country === 'UG' ? 'ug' : 'tz';
+        var payload = JSON.stringify({
+          name: 'referral_link_clicked',
+          path: '/c',
+          market: mkt,
+          locale: lang,
+          edition: mkt === 'tz' ? lang : mkt,
+          properties: {
+            source: 'guest_card',
+            event_kind: String(S.eventKind || '').slice(0, 64),
+            referral_code: String(S.referralCode || '').slice(0, 64),
+          },
+        });
+        navigator.sendBeacon((S.api || '') + '/v1/analytics', new Blob([payload], { type: 'application/json' }));
+      } catch {}
+    });
+  });
 
   // ---- start
   var st = adapter.sync();

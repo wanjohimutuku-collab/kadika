@@ -1,5 +1,5 @@
 import type { Locale } from '@harusi/i18n';
-import { ALL_PAGES, counterpartOf, marketOf, pageBySlug, pagePath } from '@/content';
+import { ALL_PAGES, counterpartOf, counterpartsOf, marketOf, pageBySlug, pagePath } from '@/content';
 import type { ContentPageDef } from '@/content/types';
 import { localeUrl, marketOfPath } from './seo';
 
@@ -67,7 +67,7 @@ export function editionTargets(path: string, locale: Locale): Record<SiteEdition
   };
 }
 
-/** The same-topic page in another market as a bare path (no `/sw` prefix). */
+/** The same-topic page(s) in other markets as bare paths (no `/sw` prefix). */
 export function counterpartPath(path: string, locale: Locale): string | string[] | undefined {
   if (path === '/') return ['/ke', '/ug'];
   if (path === '/ke') return ['/', '/ug'];
@@ -75,10 +75,14 @@ export function counterpartPath(path: string, locale: Locale): string | string[]
   const market = marketOfPath(path);
   if (market === 'ke' || market === 'ug') {
     const page = regionalPageByPath(path, market);
-    const c = page ? counterpartOf(page) : null;
-    return c ? pagePath(c, marketOf(c) === 'tz' ? locale : 'en') : undefined;
+    const list = page ? counterpartsOf(page) : [];
+    if (!list.length) return undefined;
+    const paths = list.map((c) => pagePath(c, marketOf(c) === 'tz' ? locale : 'en'));
+    return paths.length === 1 ? paths[0] : paths;
   }
   const page = tzPageByPath(path, locale);
-  const c = page ? counterpartOf(page) : null;
-  return c ? pagePath(c, 'en') : undefined;
+  const list = page ? counterpartsOf(page) : [];
+  if (!list.length) return undefined;
+  const paths = list.map((c) => pagePath(c, 'en'));
+  return paths.length === 1 ? paths[0] : paths;
 }

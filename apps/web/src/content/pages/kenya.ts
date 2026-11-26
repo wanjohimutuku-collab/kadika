@@ -17,6 +17,8 @@ export const KENYA_PAGES: ContentPageDef[] = [
     schema: 'WebPage',
     updated: UPDATED,
     related: [
+      'digital-wedding-invitations-kenya',
+      'ruracio-harambee-invitations-contributions',
       'wedding-committee-guide',
       'wedding-contributions-guide',
       'wedding-invitation-wording',
@@ -99,7 +101,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           q: 'Is there a cost?',
-          a: 'It is free during the pilot in Tanzania. Future prices, including Kenya shilling prices, will be published before charging starts.',
+          a: 'Kenya is currently in pilot. Early committees can test with us at no charge while we finalise local partnerships; KES pricing tiers will be published here before charging starts.',
         },
       ],
     },
@@ -180,7 +182,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
         },
         {
           q: 'Kuna gharama?',
-          a: 'Ni bure wakati wa majaribio nchini Tanzania. Bei za baadaye, ikiwemo kwa shilingi za Kenya, zitatangazwa kabla ya kuanza kutozwa.',
+          a: 'Kenya bado iko kwenye majaribio. Kamati za mwanzo zinaweza kujaribu bila malipo tunapokamilisha taratibu za ndani; bei rasmi kwa KES zitatangazwa hapa kabla ya kuanza kutozwa.',
         },
       ],
     },
@@ -551,7 +553,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
                   'Setup, rules and fees depend on the provider; confirm current terms with Safaricom',
                 ],
                 [
-                  'Fundraising platforms such as M-Changa or OneKitty',
+                  'Dedicated online fundraising platforms',
                   'Public or group fundraising with built-in signatories',
                   'Platform fees and rules; check the current terms yourself',
                 ],
@@ -676,7 +678,7 @@ export const KENYA_PAGES: ContentPageDef[] = [
                   'Usajili, sheria na ada hutegemea mtoa huduma; thibitisha masharti ya sasa na Safaricom',
                 ],
                 [
-                  'Majukwaa ya michango kama M-Changa au OneKitty',
+                  'Majukwaa maalum ya kuchangisha fedha mtandaoni',
                   'Michango ya kikundi au ya wazi yenye watia saini',
                   'Ada na sheria za jukwaa; kagua masharti ya sasa mwenyewe',
                 ],
@@ -1092,4 +1094,344 @@ export const KENYA_PAGES: ContentPageDef[] = [
       ],
     },
   },
+  {
+    market: 'ke',
+    counterpart: { market: 'tz', slug: 'kadi-ya-harusi-mtandaoni' },
+    slug: 'digital-wedding-invitations-kenya',
+    slugEn: 'digital-wedding-invitations-kenya',
+    group: 'guide',
+    schema: 'Article',
+    published: '2026-11-26',
+    updated: '2026-11-26',
+    related: [
+      'ruracio-harambee-invitations-contributions',
+      'wedding-committee-guide',
+      'wedding-invitation-wording',
+      'is-a-digital-wedding-invitation-safe',
+    ],
+    en: {
+      nav: 'Digital wedding cards Kenya',
+      title: 'Digital Wedding Invitations Kenya: WhatsApp, SMS & QR',
+      description:
+        'Send Kenyan wedding invitations via WhatsApp, SMS (+254) and printable QR cards across Nairobi, Mombasa, Kisumu and Nakuru.',
+      h1: 'Digital wedding invitations in Kenya (WhatsApp, SMS and QR)',
+      answer:
+        'Digital wedding invitations in Kenya give every guest a personal card link on WhatsApp, an SMS short code for shosho and guka on basic phones, and a printable QR card for elders. Kenyan support (+254 numbers, Nairobi time and M-Pesa Paybill/Till tracking) is built and in pilot; contact us to join early testing.',
+      sections: [
+        {
+          id: 'why-three-channels',
+          h2: 'Why Kenyan weddings need WhatsApp, SMS and printed QR cards together',
+          blocks: [
+            {
+              t: 'p',
+              text: 'A single WhatsApp flyer shared in a family group works poorly when a couple has guests across Nairobi, Mombasa, Kisumu, Nakuru, upcountry homes and the diaspora. Young friends expect a quick WhatsApp link with a Google Maps pin, while shosho and guka in the village may use a feature phone or prefer a physical card.',
+            },
+            {
+              t: 'ul',
+              items: [
+                'WhatsApp cards carry the couple names, church or nikah time, reception venue and one-tap RSVP.',
+                'Plain SMS fallback delivers a concise message with the guest’s short code (for example WK-3725) to any +254 number.',
+                'Printable A6, A5 and 4-up A4 PDFs carry the exact same signed QR code so printed and digital lists never conflict.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'offline-gate',
+          h2: 'Gate check-in for garden and upcountry Kenyan venues',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Whether your reception is at a Karen or Runda garden in Nairobi, a beachfront tent in Mombasa, a lakeside hall in Kisumu or a resort outside Nakuru, mobile reception at the entrance tent often drops when hundreds of guests arrive together.',
+            },
+            {
+              t: 'p',
+              text: 'With Kadi Sasa, ushers download the guest list onto the Android gate app before guests arrive. Scanning a QR code, typing a short code or searching the last four digits of a +254 phone number works completely offline, and duplicate screenshots are flagged immediately.',
+            },
+          ],
+        },
+        {
+          id: 'how-to-start',
+          h2: 'How a Kenyan committee can prepare its guest list',
+          blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Collect guest names, +254 phone numbers and allowed party size (for example couple ×2 or family ×4) in one shared sheet.',
+                'Separate smartphone guests (WhatsApp) from basic-phone elders (SMS or printed card).',
+                'Assign one committee member to confirm RSVPs for catering and tent seating.',
+                'Keep harambee pledge records in one transparent ledger rather than scrolling through WhatsApp chat history.',
+                'Test gate check-in with your ushers a day before the ceremony.',
+              ],
+            },
+            {
+              t: 'note',
+              text: 'Kenya availability note: +254 numbers, Nairobi timezone, WhatsApp/SMS workflows and M-Pesa Paybill/Till pledge tracking are built and tested in simulators, while Kenya remains in pilot pending local carrier approvals and final KES pricing.',
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Can guests without WhatsApp still receive an invitation?',
+          a: 'Yes. They receive an SMS on any +254 basic phone carrying their card code, or a printed PDF card handed over by the committee.',
+        },
+        {
+          q: 'Will QR check-in work at an upcountry reception with weak network?',
+          a: 'Yes. The Android gate app stores the encrypted guest list locally on the phone and syncs arrivals once signal returns.',
+        },
+        {
+          q: 'How much does Kadi Sasa cost in Kenya?',
+          a: 'Kenya is currently in pilot and not yet open for general billing. Early pilot committees test with us free while final KES pricing is being finalised.',
+        },
+        {
+          q: 'Does Kadi Sasa work for ruracio and church weddings?',
+          a: 'Yes. Committees can run separate events with tailored wording for ruracio, church weddings, nikah and receptions.',
+        },
+      ],
+    },
+    sw: {
+      nav: 'Kadi za harusi mtandaoni Kenya',
+      title: 'Kadi za Harusi Mtandaoni Kenya: WhatsApp, SMS na QR',
+      description:
+        'Tuma kadi za harusi Kenya kwa WhatsApp, SMS (+254) na PDF yenye QR kwa wageni huko Nairobi, Mombasa, Kisumu na Nakuru.',
+      h1: 'Kadi za harusi mtandaoni Kenya (WhatsApp, SMS na QR)',
+      answer:
+        'Kadi za harusi mtandaoni Kenya zinampa kila mgeni kiungo chake kwenye WhatsApp, SMS yenye namba fupi kwa wazee wenye simu za kawaida, na PDF ya kuchapisha yenye QR. Msaada wa Kenya (+254, saa ya Nairobi na ufuatiliaji wa M-Pesa Paybill/Till) umejengwa na uko kwenye majaribio; wasiliana nasi kujiunga.',
+      sections: [
+        {
+          id: 'why-three-channels',
+          h2: 'Kwa nini harusi za Kenya zinahitaji WhatsApp, SMS na karatasi pamoja',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Picha moja ya mwaliko kwenye kundi la WhatsApp haitoshi wakati wageni wako Nairobi, Mombasa, Kisumu, Nakuru, vijijini na nje ya nchi. Marafiki wanapendelea kiungo cha WhatsApp chenye ramani, ilhali shosho na guka wanatumia simu za kawaida au kadi ya karatasi.',
+            },
+            {
+              t: 'ul',
+              items: [
+                'Kadi za WhatsApp zinaonyesha majina ya maharusi, muda wa ibada, ukumbi na kitufe cha RSVP.',
+                'SMS ya mbadala inatuma ujumbe mfupi wenye namba ya kadi (mfano WK-3725) kwa namba yoyote ya +254.',
+                'PDF za A6, A5 na A4 zinachapishwa zikiwa na QR ileile ili orodha ya karatasi na ya kidijitali zisichanganyike.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'offline-gate',
+          h2: 'Ukaguzi wa lango kwa kumbi za bustani na mikoani Kenya',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Iwe sherehe iko kwenye bustani za Karen Nairobi, hema la pwani Mombasa, ukumbi wa Kisumu au Nakuru, mtandao wa simu mlangoni huweza kushuka wageni wengi wakifika kwa pamoja.',
+            },
+            {
+              t: 'p',
+              text: 'Kwa Kadi Sasa, walinzi wanapakua orodha kwenye programu ya Android kabla ya sherehe. Kuskani QR, kuandika namba fupi au kutafuta tarakimu nne za mwisho za simu ya +254 kunafanya kazi bila mtandao.',
+            },
+          ],
+        },
+        {
+          id: 'how-to-start',
+          h2: 'Jinsi kamati ya Kenya inavyoweza kuandaa orodha yake',
+          blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Kusanya majina ya wageni, namba za +254 na idadi ya viti vinavyoruhusiwa kwenye jedwali moja.',
+                'Tenganisha wenye WhatsApp na wazee wanaopokea SMS au kadi ya karatasi.',
+                'Mpe mwanakamati mmoja jukumu la kufuatilia majibu ya RSVP kwa chakula na viti.',
+                'Weka rekodi ya ahadi za harambee kwenye daftari moja lililo wazi.',
+                'Jaribu ukaguzi wa lango na walinzi siku moja kabla ya harusi.',
+              ],
+            },
+            {
+              t: 'note',
+              text: 'Hali ya Kenya: namba za +254, saa ya Nairobi, WhatsApp/SMS na ufuatiliaji wa M-Pesa Paybill/Till vimejengwa na kujaribiwa kwa vifaa vya majaribio, wakati Kenya ikisubiri idhini za ndani na bei rasmi za KES.',
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Wageni wasio na WhatsApp watapataje mwaliko?',
+          a: 'Wanapata SMS kwenye simu yoyote ya +254 yenye namba yao ya kadi, au kadi ya PDF iliyochapishwa.',
+        },
+        {
+          q: 'Je, lango la QR linafanya kazi ukumbi usio na mtandao?',
+          a: 'Ndiyo. Programu ya Android inahifadhi orodha kwenye simu na kusawazisha mtandao ukirudi.',
+        },
+        {
+          q: 'Gharama ya Kadi Sasa Kenya ni kiasi gani?',
+          a: 'Kenya bado iko kwenye majaribio na haijafunguliwa kwa malipo ya jumla. Bei rasmi za KES zitatangazwa kabla ya kuanza kutozwa.',
+        },
+        {
+          q: 'Je, inafaa kwa ruracio na harusi za kanisani?',
+          a: 'Ndiyo. Kamati zinaweza kuunda matukio tofauti kwa ruracio, harusi ya kanisani, nikah na mapokezi.',
+        },
+      ],
+    },
+  },
+  {
+    market: 'ke',
+    slug: 'ruracio-harambee-invitations-contributions',
+    slugEn: 'ruracio-harambee-invitations-contributions',
+    group: 'guide',
+    schema: 'Article',
+    published: '2026-11-26',
+    updated: '2026-11-26',
+    related: [
+      'digital-wedding-invitations-kenya',
+      'wedding-contributions-guide',
+      'wedding-committee-guide',
+      'is-a-digital-wedding-invitation-safe',
+    ],
+    en: {
+      nav: 'Ruracio & harambee guide',
+      title: 'Ruracio & Harambee Invitations and Contributions | Kadi Sasa',
+      description:
+        'Organise Kenyan ruracio, harambee and church fundraiser invitations with transparent M-Pesa Paybill and Till pledge tracking.',
+      h1: 'Ruracio and harambee invitations and contribution tracking',
+      answer:
+        'For ruracio, harambee drives and church fundraisers in Kenya, separating invitation cards from voluntary pledge records keeps family dignity intact and committee accounts clear. Every guest gets an RSVP card, while treasurers track pledges against M-Pesa Paybill or Till receipts with 0% platform cut.',
+      sections: [
+        {
+          id: 'ruracio-and-fundraisers',
+          h2: 'How ruracio, harambee and church fundraisers work together respectfully',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Across Kenyan communities, a wedding journey often involves multiple gatherings — an introduction or ruracio with elders, a pre-wedding harambee or church thanksgiving fundraiser, and the wedding reception itself. Mixing guest invitations with contribution requests in a single WhatsApp group chat often causes confusion and embarrassment.',
+            },
+            {
+              t: 'ul',
+              items: [
+                'Use dedicated invitation cards for ruracio and ceremonies where attendance and family coordination come first.',
+                'Use separate contribution tracking for harambee and church fundraisers so pledges stay voluntary and private.',
+                'Display the committee’s own M-Pesa Paybill (with account name) or Till number directly on contribution cards so funds never pass through a middleman.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'ledger-steps',
+          h2: 'Setting up transparent Paybill/Till tracking for your committee',
+          blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Open a dedicated M-Pesa Paybill, Till or committee bank account with at least two signatories before collecting.',
+                'Enter the budget target and list contributors with each person’s voluntary pledge.',
+                'Share the Paybill/Till details clearly on the contribution card alongside the treasurer’s +254 contact number.',
+                'Log M-Pesa confirmation codes and cash received at meetings against each pledge so balances update automatically.',
+                'Export a treasurer summary before every committee meeting and share final accounts after the event.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'pilot-status',
+          h2: 'Kenyan availability and cultural considerations',
+          blocks: [
+            {
+              t: 'note',
+              text: 'Kadi Sasa Kenya is currently in pilot (+254, KES, M-Pesa Paybill/Till workflows built and tested in simulators). Because ruracio customs and church protocols vary across communities, committees should always confirm wording and elder etiquette with both families.',
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Does Kadi Sasa hold harambee or ruracio money?',
+          a: 'No. Guests pay directly to the family or committee’s own M-Pesa Paybill, Till or bank account, with 0% cut taken by Kadi Sasa.',
+        },
+        {
+          q: 'Can we run separate guest lists for ruracio and the main wedding?',
+          a: 'Yes. Create separate events for the ruracio, harambee/fundraiser and wedding so each has its own wording, venue and guest list.',
+        },
+        {
+          q: 'Can church fundraisers disable RSVPs or only track pledges?',
+          a: 'Yes. Contribution cards handle pledge and Paybill/Till details separately from gate-entry QR invitations.',
+        },
+        {
+          q: 'How can a Kenyan committee join the pilot?',
+          a: 'Reach out via our contact page with your event date and approximate guest count to join early testing.',
+        },
+      ],
+    },
+    sw: {
+      nav: 'Mwongozo wa ruracio na harambee',
+      title: 'Mialiko na Michango ya Ruracio na Harambee Kenya | Kadi Sasa',
+      description:
+        'Jinsi familia na kamati za makanisa Kenya zinavyopanga mialiko ya ruracio, harambee na michango ya kanisa pamoja na ufuatiliaji wa M-Pesa Paybill na Till.',
+      h1: 'Mialiko ya ruracio na harambee pamoja na ufuatiliaji wa michango',
+      answer:
+        'Kwa ruracio, harambee na michango ya kanisa Kenya, kutenganisha kadi ya mwaliko na kumbukumbu za ahadi huheshimu familia na kuweka hesabu za kamati wazi. Kila mgeni anapata kadi ya RSVP, huku mweka hazina akirekodi ahadi dhidi ya risiti za M-Pesa Paybill au Till bila makato ya 0%.',
+      sections: [
+        {
+          id: 'ruracio-and-fundraisers',
+          h2: 'Jinsi ruracio, harambee na michango ya kanisa zinavyoendeshwa kwa heshima',
+          blocks: [
+            {
+              t: 'p',
+              text: 'Nchini Kenya, safari ya harusi mara nyingi huhusisha mikusanyiko kadhaa — utambulisho au ruracio na wazee, harambee ya kabla ya harusi au mchango wa kanisa, na sherehe yenyewe ya harusi. Kuchanganya mialiko na maombi ya pesa kwenye kundi moja la WhatsApp huleta mkanganyiko.',
+            },
+            {
+              t: 'ul',
+              items: [
+                'Tumia kadi za mwaliko kwa ruracio na sherehe ambapo mahudhurio na heshima ya familia vinatangulia.',
+                'Tumia daftari tofauti la michango kwa harambee na michango ya kanisa ili ahadi zibaki za hiari na siri.',
+                'Onyesha namba ya M-Pesa Paybill au Till ya kamati moja kwa moja kwenye kadi za michango ili fedha zisipitie kwa mtu wa kati.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'ledger-steps',
+          h2: 'Kuweka ufuatiliaji wa wazi wa Paybill/Till kwa kamati yako',
+          blocks: [
+            {
+              t: 'ol',
+              items: [
+                'Fungua M-Pesa Paybill, Till au akaunti ya kamati yenye watia saini wasiopungua wawili kabla ya kukusanya.',
+                'Weka lengo la bajeti na uorodheshe wachangiaji pamoja na ahadi ya hiari ya kila mmoja.',
+                'Shiriki maelezo ya Paybill/Till kwa uwazi kwenye kadi ya mchango pamoja na namba ya +254 ya mweka hazina.',
+                'Rekodi misimbo ya uthibitisho wa M-Pesa na taslimu zilizopokelewa dhidi ya kila ahadi.',
+                'Pakua muhtasari wa mweka hazina kabla ya kila kikao na shiriki hesabu za mwisho baada ya tukio.',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'pilot-status',
+          h2: 'Upatikanaji Kenya na mazingatio ya kimila',
+          blocks: [
+            {
+              t: 'note',
+              text: 'Kadi Sasa Kenya iko kwenye majaribio (+254, KES, M-Pesa Paybill/Till zimejengwa na kujaribiwa kwa vifaa vya majaribio). Kwa kuwa mila za ruracio na taratibu za makanisa hutofautiana kati ya jamii, kamati zithibitishe maneno na itifaki ya wazee na familia zote mbili.',
+            },
+          ],
+        },
+      ],
+      faq: [
+        {
+          q: 'Je, Kadi Sasa inashika pesa za harambee au ruracio?',
+          a: 'Hapana. Wageni wanalipa moja kwa moja kwenye M-Pesa Paybill, Till au akaunti ya familia/kamati kwa 0% makato.',
+        },
+        {
+          q: 'Tunaweza kuwa na orodha tofauti kwa ruracio na harusi kubwa?',
+          a: 'Ndiyo. Unda matukio tofauti kwa ruracio, harambee na harusi ili kila moja liwe na maneno na orodha yake.',
+        },
+        {
+          q: 'Je, michango ya kanisa inaweza kufuatilia ahadi tu bila RSVP?',
+          a: 'Ndiyo. Kadi za michango hushughulikia ahadi na maelezo ya Paybill/Till kando na kadi za lango la QR.',
+        },
+        {
+          q: 'Kamati ya Kenya inaweza kujiunga na majaribio vipi?',
+          a: 'Tuandikie kupitia ukurasa wa mawasiliano ukitaja tarehe ya tukio na makadirio ya wageni.',
+        },
+      ],
+    },
+  },
 ];
+

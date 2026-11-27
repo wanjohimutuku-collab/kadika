@@ -15,7 +15,6 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'privacy',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['data-requests', 'terms', 'tz:cookies', 'is-a-digital-wedding-invitation-safe'],
     en: {
@@ -337,7 +336,6 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'terms',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['privacy', 'data-requests', 'tz:matumizi-yanayokubalika', 'tz:cookies'],
     en: {
@@ -590,7 +588,6 @@ export const KENYA_LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'data-requests',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['privacy', 'terms', 'tz:cookies', ''],
     en: {

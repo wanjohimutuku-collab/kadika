@@ -24,8 +24,6 @@ const UI = {
     faq: 'Maswali yanayoulizwa mara kwa mara',
     related: 'Soma pia',
     updated: 'Imesasishwa',
-    draft:
-      'Rasimu — maandishi haya si ya mwisho na yatapitiwa na mwanasheria kabla ya kuzinduliwa.',
     cta: 'Anza bure',
     ctaBody: 'Anza na kadi 5 za kwanza bure.',
     ctaCard: 'Nina namba ya kadi',
@@ -50,7 +48,6 @@ const UI = {
     faq: 'Frequently asked questions',
     related: 'Related',
     updated: 'Updated',
-    draft: 'Draft — this text is not final and will be reviewed by a lawyer before launch.',
     cta: 'Start free',
     ctaBody: 'Start with 5 free cards.',
     ctaCard: 'I have a card number',
@@ -346,14 +343,6 @@ export function ContentPage({ page, locale }: { page: ContentPageDef; locale: Lo
               </li>
             </ol>
           </nav>
-          {page.draft ? (
-            <p
-              role="note"
-              className="max-w-3xl rounded-2xl border border-[#e3e8ee] bg-[#f6f9fc] px-4 py-3 text-sm text-[#0a2640]"
-            >
-              {ui.draft}
-            </p>
-          ) : null}
           <div className="ks-enter flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center gap-2.5 rounded-full border border-[#e3e8ee] bg-white/95 px-3.5 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-[#0a2640] uppercase shadow-xs">
               <span aria-hidden="true" className="qw-ripple-dot" />

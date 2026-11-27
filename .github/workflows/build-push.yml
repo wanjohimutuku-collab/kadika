@@ -350,8 +350,13 @@ jobs:
         run: |
           site=${SITE_URL%/}
           host=${site#https://}
-          urls=$(curl -sf --max-time 20 "$site/sitemap.xml" | grep -oE '<loc>[^<]+</loc>' | sed -E 's#</?loc>##g' |
-            while read -r child; do curl -sf --max-time 20 "$child" | grep -oE '<loc>[^<]+</loc>' | sed -E 's#</?loc>##g'; done)
+          xml=$(curl -sf --max-time 20 "$site/sitemap.xml")
+          if printf '%s' "$xml" | grep -q '<sitemapindex'; then
+            urls=$(printf '%s' "$xml" | grep -oE '<loc>[^<]+</loc>' | sed -E 's#</?loc>##g' |
+              while read -r child; do curl -sf --max-time 20 "$child" | grep -oE '<loc>[^<]+</loc>' | sed -E 's#</?loc>##g'; done)
+          else
+            urls=$(printf '%s' "$xml" | grep -oE '<loc>[^<]+</loc>' | sed -E 's#</?loc>##g')
+          fi
           count=$(printf '%s\n' "$urls" | grep -c . || true)
           if [ "$count" -eq 0 ]; then echo "::warning::IndexNow: no URLs read from $site/sitemap.xml"; exit 0; fi
           body=$(printf '%s\n' "$urls" | head -n 10000 | jq -R . | jq -s --arg host "$host" --arg key "$INDEXNOW_KEY" \

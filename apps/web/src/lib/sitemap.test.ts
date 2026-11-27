@@ -2,13 +2,41 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const { renderIndex, sitemapEntries } = await import('./sitemap');
+const { allSitemapEntries, renderIndex, renderUrlset, sitemapEntries } = await import('./sitemap');
 const { editionTargets } = await import('./site-nav');
 const { routeSlugRedirect } = await import('@/content');
 
 const PRIVATE = /\/(k|c|s|login|app|ops|dev)(\/|$)/;
 
 describe('sitemaps', () => {
+  it('serves a unified flat urlset with canonical root URL and all 4 editions', () => {
+    const entries = allSitemapEntries();
+    const xml = renderUrlset(entries);
+    expect(entries).toHaveLength(93);
+    expect(new Set(entries.map((e) => e.loc)).size).toBe(entries.length);
+    expect(xml).toContain('<urlset ');
+    expect(xml).not.toContain('<sitemapindex');
+    expect(xml).toContain('<loc>https://kadisasa.com</loc>');
+    expect(xml).toContain(
+      '<xhtml:link rel="alternate" hreflang="en-TZ" href="https://kadisasa.com"/>',
+    );
+    expect(xml).toContain(
+      '<xhtml:link rel="alternate" hreflang="sw-TZ" href="https://kadisasa.com/sw"/>',
+    );
+    expect(xml).toContain(
+      '<xhtml:link rel="alternate" hreflang="en-KE" href="https://kadisasa.com/ke"/>',
+    );
+    expect(xml).toContain(
+      '<xhtml:link rel="alternate" hreflang="en-UG" href="https://kadisasa.com/ug"/>',
+    );
+    expect(xml).toContain(
+      '<xhtml:link rel="alternate" hreflang="x-default" href="https://kadisasa.com"/>',
+    );
+    for (const e of entries) {
+      expect(new URL(e.loc).pathname, e.loc).not.toMatch(PRIVATE);
+    }
+  });
+
   it('indexes one child sitemap per edition with latest 2026-11-26 lastmod dates', () => {
     const xml = renderIndex();
     for (const e of ['sw', 'en', 'ke', 'ug']) {

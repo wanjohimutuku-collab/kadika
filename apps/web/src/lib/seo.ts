@@ -151,7 +151,8 @@ export function localeUrl(path: string, locale: Locale): string {
 }
 
 export function absoluteLocaleUrl(path: string, locale: Locale): string {
-  return `${SITE_URL}${localeUrl(path, locale)}`;
+  const rel = localeUrl(path, locale);
+  return rel === '/' ? SITE_URL : `${SITE_URL}${rel}`;
 }
 
 /**

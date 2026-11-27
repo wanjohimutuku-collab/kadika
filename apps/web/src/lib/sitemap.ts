@@ -95,6 +95,20 @@ export function renderUrlset(entries: SitemapEntry[]): string {
 
 export const childSitemapUrl = (e: SiteEdition) => `${SITE_URL}/sitemaps/${e}.xml`;
 
+/** All unique canonical sitemap URLs across English (en), Swahili (sw), Kenya (ke) and Uganda (ug). */
+export function allSitemapEntries(): SitemapEntry[] {
+  const seen = new Set<string>();
+  const all: SitemapEntry[] = [];
+  for (const ed of ['en', 'sw', 'ke', 'ug'] as const) {
+    for (const entry of sitemapEntries(ed)) {
+      if (seen.has(entry.loc)) continue;
+      seen.add(entry.loc);
+      all.push(entry);
+    }
+  }
+  return all;
+}
+
 export function renderIndex(): string {
   const items = SITEMAP_EDITIONS.map((e) => {
     const latest = sitemapEntries(e)

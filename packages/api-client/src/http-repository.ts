@@ -1230,11 +1230,12 @@ export function createHttpRepository(
     key: string,
     kind: 'invite' | 'reminder' = 'invite',
     cardKind?: CardKind,
+    whatsappFallbackToSms?: boolean,
   ): Promise<SendJob> {
     const sum = await call<ApiSendSummary>(
       'POST',
       `/v1/events/${encodeURIComponent(eventId)}/invitations/send`,
-      { target, channel, kind, cardKind },
+      { target, channel, kind, cardKind, whatsappFallbackToSms },
       { 'idempotency-key': key.length >= 8 ? key : newKey() },
     );
     const names = new Map<string, string>();
@@ -1251,7 +1252,7 @@ export function createHttpRepository(
       failures: sum.failures.map((f) => ({
         guestId: f.guestId,
         guestName: names.get(f.guestId) ?? '',
-        channel: 'sms',
+        channel: channel === 'whatsapp' ? 'whatsapp' : 'sms',
         error: f.error,
       })),
       status: 'done',
@@ -1339,7 +1340,15 @@ export function createHttpRepository(
       scheduledEvent.set(s.id, eventId);
       return jobFromScheduled(s);
     }
-    return runSend(eventId, target, req.channel, req.idempotencyKey, req.kind, req.cardKind);
+    return runSend(
+      eventId,
+      target,
+      req.channel,
+      req.idempotencyKey,
+      req.kind,
+      req.cardKind,
+      req.whatsappFallbackToSms,
+    );
   };
   impl.getSendJob = async (jobId) => {
     const j = sendJobs.get(jobId);
@@ -1382,6 +1391,7 @@ export function createHttpRepository(
     }>('POST', `/v1/events/${encodeURIComponent(eventId)}/invitations/preview`, {
       target: apiTarget(req.audience, kind),
       channel: req.channel === 'print' ? 'auto' : req.channel,
+      whatsappFallbackToSms: req.whatsappFallbackToSms,
       kind,
       cardKind: req.cardKind,
     });

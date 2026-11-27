@@ -19,6 +19,6 @@ export const routeCountry = (e164: string, fallback: Country): Country =>
 
 /** Link domain for a country's events (`SHORT_BASE_URL_KE` for Kenya, else the default). */
 export const shortBaseFor = (config: Pick<Config, 'shortBaseUrl' | 'shortBaseUrls'>, c: Country) =>
-  config.shortBaseUrls[c] ?? config.shortBaseUrl;
+  (config.shortBaseUrls[c] ?? config.shortBaseUrl).replace(/\/+$/, '');
 
 export type { MessagingProvider };

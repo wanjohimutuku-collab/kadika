@@ -152,6 +152,7 @@ const sendTargetSchema = z.union([
 const sendInputSchema = z.object({
   target: sendTargetSchema,
   channel: z.enum(['auto', 'whatsapp', 'sms']).optional(),
+  whatsappFallbackToSms: z.boolean().optional(),
   kind: z.enum(['invite', 'reminder']).optional(),
   /** Which cards: invitation or contribution; left out, both, as before (ADR 041). */
   cardKind: cardKindSchema.optional(),

@@ -53,6 +53,8 @@ export interface SendInput {
   target: SendTarget;
   /** `auto` follows each guest's channel preference (WhatsApp, falling back to SMS). */
   channel?: 'auto' | 'whatsapp' | 'sms';
+  /** When true (default), fall back to SMS if WhatsApp fails or is not configured. */
+  whatsappFallbackToSms?: boolean;
   /** `invite` (the default) is the first message; `reminder` nudges guests already invited. */
   kind?: SendKind;
   /**
@@ -202,12 +204,16 @@ export class DeliveryService {
   private channelsFor(
     g: typeof guests.$inferSelect,
     wanted: NonNullable<SendInput['channel']>,
+    fallback = true,
   ): MessageChannel[] {
     if (!g.phoneE164 || g.inviteChannelPref === 'print') return [];
     if (wanted === 'sms') return ['sms'];
-    if (wanted === 'whatsapp') return ['whatsapp', 'sms'];
+    if (wanted === 'whatsapp') {
+      if (this.deps.whatsapp) return fallback ? ['whatsapp', 'sms'] : ['whatsapp'];
+      return fallback ? ['sms'] : [];
+    }
     const wa = g.hasSmartphone !== false && g.inviteChannelPref !== 'sms';
-    return wa && this.deps.whatsapp ? ['whatsapp', 'sms'] : ['sms'];
+    return wa && this.deps.whatsapp ? (fallback ? ['whatsapp', 'sms'] : ['whatsapp']) : ['sms'];
   }
 
   /** Builds the text for one guest (invitation or reminder) with a fresh card link. */
@@ -223,7 +229,7 @@ export class DeliveryService {
     const hosts = hostNames(a, b);
     const input = { event, guest, link, daysLeft };
     const siteBase = shortBaseFor(this.deps.config, event.country);
-    const mediaUrl = `${siteBase}/api/card-image?token=${encodeURIComponent(cardToken)}&code=${encodeURIComponent(guest.shortCode)}`;
+    const mediaUrl = `${siteBase}/api/card-image?token=${encodeURIComponent(cardToken)}&code=${encodeURIComponent(guest.shortCode)}&locale=${encodeURIComponent(guest.language)}`;
     // A contribution card asks for a contribution only; an invitation card invites (ADR 029).
     if (guest.cardKind === 'contribution') {
       const sender = senderOf(event, guest.language).name;
@@ -315,6 +321,19 @@ export class DeliveryService {
           : text;
       const r = await this.attempt(p, guest.phoneE164!, msgBody, template);
       await this.log(guest.id, ch, p.name, r, kind);
+      if (!r.ok && ch === 'whatsapp' && this.deps.config.logRequests) {
+        console.warn(
+          JSON.stringify({
+            level: 'warn',
+            msg: 'whatsapp delivery failed',
+            eventId: event.id,
+            guestId: guest.id,
+            kind,
+            provider: p.name,
+            error: r.error,
+          }),
+        );
+      }
       if (!r.ok && !delivers) credit.refundMessage(); // a failed message is not charged
       if (r.ok) {
         if (generates) await this.billing.markGenerated([guest.id]);
@@ -340,6 +359,8 @@ export class DeliveryService {
   /**
    * Delivery webhook (WhatsApp `messages.update`, SMS reports). Moves the message and, for a
    * delivered/read message, the invitation forward — never backwards (§5, P8).
+   * When Meta reports an async `failed` webhook for an invite sent on WhatsApp, immediately fall
+   * back to SMS (once) so the guest still receives their card without waiting for the 6h tick.
    */
   async recordDelivery(
     providerMsgId: string,
@@ -373,6 +394,35 @@ export class DeliveryService {
             inArray(invitations.status, ['created', 'queued', 'sent']),
           ),
         );
+    } else if (state === 'failed' && m.channel === 'whatsapp' && m.kind === 'invite') {
+      const [row] = await this.deps.db
+        .select({ guest: guests, inv: invitations, event: events })
+        .from(invitations)
+        .innerJoin(guests, eq(guests.id, invitations.guestId))
+        .innerJoin(events, eq(events.id, guests.eventId))
+        .where(
+          and(
+            eq(invitations.guestId, m.guestId),
+            eq(invitations.status, 'sent'),
+            eq(invitations.channelLast, 'whatsapp'),
+            isNull(guests.deletedAt),
+          ),
+        );
+      if (row?.guest.phoneE164) {
+        const [alreadyFallback] = await this.deps.db
+          .select({ id: messageLog.id })
+          .from(messageLog)
+          .where(and(eq(messageLog.guestId, m.guestId), eq(messageLog.kind, 'fallback')));
+        if (!alreadyFallback) {
+          const fb = await this.dispatch(row.guest, row.inv, row.event, 'fallback', ['sms']);
+          if (!fb.ok) {
+            await this.deps.db
+              .update(invitations)
+              .set({ status: 'created', sentAt: null })
+              .where(and(eq(invitations.id, row.inv.id), eq(invitations.status, 'sent')));
+          }
+        }
+      }
     }
     return true;
   }
@@ -682,8 +732,9 @@ export class DeliveryService {
         : new Set<string>();
     let cards = 0;
     let messages = 0;
+    const fallback = input.whatsappFallbackToSms ?? true;
     for (const { guest } of picked) {
-      if (this.channelsFor(guest, input.channel ?? 'auto').length === 0) continue;
+      if (this.channelsFor(guest, input.channel ?? 'auto', fallback).length === 0) continue;
       if (kind === 'reminder') {
         if (!guest.remindersOptOut && !reminded.has(guest.id)) messages++;
       } else if (!guest.cardGeneratedAt) cards++;
@@ -831,12 +882,13 @@ export class DeliveryService {
     const byChannel = { whatsapp: 0, sms: 0, print: 0 };
     let total = 0;
     let withoutPhone = 0;
+    const fallback = input.whatsappFallbackToSms ?? true;
     for (const { guest } of picked) {
       // A guest who stopped reminders, or was just reminded, is not part of a reminder.
       if (kind === 'reminder' && (guest.remindersOptOut || reminded.has(guest.id))) continue;
       total++;
       if (!guest.phoneE164) withoutPhone++;
-      const channels = this.channelsFor(guest, input.channel ?? 'auto');
+      const channels = this.channelsFor(guest, input.channel ?? 'auto', fallback);
       // Nothing to send electronically: a printed card, or no phone number.
       byChannel[
         channels.length === 0 ? 'print' : channels[0] === 'whatsapp' ? 'whatsapp' : 'sms'
@@ -877,8 +929,9 @@ export class DeliveryService {
       failures: [],
     };
     const budget = await this.billing.budget(eventId);
+    const fallback = input.whatsappFallbackToSms ?? true;
     for (const { guest, inv } of picked) {
-      const channels = this.channelsFor(guest, input.channel ?? 'auto');
+      const channels = this.channelsFor(guest, input.channel ?? 'auto', fallback);
       // A guest who asked to stop reminders is never reminded, even when picked by hand.
       const skip =
         channels.length === 0 ||
@@ -929,10 +982,31 @@ export class DeliveryService {
     const p = this.provider(effective, to, event.country);
     if (!p) throw new ApiError('validation', 'This channel is not available', { field: 'channel' });
     const brand = await new BrandingService(this.deps).businessName();
+    const [a = '', b = ''] = event.coupleNames.split('&').map((x) => x.trim());
+    const hosts = hostNames(a, b);
+    const locale = event.languageDefault;
+    const siteBase = shortBaseFor(this.deps.config, event.country);
+    const when = dateText(event.dateStart, locale, event.timezone);
+    const link = `${siteBase}/s/TEST-01`;
+    const mediaUrl = `${siteBase}/api/card-image?preview=1&locale=${encodeURIComponent(locale)}&code=TEST-01&partnerA=${encodeURIComponent(a || event.title)}${b ? `&partnerB=${encodeURIComponent(b)}` : ''}`;
+    const testTemplate: MessageTemplate | undefined =
+      effective === 'whatsapp'
+        ? {
+            kind: 'invite',
+            locale,
+            country: event.country,
+            params:
+              event.country === 'KE'
+                ? [hosts, when, link, 'TEST-01']
+                : [a || event.title, b, when, link, 'TEST-01'],
+            mediaUrl,
+          }
+        : undefined;
     const r = await this.attempt(
       p,
       to,
       `${brand}: ujumbe wa majaribio kwa ${event.title}. Wageni wako watapokea kadi zao hivi.`,
+      testTemplate,
     );
     await recordAudit(this.deps.db, {
       eventId,
@@ -940,9 +1014,9 @@ export class DeliveryService {
       action: 'send.test',
       entity: 'event',
       entityId: eventId,
-      diff: { channel: effective, provider: p.name, ok: r.ok },
+      diff: { channel: effective, provider: p.name, ok: r.ok, ...(r.ok ? {} : { error: r.error }) },
     });
-    if (!r.ok) throw new ApiError('unavailable', 'The test message could not be sent');
+    if (!r.ok) throw new ApiError('unavailable', `The test message could not be sent (${r.error})`);
     return { to: `…${to.slice(-3)} (${effective === 'whatsapp' ? 'WhatsApp' : 'SMS'})` };
   }
 

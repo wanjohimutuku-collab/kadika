@@ -594,4 +594,102 @@ describe('WhatsAppCloudProvider image header (ADR 058)', () => {
       ['body'],
     ]);
   });
+
+  it('retries WITH an image header when imageHeader is off but Meta requires one', async () => {
+    const bodies: { template: { components: { type: string }[] } }[] = [];
+    const fetchImpl = (async (_u: string, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return bodies.length === 1
+        ? new Response(JSON.stringify({ error: { code: 132000 } }), { status: 400 })
+        : new Response(JSON.stringify({ messages: [{ id: 'wamid.hdr' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const r = await new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: 'p',
+      templates: { invite: 'kadisasa_card' },
+      fetchImpl,
+    }).send('+255712000001', 'x', {
+      kind: 'invite',
+      locale: 'sw',
+      country: 'TZ',
+      params: ['Asha', 'Juma', '14 Des 2026', 'https://x.test/s/abc', 'KH-4821'],
+      mediaUrl: 'https://x.test/c.png',
+    });
+    expect(r.providerMsgId).toBe('wamid.hdr');
+    expect(bodies.map((b) => b.template.components.map((c) => c.type))).toEqual([
+      ['body'],
+      ['header', 'body'],
+    ]);
+  });
+
+  it('falls back across languages on 132001 and retries image header on the matched language', async () => {
+    const seen: { code: string; types: string[] }[] = [];
+    const fetchImpl = (async (_u: string, init?: RequestInit) => {
+      const b = JSON.parse(String(init?.body)) as {
+        template: { language: { code: string }; components: { type: string }[] };
+      };
+      const code = b.template.language.code;
+      const types = b.template.components.map((c) => c.type);
+      seen.push({ code, types });
+      if (code === 'en') {
+        return new Response(JSON.stringify({ error: { code: 132001 } }), { status: 400 });
+      }
+      if (code === 'en_US' && !types.includes('header')) {
+        return new Response(JSON.stringify({ error: { code: 132012 } }), { status: 400 });
+      }
+      return new Response(JSON.stringify({ messages: [{ id: 'wamid.lang' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const r = await new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: 'p',
+      templates: { invite: 'kadisasa_card' },
+      fetchImpl,
+    }).send('+255712000001', 'x', {
+      kind: 'invite',
+      locale: 'en',
+      country: 'TZ',
+      params: ['Asha', 'Juma', '14 Des 2026', 'https://x.test/s/abc', 'KH-4821'],
+      mediaUrl: 'https://x.test/c.png',
+    });
+    expect(r.providerMsgId).toBe('wamid.lang');
+    expect(seen).toEqual([
+      { code: 'en', types: ['body'] },
+      { code: 'en_US', types: ['body'] },
+      { code: 'en_US', types: ['header', 'body'] },
+    ]);
+  });
+
+  it('sanitizes newlines, tabs, and repeated spaces in params and preserves subcode in errors', async () => {
+    const { impl, calls } = fakeFetch(200, { messages: [{ id: 'wamid.san' }] });
+    await new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: 'p',
+      templates: { invite: 'inv' },
+      fetchImpl: impl,
+    }).send('+255712000001', 'x', {
+      kind: 'invite',
+      locale: 'sw',
+      params: ['Asha\n  Mwinyi', 'Juma\t\tAli', '  ', 'https://x.test/s/1', 'KH-1'],
+    });
+    expect(
+      JSON.parse(calls[0]!.init.body as string).template.components[0].parameters.map(
+        (p: { text: string }) => p.text,
+      ),
+    ).toEqual(['Asha Mwinyi', 'Juma Ali', '—', 'https://x.test/s/1', 'KH-1']);
+
+    const errProvider = new WhatsAppCloudProvider({
+      token: 't',
+      phoneNumberId: 'p',
+      templates: { invite: 'inv' },
+      fetchImpl: fakeFetch(400, { error: { code: 131047, error_subcode: 2494010 } }).impl,
+    });
+    await expect(
+      errProvider.send('+255712000001', 'x', {
+        kind: 'invite',
+        locale: 'sw',
+        params: ['A', 'B', 'D', 'L', 'C'],
+      }),
+    ).rejects.toThrow(/^whatsapp-cloud 400 code 131047 subcode 2494010$/);
+  });
 });

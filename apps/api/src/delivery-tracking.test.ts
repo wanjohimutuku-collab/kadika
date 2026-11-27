@@ -172,6 +172,68 @@ describe('delivery webhooks and fallback', () => {
     expect(ctx.sms.sent).toHaveLength(1);
     expect(ctx.sms.sent[0]!.to).toBe('+255713999888');
     expect(ctx.sms.sent[0]!.body).toBe(ctx.whatsapp.sent[0]!.body);
+
+    // An async Meta 'failed' webhook for an invitation immediately triggers one SMS fallback
+    const g2 = (await add(ev.id, t, { displayName: 'Async Fail', phone: '0713000099' })).body!;
+    ctx.sms.sent.length = 0;
+    await sendAll(ev.id, t);
+    const [invLog] = await ctx.db.select().from(messageLog).where(eq(messageLog.guestId, g2.id));
+    const invFailRaw = JSON.stringify({
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                statuses: [
+                  {
+                    id: invLog!.providerMsgId,
+                    status: 'failed',
+                    errors: [{ code: 131026, title: 'Message undeliverable' }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const invFailSig =
+      'sha256=' + createHmac('sha256', 'meta-app-secret').update(invFailRaw).digest('hex');
+    expect((await post(invFailRaw, invFailSig)).status).toBe(200);
+    expect(ctx.sms.sent).toHaveLength(1);
+    expect(ctx.sms.sent[0]!.to).toBe('+255713000099');
+    // Sending the failed webhook again does not send a second SMS fallback
+    expect((await post(invFailRaw, invFailSig)).status).toBe(200);
+    expect(ctx.sms.sent).toHaveLength(1);
+
+    // When SMS fallback also fails, the invitation returns to created so retry-failed can find it
+    const g3 = (await add(ev.id, t, { displayName: 'Both Async Fail', phone: '0713000098' })).body!;
+    await sendAll(ev.id, t);
+    const [invLog3] = await ctx.db.select().from(messageLog).where(eq(messageLog.guestId, g3.id));
+    ctx.fail.sms = (to) => to === '+255713000098';
+    const invFail3 = JSON.stringify({
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                statuses: [
+                  {
+                    id: invLog3!.providerMsgId,
+                    status: 'failed',
+                    errors: [{ code: 132001, title: 'Template not found' }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    const invFailSig3 =
+      'sha256=' + createHmac('sha256', 'meta-app-secret').update(invFail3).digest('hex');
+    expect((await post(invFail3, invFailSig3)).status).toBe(200);
+    expect((await stats(ev.id, t)).byStatus.created).toBe(1);
   });
 
   it('sends one SMS when a WhatsApp invitation is still undelivered after N hours', async () => {

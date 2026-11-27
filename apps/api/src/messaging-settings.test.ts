@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { auditLog, messagingSettings } from '@harusi/db';
 import {
@@ -191,5 +191,72 @@ describe('messaging settings in /ops (ADR 031)', () => {
     });
     expect(missing.status).toBe(400);
     expect(missing.body!.error.details.missing).toEqual(['token', 'phoneNumberId']);
+  });
+
+  it('tests WhatsApp Cloud using the invite template with card media when configured, and accepts boolean imageHeader flags', async () => {
+    const save = await api(ctx, 'PUT', '/v1/ops/messaging/whatsapp', {
+      token: admin,
+      body: {
+        provider: 'cloud',
+        fields: {
+          token: 'meta-token-123',
+          phoneNumberId: '555',
+          imageHeader: 'true',
+          templateInvite: 'kadisasa_card',
+          templateOtp: 'kadisasa_otp',
+        },
+      },
+    });
+    expect(save.status).toBe(200);
+    expect(ctx.deps.config.whatsappCloud?.imageHeader).toBe(true);
+
+    const payloads: Record<string, unknown>[] = [];
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_u, init) => {
+      payloads.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ messages: [{ id: 'wamid.test1' }] }), { status: 200 });
+    });
+    try {
+      const res = await api(ctx, 'POST', '/v1/ops/messaging/whatsapp/test', {
+        token: admin,
+        body: { to: '0712000111' },
+      });
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ ok: true, provider: 'whatsapp-cloud', error: null });
+      expect(payloads).toHaveLength(1);
+      expect(payloads[0]).toMatchObject({
+        type: 'template',
+        template: {
+          name: 'kadisasa_card',
+          language: { code: 'sw' },
+        },
+      });
+      const comps = (
+        payloads[0]!.template as { components: { type: string; parameters: unknown[] }[] }
+      ).components;
+      expect(comps[0]!.type).toBe('header');
+
+      // When only templateOtp is configured, test falls back to OTP
+      await api(ctx, 'PUT', '/v1/ops/messaging/whatsapp', {
+        token: admin,
+        body: {
+          provider: 'cloud',
+          fields: {
+            token: '',
+            phoneNumberId: '555',
+            imageHeader: 'yes',
+            templateOtp: 'kadisasa_otp',
+          },
+        },
+      });
+      expect(ctx.deps.config.whatsappCloud?.imageHeader).toBe(true);
+      await api(ctx, 'POST', '/v1/ops/messaging/whatsapp/test', {
+        token: admin,
+        body: { to: '0712000111' },
+      });
+      expect((payloads[1]!.template as { name: string }).name).toBe('kadisasa_otp');
+    } finally {
+      spy.mockRestore();
+      await api(ctx, 'DELETE', '/v1/ops/messaging/whatsapp', { token: admin });
+    }
   });
 });

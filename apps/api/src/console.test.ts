@@ -65,6 +65,24 @@ describe('test message (Tuma → ujumbe wa majaribio)', () => {
     expect(sent.map((m) => m.to)).toEqual(['+255745000011']);
     expect(sent[0]!.body).toContain('majaribio');
 
+    const waBefore = ctx.whatsapp.sent.length;
+    const waRes = await api(ctx, 'POST', `/v1/events/${ev.id}/messages/test`, {
+      token: t,
+      body: { channel: 'whatsapp' },
+    });
+    expect(waRes.status).toBe(200);
+    expect(waRes.body!.to).toBe('…011 (WhatsApp)');
+    const waSent = ctx.whatsapp.sent.slice(waBefore);
+    expect(waSent).toHaveLength(1);
+    expect(waSent[0]!.template).toMatchObject({
+      kind: 'invite',
+      locale: 'en',
+      country: 'TZ',
+    });
+    expect(waSent[0]!.template!.params.slice(0, 2)).toEqual(['Asha', 'Juma']);
+    expect(waSent[0]!.template!.params[4]).toBe('TEST-01');
+    expect(waSent[0]!.template!.mediaUrl).toContain('/api/card-image?preview=1');
+
     const gate = await member('0745000012', 'gate');
     expect(
       (

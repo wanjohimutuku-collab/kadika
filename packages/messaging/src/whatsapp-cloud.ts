@@ -83,11 +83,11 @@ export class WhatsAppCloudProvider implements MessagingProvider {
         to,
       );
     }
-    const tpl = (header: boolean, otpButton = false) => ({
+    const tpl = (languageCode: string, header: boolean, otpButton = false) => ({
       type: 'template',
       template: {
         name,
-        language: { code: template.locale },
+        language: { code: languageCode },
         components: [
           ...(header && media
             ? [{ type: 'header', parameters: [{ type: 'image', image: { link: media } }] }]
@@ -96,7 +96,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
             type: 'body',
             parameters: template.params.map((text) => ({
               type: 'text',
-              text: text.trim() || '—',
+              text: sanitizeParam(text),
             })),
           },
           ...(otpButton && template.params[0]
@@ -105,27 +105,44 @@ export class WhatsAppCloudProvider implements MessagingProvider {
                   type: 'button',
                   sub_type: 'url',
                   index: '0',
-                  parameters: [{ type: 'text', text: template.params[0].trim() || '—' }],
+                  parameters: [{ type: 'text', text: sanitizeParam(template.params[0]) }],
                 },
               ]
             : []),
         ],
       },
     });
-    const header = !!(this.o.imageHeader && media);
-    try {
-      return await this.post(tpl(header), to);
-    } catch (e) {
-      if (e instanceof CloudError && e.code !== undefined) {
-        // The setting is on but this template was approved without an IMAGE header (or its image could
-        // not be fetched): send it without one rather than losing the invitation.
-        if (header && HEADER_ERRORS.has(e.code)) return this.post(tpl(false), to);
-        // Meta Authentication templates include a copy-code URL button component in addition to body {{1}}.
-        if (template.kind === 'otp' && OTP_BUTTON_ERRORS.has(e.code))
-          return this.post(tpl(false, true), to);
+    const sendForLang = async (languageCode: string): Promise<SendResult> => {
+      const header = !!(this.o.imageHeader && media);
+      try {
+        return await this.post(tpl(languageCode, header), to);
+      } catch (e) {
+        if (e instanceof CloudError && e.code !== undefined) {
+          // The setting is on but this template was approved without an IMAGE header (or its image could
+          // not be fetched): send it without one rather than losing the invitation.
+          if (header && HEADER_ERRORS.has(e.code)) return this.post(tpl(languageCode, false), to);
+          // The template was approved with an IMAGE header while the setting is off/unset: retry with it.
+          if (!header && media && HEADER_ERRORS.has(e.code))
+            return this.post(tpl(languageCode, true), to);
+          // Meta Authentication templates include a copy-code URL button component in addition to body {{1}}.
+          if (template.kind === 'otp' && OTP_BUTTON_ERRORS.has(e.code))
+            return this.post(tpl(languageCode, false, true), to);
+        }
+        throw e;
       }
-      throw e;
+    };
+    const langs = languageFallbacks(template.locale);
+    let lastError: unknown;
+    for (const lang of langs) {
+      try {
+        return await sendForLang(lang);
+      } catch (e) {
+        lastError = e;
+        if (e instanceof CloudError && e.code === TRANSLATION_ERROR) continue;
+        throw e;
+      }
     }
+    throw lastError;
   }
 
   private get bearerToken(): string {
@@ -147,9 +164,11 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       },
     );
     if (!res.ok) {
-      const err = (await res.json().catch(() => null)) as { error?: { code?: number } } | null;
+      const err = (await res.json().catch(() => null)) as {
+        error?: { code?: number; error_subcode?: number };
+      } | null;
       // The Meta error code is useful for support; the message text can echo the number, so skip it.
-      throw new CloudError(res.status, err?.error?.code);
+      throw new CloudError(res.status, err?.error?.code, err?.error?.error_subcode);
     }
     const json = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
     const id = json?.messages?.[0]?.id;
@@ -245,15 +264,32 @@ export class WhatsAppCloudProvider implements MessagingProvider {
 
 const CAPTION_MAX = 1024;
 /** Meta codes for a template/parameter mismatch or unusable header media. */
-const HEADER_ERRORS = new Set([132000, 132012, 131053, 131052]);
+const HEADER_ERRORS = new Set([132000, 132012, 131053, 131052, 131008]);
 const OTP_BUTTON_ERRORS = new Set([132000, 132012, 132015, 131008, 131009]);
+const TRANSLATION_ERROR = 132001;
+
+/** Meta rejects template parameters containing newlines, tabs, or 4+ consecutive spaces (code 132018). */
+const sanitizeParam = (text: string) =>
+  text
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim() || '—';
+
+const languageFallbacks = (locale: string): string[] => {
+  if (locale === 'en') return ['en', 'en_US', 'sw'];
+  if (locale === 'sw') return ['sw', 'en', 'en_US'];
+  return [locale];
+};
 
 class CloudError extends Error {
   constructor(
     readonly status: number,
     readonly code?: number,
+    readonly subcode?: number,
   ) {
-    super(`whatsapp-cloud ${status}${code ? ` code ${code}` : ''}`);
+    super(
+      `whatsapp-cloud ${status}${code ? ` code ${code}` : ''}${subcode ? ` subcode ${subcode}` : ''}`,
+    );
   }
 }
 

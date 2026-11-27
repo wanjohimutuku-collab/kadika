@@ -420,6 +420,11 @@ function SendInner({ id }: { id: string }) {
                   icon={<XCircle className="size-4" />}
                 />
               </div>
+              {j.byChannel.whatsapp + j.byChannel.sms > 0 ? (
+                <p className="text-sm text-muted" data-testid="send-channel-breakdown">
+                  WhatsApp {j.byChannel.whatsapp} · SMS {j.byChannel.sms}
+                </p>
+              ) : null}
               {done && j.failures.length ? (
                 <Card
                   title={t('failures')}

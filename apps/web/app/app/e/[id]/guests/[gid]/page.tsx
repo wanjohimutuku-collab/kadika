@@ -486,9 +486,14 @@ export default function GuestDetailPage({
                               </p>
                               {m.error ? (
                                 <p className="text-sm text-danger">
-                                  {t(
-                                    `errors.${(['not_on_whatsapp', 'invalid_number', 'provider_timeout', 'rate_limited'].includes(m.error) ? m.error : 'unknown') as 'unknown'}`,
-                                  )}
+                                  {[
+                                    'not_on_whatsapp',
+                                    'invalid_number',
+                                    'provider_timeout',
+                                    'rate_limited',
+                                  ].includes(m.error)
+                                    ? t(`errors.${m.error}` as 'errors.unknown')
+                                    : `${t('errors.unknown')} (${m.error})`}
                                 </p>
                               ) : null}
                               <p className="text-sm text-muted">

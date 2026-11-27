@@ -26,6 +26,7 @@ import { decryptSecret, encryptSecret } from '../crypto-at-rest';
 import { ApiError } from '../errors';
 import { recordAudit } from './audit';
 import { BrandingService } from './branding';
+import { shortBaseFor } from '../sms-routing';
 import { requireSettingsAdmin, type StaffCaller } from './staff-guard';
 
 /** A route's provider and its fields (flat strings; secrets included). */
@@ -156,7 +157,7 @@ function configFor(s: MessagingSettings): ProviderConfig {
             apiVersion: wa.apiVersion || 'v21.0',
             verifyToken: wa.verifyToken || null,
             appSecret: wa.appSecret || null,
-            imageHeader: wa.imageHeader === '1',
+            imageHeader: ['1', 'true', 'yes'].includes((wa.imageHeader ?? '').trim().toLowerCase()),
             templates: templates(wa) ?? {},
             templatesByCountry: keTemplates ? { KE: keTemplates } : {},
           }
@@ -497,21 +498,26 @@ export class MessagingSettingsService {
     const locale = route === 'sms_ke' || country === 'KE' ? 'en' : 'sw';
     const wc = this.deps.config.whatsappCloud;
     const tpls = country === 'KE' ? wc?.templatesByCountry.KE : wc?.templates;
+    const siteBase = shortBaseFor(this.deps.config, country);
+    const inviteMediaUrl = `${siteBase}/api/card-image?preview=1&locale=${encodeURIComponent(locale)}&code=TEST-01`;
+    // Prefer the invitation card template when configured so Ops "Send test" checks card delivery
+    // (including its image header), falling back to OTP if only OTP is set.
     const testTemplate =
       route !== 'whatsapp'
         ? undefined
-        : tpls?.otp
-          ? { kind: 'otp' as const, locale: locale as 'sw' | 'en', country, params: ['123456'] }
-          : tpls?.invite
-            ? {
-                kind: 'invite' as const,
-                locale: locale as 'sw' | 'en',
-                country,
-                params:
-                  country === 'KE'
-                    ? [brand, '1 Jan 2027', this.deps.config.shortBaseUrl, 'TEST-01']
-                    : [brand, 'Test', '1 Jan 2027', this.deps.config.shortBaseUrl, 'TEST-01'],
-              }
+        : tpls?.invite
+          ? {
+              kind: 'invite' as const,
+              locale: locale as 'sw' | 'en',
+              country,
+              params:
+                country === 'KE'
+                  ? [brand, '1 Jan 2027', siteBase, 'TEST-01']
+                  : [brand, 'Test', '1 Jan 2027', siteBase, 'TEST-01'],
+              mediaUrl: inviteMediaUrl,
+            }
+          : tpls?.otp
+            ? { kind: 'otp' as const, locale: locale as 'sw' | 'en', country, params: ['123456'] }
             : undefined;
     let error: string | null = null;
     try {

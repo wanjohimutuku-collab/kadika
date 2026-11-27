@@ -166,6 +166,10 @@ function smsCountriesOf(raw: string | undefined): Country[] {
     .filter((c): c is Country => (SIGN_IN_COUNTRIES as readonly string[]).includes(c));
 }
 
+function boolFlag(raw: string | undefined): boolean {
+  return ['1', 'true', 'yes'].includes((raw ?? '').trim().toLowerCase());
+}
+
 function required(env: Record<string, string | undefined>, key: string): string {
   const v = env[key];
   if (!v) throw new Error(`${key} is required`);
@@ -289,7 +293,7 @@ export function loadConfig(input: Record<string, string | undefined> = process.e
             apiVersion: env.WHATSAPP_API_VERSION ?? 'v21.0',
             verifyToken: env.WHATSAPP_VERIFY_TOKEN ?? null,
             appSecret: env.WHATSAPP_APP_SECRET ?? null,
-            imageHeader: env.WHATSAPP_TEMPLATE_IMAGE_HEADER === '1',
+            imageHeader: boolFlag(env.WHATSAPP_TEMPLATE_IMAGE_HEADER),
             templates: {
               invite: env.WHATSAPP_TEMPLATE_INVITE,
               reminder: env.WHATSAPP_TEMPLATE_REMINDER,

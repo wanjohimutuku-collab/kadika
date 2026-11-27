@@ -163,4 +163,60 @@ describe('invitation delivery (§7.2)', () => {
     const done = await api(ctx, 'GET', `/v1/events/${ev.id}/invitations/stats`, { token: t });
     expect(done.body).toMatchObject({ byStatus: { sent: 500 }, failedMessages: 0 });
   }, 120_000);
+
+  it('respects whatsappFallbackToSms=false, attaches locale to mediaUrl without double slashes, and previews missing whatsapp provider as sms', async () => {
+    const { ev, t } = await setup('0766000005');
+    await addGuest(ev.id, t, { displayName: 'No Fallback', phone: '0712500001', language: 'en' });
+    const prevBase = ctx.deps.config.shortBaseUrl;
+    ctx.deps.config.shortBaseUrl = 'https://kadisasa.com/';
+    ctx.fail.wa = () => true;
+    ctx.sms.sent.length = 0;
+    ctx.whatsapp.sent.length = 0;
+    try {
+      const noFb = await (
+        await send(ev.id, t, {
+          target: 'remaining',
+          channel: 'whatsapp',
+          whatsappFallbackToSms: false,
+        })
+      ).json();
+      expect(noFb).toMatchObject({
+        total: 1,
+        sent: 0,
+        failed: 1,
+        byChannel: { whatsapp: 0, sms: 0 },
+      });
+      expect(ctx.sms.sent).toHaveLength(0);
+
+      ctx.fail.wa = () => false;
+      const ok = await (await send(ev.id, t, { target: 'remaining', channel: 'whatsapp' })).json();
+      expect(ok).toMatchObject({ total: 1, sent: 1, byChannel: { whatsapp: 1, sms: 0 } });
+      const tpl = ctx.whatsapp.sent[0]!.template!;
+      expect(tpl.mediaUrl).toContain('https://kadisasa.com/api/card-image?');
+      expect(tpl.mediaUrl).not.toContain('com//api');
+      expect(tpl.mediaUrl).toContain('&locale=en');
+    } finally {
+      ctx.deps.config.shortBaseUrl = prevBase;
+      ctx.fail.wa = () => false;
+    }
+
+    // Preview with whatsapp provider absent reflects actual sms fallback vs zero when fallback=false
+    await addGuest(ev.id, t, { displayName: 'Wait Preview', phone: '0712500002' });
+    const prevWa = ctx.deps.whatsapp;
+    ctx.deps.whatsapp = undefined;
+    try {
+      const pSms = await api(ctx, 'POST', `/v1/events/${ev.id}/invitations/preview`, {
+        token: t,
+        body: { target: 'remaining', channel: 'whatsapp', whatsappFallbackToSms: true },
+      });
+      expect(pSms.body).toMatchObject({ total: 1, byChannel: { whatsapp: 0, sms: 1, print: 0 } });
+      const pNone = await api(ctx, 'POST', `/v1/events/${ev.id}/invitations/preview`, {
+        token: t,
+        body: { target: 'remaining', channel: 'whatsapp', whatsappFallbackToSms: false },
+      });
+      expect(pNone.body).toMatchObject({ total: 1, byChannel: { whatsapp: 0, sms: 0, print: 1 } });
+    } finally {
+      ctx.deps.whatsapp = prevWa;
+    }
+  });
 });

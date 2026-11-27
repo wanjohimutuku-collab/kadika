@@ -939,7 +939,6 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'terms',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['privacy', 'matumizi-yanayokubalika', 'cookies', 'mawasiliano'],
     sw: {
@@ -1221,7 +1220,6 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'cookies',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['privacy', 'terms', 'ombi-la-data', 'usalama-wa-kadi-za-mtandaoni'],
     sw: {
@@ -1371,7 +1369,6 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'data-request',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['privacy', 'cookies', 'mawasiliano', 'terms'],
     sw: {
@@ -1537,7 +1534,6 @@ export const LEGAL_PAGES: ContentPageDef[] = [
     slugEn: 'acceptable-use',
     group: 'legal',
     schema: 'WebPage',
-    draft: true,
     updated: UPDATED,
     related: ['terms', 'privacy', 'usalama-wa-kadi-za-mtandaoni', 'mawasiliano'],
     sw: {

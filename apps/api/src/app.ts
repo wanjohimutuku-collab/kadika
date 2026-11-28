@@ -823,6 +823,13 @@ export function createApp(deps: Deps) {
   app.get('/v1/webhooks/whatsapp-cloud', (c) => {
     const want = deps.config.whatsappCloud?.verifyToken;
     if (!want) throw new ApiError('forbidden', 'Webhooks are not configured');
+    // Without the App Secret every signed callback below is refused. Passing the handshake anyway
+    // would tell Meta the subscription works while delivery and failure reports are all dropped.
+    if (!deps.config.whatsappCloud?.appSecret)
+      throw new ApiError(
+        'forbidden',
+        'Save the WhatsApp App Secret before subscribing the webhook',
+      );
     const q = c.req.query();
     const challenge = metaVerifyChallenge(
       { mode: q['hub.mode'], token: q['hub.verify_token'], challenge: q['hub.challenge'] },

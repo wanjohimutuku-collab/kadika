@@ -167,13 +167,18 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
         token: values.token ?? '',
         phoneNumberId: values.phoneNumberId ?? '',
         apiVersion: values.apiVersion ?? '',
+        // Only checked for presence (webhook readiness); empty means "the saved one".
+        verifyToken: values.verifyToken ?? '',
+        appSecret: values.appSecret ?? '',
       }),
     onSuccess: (r) => {
       setConnResult(r);
       toast(
-        r.ok
-          ? { tone: 'success', title: t('testConnectionOk', { apiVersion: r.apiVersion }) }
-          : { tone: 'error', title: t('testConnectionFailed', { error: r.error ?? '' }) },
+        !r.ok
+          ? { tone: 'error', title: t('testConnectionFailed', { error: r.error ?? '' }) }
+          : r.canSendMessage === 'BLOCKED'
+            ? { tone: 'error', title: t('healthBlocked') }
+            : { tone: 'success', title: t('testConnectionOk', { apiVersion: r.apiVersion }) },
       );
     },
     onError: (e) => {
@@ -186,6 +191,9 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
         status: null,
         apiVersion: values.apiVersion || 'v21.0',
         error: msg,
+        canSendMessage: null,
+        healthIssues: [],
+        webhookReady: true,
       });
       toast({ tone: 'error', title: t('testConnectionFailed', { error: msg }) });
     },
@@ -284,12 +292,43 @@ function RouteCard({ view, kenyaEnabled }: { view: MessagingRouteView; kenyaEnab
                     status: connResult.status ?? '—',
                   })}
                 </span>
+                {connResult.canSendMessage === 'AVAILABLE' ? (
+                  <span className="text-sm">{t('healthAvailable')}</span>
+                ) : null}
               </div>
             ) : (
               <span role="alert">
                 {t('testConnectionFailed', { error: connResult.error ?? '' })}
               </span>
             )}
+          </Banner>
+        ) : null}
+        {/* "Connected" is not "can send": Meta's own verdict on the number, with its reasons. */}
+        {view.route === 'whatsapp' &&
+        provider === 'cloud' &&
+        connResult?.ok &&
+        (connResult.canSendMessage === 'BLOCKED' || connResult.canSendMessage === 'LIMITED') ? (
+          <Banner tone={connResult.canSendMessage === 'BLOCKED' ? 'error' : 'warning'}>
+            <div className="flex flex-col gap-1" role="alert" data-testid="whatsapp-health">
+              <span className="font-semibold">
+                {t(connResult.canSendMessage === 'BLOCKED' ? 'healthBlocked' : 'healthLimited')}
+              </span>
+              {connResult.healthIssues.length ? (
+                <ul className="list-disc ps-5 text-sm">
+                  {connResult.healthIssues.map((issue) => (
+                    <li key={issue}>{issue}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </Banner>
+        ) : null}
+        {view.route === 'whatsapp' &&
+        provider === 'cloud' &&
+        connResult &&
+        !connResult.webhookReady ? (
+          <Banner tone="warning">
+            <span data-testid="whatsapp-webhook-warning">{t('webhookNotReady')}</span>
           </Banner>
         ) : null}
         <div className="flex flex-wrap gap-2">

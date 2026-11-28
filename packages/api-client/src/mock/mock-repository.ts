@@ -3706,6 +3706,8 @@ export class MockRepository implements Repository {
       const token = (fields?.token ?? '').trim() || saved.token || '';
       const phoneNumberId = (fields?.phoneNumberId ?? '').trim() || saved.phoneNumberId || '';
       const apiVersion = (fields?.apiVersion ?? '').trim() || saved.apiVersion || 'v21.0';
+      const pick = (k: string) => (fields?.[k] ?? '').trim() || saved[k] || '';
+      const webhookReady = !!(pick('verifyToken') && pick('appSecret'));
       if (!token || !phoneNumberId) {
         return {
           ok: false,
@@ -3715,6 +3717,9 @@ export class MockRepository implements Repository {
           status: null,
           apiVersion,
           error: 'Missing access token or phone number ID',
+          canSendMessage: null,
+          healthIssues: [],
+          webhookReady,
         };
       }
       this.opsLog('messaging', 'whatsapp', 'Cloud API connection check');
@@ -3726,6 +3731,9 @@ export class MockRepository implements Repository {
         status: 'CONNECTED',
         apiVersion,
         error: null,
+        canSendMessage: 'AVAILABLE',
+        healthIssues: [],
+        webhookReady,
       };
     });
   }

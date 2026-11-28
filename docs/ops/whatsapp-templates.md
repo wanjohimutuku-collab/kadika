@@ -94,7 +94,16 @@ numbering runs in order, which Meta requires.
 4. Once approved, set the env vars from the table (Coolify), plus `WHATSAPP_TEMPLATE_IMAGE_HEADER=1`
    only if you submitted with `-ImageHeader`. The flag must match: a template approved with a header
    rejects a message sent without one.
-5. Send a test from Ops → Messaging settings.
+5. In Ops → Messaging settings, save the **App Secret** and **Verify token**, then subscribe the
+   webhook (`/v1/webhooks/whatsapp-cloud`, field `messages`) in the Meta app dashboard. The API
+   refuses the subscribe handshake until the App Secret is saved: without it every signed delivery
+   report is rejected, so a card Meta drops stays "sent" with no reason and no prompt SMS fallback.
+6. **Test connection** reads Meta's `health_status` for the number. `BLOCKED` lists what stops every
+   send (display name not approved, business not verified, no payment method, ...); fix those in
+   WhatsApp Manager. "VERIFIED" on its own only means the number is registered.
+7. Send a test from Ops → Messaging settings. A failure names the Meta code and what it means, for
+   example `code 131037 (sender display name not approved by Meta)` or
+   `code 131030 (recipient not on the test number allowed list)`.
 
 ## Review risks
 

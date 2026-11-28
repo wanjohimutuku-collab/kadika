@@ -1775,7 +1775,11 @@
         "done": "Moved: {routes}",
         "nothing": "Nothing to move: every route is already saved, or has no settings on the server.",
         "after": "After moving, you can delete the NEXTSMS_*, SMS_SENDER_ID and WHATSAPP_* variables on the server; the saved settings keep working."
-      }
+      },
+      "healthAvailable": "Meta: this number can send messages.",
+      "healthLimited": "Meta: this number sends with limits. Cards may be delayed or not arrive.",
+      "healthBlocked": "Meta is blocking this number from sending anything. Cards will not arrive on WhatsApp until these are fixed in WhatsApp Manager:",
+      "webhookNotReady": "App Secret or Verify token is not set: when Meta rejects a card it stays \"sent\" with no reason and the SMS fallback is not sent straight away. Set both, then verify the webhook again in the Meta dashboard."
     },
     "settings": {
       "title": "Settings",

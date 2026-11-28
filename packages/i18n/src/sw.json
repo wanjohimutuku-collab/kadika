@@ -1779,7 +1779,11 @@
         "done": "Imehamishwa: {routes}",
         "nothing": "Hakuna cha kuhamisha: kila njia imehifadhiwa tayari au haina mipangilio kwenye seva.",
         "after": "Baada ya kuhamisha unaweza kufuta vigezo vya NEXTSMS_*, SMS_SENDER_ID na WHATSAPP_* kwenye seva; mipangilio iliyohifadhiwa itaendelea kufanya kazi."
-      }
+      },
+      "healthAvailable": "Meta: namba hii inaweza kutuma ujumbe.",
+      "healthLimited": "Meta: namba hii inatuma kwa vikwazo. Kadi zinaweza kuchelewa au kutofika.",
+      "healthBlocked": "Meta inazuia namba hii kutuma ujumbe wowote. Kadi hazitafika kwa WhatsApp mpaka haya yarekebishwe kwenye WhatsApp Manager:",
+      "webhookNotReady": "App Secret au Verify token haijawekwa: Meta ikikataa kadi, itabaki \"imetumwa\" bila sababu na SMS ya akiba haitatumwa mara moja. Weka zote mbili, kisha thibitisha webhook upya kwenye dashibodi ya Meta."
     },
     "settings": {
       "title": "Mipangilio",

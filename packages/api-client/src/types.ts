@@ -764,6 +764,12 @@ export interface WhatsAppCloudConnectionResult {
   status: string | null;
   apiVersion: string;
   error: string | null;
+  /** Meta's `health_status` verdict: whether the number can actually send. Null when Meta did not say. */
+  canSendMessage: 'AVAILABLE' | 'LIMITED' | 'BLOCKED' | null;
+  /** Meta's reasons for LIMITED / BLOCKED, one per line. */
+  healthIssues: string[];
+  /** Verify token and App Secret both set, so delivery and failure reports are accepted. */
+  webhookReady: boolean;
 }
 
 export type {

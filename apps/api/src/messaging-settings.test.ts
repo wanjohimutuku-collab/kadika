@@ -149,9 +149,29 @@ describe('messaging settings in /ops (ADR 031)', () => {
     });
     expect(r.status).toBe(200);
     expect(ctx.deps.whatsapp?.name).toBe('whatsapp-cloud');
-    const ok = await ctx.app.request(
-      '/v1/webhooks/whatsapp-cloud?hub.mode=subscribe&hub.verify_token=from-ops&hub.challenge=42',
-    );
+    const subscribe = () =>
+      ctx.app.request(
+        '/v1/webhooks/whatsapp-cloud?hub.mode=subscribe&hub.verify_token=from-ops&hub.challenge=42',
+      );
+    // Without the App Secret every signed status callback would be refused, so Meta must not be
+    // told the subscription works: failed cards would then stay "sent" with no reason.
+    const early = await subscribe();
+    expect(early.status).toBe(403);
+    expect(await early.text()).toMatch(/App Secret/);
+    const withSecret = await api(ctx, 'PUT', '/v1/ops/messaging/whatsapp', {
+      token: admin,
+      body: {
+        provider: 'cloud',
+        fields: {
+          phoneNumberId: '555',
+          verifyToken: 'from-ops',
+          appSecret: 'meta-app-secret',
+          templateInvite: 'harusi_invite',
+        },
+      },
+    });
+    expect(withSecret.status).toBe(200);
+    const ok = await subscribe();
     expect(await ok.text()).toBe('42');
   });
 
@@ -191,6 +211,75 @@ describe('messaging settings in /ops (ADR 031)', () => {
     });
     expect(missing.status).toBe(400);
     expect(missing.body!.error.details.missing).toEqual(['token', 'phoneNumberId']);
+  });
+
+  it('the connection test says when Meta blocks sending and when delivery callbacks would be refused', async () => {
+    const urls: string[] = [];
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (u) => {
+      urls.push(String(u));
+      return String(u).includes('health_status')
+        ? new Response(
+            JSON.stringify({
+              health_status: {
+                can_send_message: 'BLOCKED',
+                entities: [
+                  {
+                    entity_type: 'PHONE_NUMBER',
+                    id: '555',
+                    can_send_message: 'LIMITED',
+                    additional_info: ['Your display name has not been approved yet.'],
+                  },
+                  {
+                    entity_type: 'WABA',
+                    id: '777',
+                    can_send_message: 'BLOCKED',
+                    errors: [
+                      {
+                        error_code: 141006,
+                        error_description: 'No valid payment method is attached.',
+                        possible_solution: 'Add a payment method in WhatsApp Manager.',
+                      },
+                    ],
+                  },
+                  { entity_type: 'APP', id: '1', can_send_message: 'AVAILABLE' },
+                ],
+              },
+            }),
+            { status: 200 },
+          )
+        : new Response(
+            JSON.stringify({
+              verified_name: 'KadiSasa',
+              display_phone_number: '+1 555-819-7356',
+              code_verification_status: 'VERIFIED',
+            }),
+            { status: 200 },
+          );
+    });
+    try {
+      const noSecret = await api(ctx, 'POST', '/v1/ops/messaging/whatsapp/test-connection', {
+        token: admin,
+        body: { fields: { token: 't', phoneNumberId: '555', verifyToken: 'v' } },
+      });
+      expect(noSecret.status).toBe(200);
+      expect(urls.some((u) => u.endsWith('/555?fields=health_status'))).toBe(true);
+      expect(noSecret.body).toMatchObject({
+        ok: true,
+        canSendMessage: 'BLOCKED',
+        webhookReady: false,
+      });
+      expect(noSecret.body!.healthIssues).toEqual([
+        'PHONE_NUMBER: Your display name has not been approved yet.',
+        'WABA: No valid payment method is attached. (code 141006) Add a payment method in WhatsApp Manager.',
+      ]);
+      const withSecret = await api(ctx, 'POST', '/v1/ops/messaging/whatsapp/test-connection', {
+        token: admin,
+        body: { fields: { token: 't', phoneNumberId: '555', verifyToken: 'v', appSecret: 's' } },
+      });
+      expect(withSecret.body).toMatchObject({ webhookReady: true });
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('tests WhatsApp Cloud using the invite template with card media when configured, and accepts boolean imageHeader flags', async () => {

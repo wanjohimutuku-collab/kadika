@@ -19,6 +19,14 @@ export interface WhatsAppCloudConnectionResult {
   status: string | null;
   apiVersion: string;
   error: string | null;
+  /**
+   * Meta's own verdict on whether this number can send (`health_status`): `BLOCKED` stops every
+   * message (an unapproved display name, an unverified business, no payment method...), `LIMITED`
+   * sends with limits. Null when Meta did not say (old API version, token without access).
+   */
+  canSendMessage: 'AVAILABLE' | 'LIMITED' | 'BLOCKED' | null;
+  /** Why, in Meta's words, one line per problem. Account-level text only, never a recipient. */
+  healthIssues: string[];
 }
 
 export interface WhatsAppCloudOptions {
@@ -193,6 +201,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       quality_rating?: string;
       code_verification_status?: string;
       status?: string;
+      health_status?: HealthStatus;
       error?: {
         code?: number;
         error_subcode?: number;
@@ -211,6 +220,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       const json = (await res.json().catch(() => null)) as GraphNumberResponse | null;
       return { res, json };
     };
+    const none = { canSendMessage: null, healthIssues: [] as string[] };
 
     try {
       // Request standard Phone Number fields (avoiding restricted `status` on messaging-only tokens).
@@ -237,8 +247,15 @@ export class WhatsAppCloudProvider implements MessagingProvider {
           status: null,
           apiVersion,
           error: `Graph API ${res.status}${codeText}${detail ? `: ${detail}` : ''}`,
+          ...none,
         };
       }
+      // "VERIFIED" only means the number is registered. Whether Meta lets it send (display name
+      // approved, business verified, payment method, templates) is a separate check: ask for it on
+      // its own, so a token that cannot read it still passes the connection test.
+      const health = await query(`${nodeUrl}?fields=health_status`)
+        .then(({ res: r, json: j }) => (r.ok ? readHealth(j?.health_status) : none))
+        .catch(() => none);
       return {
         ok: true,
         verifiedName: json?.verified_name ?? null,
@@ -247,6 +264,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
         status: json?.status ?? json?.code_verification_status ?? null,
         apiVersion,
         error: null,
+        ...health,
       };
     } catch (e) {
       return {
@@ -257,9 +275,47 @@ export class WhatsAppCloudProvider implements MessagingProvider {
         status: null,
         apiVersion,
         error: (e as Error).message || 'Connection failed',
+        ...none,
       };
     }
   }
+}
+
+interface HealthStatus {
+  can_send_message?: string;
+  entities?: {
+    entity_type?: string;
+    can_send_message?: string;
+    additional_info?: string[];
+    errors?: { error_code?: number; error_description?: string; possible_solution?: string }[];
+  }[];
+}
+
+const SEND_STATES = ['AVAILABLE', 'LIMITED', 'BLOCKED'] as const;
+
+/** `health_status` of a phone number: the overall verdict and one line per limit or blocker. */
+function readHealth(
+  h: HealthStatus | undefined,
+): Pick<WhatsAppCloudConnectionResult, 'canSendMessage' | 'healthIssues'> {
+  const state = (SEND_STATES as readonly string[]).includes(h?.can_send_message ?? '')
+    ? (h!.can_send_message as (typeof SEND_STATES)[number])
+    : null;
+  const issues: string[] = [];
+  for (const e of h?.entities ?? []) {
+    const who = e.entity_type ?? 'UNKNOWN';
+    for (const info of e.additional_info ?? []) issues.push(`${who}: ${info}`);
+    for (const err of e.errors ?? []) {
+      const parts = [
+        err.error_description,
+        err.error_code !== undefined ? `(code ${err.error_code})` : undefined,
+        err.possible_solution,
+      ].filter(Boolean);
+      issues.push(
+        `${who}: ${err.error_description ? parts.join(' ') : `code ${err.error_code ?? '?'}`}`,
+      );
+    }
+  }
+  return { canSendMessage: state, healthIssues: issues };
 }
 
 const CAPTION_MAX = 1024;
@@ -281,14 +337,46 @@ const languageFallbacks = (locale: string): string[] => {
   return [locale];
 };
 
+/**
+ * Our own words for the Meta codes that stop cards going out, so the failure in the message log and
+ * Ops usage says what to fix. Meta's message text is never used: it can echo the recipient's number.
+ */
+const REASONS: Record<number, string> = {
+  10: 'token lacks WhatsApp permission',
+  190: 'access token expired or invalid',
+  200: 'token lacks WhatsApp permission',
+  368: 'sender temporarily blocked for policy violations',
+  130429: 'Cloud API rate limit reached',
+  131008: 'required template parameter missing',
+  131026: 'message undeliverable to this number',
+  131030: 'recipient not on the test number allowed list',
+  131031: 'WhatsApp Business account locked',
+  131037: 'sender display name not approved by Meta',
+  131042: 'WhatsApp Business account payment problem',
+  131047: 'outside the 24-hour window: needs an approved template',
+  131049: 'Meta held the message back to protect engagement',
+  131052: 'card image could not be downloaded',
+  131053: 'card image could not be used',
+  131056: 'too many messages to this number',
+  132000: 'template parameter count does not match',
+  132001: 'template not approved in this language',
+  132005: 'template text too long once filled in',
+  132007: 'template content violates WhatsApp policy',
+  132012: 'template parameter format does not match',
+  132015: 'template paused by Meta',
+  132016: 'template disabled by Meta',
+  133010: 'sender number not registered with the Cloud API',
+};
+
 class CloudError extends Error {
   constructor(
     readonly status: number,
     readonly code?: number,
     readonly subcode?: number,
   ) {
+    const reason = code !== undefined ? REASONS[code] : undefined;
     super(
-      `whatsapp-cloud ${status}${code ? ` code ${code}` : ''}${subcode ? ` subcode ${subcode}` : ''}`,
+      `whatsapp-cloud ${status}${code ? ` code ${code}` : ''}${subcode ? ` subcode ${subcode}` : ''}${reason ? ` (${reason})` : ''}`,
     );
   }
 }

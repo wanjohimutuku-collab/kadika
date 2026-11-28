@@ -551,14 +551,18 @@ export class MessagingSettingsService {
   async testWhatsAppCloudConnection(
     caller: StaffCaller,
     input?: { fields?: Record<string, string> },
-  ): Promise<WhatsAppCloudConnectionResult> {
+  ): Promise<WhatsAppCloudConnectionResult & { webhookReady: boolean }> {
     await this.requireAdmin(caller);
     const { s } = await this.effective();
     const saved = s.whatsapp.provider === 'cloud' ? s.whatsapp.fields : {};
     const fields = input?.fields ?? {};
-    const token = (fields.token ?? '').trim() || saved.token || '';
-    const phoneNumberId = (fields.phoneNumberId ?? '').trim() || saved.phoneNumberId || '';
-    const apiVersion = (fields.apiVersion ?? '').trim() || saved.apiVersion || 'v21.0';
+    const pick = (k: string) => (fields[k] ?? '').trim() || saved[k] || '';
+    const token = pick('token');
+    const phoneNumberId = pick('phoneNumberId');
+    const apiVersion = pick('apiVersion') || 'v21.0';
+    // Delivery and failure reports need both: the verify token for Meta's handshake, the App Secret
+    // to check each callback's signature. Without them a card Meta rejects stays "sent".
+    const webhookReady = !!(pick('verifyToken') && pick('appSecret'));
     const missing = [...(!token ? ['token'] : []), ...(!phoneNumberId ? ['phoneNumberId'] : [])];
     if (missing.length) {
       throw new ApiError('validation', `WhatsApp Cloud API needs ${missing.join(', ')}`, {
@@ -577,8 +581,14 @@ export class MessagingSettingsService {
       action: 'ops.messaging.test_connection',
       entity: 'messaging_settings',
       entityId: 'whatsapp',
-      diff: { provider: 'cloud', ok: res.ok, apiVersion: res.apiVersion },
+      diff: {
+        provider: 'cloud',
+        ok: res.ok,
+        apiVersion: res.apiVersion,
+        canSendMessage: res.canSendMessage,
+        webhookReady,
+      },
     });
-    return res;
+    return { ...res, webhookReady };
   }
 }

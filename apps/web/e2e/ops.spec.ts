@@ -252,6 +252,25 @@ test('staff admin: payments — Snippe is saved with secrets masked, tested, the
   await expect(form).toContainText('vigezo vya seva vinatumika');
 });
 
+test('staff admin: WhatsApp Cloud connection test warns until delivery reports can be accepted', async ({
+  page,
+}) => {
+  await loginStaff(page);
+  await page.goto('/ops/settings/messaging');
+  const form = page.getByTestId('messaging-whatsapp');
+  await form.getByLabel('Mtoa huduma').selectOption('cloud');
+  await form.getByLabel('Access token').fill('EAAtest');
+  await form.getByLabel('Phone number ID').fill('1513775015142573');
+  await form.getByRole('button', { name: 'Jaribu muunganisho' }).click();
+  await expect(form).toContainText('Meta: namba hii inaweza kutuma ujumbe.');
+  // No App Secret yet: a card Meta drops would stay "sent" with no reason.
+  await expect(form.getByTestId('whatsapp-webhook-warning')).toContainText('App Secret');
+  await form.getByLabel('Verify token ya webhook').fill('verify-me');
+  await form.getByLabel('App secret').fill('meta-app-secret');
+  await form.getByRole('button', { name: 'Jaribu muunganisho' }).click();
+  await expect(form.getByTestId('whatsapp-webhook-warning')).toHaveCount(0);
+});
+
 test('settings are for admin staff: billing staff see no menu entry and a refusal', async ({
   page,
 }) => {

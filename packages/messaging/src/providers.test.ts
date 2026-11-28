@@ -249,7 +249,29 @@ describe('WhatsAppCloudProvider', () => {
       }).impl,
     });
     await expect(p.send('+255712345678', 'x', template)).rejects.toThrow(
-      /^whatsapp-cloud 400 code 131047$/,
+      /^whatsapp-cloud 400 code 131047 \(outside the 24-hour window: needs an approved template\)$/,
+    );
+    // The codes that stop every card get a plain reason (our words, never Meta's text).
+    for (const [code, reason] of [
+      [131037, 'sender display name not approved by Meta'],
+      [131030, 'recipient not on the test number allowed list'],
+      [132001, 'template not approved in this language'],
+      [190, 'access token expired or invalid'],
+    ] as const) {
+      const q = new WhatsAppCloudProvider({
+        ...base,
+        fetchImpl: fakeFetch(400, { error: { code, message: 'to 255712345678' } }).impl,
+      });
+      await expect(q.send('+255712345678', 'x', template)).rejects.toThrow(
+        `whatsapp-cloud 400 code ${code} (${reason})`,
+      );
+    }
+    const unknown = new WhatsAppCloudProvider({
+      ...base,
+      fetchImpl: fakeFetch(400, { error: { code: 999999 } }).impl,
+    });
+    await expect(unknown.send('+255712345678', 'x', template)).rejects.toThrow(
+      /^whatsapp-cloud 400 code 999999$/,
     );
     const none = new WhatsAppCloudProvider({ ...base, fetchImpl: fakeFetch(200, {}).impl });
     await expect(none.send('+255712345678', 'x', template)).rejects.toThrow(/no message id/);
@@ -369,7 +391,12 @@ describe('WhatsAppCloudProvider', () => {
       status: 'VERIFIED',
       apiVersion: 'v21.0',
       error: null,
+      canSendMessage: null,
+      healthIssues: [],
     });
+    expect(ok.calls[1]!.url).toBe(
+      'https://graph.facebook.com/v21.0/1234567890?fields=health_status',
+    );
 
     // Falls back to bare /{phoneNumberId} when Meta returns 400 code 100 on fields=
     const urls: string[] = [];
@@ -394,6 +421,7 @@ describe('WhatsAppCloudProvider', () => {
     expect(urls).toEqual([
       'https://graph.facebook.com/v21.0/1234567890?fields=verified_name,display_phone_number,quality_rating,code_verification_status',
       'https://graph.facebook.com/v21.0/1234567890',
+      'https://graph.facebook.com/v21.0/1234567890?fields=health_status',
     ]);
     expect(fbRes).toMatchObject({
       ok: true,
@@ -416,6 +444,76 @@ describe('WhatsAppCloudProvider', () => {
       status: null,
       apiVersion: 'v21.0',
       error: 'Graph API 401 (code 190, subcode 463): Invalid OAuth access token',
+      canSendMessage: null,
+      healthIssues: [],
+    });
+    expect(bad.calls).toHaveLength(1);
+  });
+
+  it("reports Meta's messaging health, so a connected number that cannot send is not shown as fine", async () => {
+    const health = (h: unknown, status = 200) =>
+      (async (u: string) =>
+        u.includes('health_status')
+          ? new Response(JSON.stringify(h), { status })
+          : new Response(JSON.stringify({ verified_name: 'KadiSasa' }), {
+              status: 200,
+            })) as unknown as typeof fetch;
+    const check = (h: unknown, status?: number) =>
+      new WhatsAppCloudProvider({ ...base, fetchImpl: health(h, status) }).verifyConnection();
+
+    expect(
+      await check({
+        health_status: {
+          can_send_message: 'AVAILABLE',
+          entities: [{ entity_type: 'PHONE_NUMBER', can_send_message: 'AVAILABLE' }],
+        },
+      }),
+    ).toMatchObject({ ok: true, canSendMessage: 'AVAILABLE', healthIssues: [] });
+
+    expect(
+      await check({
+        health_status: {
+          can_send_message: 'BLOCKED',
+          entities: [
+            {
+              entity_type: 'PHONE_NUMBER',
+              can_send_message: 'LIMITED',
+              additional_info: ['Your display name has not been approved yet.'],
+            },
+            {
+              entity_type: 'BUSINESS',
+              can_send_message: 'BLOCKED',
+              errors: [
+                {
+                  error_code: 141010,
+                  error_description: 'The business has not been verified.',
+                  possible_solution: 'Complete business verification.',
+                },
+                { error_code: 141000 },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toMatchObject({
+      ok: true,
+      canSendMessage: 'BLOCKED',
+      healthIssues: [
+        'PHONE_NUMBER: Your display name has not been approved yet.',
+        'BUSINESS: The business has not been verified. (code 141010) Complete business verification.',
+        'BUSINESS: code 141000',
+      ],
+    });
+
+    // A token or API version that cannot read health_status still passes the connection test.
+    expect(await check({ error: { code: 100 } }, 400)).toMatchObject({
+      ok: true,
+      verifiedName: 'KadiSasa',
+      canSendMessage: null,
+      healthIssues: [],
+    });
+    expect(await check({ health_status: { can_send_message: 'WHATEVER' } })).toMatchObject({
+      canSendMessage: null,
     });
   });
 });
@@ -690,6 +788,8 @@ describe('WhatsAppCloudProvider image header (ADR 058)', () => {
         locale: 'sw',
         params: ['A', 'B', 'D', 'L', 'C'],
       }),
-    ).rejects.toThrow(/^whatsapp-cloud 400 code 131047 subcode 2494010$/);
+    ).rejects.toThrow(
+      /^whatsapp-cloud 400 code 131047 subcode 2494010 \(outside the 24-hour window: needs an approved template\)$/,
+    );
   });
 });
